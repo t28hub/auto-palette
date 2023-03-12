@@ -1,4 +1,4 @@
-use crate::math::clustering::hierarchical::node::Node;
+use crate::math::clustering::hierarchical::node::HierarchicalNode;
 use crate::math::clustering::hierarchical::union_find::UnionFind;
 use crate::math::graph::edge::Edge;
 use crate::math::graph::spanning_tree;
@@ -9,7 +9,7 @@ use std::collections::{BinaryHeap, VecDeque};
 
 #[derive(Debug, PartialEq)]
 pub struct HierarchicalClustering<F: Float> {
-    hierarchy: Vec<Node<F>>,
+    hierarchy: Vec<HierarchicalNode<F>>,
 }
 
 impl<F> HierarchicalClustering<F>
@@ -41,11 +41,11 @@ where
         let mut union_find = UnionFind::new(n_node);
         let nodes = edges
             .iter()
-            .map(|edge| -> Node<F> {
+            .map(|edge| -> HierarchicalNode<F> {
                 let root_u = union_find.find(edge.u());
                 let root_v = union_find.find(edge.v());
                 let size = union_find.union(root_u, root_v);
-                Node {
+                HierarchicalNode {
                     left: root_u,
                     right: root_v,
                     weight: edge.weight(),
@@ -54,6 +54,11 @@ where
             })
             .collect();
         Self { hierarchy: nodes }
+    }
+
+    #[must_use]
+    pub fn nodes(&self) -> &Vec<HierarchicalNode<F>> {
+        &self.hierarchy
     }
 
     #[must_use]
@@ -141,31 +146,31 @@ mod tests {
         assert_eq!(
             hierarchical_clustering.hierarchy,
             vec![
-                Node {
+                HierarchicalNode {
                     left: 4,
                     right: 2,
                     weight: 0.25,
                     size: 2,
                 },
-                Node {
+                HierarchicalNode {
                     left: 1,
                     right: 3,
                     weight: 1.0,
                     size: 2,
                 },
-                Node {
+                HierarchicalNode {
                     left: 7,
                     right: 0,
                     weight: 1.0,
                     size: 3,
                 },
-                Node {
+                HierarchicalNode {
                     left: 5,
                     right: 6,
                     weight: 1.25,
                     size: 3,
                 },
-                Node {
+                HierarchicalNode {
                     left: 9,
                     right: 8,
                     weight: 1.25,

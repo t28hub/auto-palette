@@ -28,6 +28,10 @@ impl Params {
         self.min_samples
     }
 
+    pub fn min_cluster_size(&self) -> usize {
+        self.min_cluster_size
+    }
+
     pub fn metric(&self) -> &DistanceMetric {
         &self.metric
     }

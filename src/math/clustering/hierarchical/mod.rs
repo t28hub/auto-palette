@@ -1,3 +1,3 @@
 pub(crate) mod algorithm;
-mod node;
+pub(crate) mod node;
 mod union_find;
