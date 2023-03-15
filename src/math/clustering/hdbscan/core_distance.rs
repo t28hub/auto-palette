@@ -22,7 +22,7 @@ where
             };
         }
 
-        let k = dataset.len().min(min_samples + 1);
+        let k = dataset.len().min(min_samples);
         let dataset_vec = dataset.to_vec();
         let neighbor_search = KDTree::new(&dataset_vec, metric);
         let mut distances = Vec::with_capacity(dataset.len());
