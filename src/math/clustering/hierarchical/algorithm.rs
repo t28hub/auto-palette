@@ -124,39 +124,38 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::distance::metric::DistanceMetric::{Euclidean, SquaredEuclidean};
+    use crate::math::distance::metric::DistanceMetric::SquaredEuclidean;
     use crate::math::point::Point2;
 
     #[test]
     fn fit_should_return_hierarchical_clustering() {
         let dataset = vec![
-            Point2::new(0.0, 0.1), // 0
-            Point2::new(0.1, 0.1), // 1
-            Point2::new(0.1, 0.0), // 2
-            Point2::new(2.1, 2.0), // 3
+            Point2::new(0.0, 0.0), // 0
+            Point2::new(1.0, 1.0), // 1
+            Point2::new(2.0, 1.5), // 2
+            Point2::new(1.0, 0.0), // 3
             Point2::new(2.0, 2.0), // 4
-            Point2::new(1.9, 2.1), // 5
-            Point2::new(5.0, 5.1), // 6
+            Point2::new(2.5, 3.0), // 5
         ];
         let hierarchical_clustering = HierarchicalClustering::fit(&dataset, |u, v| {
             let point_u = &dataset[u];
             let point_v = &dataset[v];
-            Euclidean.measure(point_u, point_v)
+            SquaredEuclidean.measure(point_u, point_v)
         });
         assert_eq!(
             hierarchical_clustering.hierarchy,
             vec![
                 HierarchicalNode {
-                    left: 1,
-                    right: 0,
-                    weight: 0.1,
+                    left: 4,
+                    right: 2,
+                    weight: 0.25,
                     size: 2,
                 },
                 HierarchicalNode {
-                    left: 7,
-                    right: 2,
-                    weight: 0.1,
-                    size: 3,
+                    left: 1,
+                    right: 3,
+                    weight: 1.0,
+                    size: 2,
                 },
                 HierarchicalNode {
                     left: 7,

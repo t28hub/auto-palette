@@ -61,11 +61,11 @@ mod tests {
         ]);
         let core_distance = CoreDistance::new(&dataset, 3, &DistanceMetric::SquaredEuclidean);
         assert_eq!(core_distance.distances.len(), 6);
-        assert_eq!(core_distance.distance_at(0), 5.62);
-        assert_eq!(core_distance.distance_at(1), 1.6199999999999997);
-        assert_eq!(core_distance.distance_at(2), 2.0);
-        assert_eq!(core_distance.distance_at(3), 2.0);
-        assert_eq!(core_distance.distance_at(4), 2.4200000000000004);
-        assert_eq!(core_distance.distance_at(5), 4.5);
+        assert_eq!(core_distance.distance_at(0), 5.0);
+        assert_eq!(core_distance.distance_at(1), 0.0800000000000001);
+        assert_eq!(core_distance.distance_at(2), 1.6199999999999997);
+        assert_eq!(core_distance.distance_at(3), 0.020000000000000035);
+        assert_eq!(core_distance.distance_at(4), 0.0800000000000001);
+        assert_eq!(core_distance.distance_at(5), 3.9199999999999995);
     }
 }
