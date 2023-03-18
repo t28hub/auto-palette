@@ -1,7 +1,6 @@
 use crate::math::clustering::hierarchical::node::HierarchicalNode;
 use crate::math::clustering::hierarchical::union_find::UnionFind;
 use crate::math::graph::edge::Edge;
-use crate::math::graph::spanning_tree;
 use crate::math::graph::spanning_tree::{MinimumSpanningTree, SpanningTree};
 use crate::math::number::Float;
 use std::cmp::Ordering;
@@ -148,16 +147,16 @@ mod tests {
             hierarchical_clustering.hierarchy,
             vec![
                 HierarchicalNode {
-                    left: 4,
-                    right: 2,
-                    weight: 0.25,
+                    left: 1,
+                    right: 0,
+                    weight: 0.1,
                     size: 2,
                 },
                 HierarchicalNode {
-                    left: 1,
-                    right: 3,
-                    weight: 1.0,
-                    size: 2,
+                    left: 7,
+                    right: 2,
+                    weight: 0.1,
+                    size: 3,
                 },
                 HierarchicalNode {
                     left: 7,

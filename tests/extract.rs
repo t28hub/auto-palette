@@ -1,17 +1,15 @@
 extern crate image;
 
-use auto_palette::image::ImageData;
-use auto_palette::swatch::Swatch;
+use auto_palette::*;
 
 #[test]
-fn extract() {
-    let img = image::open("./tests/images/flag_gr.png").unwrap();
-    let data = img.to_rgba8().to_vec();
-    let image_data = ImageData::new(&data, img.width(), img.height());
-    let swatches: Vec<Swatch<f64>> = image_data
-        .extract()
-        .into_iter()
-        .filter(|swatch| swatch.percentage > 0.05)
-        .collect();
-    println!("{:?}", swatches)
+fn generate() {
+    let img = image::open("./tests/images/img.png").unwrap();
+    let pixels = img.to_rgba8().to_vec();
+    let palette: Palette<f64> = Palette::generate(&pixels, img.width(), img.height());
+    palette
+        .swatches()
+        .iter()
+        .filter(|swatch| swatch.percentage > 0.01)
+        .for_each(|swatch| println!("{:?}", swatch));
 }

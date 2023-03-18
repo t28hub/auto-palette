@@ -1,4 +1,7 @@
 mod color;
-pub mod image;
 mod math;
-pub mod swatch;
+mod palette;
+mod swatch;
+
+pub use palette::*;
+pub use swatch::*;

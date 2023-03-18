@@ -10,12 +10,16 @@ use std::collections::{HashMap, HashSet};
 
 /// HDBSCAN clustering algorithm.
 #[derive(Debug, PartialEq)]
-struct HDBSCAN {
+pub struct HDBSCAN {
     clusters: HashMap<usize, Vec<usize>>,
     outliers: HashSet<usize>,
 }
 
 impl HDBSCAN {
+    pub fn clusters(&self) -> &HashMap<usize, Vec<usize>> {
+        &self.clusters
+    }
+
     fn condense_tree<F>(
         hierarchy: &[HierarchicalNode<F>],
         min_cluster_size: usize,
@@ -330,7 +334,7 @@ struct CondensedNode<F: Float> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::distance::metric::DistanceMetric::{Euclidean, SquaredEuclidean};
+    use crate::math::distance::metric::DistanceMetric::SquaredEuclidean;
     use crate::math::point::Point2;
 
     #[test]
