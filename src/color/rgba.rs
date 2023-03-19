@@ -201,20 +201,16 @@ mod tests {
         let black = XYZ::new(0.0, 0.0, 0.0);
         assert_eq!(Rgba::from(&black), Rgba::black());
 
-        let white = XYZ::new(0.9504560232162476, 1.0, 1.088644027709961);
+        let white = XYZ::new(0.950456, 1.0, 1.0886440);
         assert_eq!(Rgba::from(&white), Rgba::white());
 
-        let red = XYZ::new(
-            0.41239105587441904,
-            0.21263902922049316,
-            0.01933100303881014,
-        );
+        let red = XYZ::new(0.412391, 0.212639, 0.019331);
         assert_eq!(Rgba::from(&red), Rgba::red());
 
-        let green = XYZ::new(0.35758404205910366, 0.7151690973972887, 0.11919501347900736);
+        let green = XYZ::new(0.357584, 0.715169, 0.119195);
         assert_eq!(Rgba::from(&green), Rgba::green());
 
-        let blue = XYZ::new(0.1804810231477814, 0.07219200692771258, 0.9505321319135721);
+        let blue = XYZ::new(0.180481, 0.072192, 0.950532);
         assert_eq!(Rgba::from(&blue), Rgba::blue());
     }
 

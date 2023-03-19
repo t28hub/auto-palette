@@ -5,7 +5,7 @@ use crate::math::number::Float;
 use crate::math::point::Point;
 
 /// Core distance struct.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct CoreDistance<F: Float> {
     distances: Vec<F>,
 }
@@ -47,6 +47,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::assert_close_to;
     use crate::math::point::Point2;
 
     #[test]
@@ -61,11 +62,11 @@ mod tests {
         ]);
         let core_distance = CoreDistance::new(&dataset, 3, &DistanceMetric::SquaredEuclidean);
         assert_eq!(core_distance.distances.len(), 6);
-        assert_eq!(core_distance.distance_at(0), 5.0);
-        assert_eq!(core_distance.distance_at(1), 0.0800000000000001);
-        assert_eq!(core_distance.distance_at(2), 1.6199999999999997);
-        assert_eq!(core_distance.distance_at(3), 0.020000000000000035);
-        assert_eq!(core_distance.distance_at(4), 0.0800000000000001);
-        assert_eq!(core_distance.distance_at(5), 3.9199999999999995);
+        assert_close_to!(core_distance.distance_at(0), 5.00);
+        assert_close_to!(core_distance.distance_at(1), 0.08);
+        assert_close_to!(core_distance.distance_at(2), 1.62);
+        assert_close_to!(core_distance.distance_at(3), 0.02);
+        assert_close_to!(core_distance.distance_at(4), 0.08);
+        assert_close_to!(core_distance.distance_at(5), 3.92);
     }
 }

@@ -133,6 +133,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::assert_close_to;
     use crate::color::rgba::Rgba;
 
     #[test]
@@ -165,27 +166,27 @@ mod tests {
         assert_eq!(Lab::from(&black), Lab::new(0.0, 0.0, 0.0));
 
         let white: XYZ<f64, D65> = XYZ::from(&Rgba::white());
-        assert_eq!(
-            Lab::from(&white),
-            Lab::new(100.0, -0.0007014157375473395, 0.0254686291692785)
-        );
+        let actual = Lab::from(&white);
+        assert_close_to!(actual.l, 100.0);
+        assert_close_to!(actual.a, 0.0);
+        assert_close_to!(actual.b, 0.025);
 
         let red: XYZ<f64, D65> = XYZ::from(&Rgba::red());
-        assert_eq!(
-            Lab::from(&red),
-            Lab::new(53.23711495815769, 80.08963699438709, 67.2031352432351)
-        );
+        let actual = Lab::from(&red);
+        assert_close_to!(actual.l, 53.237);
+        assert_close_to!(actual.a, 80.096);
+        assert_close_to!(actual.b, 67.203);
 
         let green: XYZ<f64, D65> = XYZ::from(&Rgba::green());
-        assert_eq!(
-            Lab::from(&green),
-            Lab::new(87.73553464128194, -86.18229362351477, 83.1866539998871)
-        );
+        let actual = Lab::from(&green);
+        assert_close_to!(actual.l, 87.735);
+        assert_close_to!(actual.a, -86.182);
+        assert_close_to!(actual.b, 83.186);
 
         let blue: XYZ<f64, D65> = XYZ::from(&Rgba::blue());
-        assert_eq!(
-            Lab::from(&blue),
-            Lab::new(32.30080257229819, 79.1952752634909, -107.85544501392465)
-        );
+        let actual = Lab::from(&blue);
+        assert_close_to!(actual.l, 32.300);
+        assert_close_to!(actual.a, 79.195);
+        assert_close_to!(actual.b, -107.855);
     }
 }

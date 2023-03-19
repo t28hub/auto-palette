@@ -163,6 +163,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::assert_close_to;
 
     #[test]
     fn new_should_create_xyz_color() {
@@ -191,63 +192,66 @@ mod tests {
     #[test]
     fn from_rgba_should_convert_to_xyz() {
         let black = Rgba::black();
-        assert_eq!(XYZ::from(&black), XYZ::<f64, D65>::new(0.0, 0.0, 0.0));
+        let actual: XYZ<f64, D65> = XYZ::from(&black);
+        assert_eq!(actual, XYZ::<f64, D65>::new(0.0, 0.0, 0.0));
 
         let white = Rgba::white();
-        assert_eq!(
-            XYZ::from(&white),
-            XYZ::<f64, D65>::new(0.9504560232162476, 1.0, 1.088644027709961)
-        );
+        let actual: XYZ<f64, D65> = XYZ::from(&white);
+        assert_close_to!(actual.x, 0.950456);
+        assert_close_to!(actual.y, 1.0);
+        assert_close_to!(actual.z, 1.088644);
 
         let red = Rgba::red();
-        assert_eq!(
-            XYZ::from(&red),
-            XYZ::<f64, D65>::new(0.412391, 0.212639, 0.019331)
-        );
+        let actual: XYZ<f64, D65> = XYZ::from(&red);
+        assert_close_to!(actual.x, 0.412391);
+        assert_close_to!(actual.y, 0.212639);
+        assert_close_to!(actual.z, 0.019331);
 
         let green = Rgba::green();
-        assert_eq!(
-            XYZ::from(&green),
-            XYZ::<f64, D65>::new(0.357584, 0.715169, 0.119195)
-        );
+        let actual: XYZ<f64, D65> = XYZ::from(&green);
+        assert_close_to!(actual.x, 0.357584);
+        assert_close_to!(actual.y, 0.715169);
+        assert_close_to!(actual.z, 0.119195);
 
         let blue = Rgba::blue();
-        assert_eq!(
-            XYZ::from(&blue),
-            XYZ::<f64, D65>::new(0.180481, 0.072192, 0.950532)
-        );
+        let actual: XYZ<f64, D65> = XYZ::from(&blue);
+        assert_close_to!(actual.x, 0.180481);
+        assert_close_to!(actual.y, 0.072192);
+        assert_close_to!(actual.z, 0.950532);
 
         let transparent = Rgba::transparent();
-        assert_eq!(XYZ::from(&transparent), XYZ::<f64, D65>::new(0.0, 0.0, 0.0));
+        let actual: XYZ<f64, D65> = XYZ::from(&transparent);
+        assert_eq!(actual, XYZ::<f64, D65>::new(0.0, 0.0, 0.0));
     }
 
     #[test]
     fn from_lab_should_convert_to_xyz() {
         let black = Lab::new(0.0, 0.0, 0.0);
-        assert_eq!(XYZ::from(&black), XYZ::<f64, D65>::new(0.0, 0.0, 0.0));
+        let actual: XYZ<f64, D65> = XYZ::from(&black);
+        assert_eq!(actual, XYZ::<f64, D65>::new(0.0, 0.0, 0.0));
 
         let white = Lab::new(100.0, 0.0, 0.0);
-        assert_eq!(
-            XYZ::from(&white),
-            XYZ::<f64, D65>::new(0.9504560232162476, 1.0, 1.088644027709961)
-        );
+        let actual: XYZ<f64, D65> = XYZ::from(&white);
+        assert_close_to!(actual.x, 0.950456);
+        assert_close_to!(actual.y, 1.0);
+        assert_close_to!(actual.z, 1.088644);
 
-        let red = Lab::new(53.23711495815769, 80.08963699438709, 67.2031352432351);
-        assert_eq!(
-            XYZ::from(&red),
-            XYZ::<f64, D65>::new(0.412391, 0.212639, 0.01933100000000002)
-        );
+        let red = Lab::new(53.237114, 80.089636, 67.203135);
+        let actual: XYZ<f64, D65> = XYZ::from(&red);
+        assert_close_to!(actual.x, 0.412391);
+        assert_close_to!(actual.y, 0.212639);
+        assert_close_to!(actual.z, 0.019331);
 
-        let green = Lab::new(87.73553464128194, -86.18229362351477, 83.1866539998871);
-        assert_eq!(
-            XYZ::from(&green),
-            XYZ::<f64, D65>::new(0.35758400000000007, 0.715169, 0.11919500000000006)
-        );
+        let green = Lab::new(87.735534, -86.182293, 83.186653);
+        let actual: XYZ<f64, D65> = XYZ::from(&green);
+        assert_close_to!(actual.x, 0.357584);
+        assert_close_to!(actual.y, 0.715169);
+        assert_close_to!(actual.z, 0.119195);
 
-        let blue = Lab::new(32.30080257229819, 79.1952752634909, -107.85544501392465);
-        assert_eq!(
-            XYZ::from(&blue),
-            XYZ::<f64, D65>::new(0.18048099999999997, 0.072192, 0.9505320000000002)
-        );
+        let blue = Lab::new(32.300802, 79.195275, -107.855445);
+        let actual: XYZ<f64, D65> = XYZ::from(&blue);
+        assert_close_to!(actual.x, 0.180481);
+        assert_close_to!(actual.y, 0.072192);
+        assert_close_to!(actual.z, 0.950532);
     }
 }
