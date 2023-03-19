@@ -1,5 +1,5 @@
-pub(crate) mod dbscan;
-pub(crate) mod hdbscan;
-pub(crate) mod hierarchical;
-pub(crate) mod kmeans;
-pub(crate) mod traits;
+pub mod algorithm;
+pub mod dbscan;
+pub mod hdbscan;
+pub mod hierarchical;
+pub mod kmeans;

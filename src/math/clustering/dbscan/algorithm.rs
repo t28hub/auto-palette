@@ -1,6 +1,6 @@
+use crate::math::clustering::algorithm::Algorithm;
 use crate::math::clustering::dbscan::label::Label;
 use crate::math::clustering::dbscan::params::Params;
-use crate::math::clustering::traits::Fit;
 use crate::math::neighbors::kdtree::KDTree;
 use crate::math::neighbors::nns::{Neighbor, NeighborSearch};
 use crate::math::number::Float;
@@ -9,7 +9,7 @@ use std::collections::{HashMap, VecDeque};
 use std::marker::PhantomData;
 
 /// DBSCAN clustering algorithm.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct DBSCAN<F, P>
 where
     F: Float,
@@ -39,11 +39,6 @@ where
         self.membership
             .get(&cluster_id)
             .map_or(0, |children| children.len())
-    }
-
-    /// Return a set of indices of outliers.
-    pub fn outliers(&self) -> Vec<usize> {
-        self.outliers.clone()
     }
 
     fn expand_cluster<N>(
@@ -93,7 +88,7 @@ where
     }
 }
 
-impl<F, P> Fit<F, P, Params<F>> for DBSCAN<F, P>
+impl<F, P> Algorithm<F, P, Params<F>> for DBSCAN<F, P>
 where
     F: Float,
     P: Point<F>,
@@ -169,6 +164,11 @@ where
             membership,
             outliers,
         }
+    }
+
+    #[must_use]
+    fn outliers(&self) -> &[usize] {
+        &self.outliers
     }
 }
 

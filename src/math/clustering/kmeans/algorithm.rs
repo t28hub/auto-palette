@@ -1,6 +1,6 @@
+use crate::math::clustering::algorithm::Algorithm;
 use crate::math::clustering::kmeans::cluster::Cluster;
 use crate::math::clustering::kmeans::params::KmeansParams;
-use crate::math::clustering::traits::Fit;
 use crate::math::distance::metric::DistanceMetric;
 use crate::math::neighbors::kdtree::KDTree;
 use crate::math::neighbors::nns::NeighborSearch;
@@ -16,6 +16,7 @@ where
 {
     _t: PhantomData<F>,
     clusters: Vec<Cluster<F, P>>,
+    outliers: Vec<usize>,
 }
 
 impl<F, P> Kmeans<F, P>
@@ -78,17 +79,19 @@ where
     }
 }
 
-impl<F, P, R> Fit<F, P, KmeansParams<F, R>> for Kmeans<F, P>
+impl<F, P, R> Algorithm<F, P, KmeansParams<F, R>> for Kmeans<F, P>
 where
     F: Float,
     P: Point<F>,
     R: Rng + Clone,
 {
+    #[must_use]
     fn fit(dataset: &[P], params: &KmeansParams<F, R>) -> Self {
         if params.k() == 0 {
             return Self {
                 _t: PhantomData::default(),
-                clusters: Vec::with_capacity(0),
+                clusters: Vec::new(),
+                outliers: Vec::new(),
             };
         }
 
@@ -105,6 +108,7 @@ where
             return Self {
                 _t: PhantomData::default(),
                 clusters,
+                outliers: Vec::new(),
             };
         }
 
@@ -124,15 +128,21 @@ where
         Kmeans {
             _t: PhantomData::default(),
             clusters,
+            outliers: Vec::new(),
         }
+    }
+
+    #[must_use]
+    fn outliers(&self) -> &[usize] {
+        &self.outliers
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::math::clustering::algorithm::Algorithm;
     use crate::math::clustering::kmeans::init::Initializer;
-    use crate::math::clustering::traits::Fit;
     use crate::math::point::Point2;
     use rand::thread_rng;
 

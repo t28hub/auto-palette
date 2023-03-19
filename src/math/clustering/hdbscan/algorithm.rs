@@ -1,9 +1,9 @@
+use crate::math::clustering::algorithm::Algorithm;
 use crate::math::clustering::hdbscan::core_distance::CoreDistance;
 use crate::math::clustering::hdbscan::params::Params;
 use crate::math::clustering::hdbscan::union_find::UnionFind;
 use crate::math::clustering::hierarchical::algorithm::HierarchicalClustering;
 use crate::math::clustering::hierarchical::node::HierarchicalNode;
-use crate::math::clustering::traits::Fit;
 use crate::math::number::Float;
 use crate::math::point::Point;
 use std::collections::{HashMap, HashSet};
@@ -12,7 +12,7 @@ use std::collections::{HashMap, HashSet};
 #[derive(Debug, PartialEq)]
 pub struct HDBSCAN {
     clusters: HashMap<usize, Vec<usize>>,
-    outliers: HashSet<usize>,
+    outliers: Vec<usize>,
 }
 
 impl HDBSCAN {
@@ -290,16 +290,17 @@ impl HDBSCAN {
     }
 }
 
-impl<F, P> Fit<F, P, Params> for HDBSCAN
+impl<F, P> Algorithm<F, P, Params> for HDBSCAN
 where
     F: Float,
     P: Point<F>,
 {
+    #[must_use]
     fn fit(dataset: &[P], params: &Params) -> Self {
         if dataset.is_empty() {
             return Self {
-                clusters: HashMap::with_capacity(0),
-                outliers: HashSet::with_capacity(0),
+                clusters: HashMap::new(),
+                outliers: Vec::new(),
             };
         }
 
@@ -319,7 +320,16 @@ where
         let hierarchy = hierarchical_clustering.nodes();
         let condensed = HDBSCAN::condense_tree(hierarchy, params.min_cluster_size());
         let (clusters, outliers) = HDBSCAN::extract_clusters(&condensed);
-        Self { clusters, outliers }
+
+        Self {
+            clusters,
+            outliers: Vec::from_iter(outliers.into_iter()),
+        }
+    }
+
+    #[must_use]
+    fn outliers(&self) -> &[usize] {
+        &self.outliers
     }
 }
 
