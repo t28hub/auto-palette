@@ -9,7 +9,6 @@ use crate::math::distance::metric::DistanceMetric::SquaredEuclidean;
 use crate::math::number::Float;
 use crate::math::point::Point5;
 use crate::swatch::Swatch;
-use num_traits::Zero;
 use std::cmp::Ordering;
 
 pub struct Palette<F: Float> {
@@ -69,16 +68,8 @@ where
         let params = Params::new(9, 9, SquaredEuclidean);
         let hdbscan = HDBSCAN::fit(&pixels, &params);
         let mut swatches = Vec::with_capacity(hdbscan.clusters().len());
-        for (_, membership) in hdbscan.clusters().into_iter() {
-            let mut centroid =
-                membership
-                    .iter()
-                    .fold(Point5::<F>::zero(), |mut total, child_id| {
-                        total += pixels[*child_id];
-                        total
-                    });
-            centroid /= F::from_usize(membership.len());
-
+        for cluster in hdbscan.clusters().into_iter() {
+            let centroid = cluster.centroid();
             let lab = Lab::new(
                 Self::denormalize(centroid[0], Lab::<F>::min_l(), Lab::<F>::max_l()),
                 Self::denormalize(centroid[1], Lab::<F>::min_a(), Lab::<F>::max_a()),
@@ -95,7 +86,7 @@ where
                 y.to_u32().expect("Could not convert y to u32"),
             );
 
-            let count = membership.len();
+            let count = cluster.size();
             let percentage = F::from_usize(count) / F::from_usize(pixels.len());
             swatches.push(Swatch {
                 color,

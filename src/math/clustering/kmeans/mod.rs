@@ -1,4 +1,3 @@
-pub(crate) mod algorithm;
-pub(crate) mod cluster;
-pub(crate) mod init;
-pub(crate) mod params;
+pub mod algorithm;
+pub mod init;
+pub mod params;

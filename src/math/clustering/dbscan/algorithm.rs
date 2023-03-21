@@ -1,11 +1,12 @@
 use crate::math::clustering::algorithm::Algorithm;
+use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::dbscan::label::Label;
 use crate::math::clustering::dbscan::params::Params;
 use crate::math::neighbors::kdtree::KDTree;
 use crate::math::neighbors::nns::{Neighbor, NeighborSearch};
 use crate::math::number::Float;
 use crate::math::point::Point;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::marker::PhantomData;
 
 /// DBSCAN clustering algorithm.
@@ -15,10 +16,9 @@ where
     F: Float,
     P: Point<F>,
 {
-    _t: PhantomData<F>,
-    centroids: HashMap<usize, P>,
-    membership: HashMap<usize, Vec<usize>>,
+    clusters: Vec<Cluster<F, P>>,
     outliers: Vec<usize>,
+    _phantom: PhantomData<F>,
 }
 
 impl<F, P> DBSCAN<F, P>
@@ -26,21 +26,6 @@ where
     F: Float,
     P: Point<F>,
 {
-    /// Return a set of centroid.
-    pub fn centroids(&self) -> Vec<P> {
-        self.centroids
-            .values()
-            .map(|centroid| centroid.clone())
-            .collect()
-    }
-
-    /// Count the number of assigned to the given cluster ID.
-    pub fn count_at(&self, cluster_id: usize) -> usize {
-        self.membership
-            .get(&cluster_id)
-            .map_or(0, |children| children.len())
-    }
-
     fn expand_cluster<N>(
         cluster_id: usize,
         dataset: &[P],
@@ -88,6 +73,20 @@ where
     }
 }
 
+impl<F, P> Default for DBSCAN<F, P>
+where
+    F: Float,
+    P: Point<F>,
+{
+    fn default() -> Self {
+        return Self {
+            clusters: Vec::new(),
+            outliers: Vec::new(),
+            _phantom: PhantomData::default(),
+        };
+    }
+}
+
 impl<F, P> Algorithm<F, P, Params<F>> for DBSCAN<F, P>
 where
     F: Float,
@@ -96,12 +95,7 @@ where
     #[must_use]
     fn fit(dataset: &[P], params: &Params<F>) -> Self {
         if dataset.is_empty() {
-            return DBSCAN {
-                _t: PhantomData::default(),
-                centroids: HashMap::new(),
-                membership: HashMap::new(),
-                outliers: Vec::new(),
-            };
+            return DBSCAN::default();
         }
 
         let dataset_vec = dataset.to_vec();
@@ -126,44 +120,48 @@ where
             cluster_id += 1;
         }
 
-        let mut centroids: HashMap<usize, P> = HashMap::new();
-        let mut membership: HashMap<usize, Vec<usize>> = HashMap::new();
-        let mut outliers: Vec<usize> = Vec::new();
+        let mut cluster_map: HashMap<usize, Cluster<F, P>> = HashMap::new();
+        let mut outlier_set: HashSet<usize> = HashSet::new();
         for (index, label) in labels.into_iter().enumerate() {
             match label {
                 Label::Assigned(cluster_id) => {
-                    let centroid = {
-                        let entry = centroids.entry(cluster_id);
-                        entry.or_insert(P::zero())
-                    };
-                    centroid.add_assign(dataset[index]);
-
-                    let children = {
-                        let entry = membership.entry(cluster_id);
-                        entry.or_insert(Vec::new())
-                    };
-                    children.push(index);
+                    let cluster = cluster_map
+                        .entry(cluster_id)
+                        .or_insert_with(|| Cluster::new(cluster_id));
+                    cluster.insert(index, &dataset[index]);
                 }
-                Label::Outlier => outliers.push(index),
+                Label::Outlier => {
+                    outlier_set.insert(index);
+                }
                 _ => unreachable!(
                     "All points in the dataset are assigned to any cluster or labeled as outlier"
                 ),
             }
         }
 
-        for (cluster_id, centroid) in centroids.iter_mut() {
-            let Some(children) = membership.get(cluster_id) else {
-                continue;
-            };
-            centroid.div_assign(F::from_usize(children.len()));
-        }
+        let clusters = cluster_map
+            .into_iter()
+            .filter_map(|(_, mut cluster)| {
+                if cluster.is_empty() {
+                    return None;
+                }
+                cluster.centroid.div_assign(F::from_usize(cluster.size()));
+                return Some(cluster);
+            })
+            .collect();
+
+        let outliers = outlier_set.into_iter().collect();
 
         DBSCAN {
-            _t: PhantomData::default(),
-            centroids,
-            membership,
+            clusters,
             outliers,
+            _phantom: PhantomData::default(),
         }
+    }
+
+    #[must_use]
+    fn clusters(&self) -> &[Cluster<F, P>] {
+        &self.clusters
     }
 
     #[must_use]
@@ -203,7 +201,12 @@ mod tests {
         let params = Params::new(4, 2.0_f64.sqrt(), DistanceMetric::Euclidean);
         let dbscan = DBSCAN::fit(&dataset, &params);
 
-        let mut centroids = dbscan.centroids();
+        let mut centroids: Vec<_> = dbscan
+            .clusters()
+            .iter()
+            .map(|cluster| cluster.centroid())
+            .cloned()
+            .collect();
         centroids.sort_by(|point1, point2| point1.0.total_cmp(&point2.0));
         assert_eq!(
             centroids,

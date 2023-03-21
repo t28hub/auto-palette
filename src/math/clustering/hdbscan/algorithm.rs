@@ -1,4 +1,5 @@
 use crate::math::clustering::algorithm::Algorithm;
+use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::hdbscan::core_distance::CoreDistance;
 use crate::math::clustering::hdbscan::params::Params;
 use crate::math::clustering::hdbscan::union_find::UnionFind;
@@ -7,20 +8,26 @@ use crate::math::clustering::hierarchical::node::HierarchicalNode;
 use crate::math::number::Float;
 use crate::math::point::Point;
 use std::collections::{HashMap, HashSet};
+use std::marker::PhantomData;
 
 /// HDBSCAN clustering algorithm.
 #[derive(Debug, PartialEq)]
-pub struct HDBSCAN {
-    clusters: HashMap<usize, Vec<usize>>,
+pub struct HDBSCAN<F, P>
+where
+    F: Float,
+    P: Point<F>,
+{
+    clusters: Vec<Cluster<F, P>>,
     outliers: Vec<usize>,
+    _phantom: PhantomData<F>,
 }
 
-impl HDBSCAN {
-    pub fn clusters(&self) -> &HashMap<usize, Vec<usize>> {
-        &self.clusters
-    }
-
-    fn condense_tree<F>(
+impl<F, P> HDBSCAN<F, P>
+where
+    F: Float,
+    P: Point<F>,
+{
+    fn condense_tree(
         hierarchy: &[HierarchicalNode<F>],
         min_cluster_size: usize,
     ) -> Vec<CondensedNode<F>>
@@ -137,13 +144,14 @@ impl HDBSCAN {
         condensed
     }
 
-    fn extract_clusters<F>(
+    fn extract_clusters(
+        dataset: &[P],
         condensed: &[CondensedNode<F>],
-    ) -> (HashMap<usize, Vec<usize>>, HashSet<usize>)
+    ) -> (Vec<Cluster<F, P>>, Vec<usize>)
     where
         F: Float,
     {
-        let mut stability = Self::compute_stability::<F>(condensed);
+        let mut stability = Self::compute_stability(condensed);
         let mut cluster_ids: HashSet<usize> = stability.keys().copied().collect();
         let mut node_ids: Vec<usize> = stability.keys().copied().collect();
         node_ids.sort_unstable();
@@ -197,21 +205,35 @@ impl HDBSCAN {
             union_find.union(node.parent_id, node.child_id);
         });
 
-        let mut clusters = HashMap::new();
-        let mut outliers = HashSet::new();
+        let mut cluster_map = HashMap::new();
+        let mut outlier_set = HashSet::new();
         for node_id in 0..min_parent {
             let cluster_id = union_find.find(node_id);
             if cluster_id > min_parent {
-                let cluster = clusters.entry(cluster_id).or_insert_with(Vec::new);
-                cluster.push(node_id);
+                let cluster = cluster_map
+                    .entry(cluster_id)
+                    .or_insert_with(|| Cluster::new(cluster_id));
+                cluster.insert(node_id, &dataset[node_id]);
             } else {
-                outliers.insert(node_id);
+                outlier_set.insert(node_id);
             }
         }
-        (clusters, outliers)
+
+        let clusters = cluster_map
+            .into_iter()
+            .filter_map(|(_, mut cluster)| {
+                if cluster.is_empty() {
+                    None
+                } else {
+                    cluster.centroid.div_assign(F::from_usize(cluster.size()));
+                    Some(cluster)
+                }
+            })
+            .collect();
+        (clusters, outlier_set.into_iter().collect())
     }
 
-    fn compute_stability<F>(condensed: &[CondensedNode<F>]) -> HashMap<usize, F>
+    fn compute_stability(condensed: &[CondensedNode<F>]) -> HashMap<usize, F>
     where
         F: Float,
     {
@@ -242,7 +264,7 @@ impl HDBSCAN {
             })
     }
 
-    fn bfs_hierarchy<F>(hierarchy: &[HierarchicalNode<F>], root_id: usize) -> Vec<usize>
+    fn bfs_hierarchy(hierarchy: &[HierarchicalNode<F>], root_id: usize) -> Vec<usize>
     where
         F: Float,
     {
@@ -267,7 +289,7 @@ impl HDBSCAN {
         node_ids
     }
 
-    fn bfs_condensed_tree<F>(condensed: &[CondensedNode<F>], root_node_id: usize) -> Vec<usize>
+    fn bfs_condensed_tree(condensed: &[CondensedNode<F>], root_node_id: usize) -> Vec<usize>
     where
         F: Float,
     {
@@ -290,7 +312,21 @@ impl HDBSCAN {
     }
 }
 
-impl<F, P> Algorithm<F, P, Params> for HDBSCAN
+impl<F, P> Default for HDBSCAN<F, P>
+where
+    F: Float,
+    P: Point<F>,
+{
+    fn default() -> Self {
+        return Self {
+            clusters: Vec::new(),
+            outliers: Vec::new(),
+            _phantom: PhantomData::default(),
+        };
+    }
+}
+
+impl<F, P> Algorithm<F, P, Params> for HDBSCAN<F, P>
 where
     F: Float,
     P: Point<F>,
@@ -298,10 +334,7 @@ where
     #[must_use]
     fn fit(dataset: &[P], params: &Params) -> Self {
         if dataset.is_empty() {
-            return Self {
-                clusters: HashMap::new(),
-                outliers: Vec::new(),
-            };
+            return HDBSCAN::default();
         }
 
         let core_distance = CoreDistance::new(dataset, params.min_samples(), params.metric());
@@ -318,13 +351,18 @@ where
         let hierarchical_clustering =
             HierarchicalClustering::fit(dataset, mutual_reachability_distance);
         let hierarchy = hierarchical_clustering.nodes();
-        let condensed = HDBSCAN::condense_tree(hierarchy, params.min_cluster_size());
-        let (clusters, outliers) = HDBSCAN::extract_clusters(&condensed);
-
+        let condensed = HDBSCAN::<F, P>::condense_tree(hierarchy, params.min_cluster_size());
+        let (clusters, outliers) = HDBSCAN::extract_clusters(dataset, &condensed);
         Self {
             clusters,
-            outliers: Vec::from_iter(outliers.into_iter()),
+            outliers,
+            _phantom: PhantomData::default(),
         }
+    }
+
+    #[must_use]
+    fn clusters(&self) -> &[Cluster<F, P>] {
+        &self.clusters
     }
 
     #[must_use]

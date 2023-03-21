@@ -1,5 +1,5 @@
 use crate::math::clustering::algorithm::Algorithm;
-use crate::math::clustering::kmeans::cluster::Cluster;
+use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::kmeans::params::KmeansParams;
 use crate::math::distance::metric::DistanceMetric;
 use crate::math::neighbors::kdtree::KDTree;
@@ -14,9 +14,9 @@ where
     F: Float,
     P: Point<F>,
 {
-    _t: PhantomData<F>,
     clusters: Vec<Cluster<F, P>>,
     outliers: Vec<usize>,
+    _phantom: PhantomData<F>,
 }
 
 impl<F, P> Kmeans<F, P>
@@ -24,18 +24,6 @@ where
     F: Float,
     P: Point<F>,
 {
-    pub(crate) fn centroids(&self) -> Vec<P> {
-        self.clusters
-            .iter()
-            .map(|cluster| -> P { *cluster.centroid() })
-            .collect()
-    }
-
-    pub(crate) fn count_at(&self, index: usize) -> usize {
-        let cluster = self.clusters.get(index);
-        cluster.map_or(0, |c| c.size())
-    }
-
     fn reassign(
         dataset: &[P],
         clusters: &mut [Cluster<F, P>],
@@ -68,7 +56,7 @@ where
                     return;
                 }
 
-                cluster.update_centroid();
+                cluster.centroid.div_assign(F::from_usize(cluster.size()));
 
                 let difference = metric.measure(&old_centroid, cluster.centroid());
                 if difference < tolerance {
@@ -76,6 +64,20 @@ where
                 }
             });
         converged
+    }
+}
+
+impl<F, P> Default for Kmeans<F, P>
+where
+    F: Float,
+    P: Point<F>,
+{
+    fn default() -> Self {
+        Self {
+            clusters: Vec::new(),
+            outliers: Vec::new(),
+            _phantom: PhantomData::default(),
+        }
     }
 }
 
@@ -88,11 +90,7 @@ where
     #[must_use]
     fn fit(dataset: &[P], params: &KmeansParams<F, R>) -> Self {
         if params.k() == 0 {
-            return Self {
-                _t: PhantomData::default(),
-                clusters: Vec::new(),
-                outliers: Vec::new(),
-            };
+            return Kmeans::default();
         }
 
         if params.k() >= dataset.len() {
@@ -100,23 +98,28 @@ where
                 .iter()
                 .enumerate()
                 .map(|(index, data)| {
-                    let mut cluster = Cluster::new(data);
+                    let mut cluster = Cluster::new(index);
                     cluster.insert(index, data);
                     cluster
                 })
                 .collect();
             return Self {
-                _t: PhantomData::default(),
                 clusters,
                 outliers: Vec::new(),
+                _phantom: PhantomData::default(),
             };
         }
 
         let mut clusters: Vec<Cluster<F, P>> = params
             .initializer()
             .initialize(dataset, params.k(), params.metric())
-            .iter()
-            .map(|centroid| Cluster::new(centroid))
+            .into_iter()
+            .enumerate()
+            .map(|(cluster_id, centroid)| {
+                let mut cluster = Cluster::new(cluster_id);
+                cluster.centroid = centroid;
+                cluster
+            })
             .collect();
         for _ in 0..params.max_iterations() {
             let converged =
@@ -126,10 +129,15 @@ where
             }
         }
         Kmeans {
-            _t: PhantomData::default(),
             clusters,
             outliers: Vec::new(),
+            _phantom: PhantomData::default(),
         }
+    }
+
+    #[must_use]
+    fn clusters(&self) -> &[Cluster<F, P>] {
+        &self.clusters
     }
 
     #[must_use]
