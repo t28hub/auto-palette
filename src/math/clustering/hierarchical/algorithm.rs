@@ -1,6 +1,6 @@
 use crate::math::clustering::hierarchical::node::HierarchicalNode;
 use crate::math::clustering::hierarchical::union_find::UnionFind;
-use crate::math::graph::edge::Edge;
+use crate::math::graph::graph::{Edge, WeightedEdge, WeightedGraph};
 use crate::math::graph::spanning_tree::{MinimumSpanningTree, SpanningTree};
 use crate::math::number::Float;
 use std::cmp::Ordering;
@@ -9,6 +9,17 @@ use std::collections::{BinaryHeap, VecDeque};
 #[derive(Debug, PartialEq)]
 pub struct HierarchicalClustering<F: Float> {
     hierarchy: Vec<HierarchicalNode<F>>,
+}
+
+impl<F> Default for HierarchicalClustering<F>
+where
+    F: Float,
+{
+    fn default() -> Self {
+        Self {
+            hierarchy: Vec::new(),
+        }
+    }
 }
 
 impl<F> HierarchicalClustering<F>
@@ -21,13 +32,12 @@ where
         WF: Fn(usize, usize) -> F,
     {
         if dataset.is_empty() {
-            return Self {
-                hierarchy: Vec::new(),
-            };
+            return Self::default();
         }
 
-        let spanning_tree = MinimumSpanningTree::build(dataset, weight_fn);
-        let mut edges = spanning_tree.edges().to_vec();
+        let graph = WeightedGraph::new(dataset, weight_fn);
+        let spanning_tree = MinimumSpanningTree::build(&graph);
+        let mut edges: Vec<WeightedEdge<F>> = spanning_tree.edges().iter().cloned().collect();
         edges.sort_unstable_by(|edge1, edge2| {
             edge1
                 .weight()

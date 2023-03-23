@@ -1,4 +1,4 @@
-use crate::math::graph::edge::{Edge, WeightedEdge};
+use crate::math::graph::graph::{Edge, Graph, WeightedEdge, WeightedGraph};
 use crate::math::number::Float;
 use std::collections::{BinaryHeap, HashSet};
 
@@ -23,10 +23,11 @@ where
     F: Float,
 {
     /// Build a minimum spanning tree.
-    pub fn build<V, WF>(vertices: &[V], weight_fn: WF) -> Self
+    pub fn build<V, W>(graph: &WeightedGraph<V, W, F>) -> Self
     where
-        WF: Fn(usize, usize) -> F,
+        W: Fn(usize, usize) -> F,
     {
+        let vertices = graph.vertices();
         if vertices.is_empty() {
             return Self {
                 weight: F::zero(),
@@ -37,19 +38,18 @@ where
         let n_vertices = vertices.len();
         let mut edges = Vec::new();
         let mut attached = HashSet::with_capacity(n_vertices);
-        let mut candidates = BinaryHeap::new();
+        let mut candidates: BinaryHeap<WeightedEdge<F>> = BinaryHeap::new();
         let mut total_weight = F::zero();
         let mut current_index = n_vertices - 1;
         attached.insert(current_index);
         while attached.len() < n_vertices {
-            for index in 0..n_vertices {
-                if index == current_index || attached.contains(&index) {
-                    continue;
-                }
-
-                let weight = weight_fn(current_index, index);
-                candidates.push(WeightedEdge::new(current_index, index, weight));
-            }
+            graph
+                .edges_at(current_index)
+                .into_iter()
+                .filter(|edge| !attached.contains(&edge.v()))
+                .for_each(|edge| {
+                    candidates.push(edge);
+                });
 
             while let Some(edge) = candidates.pop() {
                 if !attached.contains(&edge.v()) {
@@ -88,16 +88,16 @@ mod tests {
     #[test]
     fn new_should_create_weighted_edge() {
         let vertices = [0, 1, 2, 3];
-        let weight_fn = |u: usize, v: usize| -> f64 {
+        let graph = WeightedGraph::new(&vertices, |u: usize, v: usize| {
             let incidence_matrix = [
-                [f64::MAX, 1.0, 4.0, 3.0],
-                [1.0, f64::MAX, 7.0, 2.0],
-                [4.0, 9.0, f64::MAX, 5.0],
-                [3.0, 2.0, 5.0, f64::MAX],
+                [f64::NAN, 1.0, 4.0, 3.0],
+                [1.0, f64::NAN, 7.0, 2.0],
+                [4.0, 9.0, f64::NAN, 5.0],
+                [3.0, 2.0, 5.0, f64::NAN],
             ];
             incidence_matrix[u][v]
-        };
-        let mst = MinimumSpanningTree::build(&vertices, weight_fn);
+        });
+        let mst = MinimumSpanningTree::build(&graph);
         assert_eq!(mst.weight(), 7.0);
         assert_eq!(
             mst.edges(),
