@@ -1,18 +1,27 @@
 use crate::math::graph::graph::{Edge, Graph, WeightedEdge, WeightedGraph};
 use crate::math::number::Float;
+use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashSet};
 
-/// Trait for spanning tree.
+/// Trait representing a spanning tree of a graph.
 pub trait SpanningTree<F: Float, E: Edge> {
-    /// Return total weight of this spanning tree.
+    /// Returns the weight of this spanning tree.
+    ///
+    /// # Returns
+    /// The weight of this spanning tree.
+    #[must_use]
     fn weight(&self) -> F;
 
-    /// Return all edges of this graph.
+    /// Return a list of the edges in this spanning tree.
+    ///
+    /// # Returns
+    /// A slice containing the edges in this spanning tree.
+    #[must_use]
     fn edges(&self) -> &[E];
 }
 
-/// Minimum spanning tree struct.
-#[derive(Debug, Clone)]
+/// Struct representing a minimum spanning tree.
+#[derive(Debug)]
 pub struct MinimumSpanningTree<F: Float> {
     weight: F,
     edges: Vec<WeightedEdge<F>>,
@@ -22,48 +31,60 @@ impl<F> MinimumSpanningTree<F>
 where
     F: Float,
 {
-    /// Build a minimum spanning tree.
-    pub fn build<V, W>(graph: &WeightedGraph<V, W, F>) -> Self
+    /// Builds a minimum spanning tree using Prim's algorithm.
+    ///
+    /// # Arguments
+    /// * `graph` - The source graph to create a minimum spanning tree.
+    ///
+    /// # Returns
+    /// A new `MinimumSpanningTree`.
+    pub fn build<G, V>(graph: &G) -> Self
     where
-        W: Fn(usize, usize) -> F,
+        G: Graph<V, WeightedEdge<F>>,
     {
         let vertices = graph.vertices();
         if vertices.is_empty() {
-            return Self {
-                weight: F::zero(),
-                edges: Vec::new(),
-            };
+            return Self::default();
         }
 
-        let n_vertices = vertices.len();
+        let mut heap = BinaryHeap::new();
         let mut edges = Vec::new();
-        let mut attached = HashSet::with_capacity(n_vertices);
-        let mut candidates: BinaryHeap<WeightedEdge<F>> = BinaryHeap::new();
-        let mut total_weight = F::zero();
-        let mut current_index = n_vertices - 1;
-        attached.insert(current_index);
-        while attached.len() < n_vertices {
-            graph
-                .edges_at(current_index)
-                .into_iter()
-                .filter(|edge| !attached.contains(&edge.v()))
-                .for_each(|edge| {
-                    candidates.push(edge);
-                });
+        let mut visited = HashSet::new();
 
-            while let Some(edge) = candidates.pop() {
-                if !attached.contains(&edge.v()) {
-                    current_index = edge.v();
-                    total_weight += edge.weight();
+        let mut weight = F::zero();
+        let mut index = vertices.len() - 1;
+        visited.insert(index);
+        while visited.len() < vertices.len() {
+            for edge in graph.edges_at(index).into_iter() {
+                if visited.contains(&edge.v()) {
+                    continue;
+                }
+                heap.push(Reverse(edge));
+            }
+
+            while let Some(Reverse(edge)) = heap.pop() {
+                if !visited.contains(&edge.v()) {
+                    index = edge.v();
+                    weight += edge.weight();
                     edges.push(edge);
-                    attached.insert(current_index);
+                    visited.insert(index);
                     break;
                 }
             }
         }
+
+        Self { edges, weight }
+    }
+}
+
+impl<F> Default for MinimumSpanningTree<F>
+where
+    F: Float,
+{
+    fn default() -> Self {
         Self {
-            edges,
-            weight: total_weight,
+            weight: F::zero(),
+            edges: Vec::new(),
         }
     }
 }
@@ -72,10 +93,12 @@ impl<F> SpanningTree<F, WeightedEdge<F>> for MinimumSpanningTree<F>
 where
     F: Float,
 {
+    #[must_use]
     fn weight(&self) -> F {
         self.weight
     }
 
+    #[must_use]
     fn edges(&self) -> &[WeightedEdge<F>] {
         &self.edges
     }

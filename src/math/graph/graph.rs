@@ -99,7 +99,7 @@ where
     F: Float,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        other.weight.partial_cmp(&self.weight)
+        self.weight.partial_cmp(&other.weight)
     }
 }
 
@@ -203,7 +203,7 @@ mod tests {
     fn cmp_should_return_reversed_ordering() {
         let edge1 = WeightedEdge::new(0, 1, 5.0);
         let edge2 = WeightedEdge::new(1, 2, 2.5);
-        assert_eq!(edge1.cmp(&edge2), Ordering::Less);
+        assert_eq!(edge1.cmp(&edge2), Ordering::Greater);
 
         let edge1 = WeightedEdge::new(0, 1, 2.5);
         let edge2 = WeightedEdge::new(1, 2, 2.5);
@@ -211,7 +211,7 @@ mod tests {
 
         let edge1 = WeightedEdge::new(0, 1, 2.0);
         let edge2 = WeightedEdge::new(1, 2, 2.5);
-        assert_eq!(edge1.cmp(&edge2), Ordering::Greater);
+        assert_eq!(edge1.cmp(&edge2), Ordering::Less);
 
         let edge1 = WeightedEdge::new(0, 1, f64::NAN);
         let edge2 = WeightedEdge::new(1, 2, 2.5);
