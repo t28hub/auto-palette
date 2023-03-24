@@ -1,8 +1,8 @@
 use crate::math::distance::metric::DistanceMetric;
 
 /// Parameters of DBSCAN clustering algorithm.
-#[derive(Debug, Clone, PartialEq)]
-pub struct Params {
+#[derive(Debug, PartialEq)]
+pub struct HDBCANParams {
     /// The minimum number of neighboring points required for a point to be considered as a core point.
     min_samples: usize,
 
@@ -13,7 +13,7 @@ pub struct Params {
     metric: DistanceMetric,
 }
 
-impl Params {
+impl HDBCANParams {
     /// Create a params.
     #[must_use]
     pub fn new(min_samples: usize, min_cluster_size: usize, metric: DistanceMetric) -> Self {
@@ -43,7 +43,7 @@ mod tests {
 
     #[test]
     fn new_should_create_params() {
-        let params = Params::new(4, 25, DistanceMetric::Euclidean);
+        let params = HDBCANParams::new(4, 25, DistanceMetric::Euclidean);
         assert_eq!(params.min_samples, 4);
         assert_eq!(params.min_cluster_size, 25);
         assert_eq!(params.metric, DistanceMetric::Euclidean);

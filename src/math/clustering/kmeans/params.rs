@@ -4,8 +4,8 @@ use crate::math::number::Float;
 use rand::Rng;
 
 /// A struct representing the parameters of Kmeans.
-#[derive(Clone, Debug, PartialEq)]
-pub(crate) struct KmeansParams<F, R>
+#[derive(Debug, PartialEq)]
+pub struct KmeansParams<F, R>
 where
     F: Float,
     R: Rng + Clone,

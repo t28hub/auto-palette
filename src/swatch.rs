@@ -14,6 +14,20 @@ pub struct Swatch<F: Float> {
     pub percentage: F,
 }
 
+impl<F> Default for Swatch<F>
+where
+    F: Float,
+{
+    #[must_use]
+    fn default() -> Self {
+        Self {
+            color: (0, 0, 0),
+            position: (0, 0),
+            percentage: F::zero(),
+        }
+    }
+}
+
 impl<F> Eq for Swatch<F> where F: Float {}
 
 impl<F> PartialOrd for Swatch<F>
@@ -30,8 +44,6 @@ where
     F: Float,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.percentage
-            .partial_cmp(&other.percentage)
-            .unwrap_or(Ordering::Equal)
+        self.partial_cmp(&other).unwrap_or(Ordering::Equal)
     }
 }

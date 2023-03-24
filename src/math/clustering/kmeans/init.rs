@@ -5,7 +5,7 @@ use rand::Rng;
 use std::cmp::Ordering;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub(crate) enum Initializer<R>
+pub enum Initializer<R>
 where
     R: Rng + Clone,
 {

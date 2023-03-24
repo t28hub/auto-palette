@@ -2,8 +2,8 @@ use crate::math::distance::metric::DistanceMetric;
 use crate::math::number::Float;
 
 /// Parameters of DBSCAN clustering algorithm.
-#[derive(Debug, Clone, PartialEq)]
-pub struct Params<F>
+#[derive(Debug, PartialEq)]
+pub struct DBSCANParams<F>
 where
     F: Float,
 {
@@ -12,7 +12,7 @@ where
     metric: DistanceMetric,
 }
 
-impl<F> Params<F>
+impl<F> DBSCANParams<F>
 where
     F: Float,
 {
@@ -51,7 +51,7 @@ mod tests {
 
     #[test]
     fn new_should_create_params() {
-        let params = Params::new(16, 5.0, DistanceMetric::SquaredEuclidean);
+        let params = DBSCANParams::new(16, 5.0, DistanceMetric::SquaredEuclidean);
         assert_eq!(params.min_points(), 16);
         assert_eq!(params.epsilon(), 5.0);
         assert_eq!(params.metric(), &DistanceMetric::SquaredEuclidean);

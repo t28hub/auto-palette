@@ -1,7 +1,7 @@
-use crate::math::clustering::algorithm::Algorithm;
 use crate::math::clustering::cluster::Cluster;
+use crate::math::clustering::clustering::Clustering;
 use crate::math::clustering::dbscan::label::Label;
-use crate::math::clustering::dbscan::params::Params;
+use crate::math::clustering::dbscan::params::DBSCANParams;
 use crate::math::neighbors::kdtree::KDTree;
 use crate::math::neighbors::nns::{Neighbor, NeighborSearch};
 use crate::math::number::Float;
@@ -18,7 +18,7 @@ where
 {
     clusters: Vec<Cluster<F, P>>,
     outliers: Vec<usize>,
-    _phantom: PhantomData<F>,
+    _marker: PhantomData<F>,
 }
 
 impl<F, P> DBSCAN<F, P>
@@ -29,7 +29,7 @@ where
     fn expand_cluster<N>(
         cluster_id: usize,
         dataset: &[P],
-        params: &Params<F>,
+        params: &DBSCANParams<F>,
         ns: &N,
         neighbors: &[Neighbor<F>],
         labels: &mut [Label],
@@ -82,18 +82,20 @@ where
         return Self {
             clusters: Vec::new(),
             outliers: Vec::new(),
-            _phantom: PhantomData::default(),
+            _marker: PhantomData::default(),
         };
     }
 }
 
-impl<F, P> Algorithm<F, P, Params<F>> for DBSCAN<F, P>
+impl<F, P> Clustering<F, P> for DBSCAN<F, P>
 where
     F: Float,
     P: Point<F>,
 {
+    type Params = DBSCANParams<F>;
+
     #[must_use]
-    fn fit(dataset: &[P], params: &Params<F>) -> Self {
+    fn fit(dataset: &[P], params: &Self::Params) -> Self {
         if dataset.is_empty() {
             return DBSCAN::default();
         }
@@ -155,7 +157,7 @@ where
         DBSCAN {
             clusters,
             outliers,
-            _phantom: PhantomData::default(),
+            _marker: PhantomData::default(),
         }
     }
 
@@ -198,7 +200,7 @@ mod tests {
     #[test]
     fn fit_should_fit_dataset() {
         let dataset = Vec::from(DATASET);
-        let params = Params::new(4, 2.0_f64.sqrt(), DistanceMetric::Euclidean);
+        let params = DBSCANParams::new(4, 2.0_f64.sqrt(), DistanceMetric::Euclidean);
         let dbscan = DBSCAN::fit(&dataset, &params);
 
         let mut centroids: Vec<_> = dbscan

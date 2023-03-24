@@ -1,4 +1,4 @@
-use crate::math::graph::graph::{Edge, Graph, WeightedEdge, WeightedGraph};
+use crate::math::graph::graph::{Edge, Graph, WeightedEdge};
 use crate::math::number::Float;
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashSet};

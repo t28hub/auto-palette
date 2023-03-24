@@ -1,5 +1,5 @@
-use crate::math::clustering::algorithm::Algorithm;
 use crate::math::clustering::cluster::Cluster;
+use crate::math::clustering::clustering::Clustering;
 use crate::math::clustering::kmeans::params::KmeansParams;
 use crate::math::distance::metric::DistanceMetric;
 use crate::math::neighbors::kdtree::KDTree;
@@ -9,20 +9,22 @@ use crate::math::point::Point;
 use rand::Rng;
 use std::marker::PhantomData;
 
-pub struct Kmeans<F, P>
+pub struct Kmeans<F, P, R>
 where
     F: Float,
     P: Point<F>,
+    R: Rng + Clone,
 {
     clusters: Vec<Cluster<F, P>>,
     outliers: Vec<usize>,
-    _phantom: PhantomData<F>,
+    _phantom: PhantomData<(F, R)>,
 }
 
-impl<F, P> Kmeans<F, P>
+impl<F, P, R> Kmeans<F, P, R>
 where
     F: Float,
     P: Point<F>,
+    R: Rng + Clone,
 {
     fn reassign(
         dataset: &[P],
@@ -67,10 +69,11 @@ where
     }
 }
 
-impl<F, P> Default for Kmeans<F, P>
+impl<F, P, R> Default for Kmeans<F, P, R>
 where
     F: Float,
     P: Point<F>,
+    R: Rng + Clone,
 {
     fn default() -> Self {
         Self {
@@ -81,14 +84,16 @@ where
     }
 }
 
-impl<F, P, R> Algorithm<F, P, KmeansParams<F, R>> for Kmeans<F, P>
+impl<F, P, R> Clustering<F, P> for Kmeans<F, P, R>
 where
     F: Float,
     P: Point<F>,
     R: Rng + Clone,
 {
+    type Params = KmeansParams<F, R>;
+
     #[must_use]
-    fn fit(dataset: &[P], params: &KmeansParams<F, R>) -> Self {
+    fn fit(dataset: &[P], params: &Self::Params) -> Self {
         if params.k() == 0 {
             return Kmeans::default();
         }
@@ -149,7 +154,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::clustering::algorithm::Algorithm;
+    use crate::math::clustering::clustering::Clustering;
     use crate::math::clustering::kmeans::init::Initializer;
     use crate::math::point::Point2;
     use rand::thread_rng;

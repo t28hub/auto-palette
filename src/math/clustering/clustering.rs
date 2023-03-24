@@ -3,11 +3,13 @@ use crate::math::number::Float;
 use crate::math::point::Point;
 
 /// Trait representing a clustering algorithm.
-pub trait Algorithm<F, P, T>
+pub trait Clustering<F, P>
 where
     F: Float,
     P: Point<F>,
 {
+    type Params;
+
     /// Fit the algorithm to the given dataset with the given parameters.
     ///
     /// # Arguments
@@ -17,7 +19,7 @@ where
     /// # Returns
     /// The fitted algorithm.
     #[must_use]
-    fn fit(dataset: &[P], params: &T) -> Self;
+    fn fit(dataset: &[P], params: &Self::Params) -> Self;
 
     /// Return the clusters.
     ///

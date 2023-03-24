@@ -1,9 +1,9 @@
-use crate::math::clustering::algorithm::Algorithm;
 use crate::math::clustering::cluster::Cluster;
+use crate::math::clustering::clustering::Clustering;
 use crate::math::clustering::hdbscan::core_distance::CoreDistance;
-use crate::math::clustering::hdbscan::params::Params;
+use crate::math::clustering::hdbscan::params::HDBCANParams;
 use crate::math::clustering::hdbscan::union_find::UnionFind;
-use crate::math::clustering::hierarchical::algorithm::HierarchicalClustering;
+use crate::math::clustering::hierarchical::clustering::HierarchicalClustering;
 use crate::math::clustering::hierarchical::node::HierarchicalNode;
 use crate::math::number::Float;
 use crate::math::point::Point;
@@ -326,13 +326,15 @@ where
     }
 }
 
-impl<F, P> Algorithm<F, P, Params> for HDBSCAN<F, P>
+impl<F, P> Clustering<F, P> for HDBSCAN<F, P>
 where
     F: Float,
     P: Point<F>,
 {
+    type Params = HDBCANParams;
+
     #[must_use]
-    fn fit(dataset: &[P], params: &Params) -> Self {
+    fn fit(dataset: &[P], params: &Self::Params) -> Self {
         if dataset.is_empty() {
             return HDBSCAN::default();
         }
@@ -411,7 +413,7 @@ mod tests {
             Point2::new(8.0, 8.0), // 20
         ];
 
-        let params = Params::new(3, 4, SquaredEuclidean);
+        let params = HDBCANParams::new(3, 4, SquaredEuclidean);
         let hdbscan = HDBSCAN::fit(&dataset, &params);
         println!("{:?}", hdbscan);
     }

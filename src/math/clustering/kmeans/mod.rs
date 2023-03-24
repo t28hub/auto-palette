@@ -1,3 +1,3 @@
-pub mod algorithm;
+pub mod clustering;
 pub mod init;
 pub mod params;

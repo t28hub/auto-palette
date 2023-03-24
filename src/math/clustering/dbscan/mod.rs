@@ -1,3 +1,3 @@
-pub(crate) mod algorithm;
+pub(crate) mod clustering;
 mod label;
 pub(crate) mod params;
