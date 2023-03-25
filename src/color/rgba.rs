@@ -12,9 +12,17 @@ pub struct Rgba {
 }
 
 impl Rgba {
+    const MIN: u8 = u8::MIN;
     const MAX: u8 = u8::MAX;
 
-    /// Return the max value of RGBA.
+    /// Returns the min value of RGBA.
+    #[inline]
+    #[must_use]
+    pub fn min_value<T: Number>() -> T {
+        T::from_u8(Self::MIN)
+    }
+
+    /// Returns the max value of RGBA.
     #[inline]
     #[must_use]
     pub fn max_value<T: Number>() -> T {

@@ -1,14 +1,17 @@
 extern crate image;
 
+use crate::test_image::TestImageData;
 use auto_palette::*;
+
+mod test_image;
 
 #[test]
 fn generate() {
-    let img = image::open("./tests/images/img_1.png").unwrap();
-    let pixels = img.to_rgba8().to_vec();
-    let palette: Palette<f64> = Palette::generate(&pixels, img.width(), img.height());
+    let img = image::open("./tests/images/img.png").unwrap();
+    let image_data = TestImageData::new(img);
+    let palette: Palette<f64> = Palette::generate(&image_data);
     palette
-        .swatches(6)
+        .get_swatches(6)
         .iter()
         .for_each(|swatch| println!("{:?}", swatch));
 }

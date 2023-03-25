@@ -10,8 +10,10 @@ use crate::math::distance::metric::DistanceMetric;
 use crate::math::number::Float;
 use crate::math::point::{Point3, Point5};
 use crate::swatch::Swatch;
+use crate::ImageData;
 use std::collections::HashMap;
 
+/// Struct representing a color palette.
 pub struct Palette<F: Float> {
     width: F,
     height: F,
@@ -22,49 +24,59 @@ impl<F> Palette<F>
 where
     F: Float,
 {
+    /// Generates a color palette from the given image using the specified algorithm.
+    ///
+    /// # Arguments
+    /// * `image` - The image data to use for palette generation.
+    /// * `algorithm` - The algorithm to use for color generation.
+    ///
+    /// # Returns
+    /// A new `Palette`.
     #[must_use]
-    pub fn generate(image_data: &[u8], width: u32, height: u32) -> Palette<F> {
-        let width_u = width as usize;
-        let width_f = F::from_u32(width);
+    pub fn generate<I: ImageData>(image: &I) -> Palette<F> {
+        let width = F::from_u32(image.width());
+        let height = F::from_u32(image.height());
 
-        let height_u = height as usize;
-        let height_f = F::from_u32(height);
+        let mut pixels = Vec::new();
+        for x in 0..image.width() {
+            for y in 0..image.height() {
+                let [r, g, b, a] = image.get_pixel(x, y).unwrap_or([0, 0, 0, 0]);
+                // Ignore a transparent pixel
+                if a == Rgba::min_value() {
+                    continue;
+                }
 
-        let mut index = 0;
-        let mut pixels = Vec::with_capacity(image_data.len() % 4);
-        while index < image_data.len() {
-            let rgba = Rgba::new(
-                image_data[index],
-                image_data[index + 1],
-                image_data[index + 2],
-                image_data[index + 3],
-            );
-            let xyz: XYZ<F, D65> = XYZ::from(&rgba);
-            let lab: Lab<F, D65> = Lab::from(&xyz);
-
-            let x = F::from_usize((index / 4) % width_u);
-            let y = F::from_usize((index / 4 / width_u) % height_u);
-            pixels.push(Point5::new(
-                Self::normalize(lab.l, Lab::<F>::min_l(), Lab::<F>::max_l()),
-                Self::normalize(lab.a, Lab::<F>::min_a(), Lab::<F>::max_a()),
-                Self::normalize(lab.b, Lab::<F>::min_b(), Lab::<F>::max_b()),
-                Self::normalize(x, F::zero(), width_f),
-                Self::normalize(y, F::zero(), height_f),
-            ));
-            index += 4;
+                let rgba = Rgba::new(r, g, b, a);
+                let xyz: XYZ<F, D65> = XYZ::from(&rgba);
+                let lab: Lab<F, D65> = Lab::from(&xyz);
+                pixels.push(Point5::new(
+                    Self::normalize(lab.l, Lab::<F>::min_l(), Lab::<F>::max_l()),
+                    Self::normalize(lab.a, Lab::<F>::min_a(), Lab::<F>::max_a()),
+                    Self::normalize(lab.b, Lab::<F>::min_b(), Lab::<F>::max_b()),
+                    Self::normalize(F::from_u32(x), F::zero(), width),
+                    Self::normalize(F::from_u32(y), F::zero(), height),
+                ));
+            }
         }
 
         let params = DBSCANParams::new(9, F::from_f64(0.0025), DistanceMetric::SquaredEuclidean);
         let clustering = DBSCAN::fit(&pixels, &params);
         Self {
-            width: width_f,
-            height: height_f,
+            width,
+            height,
             clustering,
         }
     }
 
+    /// Returns swatches representing the n-dominant colors in the palette.
+    ///
+    /// # Arguments
+    /// * `n` - The number of swatches to return.
+    ///
+    /// # Returns
+    /// A vector of swatches containing the n-dominant colors.
     #[must_use]
-    pub fn swatches(&self, n: usize) -> Vec<Swatch<F>> {
+    pub fn get_swatches(&self, n: usize) -> Vec<Swatch<F>> {
         let clusters = self.clustering.clusters();
         let centroids: Vec<Point3<F>> = clusters
             .iter()
@@ -82,7 +94,7 @@ where
         let size = self.width * self.height;
         let mut swatches = HashMap::new();
         for (index, label) in hierarchical_clustering.partition(n).into_iter().enumerate() {
-            let mut swatch = swatches.entry(label).or_insert_with(|| Swatch::default());
+            let mut swatch = swatches.entry(label).or_insert_with(Swatch::default);
 
             if let Some(cluster) = clusters.get(index) {
                 let percentage = F::from_usize(cluster.size()) / size;
