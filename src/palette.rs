@@ -50,11 +50,11 @@ where
                 let xyz: XYZ<F, D65> = XYZ::from(&rgba);
                 let lab: Lab<F, D65> = Lab::from(&xyz);
                 pixels.push(Point5::new(
-                    Self::normalize(lab.l, Lab::<F>::min_l(), Lab::<F>::max_l()),
-                    Self::normalize(lab.a, Lab::<F>::min_a(), Lab::<F>::max_a()),
-                    Self::normalize(lab.b, Lab::<F>::min_b(), Lab::<F>::max_b()),
-                    Self::normalize(F::from_u32(x), F::zero(), width),
-                    Self::normalize(F::from_u32(y), F::zero(), height),
+                    lab.l.normalize(Lab::<F>::min_l(), Lab::<F>::max_l()),
+                    lab.a.normalize(Lab::<F>::min_a(), Lab::<F>::max_a()),
+                    lab.b.normalize(Lab::<F>::min_b(), Lab::<F>::max_b()),
+                    F::from_u32(x).normalize(F::zero(), width),
+                    F::from_u32(y).normalize(F::zero(), height),
                 ));
             }
         }
@@ -104,16 +104,16 @@ where
 
                 let centroid = cluster.centroid();
                 let lab = Lab::new(
-                    Self::denormalize(centroid[0], Lab::<F>::min_l(), Lab::<F>::max_l()),
-                    Self::denormalize(centroid[1], Lab::<F>::min_a(), Lab::<F>::max_a()),
-                    Self::denormalize(centroid[2], Lab::<F>::min_b(), Lab::<F>::max_b()),
+                    centroid[0].denormalize(Lab::<F>::min_l(), Lab::<F>::max_l()),
+                    centroid[1].denormalize(Lab::<F>::min_a(), Lab::<F>::max_a()),
+                    centroid[2].denormalize(Lab::<F>::min_b(), Lab::<F>::max_b()),
                 );
                 let xyz = XYZ::from(&lab);
                 let rgba = Rgba::from(&xyz);
                 swatch.color = (rgba.r, rgba.g, rgba.b);
 
-                let x = Self::denormalize(centroid[3], F::zero(), self.width);
-                let y = Self::denormalize(centroid[4], F::zero(), self.height);
+                let x = centroid[3].denormalize(F::zero(), self.width);
+                let y = centroid[4].denormalize(F::zero(), self.height);
                 swatch.position = (
                     x.to_u32().expect("Could not convert x to u32"),
                     y.to_u32().expect("Could not convert y to u32"),
@@ -122,18 +122,5 @@ where
             }
         }
         swatches.into_values().collect()
-    }
-
-    #[must_use]
-    fn normalize(value: F, min: F, max: F) -> F {
-        assert!(min < max);
-        (value - min) / (max - min)
-    }
-
-    #[inline]
-    #[must_use]
-    fn denormalize(normalized: F, min: F, max: F) -> F {
-        assert!(min < max);
-        normalized * (max - min) + min
     }
 }
