@@ -2,7 +2,7 @@ use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::clustering::Clustering;
 use crate::math::clustering::kmeans::init::Initializer;
 use crate::math::clustering::model::Model;
-use crate::math::distance::metric::DistanceMetric;
+use crate::math::distance::Distance;
 use crate::math::neighbors::kdtree::KDTree;
 use crate::math::neighbors::nns::NeighborSearch;
 use crate::math::number::Float;
@@ -63,7 +63,7 @@ where
             cluster.clear();
         }
 
-        let nns = KDTree::new(&centroids, &DistanceMetric::SquaredEuclidean);
+        let nns = KDTree::new(&centroids, Distance::SquaredEuclidean);
         dataset.iter().enumerate().for_each(|(index, data)| {
             let result = nns.search_nearest(data);
             if let Some(nearest) = result {
@@ -86,7 +86,7 @@ where
                 cluster.centroid.div_assign(F::from_usize(cluster.size()));
 
                 let difference =
-                    DistanceMetric::SquaredEuclidean.measure(&old_centroid, cluster.centroid());
+                    Distance::SquaredEuclidean.measure(&old_centroid, cluster.centroid());
                 if difference < self.tolerance {
                     converged = true;
                 }
@@ -122,7 +122,7 @@ where
 
         let mut clusters: Vec<Cluster<F, P>> = self
             .initializer
-            .initialize(dataset, self.k, &DistanceMetric::SquaredEuclidean)
+            .initialize(dataset, self.k, &Distance::SquaredEuclidean)
             .into_iter()
             .enumerate()
             .map(|(cluster_id, centroid)| {

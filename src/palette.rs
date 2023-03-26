@@ -4,7 +4,7 @@ use crate::color::white_point::D65;
 use crate::color::xyz::XYZ;
 use crate::math::clustering::hierarchical::clustering::HierarchicalClustering;
 use crate::math::clustering::model::Model;
-use crate::math::distance::metric::DistanceMetric;
+use crate::math::distance::Distance;
 use crate::math::number::Float;
 use crate::math::point::{Point3, Point5};
 use crate::swatch::Swatch;
@@ -86,7 +86,7 @@ where
         let hierarchical_clustering = HierarchicalClustering::fit(&centroids, |u, v| {
             let point_u = centroids[u];
             let point_v = centroids[v];
-            DistanceMetric::SquaredEuclidean.measure(&point_u, &point_v)
+            Distance::SquaredEuclidean.measure(&point_u, &point_v)
         });
 
         let size = self.width * self.height;

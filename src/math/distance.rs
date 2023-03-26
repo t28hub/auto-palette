@@ -1,22 +1,27 @@
 use crate::math::number::Float;
 use crate::math::point::Point;
 
-/// Distance metric enumerated type.
+/// Enum representing distance metric.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DistanceMetric {
-    /// Euclidean distance measure.
+pub enum Distance {
     Euclidean,
-    /// Squared euclidean distance measure.
     SquaredEuclidean,
 }
 
-impl DistanceMetric {
-    /// Compute the distance between two points.
-    pub fn measure<F: Float, P: Point<F>>(&self, lhs: &P, rhs: &P) -> F {
+impl Distance {
+    /// Measures the distance between two points.
+    ///
+    /// # Arguments
+    /// * `point1` - The first point.
+    /// * `point2` - The second point.
+    ///
+    /// # Returns
+    /// The distance between `point1` and `point2`.
+    pub fn measure<F: Float, P: Point<F>>(&self, point1: &P, point2: &P) -> F {
         match *self {
-            DistanceMetric::Euclidean => DistanceMetric::SquaredEuclidean.measure(lhs, rhs).sqrt(),
-            DistanceMetric::SquaredEuclidean => lhs
-                .sub(*rhs)
+            Distance::Euclidean => Distance::SquaredEuclidean.measure(point1, point2).sqrt(),
+            Distance::SquaredEuclidean => point1
+                .sub(*point2)
                 .to_vec()
                 .iter()
                 .fold(F::zero(), |total, delta| total + delta.powi(2)),
@@ -31,7 +36,7 @@ mod tests {
 
     #[test]
     fn compute_should_compute_euclidean_distance() {
-        let metric = DistanceMetric::Euclidean;
+        let metric = Distance::Euclidean;
         assert_eq!(
             metric.measure(&Point2(0.0, 1.0), &Point2(1.0, 0.0)),
             2.0_f32.sqrt()
@@ -44,7 +49,7 @@ mod tests {
 
     #[test]
     fn compute_should_compute_squared_euclidean_distance() {
-        let metric = DistanceMetric::SquaredEuclidean;
+        let metric = Distance::SquaredEuclidean;
         assert_eq!(metric.measure(&Point2(0.0, 1.0), &Point2(1.0, 0.0)), 2.0);
         assert_eq!(
             metric.measure(&Point3(0.0, 1.0, 2.0), &Point3(1.0, 2.0, 3.0)),

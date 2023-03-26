@@ -1,4 +1,4 @@
-use crate::math::distance::metric::DistanceMetric;
+use crate::math::distance::Distance;
 use crate::math::number::Float;
 use crate::math::point::Point;
 use rand::Rng;
@@ -23,7 +23,7 @@ where
         &self,
         dataset: &[P],
         k: usize,
-        metric: &DistanceMetric,
+        metric: &Distance,
     ) -> Vec<P> {
         if k == 0 {
             return vec![];
@@ -62,7 +62,7 @@ where
     fn kmeans_plus_plus<F: Float, P: Point<F>>(
         dataset: &[P],
         k: usize,
-        metric: &DistanceMetric,
+        metric: &Distance,
         rng: &mut R,
     ) -> Vec<P> {
         let mut selected = vec![false; dataset.len()];
@@ -106,7 +106,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::math::clustering::kmeans::init::Initializer;
-    use crate::math::distance::metric::DistanceMetric;
+    use crate::math::distance::Distance;
     use crate::math::point::Point2;
     use rand::thread_rng;
 
@@ -120,7 +120,7 @@ mod tests {
             Point2(2.0, 4.0),
         ];
         let initializer = Initializer::Random(thread_rng());
-        let result = initializer.initialize(&dataset, 2, &DistanceMetric::Euclidean);
+        let result = initializer.initialize(&dataset, 2, &Distance::Euclidean);
         assert_eq!(result.len(), 2);
     }
 
@@ -134,7 +134,7 @@ mod tests {
             Point2(2.0, 4.0),
         ];
         let initializer = Initializer::KmeansPlusPlus(thread_rng());
-        let result = initializer.initialize(&dataset, 2, &DistanceMetric::SquaredEuclidean);
+        let result = initializer.initialize(&dataset, 2, &Distance::SquaredEuclidean);
         assert_eq!(result.len(), 2);
     }
 }

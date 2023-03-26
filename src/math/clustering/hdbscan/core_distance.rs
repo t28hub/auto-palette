@@ -1,4 +1,4 @@
-use crate::math::distance::metric::DistanceMetric;
+use crate::math::distance::Distance;
 use crate::math::neighbors::kdtree::KDTree;
 use crate::math::neighbors::nns::NeighborSearch;
 use crate::math::number::Float;
@@ -15,7 +15,7 @@ where
     F: Float,
 {
     /// Create a core distance for the given dataset.
-    pub fn new<P: Point<F>>(dataset: &[P], min_samples: usize, metric: &DistanceMetric) -> Self {
+    pub fn new<P: Point<F>>(dataset: &[P], min_samples: usize, distance: Distance) -> Self {
         if dataset.is_empty() {
             return Self {
                 distances: Vec::new(),
@@ -24,7 +24,7 @@ where
 
         let k = dataset.len().min(min_samples);
         let dataset_vec = dataset.to_vec();
-        let neighbor_search = KDTree::new(&dataset_vec, metric);
+        let neighbor_search = KDTree::new(&dataset_vec, distance);
         let mut distances = Vec::with_capacity(dataset.len());
         for (index, point) in dataset.iter().enumerate() {
             let neighbors = neighbor_search.search(point, k);
@@ -60,7 +60,7 @@ mod tests {
             Point2::new(0.9, 1.9),
             Point2::new(2.5, 3.5),
         ]);
-        let core_distance = CoreDistance::new(&dataset, 3, &DistanceMetric::SquaredEuclidean);
+        let core_distance = CoreDistance::new(&dataset, 3, Distance::SquaredEuclidean);
         assert_eq!(core_distance.distances.len(), 6);
         assert_close_to!(core_distance.distance_at(0), 5.00);
         assert_close_to!(core_distance.distance_at(1), 0.08);

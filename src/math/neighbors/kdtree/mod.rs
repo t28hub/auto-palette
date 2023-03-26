@@ -1,4 +1,4 @@
-use crate::math::distance::metric::DistanceMetric;
+use crate::math::distance::Distance;
 use crate::math::neighbors::nns::{Neighbor, NeighborSearch};
 use crate::math::number::Float;
 use crate::math::point::Point;
@@ -22,7 +22,7 @@ where
     _t: PhantomData<F>,
     root: Option<Box<Node>>,
     dataset: &'a Vec<P>,
-    metric: &'a DistanceMetric,
+    distance: Distance,
 }
 
 impl<'a, F, P> KDTree<'a, F, P>
@@ -31,14 +31,14 @@ where
     P: Point<F>,
 {
     /// Create a new KDTree.
-    pub fn new(dataset: &'a Vec<P>, metric: &'a DistanceMetric) -> Self {
+    pub fn new(dataset: &'a Vec<P>, distance: Distance) -> Self {
         let mut indices: Vec<usize> = (0..dataset.len()).collect();
         let root = Self::build_node(dataset, &mut indices, 0);
         KDTree {
             _t: PhantomData::default(),
             root: root.map(Box::new),
             dataset,
-            metric,
+            distance,
         }
     }
 
@@ -56,7 +56,7 @@ where
         let index = node.index();
         let point = self.dataset[index];
         let element = {
-            let distance = self.metric.measure(&point, query);
+            let distance = self.distance.measure(&point, query);
             Element::new(index, distance)
         };
         heap.push(element);
@@ -92,7 +92,7 @@ where
 
         let index = node.index();
         let point = self.dataset[index];
-        let distance = self.metric.measure(&point, query);
+        let distance = self.distance.measure(&point, query);
         if distance <= radius {
             results.push(Element::new(index, distance));
         }
@@ -198,7 +198,7 @@ mod tests {
     #[test]
     fn search_should_return_knearest_neighbors() {
         let dataset = Vec::from(DATASET);
-        let kdtree = KDTree::new(&dataset, &DistanceMetric::SquaredEuclidean);
+        let kdtree = KDTree::new(&dataset, Distance::SquaredEuclidean);
         assert_eq!(kdtree.search(&Point2(3.0, 3.0), 0), vec![]);
         assert_eq!(
             kdtree.search(&Point2(3.0, 3.0), 1),
@@ -226,7 +226,7 @@ mod tests {
     #[test]
     fn search_should_return_neighbors_within_radius() {
         let dataset = Vec::from(DATASET);
-        let kdtree = KDTree::new(&dataset, &DistanceMetric::SquaredEuclidean);
+        let kdtree = KDTree::new(&dataset, Distance::SquaredEuclidean);
         assert_eq!(kdtree.search_radius(&Point2(3.0, 3.0), -1.0), vec![]);
         assert_eq!(kdtree.search_radius(&Point2(3.0, 3.0), 1.0), vec![]);
         assert_eq!(

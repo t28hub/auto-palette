@@ -2,7 +2,7 @@ use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::clustering::Clustering;
 use crate::math::clustering::dbscan::label::Label;
 use crate::math::clustering::model::Model;
-use crate::math::distance::metric::DistanceMetric;
+use crate::math::distance::Distance;
 use crate::math::neighbors::kdtree::KDTree;
 use crate::math::neighbors::nns::{Neighbor, NeighborSearch};
 use crate::math::number::Float;
@@ -22,7 +22,7 @@ where
 {
     min_samples: usize,
     epsilon: F,
-    metric: DistanceMetric,
+    distance: Distance,
 }
 
 impl<F> DBSCAN<F>
@@ -34,16 +34,16 @@ where
     /// # Arguments
     /// * `min_samples` - The minimum number of points.
     /// * `epsilon` - The maximum distance between two points.
-    /// * `metric` - The distance metric.
+    /// * `distance` - The distance metric.
     ///
     /// # Returns
     /// A new `DBSCAN` instance.
     #[must_use]
-    pub fn new(min_samples: usize, epsilon: F, metric: DistanceMetric) -> Self {
+    pub fn new(min_samples: usize, epsilon: F, distance: Distance) -> Self {
         Self {
             min_samples,
             epsilon,
-            metric,
+            distance,
         }
     }
 
@@ -107,7 +107,7 @@ where
         }
 
         let dataset_vec = dataset.to_vec();
-        let nns = KDTree::new(&dataset_vec, &self.metric);
+        let nns = KDTree::new(&dataset_vec, self.distance);
         let mut labels = vec![Label::Undefined; dataset.len()];
         let mut cluster_id: usize = 0;
         for (index, point) in dataset.iter().enumerate() {
@@ -165,7 +165,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::distance::metric::DistanceMetric;
+    use crate::math::distance::Distance;
     use crate::math::point::Point2;
 
     const DATASET: [Point2<f64>; 16] = [
@@ -190,7 +190,7 @@ mod tests {
     #[test]
     fn fit_should_fit_dataset() {
         let dataset = Vec::from(DATASET);
-        let dbscan = DBSCAN::new(4, 2.0_f64.sqrt(), DistanceMetric::Euclidean);
+        let dbscan = DBSCAN::new(4, 2.0_f64.sqrt(), Distance::Euclidean);
         let model = dbscan.train(&dataset);
 
         let mut centroids: Vec<_> = model

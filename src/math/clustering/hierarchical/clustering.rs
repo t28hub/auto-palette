@@ -134,7 +134,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::distance::metric::DistanceMetric::SquaredEuclidean;
+    use crate::math::distance::Distance::SquaredEuclidean;
     use crate::math::point::Point2;
 
     #[test]

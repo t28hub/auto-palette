@@ -1,4 +1,4 @@
-use crate::math::distance::metric::DistanceMetric;
+use crate::math::distance::Distance;
 use crate::math::neighbors::nns::{Neighbor, NeighborSearch};
 use crate::math::number::Float;
 use crate::math::point::Point;
@@ -14,7 +14,7 @@ where
 {
     _t: PhantomData<F>,
     dataset: &'a Vec<P>,
-    metric: DistanceMetric,
+    metric: Distance,
 }
 
 impl<'a, F, P> LinearSearch<'a, F, P>
@@ -23,7 +23,7 @@ where
     P: Point<F>,
 {
     #[allow(unused)]
-    pub fn new(dataset: &'a Vec<P>, metric: DistanceMetric) -> Self {
+    pub fn new(dataset: &'a Vec<P>, metric: Distance) -> Self {
         Self {
             _t: PhantomData::default(),
             dataset,
@@ -93,11 +93,11 @@ mod tests {
     #[test]
     fn search_should_return_knearest_neighbors() {
         let dataset = vec![];
-        let linear_search = LinearSearch::new(&dataset, DistanceMetric::SquaredEuclidean);
+        let linear_search = LinearSearch::new(&dataset, Distance::SquaredEuclidean);
         assert_eq!(linear_search.search(&Point2(3.0, 3.0), 0), vec![]);
 
         let dataset = Vec::from(DATASET);
-        let linear_search = LinearSearch::new(&dataset, DistanceMetric::SquaredEuclidean);
+        let linear_search = LinearSearch::new(&dataset, Distance::SquaredEuclidean);
         assert_eq!(linear_search.search(&Point2(3.0, 3.0), 0), vec![]);
         assert_eq!(
             linear_search.search(&Point2(3.0, 3.0), 3),
@@ -132,7 +132,7 @@ mod tests {
     #[test]
     fn search_nearest_should_return_nearest_neighbor() {
         let dataset = vec![];
-        let metric = DistanceMetric::SquaredEuclidean;
+        let metric = Distance::SquaredEuclidean;
         let linear_search = LinearSearch::new(&dataset, metric);
         assert_eq!(linear_search.search_nearest(&Point2(0.0, 1.0)), None);
 
@@ -147,7 +147,7 @@ mod tests {
     #[test]
     fn search_radius_should_return_neighbors_within_radius() {
         let dataset = Vec::from(DATASET);
-        let linear_search = LinearSearch::new(&dataset, DistanceMetric::SquaredEuclidean);
+        let linear_search = LinearSearch::new(&dataset, Distance::SquaredEuclidean);
         assert_eq!(linear_search.search_radius(&Point2(2.0, 3.0), -1.0), vec![]);
         assert_eq!(linear_search.search_radius(&Point2(2.0, 3.0), 0.0), vec![]);
         assert_eq!(
