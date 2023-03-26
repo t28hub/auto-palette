@@ -15,7 +15,7 @@ where
     pub(crate) centroid: P,
     /// The indices of the points in the dataset that belong to this cluster.
     membership: Vec<usize>,
-    _phantom: PhantomData<F>,
+    _marker: PhantomData<F>,
 }
 
 impl<F, P> Cluster<F, P>
@@ -35,7 +35,7 @@ where
             label,
             centroid: P::zero(),
             membership: Vec::new(),
-            _phantom: PhantomData::default(),
+            _marker: PhantomData::default(),
         }
     }
 

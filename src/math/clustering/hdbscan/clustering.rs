@@ -1,36 +1,44 @@
 use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::clustering::Clustering;
 use crate::math::clustering::hdbscan::core_distance::CoreDistance;
-use crate::math::clustering::hdbscan::params::HDBCANParams;
 use crate::math::clustering::hdbscan::union_find::UnionFind;
 use crate::math::clustering::hierarchical::clustering::HierarchicalClustering;
 use crate::math::clustering::hierarchical::node::HierarchicalNode;
+use crate::math::clustering::model::Model;
+use crate::math::distance::metric::DistanceMetric;
 use crate::math::number::Float;
 use crate::math::point::Point;
 use std::collections::{HashMap, HashSet};
-use std::marker::PhantomData;
 
-/// HDBSCAN clustering algorithm.
+/// Struct representing HDBSCAN clustering algorithm.
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, PartialEq)]
-pub struct HDBSCAN<F, P>
-where
-    F: Float,
-    P: Point<F>,
-{
-    clusters: Vec<Cluster<F, P>>,
-    outliers: Vec<usize>,
-    _phantom: PhantomData<F>,
+pub struct HDBSCAN {
+    min_samples: usize,
+    min_cluster_size: usize,
+    metric: DistanceMetric,
 }
 
-impl<F, P> HDBSCAN<F, P>
-where
-    F: Float,
-    P: Point<F>,
-{
-    fn condense_tree(
-        hierarchy: &[HierarchicalNode<F>],
-        min_cluster_size: usize,
-    ) -> Vec<CondensedNode<F>>
+impl HDBSCAN {
+    /// Creates a new HDBSCAN instance.
+    ///
+    /// # Arguments
+    /// * `min_samples` - The minimum number of points.
+    /// * `min_cluster_size` - The minimum number of points required to form a cluster.
+    /// * `metric` - The distance metric to calculate core distances.
+    ///
+    /// # Returns
+    /// A new HDBSCAN instance.
+    #[must_use]
+    pub fn new(min_samples: usize, min_cluster_size: usize, metric: DistanceMetric) -> Self {
+        Self {
+            min_samples,
+            min_cluster_size,
+            metric,
+        }
+    }
+
+    fn condense_tree<F>(&self, hierarchy: &[HierarchicalNode<F>]) -> Vec<CondensedNode<F>>
     where
         F: Float,
     {
@@ -72,8 +80,8 @@ where
             };
 
             match (
-                left_size >= min_cluster_size,
-                right_size >= min_cluster_size,
+                left_size >= self.min_cluster_size,
+                right_size >= self.min_cluster_size,
             ) {
                 (true, true) => {
                     relabel[left_id] = next_label;
@@ -144,12 +152,13 @@ where
         condensed
     }
 
-    fn extract_clusters(
+    fn extract_clusters<F, P>(
         dataset: &[P],
         condensed: &[CondensedNode<F>],
-    ) -> (Vec<Cluster<F, P>>, Vec<usize>)
+    ) -> (Vec<Cluster<F, P>>, HashSet<usize>)
     where
         F: Float,
+        P: Point<F>,
     {
         let mut stability = Self::compute_stability(condensed);
         let mut cluster_ids: HashSet<usize> = stability.keys().copied().collect();
@@ -230,10 +239,10 @@ where
                 }
             })
             .collect();
-        (clusters, outlier_set.into_iter().collect())
+        (clusters, outlier_set)
     }
 
-    fn compute_stability(condensed: &[CondensedNode<F>]) -> HashMap<usize, F>
+    fn compute_stability<F>(condensed: &[CondensedNode<F>]) -> HashMap<usize, F>
     where
         F: Float,
     {
@@ -264,7 +273,7 @@ where
             })
     }
 
-    fn bfs_hierarchy(hierarchy: &[HierarchicalNode<F>], root_id: usize) -> Vec<usize>
+    fn bfs_hierarchy<F>(hierarchy: &[HierarchicalNode<F>], root_id: usize) -> Vec<usize>
     where
         F: Float,
     {
@@ -289,7 +298,7 @@ where
         node_ids
     }
 
-    fn bfs_condensed_tree(condensed: &[CondensedNode<F>], root_node_id: usize) -> Vec<usize>
+    fn bfs_condensed_tree<F>(condensed: &[CondensedNode<F>], root_node_id: usize) -> Vec<usize>
     where
         F: Float,
     {
@@ -312,38 +321,22 @@ where
     }
 }
 
-impl<F, P> Default for HDBSCAN<F, P>
+impl<F, P> Clustering<F, P> for HDBSCAN
 where
     F: Float,
     P: Point<F>,
 {
-    fn default() -> Self {
-        return Self {
-            clusters: Vec::new(),
-            outliers: Vec::new(),
-            _phantom: PhantomData::default(),
-        };
-    }
-}
-
-impl<F, P> Clustering<F, P> for HDBSCAN<F, P>
-where
-    F: Float,
-    P: Point<F>,
-{
-    type Params = HDBCANParams;
-
     #[must_use]
-    fn fit(dataset: &[P], params: &Self::Params) -> Self {
+    fn train(&self, dataset: &[P]) -> Model<F, P> {
         if dataset.is_empty() {
-            return HDBSCAN::default();
+            return Model::default();
         }
 
-        let core_distance = CoreDistance::new(dataset, params.min_samples(), params.metric());
+        let core_distance = CoreDistance::new(dataset, self.min_samples, &self.metric);
         let mutual_reachability_distance = |u: usize, v: usize| -> F {
             let point_u = &dataset[u];
             let point_v = &dataset[v];
-            let distance = params.metric().measure(point_u, point_v);
+            let distance = self.metric.measure(point_u, point_v);
             distance.max(
                 core_distance
                     .distance_at(u)
@@ -353,23 +346,9 @@ where
         let hierarchical_clustering =
             HierarchicalClustering::fit(dataset, mutual_reachability_distance);
         let hierarchy = hierarchical_clustering.nodes();
-        let condensed = HDBSCAN::<F, P>::condense_tree(hierarchy, params.min_cluster_size());
+        let condensed = self.condense_tree(hierarchy);
         let (clusters, outliers) = HDBSCAN::extract_clusters(dataset, &condensed);
-        Self {
-            clusters,
-            outliers,
-            _phantom: PhantomData::default(),
-        }
-    }
-
-    #[must_use]
-    fn clusters(&self) -> &[Cluster<F, P>] {
-        &self.clusters
-    }
-
-    #[must_use]
-    fn outliers(&self) -> &[usize] {
-        &self.outliers
+        Model::new(clusters, outliers)
     }
 }
 
@@ -384,7 +363,6 @@ struct CondensedNode<F: Float> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::distance::metric::DistanceMetric::SquaredEuclidean;
     use crate::math::point::Point2;
 
     #[test]
@@ -413,8 +391,8 @@ mod tests {
             Point2::new(8.0, 8.0), // 20
         ];
 
-        let params = HDBCANParams::new(3, 4, SquaredEuclidean);
-        let hdbscan = HDBSCAN::fit(&dataset, &params);
-        println!("{:?}", hdbscan);
+        let hdbscan = HDBSCAN::new(3, 4, DistanceMetric::SquaredEuclidean);
+        let model = hdbscan.train(&dataset);
+        println!("{:?}", model);
     }
 }

@@ -1,39 +1,61 @@
 use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::clustering::Clustering;
 use crate::math::clustering::dbscan::label::Label;
-use crate::math::clustering::dbscan::params::DBSCANParams;
+use crate::math::clustering::model::Model;
+use crate::math::distance::metric::DistanceMetric;
 use crate::math::neighbors::kdtree::KDTree;
 use crate::math::neighbors::nns::{Neighbor, NeighborSearch};
 use crate::math::number::Float;
 use crate::math::point::Point;
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::marker::PhantomData;
 
-/// DBSCAN clustering algorithm.
-#[derive(Debug)]
-pub struct DBSCAN<F, P>
+/// Struct representing DBSCAN clustering algorithm.
+///
+/// # Type Parameters
+/// * `F` - The float type used for calculations (e.g., f32 or f64).
+/// * `P` - The type of points used in the clustering algorithm.
+#[allow(clippy::upper_case_acronyms)]
+#[derive(Debug, PartialEq)]
+pub struct DBSCAN<F>
 where
     F: Float,
-    P: Point<F>,
 {
-    clusters: Vec<Cluster<F, P>>,
-    outliers: Vec<usize>,
-    _marker: PhantomData<F>,
+    min_samples: usize,
+    epsilon: F,
+    metric: DistanceMetric,
 }
 
-impl<F, P> DBSCAN<F, P>
+impl<F> DBSCAN<F>
 where
     F: Float,
-    P: Point<F>,
 {
-    fn expand_cluster<N>(
+    /// Creates a new `DBSCAN` instance.
+    ///
+    /// # Arguments
+    /// * `min_samples` - The minimum number of points.
+    /// * `epsilon` - The maximum distance between two points.
+    /// * `metric` - The distance metric.
+    ///
+    /// # Returns
+    /// A new `DBSCAN` instance.
+    #[must_use]
+    pub fn new(min_samples: usize, epsilon: F, metric: DistanceMetric) -> Self {
+        Self {
+            min_samples,
+            epsilon,
+            metric,
+        }
+    }
+
+    fn expand_cluster<P, N>(
+        &self,
         cluster_id: usize,
         dataset: &[P],
-        params: &DBSCANParams<F>,
         ns: &N,
         neighbors: &[Neighbor<F>],
         labels: &mut [Label],
     ) where
+        P: Point<F>,
         N: NeighborSearch<F, P>,
     {
         let mut queue = VecDeque::new();
@@ -51,8 +73,8 @@ where
             labels[current_index] = Label::Assigned(cluster_id);
 
             let point = dataset[current_index];
-            let secondary_neighbors = ns.search_radius(&point, params.epsilon());
-            if secondary_neighbors.len() < params.min_points() {
+            let secondary_neighbors = ns.search_radius(&point, self.epsilon);
+            if secondary_neighbors.len() < self.min_samples {
                 continue;
             }
 
@@ -73,35 +95,19 @@ where
     }
 }
 
-impl<F, P> Default for DBSCAN<F, P>
+impl<F, P> Clustering<F, P> for DBSCAN<F>
 where
     F: Float,
     P: Point<F>,
 {
-    fn default() -> Self {
-        return Self {
-            clusters: Vec::new(),
-            outliers: Vec::new(),
-            _marker: PhantomData::default(),
-        };
-    }
-}
-
-impl<F, P> Clustering<F, P> for DBSCAN<F, P>
-where
-    F: Float,
-    P: Point<F>,
-{
-    type Params = DBSCANParams<F>;
-
     #[must_use]
-    fn fit(dataset: &[P], params: &Self::Params) -> Self {
+    fn train(&self, dataset: &[P]) -> Model<F, P> {
         if dataset.is_empty() {
-            return DBSCAN::default();
+            return Model::default();
         }
 
         let dataset_vec = dataset.to_vec();
-        let nns = KDTree::new(&dataset_vec, params.metric());
+        let nns = KDTree::new(&dataset_vec, &self.metric);
         let mut labels = vec![Label::Undefined; dataset.len()];
         let mut cluster_id: usize = 0;
         for (index, point) in dataset.iter().enumerate() {
@@ -109,8 +115,8 @@ where
                 continue;
             }
 
-            let neighbors = nns.search_radius(point, params.epsilon());
-            if neighbors.len() < params.min_points() {
+            let neighbors = nns.search_radius(point, self.epsilon);
+            if neighbors.len() < self.min_samples {
                 labels[index] = Label::Outlier;
                 continue;
             }
@@ -118,7 +124,7 @@ where
             neighbors.iter().for_each(|neighbor| {
                 labels[neighbor.index] = Label::Marked;
             });
-            Self::expand_cluster(cluster_id, dataset, params, &nns, &neighbors, &mut labels);
+            self.expand_cluster(cluster_id, dataset, &nns, &neighbors, &mut labels);
             cluster_id += 1;
         }
 
@@ -141,34 +147,18 @@ where
             }
         }
 
-        let clusters = cluster_map
+        let clusters: Vec<Cluster<F, P>> = cluster_map
             .into_iter()
             .filter_map(|(_, mut cluster)| {
                 if cluster.is_empty() {
-                    return None;
+                    None
+                } else {
+                    cluster.centroid.div_assign(F::from_usize(cluster.size()));
+                    Some(cluster)
                 }
-                cluster.centroid.div_assign(F::from_usize(cluster.size()));
-                return Some(cluster);
             })
             .collect();
-
-        let outliers = outlier_set.into_iter().collect();
-
-        DBSCAN {
-            clusters,
-            outliers,
-            _marker: PhantomData::default(),
-        }
-    }
-
-    #[must_use]
-    fn clusters(&self) -> &[Cluster<F, P>] {
-        &self.clusters
-    }
-
-    #[must_use]
-    fn outliers(&self) -> &[usize] {
-        &self.outliers
+        Model::new(clusters, outlier_set)
     }
 }
 
@@ -200,10 +190,10 @@ mod tests {
     #[test]
     fn fit_should_fit_dataset() {
         let dataset = Vec::from(DATASET);
-        let params = DBSCANParams::new(4, 2.0_f64.sqrt(), DistanceMetric::Euclidean);
-        let dbscan = DBSCAN::fit(&dataset, &params);
+        let dbscan = DBSCAN::new(4, 2.0_f64.sqrt(), DistanceMetric::Euclidean);
+        let model = dbscan.train(&dataset);
 
-        let mut centroids: Vec<_> = dbscan
+        let mut centroids: Vec<_> = model
             .clusters()
             .iter()
             .map(|cluster| cluster.centroid())
@@ -214,6 +204,6 @@ mod tests {
             centroids,
             Vec::from([Point2(0.5, 7.5), Point2(1.0, 1.0), Point2(4.4, 3.8)])
         );
-        assert_eq!(dbscan.outliers(), Vec::new());
+        assert_eq!(model.outliers(), &HashSet::new());
     }
 }

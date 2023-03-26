@@ -1,3 +1,2 @@
-pub(crate) mod clustering;
+pub mod clustering;
 mod label;
-pub(crate) mod params;

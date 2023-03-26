@@ -14,7 +14,7 @@ use auto_palette::*;
 pub fn extract() {
     let img = image::open("./path/to/image.png").unwrap();
     let image_data = TestImageData::new(img);
-    let palette: Palette<f64> = Palette::generate(&image_data);
+    let palette: Palette<f64> = Palette::generate(&image_data, Algorithm::DBSCAN);
     palette
         .get_swatches(6)
         .iter()

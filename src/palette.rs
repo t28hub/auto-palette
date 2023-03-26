@@ -2,22 +2,21 @@ use crate::color::lab::Lab;
 use crate::color::rgba::Rgba;
 use crate::color::white_point::D65;
 use crate::color::xyz::XYZ;
-use crate::math::clustering::clustering::Clustering;
-use crate::math::clustering::dbscan::clustering::DBSCAN;
-use crate::math::clustering::dbscan::params::DBSCANParams;
 use crate::math::clustering::hierarchical::clustering::HierarchicalClustering;
+use crate::math::clustering::model::Model;
 use crate::math::distance::metric::DistanceMetric;
 use crate::math::number::Float;
 use crate::math::point::{Point3, Point5};
 use crate::swatch::Swatch;
-use crate::ImageData;
+use crate::{Algorithm, ImageData};
+use num_traits::Zero;
 use std::collections::HashMap;
 
 /// Struct representing a color palette.
 pub struct Palette<F: Float> {
     width: F,
     height: F,
-    clustering: DBSCAN<F, Point5<F>>,
+    model: Model<F, Point5<F>>,
 }
 
 impl<F> Palette<F>
@@ -31,9 +30,9 @@ where
     /// * `algorithm` - The algorithm to use for color generation.
     ///
     /// # Returns
-    /// A new `Palette`.
+    /// A new `Palette` instance.
     #[must_use]
-    pub fn generate<I: ImageData>(image: &I) -> Palette<F> {
+    pub fn generate<I: ImageData>(image: &I, algorithm: Algorithm) -> Palette<F> {
         let width = F::from_u32(image.width());
         let height = F::from_u32(image.height());
 
@@ -42,7 +41,7 @@ where
             for y in 0..image.height() {
                 let [r, g, b, a] = image.get_pixel(x, y).unwrap_or([0, 0, 0, 0]);
                 // Ignore a transparent pixel
-                if a == Rgba::min_value() {
+                if a.is_zero() {
                     continue;
                 }
 
@@ -59,12 +58,11 @@ where
             }
         }
 
-        let params = DBSCANParams::new(9, F::from_f64(0.0025), DistanceMetric::SquaredEuclidean);
-        let clustering = DBSCAN::fit(&pixels, &params);
+        let model = algorithm.apply(&pixels);
         Self {
             width,
             height,
-            clustering,
+            model,
         }
     }
 
@@ -77,7 +75,7 @@ where
     /// A vector of swatches containing the n-dominant colors.
     #[must_use]
     pub fn get_swatches(&self, n: usize) -> Vec<Swatch<F>> {
-        let clusters = self.clustering.clusters();
+        let clusters = self.model.clusters();
         let centroids: Vec<Point3<F>> = clusters
             .iter()
             .map(|cluster| {
