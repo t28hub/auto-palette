@@ -1,6 +1,7 @@
 auto-palette
 =====
-[![GitHub Actions](https://github.com/t28hub/auto-palette-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/t28hub/auto-palette-rs/actions/workflows/ci.yml)
+[![License](https://img.shields.io/npm/l/auto-palette)](https://github.com/t28hub/auto-palette/blob/main/LICENSE)
+[![GitHub Actions](https://github.com/t28hub/auto-palette/actions/workflows/ci.yml/badge.svg)](https://github.com/t28hub/auto-palette/actions/workflows/ci.yml)
 
 A Rust library for extracting a color palette from an image automatically.
 
