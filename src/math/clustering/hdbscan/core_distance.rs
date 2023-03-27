@@ -1,6 +1,6 @@
 use crate::math::distance::Distance;
-use crate::math::neighbors::kdtree::KDTree;
-use crate::math::neighbors::nns::NeighborSearch;
+use crate::math::neighbors::kdtree::kdtree_search::KDTreeSearch;
+use crate::math::neighbors::neighbor_search::NeighborSearch;
 use crate::math::number::Float;
 use crate::math::point::Point;
 
@@ -24,7 +24,7 @@ where
 
         let k = dataset.len().min(min_samples);
         let dataset_vec = dataset.to_vec();
-        let neighbor_search = KDTree::new(&dataset_vec, distance);
+        let neighbor_search = KDTreeSearch::new(&dataset_vec, distance);
         let mut distances = Vec::with_capacity(dataset.len());
         for (index, point) in dataset.iter().enumerate() {
             let neighbors = neighbor_search.search(point, k);

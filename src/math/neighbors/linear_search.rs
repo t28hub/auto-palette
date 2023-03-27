@@ -1,20 +1,25 @@
 use crate::math::distance::Distance;
-use crate::math::neighbors::nns::{Neighbor, NeighborSearch};
+use crate::math::neighbors::neighbor::Neighbor;
+use crate::math::neighbors::neighbor_search::NeighborSearch;
 use crate::math::number::Float;
 use crate::math::point::Point;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 
-/// A nearest neighbor search using linear search.
-#[allow(unused)]
-pub(crate) struct LinearSearch<'a, F, P>
+/// Struct representing linear search algorithm for neighbor search.
+///
+/// # Type Parameters
+/// * `F` - The float type used for calculations.
+/// * `P` - The type of points used in the neighbor search algorithm.
+#[derive(Debug)]
+pub struct LinearSearch<'a, F, P>
 where
     F: Float,
     P: Point<F>,
 {
-    _t: PhantomData<F>,
     dataset: &'a Vec<P>,
-    metric: Distance,
+    distance: Distance,
+    _marker: PhantomData<F>,
 }
 
 impl<'a, F, P> LinearSearch<'a, F, P>
@@ -22,12 +27,20 @@ where
     F: Float,
     P: Point<F>,
 {
-    #[allow(unused)]
-    pub fn new(dataset: &'a Vec<P>, metric: Distance) -> Self {
+    /// Creates a new `LinearSearch` instance.
+    ///
+    /// # Arguments
+    /// * `dataset` - The reference of a dataset of points.
+    /// * `distance` - The distance metric to use.
+    ///
+    /// # Returns
+    /// A new `LinearSearch` instance.
+    #[must_use]
+    pub fn new(dataset: &'a Vec<P>, distance: Distance) -> Self {
         Self {
-            _t: PhantomData::default(),
             dataset,
-            metric,
+            distance,
+            _marker: PhantomData::default(),
         }
     }
 }
@@ -37,43 +50,55 @@ where
     F: Float,
     P: Point<F>,
 {
+    #[must_use]
     fn search(&self, query: &P, k: usize) -> Vec<Neighbor<F>> {
         if k == 0 {
             return Vec::new();
         }
 
-        let mut neighbors = Vec::new();
-        for (index, point) in self.dataset.iter().enumerate() {
-            let distance = self.metric.measure(point, query);
-            neighbors.push(Neighbor::new(index, distance))
-        }
+        let mut neighbors: Vec<Neighbor<F>> = self
+            .dataset
+            .iter()
+            .enumerate()
+            .map(|(index, point)| {
+                let distance = self.distance.measure(point, query);
+                Neighbor::new(index, distance)
+            })
+            .collect();
 
-        neighbors.sort_unstable_by(|neighbor1, neighbor2| -> Ordering {
-            neighbor1.distance.partial_cmp(&neighbor2.distance).unwrap()
+        neighbors.sort_unstable_by(|neighbor1, neighbor2| {
+            neighbor1
+                .distance
+                .partial_cmp(&neighbor2.distance)
+                .unwrap_or(Ordering::Equal)
         });
-
-        let mut results = Vec::with_capacity(k);
-        results.extend(neighbors.into_iter().take(k));
-        results
+        neighbors.truncate(k);
+        neighbors
     }
 
+    #[must_use]
     fn search_nearest(&self, query: &P) -> Option<Neighbor<F>> {
         self.search(query, 1).pop()
     }
 
+    #[must_use]
     fn search_radius(&self, query: &P, radius: F) -> Vec<Neighbor<F>> {
         if radius < F::zero() {
             return Vec::new();
         }
 
-        let mut neighbors = Vec::new();
-        for (index, point) in self.dataset.iter().enumerate() {
-            let distance = self.metric.measure(point, query);
-            if distance <= radius {
-                neighbors.push(Neighbor::new(index, distance));
-            }
-        }
-        neighbors
+        self.dataset
+            .iter()
+            .enumerate()
+            .filter_map(|(index, point)| {
+                let distance = self.distance.measure(point, query);
+                if distance <= radius {
+                    Some(Neighbor::new(index, distance))
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 }
 
@@ -82,7 +107,7 @@ mod tests {
     use super::*;
     use crate::math::point::Point2;
 
-    const DATASET: [Point2<f32>; 5] = [
+    const DATASET: [Point2<f64>; 5] = [
         Point2(1.0, 2.0),
         Point2(3.0, 1.0),
         Point2(4.0, 5.0),
@@ -92,9 +117,9 @@ mod tests {
 
     #[test]
     fn search_should_return_knearest_neighbors() {
-        let dataset = vec![];
+        let dataset = Vec::new();
         let linear_search = LinearSearch::new(&dataset, Distance::SquaredEuclidean);
-        assert_eq!(linear_search.search(&Point2(3.0, 3.0), 0), vec![]);
+        assert_eq!(linear_search.search(&Point2(3.0, 3.0), 4), vec![]);
 
         let dataset = Vec::from(DATASET);
         let linear_search = LinearSearch::new(&dataset, Distance::SquaredEuclidean);
@@ -131,13 +156,12 @@ mod tests {
 
     #[test]
     fn search_nearest_should_return_nearest_neighbor() {
-        let dataset = vec![];
-        let metric = Distance::SquaredEuclidean;
-        let linear_search = LinearSearch::new(&dataset, metric);
+        let dataset = Vec::new();
+        let linear_search = LinearSearch::new(&dataset, Distance::SquaredEuclidean);
         assert_eq!(linear_search.search_nearest(&Point2(0.0, 1.0)), None);
 
         let dataset = Vec::from(DATASET);
-        let linear_search = LinearSearch::new(&dataset, metric);
+        let linear_search = LinearSearch::new(&dataset, Distance::SquaredEuclidean);
         assert_eq!(
             linear_search.search_nearest(&Point2(2.5, 3.0)),
             Some(Neighbor::new(4, 1.25))

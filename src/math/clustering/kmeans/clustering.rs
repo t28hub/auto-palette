@@ -3,8 +3,8 @@ use crate::math::clustering::clustering::Clustering;
 use crate::math::clustering::kmeans::init::Initializer;
 use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
-use crate::math::neighbors::kdtree::KDTree;
-use crate::math::neighbors::nns::NeighborSearch;
+use crate::math::neighbors::kdtree::kdtree_search::KDTreeSearch;
+use crate::math::neighbors::neighbor_search::NeighborSearch;
 use crate::math::number::Float;
 use crate::math::point::Point;
 use rand::Rng;
@@ -63,7 +63,7 @@ where
             cluster.clear();
         }
 
-        let nns = KDTree::new(&centroids, Distance::SquaredEuclidean);
+        let nns = KDTreeSearch::new(&centroids, Distance::SquaredEuclidean);
         dataset.iter().enumerate().for_each(|(index, data)| {
             let result = nns.search_nearest(data);
             if let Some(nearest) = result {

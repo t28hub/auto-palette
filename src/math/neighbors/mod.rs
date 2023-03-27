@@ -1,3 +1,4 @@
-pub(crate) mod kdtree;
-pub(crate) mod linear;
-pub(crate) mod nns;
+pub mod kdtree;
+pub mod linear_search;
+pub mod neighbor;
+pub mod neighbor_search;

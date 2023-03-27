@@ -3,8 +3,9 @@ use crate::math::clustering::clustering::Clustering;
 use crate::math::clustering::dbscan::label::Label;
 use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
-use crate::math::neighbors::kdtree::KDTree;
-use crate::math::neighbors::nns::{Neighbor, NeighborSearch};
+use crate::math::neighbors::kdtree::kdtree_search::KDTreeSearch;
+use crate::math::neighbors::neighbor::Neighbor;
+use crate::math::neighbors::neighbor_search::NeighborSearch;
 use crate::math::number::Float;
 use crate::math::point::Point;
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -107,7 +108,7 @@ where
         }
 
         let dataset_vec = dataset.to_vec();
-        let nns = KDTree::new(&dataset_vec, self.distance);
+        let neighbor_search = KDTreeSearch::new(&dataset_vec, self.distance);
         let mut labels = vec![Label::Undefined; dataset.len()];
         let mut cluster_id: usize = 0;
         for (index, point) in dataset.iter().enumerate() {
@@ -115,7 +116,7 @@ where
                 continue;
             }
 
-            let neighbors = nns.search_radius(point, self.epsilon);
+            let neighbors = neighbor_search.search_radius(point, self.epsilon);
             if neighbors.len() < self.min_samples {
                 labels[index] = Label::Outlier;
                 continue;
@@ -124,7 +125,13 @@ where
             neighbors.iter().for_each(|neighbor| {
                 labels[neighbor.index] = Label::Marked;
             });
-            self.expand_cluster(cluster_id, dataset, &nns, &neighbors, &mut labels);
+            self.expand_cluster(
+                cluster_id,
+                dataset,
+                &neighbor_search,
+                &neighbors,
+                &mut labels,
+            );
             cluster_id += 1;
         }
 
