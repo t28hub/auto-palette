@@ -2,17 +2,35 @@ use crate::color::lab::Lab;
 use crate::color::rgba::Rgba;
 use crate::color::white_point::D65;
 use crate::color::xyz::XYZ;
+use crate::image::data::ImageData;
 use crate::math::clustering::hierarchical::clustering::HierarchicalClustering;
 use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
 use crate::math::number::Float;
 use crate::math::point::{Point3, Point5};
 use crate::swatch::Swatch;
-use crate::{Algorithm, ImageData};
+use crate::Algorithm;
 use num_traits::Zero;
 use std::collections::HashMap;
 
 /// Struct representing a color palette.
+///
+/// # Type Parameters
+/// * `F` - The float type used for calculations.
+///
+/// # Example
+/// ```no_run
+/// extern crate image;
+///
+/// use auto_palette::{Algorithm, Palette, SimpleImageData};
+///
+/// let img = image::open("/path/to/image.png").unwrap();
+/// let image_data = SimpleImageData::new(img.as_bytes().to_vec(), img.width(), img.height()).unwrap();
+/// let palette: Palette<f64> = Palette::extract(&image_data, Algorithm::DBSCAN);
+/// palette.get_swatches(5).iter().for_each(|swatch| {
+///     println!("{:?}", swatch);
+/// });
+/// ```
 pub struct Palette<F: Float> {
     width: F,
     height: F,
@@ -23,16 +41,16 @@ impl<F> Palette<F>
 where
     F: Float,
 {
-    /// Generates a color palette from the given image using the specified algorithm.
+    /// Extract a color palette from the given image using the specified algorithm.
     ///
     /// # Arguments
-    /// * `image` - The image data to use for palette generation.
-    /// * `algorithm` - The algorithm to use for color generation.
+    /// * `image` - The image data to use for color palette extraction.
+    /// * `algorithm` - The algorithm to use for color palette extraction.
     ///
     /// # Returns
-    /// A new `Palette` instance.
+    /// A new extracted `Palette` instance.
     #[must_use]
-    pub fn generate<I: ImageData>(image: &I, algorithm: Algorithm) -> Palette<F> {
+    pub fn extract<I: ImageData>(image: &I, algorithm: Algorithm) -> Palette<F> {
         let width = F::from_u32(image.width());
         let height = F::from_u32(image.height());
 

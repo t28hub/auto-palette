@@ -1,12 +1,13 @@
 mod algorithm;
 mod color;
-mod image_data;
+mod image;
 mod macros;
 mod math;
 mod palette;
 mod swatch;
 
+pub use crate::image::data::*;
+pub use crate::image::error::*;
 pub use algorithm::*;
-pub use image_data::*;
 pub use palette::*;
 pub use swatch::*;
