@@ -6,12 +6,20 @@ use crate::math::distance::Distance;
 use crate::math::number::Float;
 use crate::math::point::Point;
 
+/// Enum representing the supported palette extraction algorithms.
 pub enum Algorithm {
     DBSCAN,
     HDBSCAN,
 }
 
 impl Algorithm {
+    /// Applies the selected palette extraction algorithm.
+    ///
+    /// # Arguments
+    /// * `dataset` - A slice of data points.
+    ///
+    /// # Returns
+    /// A trained `Model` containing the results of the clustering algorithm applied to the dataset.
     pub(crate) fn apply<F, P>(&self, dataset: &[P]) -> Model<F, P>
     where
         F: Float,
@@ -27,5 +35,45 @@ impl Algorithm {
                 hdbscan.train(dataset)
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::math::point::Point2;
+
+    fn sample_dataset() -> Vec<Point2<f64>> {
+        vec![
+            Point2::new(0.0, 0.0),
+            Point2::new(0.1, 0.1),
+            Point2::new(0.1, 0.2),
+            Point2::new(0.2, 0.2),
+            Point2::new(0.2, 0.4),
+            Point2::new(0.3, 0.5),
+            Point2::new(0.1, 0.0),
+            Point2::new(0.0, 0.1),
+            Point2::new(0.0, 0.2),
+        ]
+    }
+
+    #[test]
+    fn test_dbscan_algorithm() {
+        let dataset = sample_dataset();
+        let actual = Algorithm::DBSCAN.apply(&dataset);
+
+        let clustering = DBSCAN::new(9, 0.0025, Distance::SquaredEuclidean);
+        let expected = clustering.train(&dataset);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_hdbscan_algorithm() {
+        let dataset = sample_dataset();
+        let actual = Algorithm::HDBSCAN.apply(&dataset);
+
+        let clustering = HDBSCAN::new(9, 25, Distance::SquaredEuclidean);
+        let expected = clustering.train(&dataset);
+        assert_eq!(actual, expected);
     }
 }
