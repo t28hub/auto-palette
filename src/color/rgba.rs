@@ -136,6 +136,13 @@ impl Rgba {
     }
 }
 
+impl Default for Rgba {
+    #[must_use]
+    fn default() -> Self {
+        Rgba::transparent()
+    }
+}
+
 impl Display for Rgba {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(

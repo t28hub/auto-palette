@@ -92,7 +92,7 @@ where
     /// # Returns
     /// A vector of swatches containing the n-dominant colors.
     #[must_use]
-    pub fn get_swatches(&self, n: usize) -> Vec<Swatch<F>> {
+    pub fn get_swatches(&self, n: usize) -> Vec<Swatch> {
         let clusters = self.model.clusters();
         let centroids: Vec<Point3<F>> = clusters
             .iter()
@@ -107,14 +107,11 @@ where
             Distance::SquaredEuclidean.measure(&point_u, &point_v)
         });
 
-        let size = self.width * self.height;
         let mut swatches = HashMap::new();
         for (index, label) in hierarchical_clustering.partition(n).into_iter().enumerate() {
             let mut swatch = swatches.entry(label).or_insert_with(Swatch::default);
-
             if let Some(cluster) = clusters.get(index) {
-                let percentage = F::from_usize(cluster.size()) / size;
-                if percentage < swatch.percentage {
+                if cluster.size() < swatch.size() {
                     continue;
                 }
 
@@ -125,8 +122,7 @@ where
                     centroid[2].denormalize(Lab::<F>::min_b(), Lab::<F>::max_b()),
                 );
                 let xyz = XYZ::from(&lab);
-                let rgba = Rgba::from(&xyz);
-                swatch.color = (rgba.r, rgba.g, rgba.b);
+                swatch.color = Rgba::from(&xyz);
 
                 let x = centroid[3].denormalize(F::zero(), self.width);
                 let y = centroid[4].denormalize(F::zero(), self.height);
@@ -134,7 +130,7 @@ where
                     x.to_u32().expect("Could not convert x to u32"),
                     y.to_u32().expect("Could not convert y to u32"),
                 );
-                swatch.percentage = percentage;
+                swatch.size = cluster.size();
             }
         }
         swatches.into_values().collect()
