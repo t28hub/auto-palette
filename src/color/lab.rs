@@ -4,13 +4,15 @@ use crate::math::number::Float;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 
-/// Color in CIE L*a*b* color space.
+/// Struct representing a color in CIE L*a*b* color space.
+///
+/// [CIELAB color space - Wikipedia](https://en.wikipedia.org/wiki/CIELAB_color_space)
 #[derive(Debug, Clone, PartialEq)]
 pub struct Lab<F: Float, W: WhitePoint<F> = D65> {
     pub l: F,
     pub a: F,
     pub b: F,
-    _w: PhantomData<W>,
+    _marker: PhantomData<W>,
 }
 
 impl<F, W> Lab<F, W>
@@ -18,54 +20,80 @@ where
     F: Float,
     W: WhitePoint<F>,
 {
-    /// Create a color in CIE L*a*b* color space.
+    /// Creates a new CIE L*a*b* color.
+    ///
+    /// # Arguments
+    /// * `l` - The value of l.
+    /// * `a` - The value of a.
+    /// * `b` - The value of b.
+    ///
+    /// # Returns
+    /// A new CIE L*a*b* color.
     #[inline]
     #[must_use]
     pub fn new(l: F, a: F, b: F) -> Self {
         Self {
-            l: Self::normalize_l(l),
-            a: Self::normalize_a(a),
-            b: Self::normalize_b(b),
-            _w: PhantomData::default(),
+            l: Self::clamp_l(l),
+            a: Self::clamp_a(a),
+            b: Self::clamp_b(b),
+            _marker: PhantomData::default(),
         }
     }
 
-    /// Return min value of l.
+    /// Returns the min value of l.
+    ///
+    /// # Returns
+    /// The min value of l.
     #[inline]
     #[must_use]
     pub(crate) fn min_l<T: Float>() -> T {
         T::from_f64(0.0)
     }
 
-    /// Return max value of l.
+    /// Returns the max value of l.
+    ///
+    /// # Returns
+    /// The max value of l.
     #[inline]
     #[must_use]
     pub(crate) fn max_l<T: Float>() -> T {
         T::from_f64(100.0)
     }
 
-    /// Return max value of a.
+    /// Returns the min value of a.
+    ///
+    /// # Returns
+    /// The min value of a.
     #[inline]
     #[must_use]
     pub(crate) fn min_a<T: Float>() -> T {
         T::from_f64(-128.0)
     }
 
-    /// Return max value of a.
+    /// Returns the max value of a.
+    ///
+    /// # Returns
+    /// The max value of a.
     #[inline]
     #[must_use]
     pub(crate) fn max_a<T: Float>() -> T {
         T::from_f64(127.0)
     }
 
-    /// Return max value of b.
+    /// Returns max value of b.
+    ///
+    /// # Returns
+    /// The max value of b.
     #[inline]
     #[must_use]
     pub(crate) fn min_b<T: Float>() -> T {
         T::from_f64(-128.0)
     }
 
-    /// Return max value of b.
+    /// Returns the max value of b.
+    ///
+    /// # Returns
+    /// The max value of b.
     #[inline]
     #[must_use]
     pub(crate) fn max_b<T: Float>() -> T {
@@ -74,19 +102,19 @@ where
 
     #[inline]
     #[must_use]
-    fn normalize_l(value: F) -> F {
+    fn clamp_l(value: F) -> F {
         value.clamp(Self::min_l(), Self::max_l())
     }
 
     #[inline]
     #[must_use]
-    fn normalize_a(value: F) -> F {
+    fn clamp_a(value: F) -> F {
         value.clamp(Self::min_a(), Self::max_a())
     }
 
     #[inline]
     #[must_use]
-    fn normalize_b(value: F) -> F {
+    fn clamp_b(value: F) -> F {
         value.clamp(Self::min_b(), Self::max_b())
     }
 }
@@ -134,10 +162,10 @@ where
 mod tests {
     use super::*;
     use crate::assert_close_to;
-    use crate::color::rgba::Rgba;
+    use rstest::rstest;
 
     #[test]
-    fn new_should_create_lab_color() {
+    fn test_lab() {
         let lab: Lab<f64, D65> = Lab::new(53.23, 80.11, 67.22);
         assert_eq!(lab.l, 53.23);
         assert_eq!(lab.a, 80.11);
@@ -155,38 +183,25 @@ mod tests {
     }
 
     #[test]
-    fn to_string_should_return_string_representation() {
+    fn test_to_string() {
         let lab: Lab<f64, D65> = Lab::new(53.23, 80.11, 67.22);
         assert_eq!(lab.to_string(), "Lab(53.23, 80.11, 67.22)");
     }
 
-    #[test]
-    fn from_xyz_should_convert_to_lab() {
-        let black: XYZ<f64, D65> = XYZ::from(&Rgba::black());
-        assert_eq!(Lab::from(&black), Lab::new(0.0, 0.0, 0.0));
-
-        let white: XYZ<f64, D65> = XYZ::from(&Rgba::white());
-        let actual = Lab::from(&white);
-        assert_close_to!(actual.l, 100.0);
-        assert_close_to!(actual.a, 0.0);
-        assert_close_to!(actual.b, 0.025);
-
-        let red: XYZ<f64, D65> = XYZ::from(&Rgba::red());
-        let actual = Lab::from(&red);
-        assert_close_to!(actual.l, 53.237);
-        assert_close_to!(actual.a, 80.096);
-        assert_close_to!(actual.b, 67.203);
-
-        let green: XYZ<f64, D65> = XYZ::from(&Rgba::green());
-        let actual = Lab::from(&green);
-        assert_close_to!(actual.l, 87.735);
-        assert_close_to!(actual.a, -86.182);
-        assert_close_to!(actual.b, 83.186);
-
-        let blue: XYZ<f64, D65> = XYZ::from(&Rgba::blue());
-        let actual = Lab::from(&blue);
-        assert_close_to!(actual.l, 32.300);
-        assert_close_to!(actual.a, 79.195);
-        assert_close_to!(actual.b, -107.855);
+    #[rstest]
+    #[case((0.0000, 0.0000, 0.0000), (0.0, 0.0, 0.0))] // Black
+    #[case((0.9505, 1.0000, 1.0890), (100.0, 0.0, 0.0254))] // White
+    #[case((0.4124, 0.2126, 0.0193), (53.2371, 80.1106, 67.2237))] // Red
+    #[case((0.3576, 0.7152, 0.1192), (87.7355, - 86.1822, 83.1866))] // Green
+    #[case((0.1805, 0.0722, 0.9505), (32.3008, 79.1952, - 107.8554))] // Blue
+    #[case((0.5381, 0.7874, 1.0697), (91.1132, - 48.0875, - 14.1312))] // Cyan
+    #[case((0.5929, 0.2848, 0.9698), (60.3242, 98.2557, - 60.8249))] // Magenta
+    #[case((0.7700, 0.9278, 0.1385), (97.1393, - 21.5537, 94.4896))] // Yellow
+    fn test_from_xyz(#[case] xyz: (f64, f64, f64), #[case] expected: (f64, f64, f64)) {
+        let actual: Lab<_, D65> = Lab::from(&XYZ::new(xyz.0, xyz.1, xyz.2));
+        let (l, a, b) = expected;
+        assert_close_to!(actual.l, l);
+        assert_close_to!(actual.a, a);
+        assert_close_to!(actual.b, b);
     }
 }

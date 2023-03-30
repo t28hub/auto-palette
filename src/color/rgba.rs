@@ -2,7 +2,7 @@ use crate::color::xyz::XYZ;
 use crate::math::number::{Float, Number};
 use std::fmt::{Display, Formatter, Result};
 
-/// Color in standard RGB color space.
+/// Struct representing a color in standard RGB color space.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Rgba {
     pub r: u8,
@@ -12,134 +12,87 @@ pub struct Rgba {
 }
 
 impl Rgba {
-    const MIN: u8 = u8::MIN;
-    const MAX: u8 = u8::MAX;
-
-    /// Returns the min value of RGBA.
-    #[inline]
-    #[must_use]
-    pub fn min_value<T: Number>() -> T {
-        T::from_u8(Self::MIN)
-    }
-
-    /// Returns the max value of RGBA.
-    #[inline]
-    #[must_use]
-    pub fn max_value<T: Number>() -> T {
-        T::from_u8(Self::MAX)
-    }
-
-    /// Create a new RGBA color.
+    /// Creates a new RGBA color.
+    ///
+    /// # Arguments
+    /// * `r` - The red component of this color.
+    /// * `g` - The green component of this color.
+    /// * `b` - The blue component of this color.
+    /// * `a` - The alpha component of this color.
+    ///
+    /// # Returns
+    /// A new RGBA color.
     #[inline]
     #[must_use]
     pub fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self { r, g, b, a }
     }
 
-    /// Return the value of red.
+    /// Returns the min value for each component of an RGBA color.
+    ///
+    /// # Returns
+    /// The min value for each component of an RGBA color.
+    #[inline]
+    #[must_use]
+    pub(crate) fn min_value<T: Number>() -> T {
+        T::from_u8(u8::MIN)
+    }
+
+    /// Returns the max value for each component of an RGBA color.
+    ///
+    /// # Returns
+    /// The max value for each component of an RGBA color.
+    #[inline]
+    #[must_use]
+    pub(crate) fn max_value<T: Number>() -> T {
+        T::from_u8(u8::MAX)
+    }
+
+    /// Returns the red component of this color.
+    ///
+    /// # Returns
+    /// The red component of this color.
     #[inline]
     #[must_use]
     pub fn r<T: Number>(&self) -> T {
         T::from_u8(self.r)
     }
 
-    /// Return the value of green.
+    /// Returns the green component of this color.
+    ///
+    /// # Returns
+    /// The green component of this color.
     #[inline]
     #[must_use]
     pub fn g<T: Number>(&self) -> T {
         T::from_u8(self.g)
     }
 
-    /// Return the value of blue.
+    /// Returns the blue component of this color.
+    ///
+    /// # Returns
+    /// The blue component of this color.
     #[inline]
     #[must_use]
     pub fn b<T: Number>(&self) -> T {
         T::from_u8(self.b)
     }
 
-    /// Return the value of alpha.
+    /// Returns the alpha component of this color.
+    ///
+    /// # Returns
+    /// The alpha component of this color.
     #[inline]
     #[must_use]
     pub fn a<T: Number>(&self) -> T {
         T::from_u8(self.a)
-    }
-
-    /// Create a white color.
-    #[must_use]
-    pub(crate) fn white() -> Self {
-        Self {
-            r: 255,
-            g: 255,
-            b: 255,
-            a: 255,
-        }
-    }
-
-    /// Create a black color.
-    #[must_use]
-    pub(crate) fn black() -> Self {
-        Self {
-            r: 0,
-            g: 0,
-            b: 0,
-            a: 255,
-        }
-    }
-
-    /// Create a red color.
-    #[must_use]
-    pub(crate) fn red() -> Self {
-        Self {
-            r: 255,
-            g: 0,
-            b: 0,
-            a: 255,
-        }
-    }
-
-    /// Create a green color.
-    #[must_use]
-    pub(crate) fn green() -> Self {
-        Self {
-            r: 0,
-            g: 255,
-            b: 0,
-            a: 255,
-        }
-    }
-
-    /// Create a blue color.
-    #[must_use]
-    pub(crate) fn blue() -> Self {
-        Self {
-            r: 0,
-            g: 0,
-            b: 255,
-            a: 255,
-        }
-    }
-
-    /// Create a transparent color.
-    #[must_use]
-    pub(crate) fn transparent() -> Self {
-        Self {
-            r: 0,
-            g: 0,
-            b: 0,
-            a: 0,
-        }
-    }
-
-    #[must_use]
-    fn normalize_value<F: Float>(value: F) -> u8 {
-        value.to_u8().expect("The value could not be cast to u8")
     }
 }
 
 impl Default for Rgba {
     #[must_use]
     fn default() -> Self {
-        Rgba::transparent()
+        Self::new(0, 0, 0, 0)
     }
 }
 
@@ -161,6 +114,7 @@ where
     F: Float,
 {
     #[inline]
+    #[must_use]
     fn from(xyz: &XYZ<F>) -> Self {
         let f = |value: F| -> F {
             if value <= F::from_f64(0.0031308) {
@@ -179,14 +133,16 @@ where
         let fb = f(F::from_f64(0.05563) * xyz.x - F::from_f64(0.203977) * xyz.y
             + F::from_f64(1.056972) * xyz.z);
 
+        let min_value = Rgba::min_value::<F>();
         let max_value = Rgba::max_value::<F>();
-        let r = Self::normalize_value((fr * max_value).round());
-        let g = Self::normalize_value((fg * max_value).round());
-        let b = Self::normalize_value((fb * max_value).round());
+        let denormalize = |value: F| {
+            let clamped = (value * max_value).clamp(min_value, max_value);
+            clamped.round().to_u8().unwrap_or_else(Rgba::min_value)
+        };
         Self {
-            r,
-            g,
-            b,
+            r: denormalize(fr),
+            g: denormalize(fg),
+            b: denormalize(fb),
             a: Rgba::max_value(),
         }
     }
@@ -195,46 +151,56 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
 
     #[test]
-    fn new_should_create_rgba_color() {
-        let rgba = Rgba::new(0, 64, 255, 128);
+    fn test_rgba() {
+        let rgba = Rgba::new(0, 64, 128, 255);
         assert_eq!(rgba.r, 0);
         assert_eq!(rgba.g, 64);
-        assert_eq!(rgba.b, 255);
-        assert_eq!(rgba.a, 128);
+        assert_eq!(rgba.b, 128);
+        assert_eq!(rgba.a, 255);
     }
 
     #[test]
-    fn to_string_should_return_string_representation() {
-        let rgba = Rgba::new(0, 64, 255, 128);
-        assert_eq!(rgba.to_string(), "Rgba(0, 64, 255, 128)");
-    }
-
-    #[test]
-    fn from_xyz_should_create_rgba_color() {
-        let black = XYZ::new(0.0, 0.0, 0.0);
-        assert_eq!(Rgba::from(&black), Rgba::black());
-
-        let white = XYZ::new(0.950456, 1.0, 1.0886440);
-        assert_eq!(Rgba::from(&white), Rgba::white());
-
-        let red = XYZ::new(0.412391, 0.212639, 0.019331);
-        assert_eq!(Rgba::from(&red), Rgba::red());
-
-        let green = XYZ::new(0.357584, 0.715169, 0.119195);
-        assert_eq!(Rgba::from(&green), Rgba::green());
-
-        let blue = XYZ::new(0.180481, 0.072192, 0.950532);
-        assert_eq!(Rgba::from(&blue), Rgba::blue());
-    }
-
-    #[test]
-    fn should_return_value_to_be_cast() {
-        let rgba = Rgba::new(0, 64, 255, 128);
+    fn test_components() {
+        let rgba = Rgba::new(0, 64, 128, 255);
         assert_eq!(rgba.r::<f64>(), 0.0);
         assert_eq!(rgba.g::<f64>(), 64.0);
-        assert_eq!(rgba.b::<f64>(), 255.0);
-        assert_eq!(rgba.a::<f64>(), 128.0);
+        assert_eq!(rgba.b::<f64>(), 128.0);
+        assert_eq!(rgba.a::<f64>(), 255.0);
+    }
+
+    #[test]
+    fn test_default() {
+        let rgba = Rgba::default();
+        assert_eq!(rgba.r, 0);
+        assert_eq!(rgba.g, 0);
+        assert_eq!(rgba.b, 0);
+        assert_eq!(rgba.a, 0);
+    }
+
+    #[test]
+    fn test_to_string() {
+        let rgba = Rgba::new(0, 64, 128, 255);
+        assert_eq!(rgba.to_string(), "Rgba(0, 64, 128, 255)");
+    }
+
+    #[rstest]
+    #[case((0.0000, 0.0000, 0.0000), (0, 0, 0, 255))] // Black
+    #[case((0.9505, 1.0000, 1.0890), (255, 255, 255, 255))] // White
+    #[case((0.4124, 0.2126, 0.0193), (255, 0, 0, 255))] // Red
+    #[case((0.3576, 0.7152, 0.1192), (0, 255, 0, 255))] // Green
+    #[case((0.1805, 0.0722, 0.9505), (0, 0, 255, 255))] // Blue
+    #[case((0.5381, 0.7874, 1.0697), (0, 255, 255, 255))] // Cyan
+    #[case((0.5929, 0.2848, 0.9698), (255, 0, 255, 255))] // Magenta
+    #[case((0.7700, 0.9278, 0.1385), (255, 255, 0, 255))] // Yellow
+    fn test_from_xyz(#[case] xyz: (f64, f64, f64), #[case] expected: (u8, u8, u8, u8)) {
+        let actual = Rgba::from(&XYZ::new(xyz.0, xyz.1, xyz.2));
+        let (r, g, b, a) = expected;
+        assert_eq!(actual.r, r);
+        assert_eq!(actual.g, g);
+        assert_eq!(actual.b, b);
+        assert_eq!(actual.a, a);
     }
 }

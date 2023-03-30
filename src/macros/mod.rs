@@ -1,6 +1,14 @@
 use num_traits::Float;
 
-/// Check whether the difference between lhs and the rhs is less than the max difference.
+/// Checks if two floating point values are close to each other within a given tolerance.
+///
+/// # Arguments
+/// * `lhs` - The left-hand side value to compare.
+/// * `rhs` - The right-hand side value to compare.
+/// * `max_diff` - The maximum allowable difference..
+///
+/// # Returns
+/// `true` if the absolute difference between `lhs` and `rhs` is less than `max_diff`
 #[inline(always)]
 pub fn is_close_to<F: Float>(lhs: F, rhs: F, max_diff: F) -> bool {
     let diff = (lhs - rhs).abs();

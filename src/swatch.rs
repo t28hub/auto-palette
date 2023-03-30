@@ -9,11 +9,11 @@ use crate::color::rgba::Rgba;
 ///
 /// let color = Rgba::new(255, 0, 64, 255);
 /// let swatch = Swatch::new(color, (90, 120), 384);
-/// assert_eq!(swatch.color(), (255, 0,64, 255));
+/// assert_eq!(swatch.color(), &Rgba::new(255, 0, 64, 255));
 /// assert_eq!(swatch.position(), (90, 120));
 /// assert_eq!(swatch.size(), 384);
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Swatch {
     pub(crate) color: Rgba,
     pub(crate) position: (u32, u32),
@@ -67,17 +67,6 @@ impl Swatch {
     }
 }
 
-impl Default for Swatch {
-    #[must_use]
-    fn default() -> Self {
-        Self {
-            color: Rgba::default(),
-            position: (0, 0),
-            size: 0,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -92,7 +81,7 @@ mod tests {
     }
 
     #[test]
-    fn test_defaults() {
+    fn test_default() {
         let swatch = Swatch::default();
         assert_eq!(swatch.color(), &Rgba::default());
         assert_eq!(swatch.position(), (0, 0));

@@ -5,7 +5,7 @@ use crate::math::number::Float;
 use std::fmt::{Display, Formatter, Result};
 use std::marker::PhantomData;
 
-/// Color in CIE XYZ color space.
+/// Struct representing a color in CIE XYZ color space.
 ///
 /// [CIE 1931 color space - Wikipedia](https://en.wikipedia.org/wiki/CIE_1931_color_space)
 #[derive(Debug, Clone, PartialEq)]
@@ -13,7 +13,7 @@ pub struct XYZ<F: Float, W: WhitePoint<F> = D65> {
     pub x: F,
     pub y: F,
     pub z: F,
-    _w: PhantomData<W>,
+    _marker: PhantomData<W>,
 }
 
 impl<F, W> XYZ<F, W>
@@ -21,54 +21,80 @@ where
     F: Float,
     W: WhitePoint<F>,
 {
-    /// Create a color in CIE XYZ color space.
+    /// Creates a new CIE XYZ color.
+    ///
+    /// # Arguments
+    /// * `x` - The value of X.
+    /// * `y` - The value of Y.
+    /// * `z` - The value of Z.
+    ///
+    /// # Returns
+    /// A new XYZ color.
     #[inline]
     #[must_use]
     pub fn new(x: F, y: F, z: F) -> XYZ<F, W> {
         Self {
-            x: Self::normalize_x(x),
-            y: Self::normalize_y(y),
-            z: Self::normalize_z(z),
-            _w: PhantomData::default(),
+            x: Self::clamp_x(x),
+            y: Self::clamp_y(y),
+            z: Self::clamp_z(z),
+            _marker: PhantomData::default(),
         }
     }
 
-    /// Return min value of x.
+    /// Returns min value of x.
+    ///
+    /// # Returns
+    /// The min value of x.
     #[inline]
     #[must_use]
     pub(crate) fn min_x<T: Float>() -> T {
         T::from_f64(0.0)
     }
 
-    /// Return max value of x.
+    /// Returns the max value of x.
+    ///
+    /// # Returns
+    /// The max value of x.
     #[inline]
     #[must_use]
     pub(crate) fn max_x<T: Float>() -> T {
         T::from_f64(0.950456)
     }
 
-    /// Return min value of y.
+    /// Returns the min value of y.
+    ///
+    /// # Returns
+    /// The min value of y.
     #[inline]
     #[must_use]
     pub(crate) fn min_y<T: Float>() -> T {
         T::from_f64(0.0)
     }
 
-    /// Return max value of y.
+    /// Returns the max value of y.
+    ///
+    /// # Returns
+    /// The max value of y.
     #[inline]
     #[must_use]
     pub(crate) fn max_y<T: Float>() -> T {
         T::from_f64(1.0)
     }
 
-    /// Return min value of z.
+    /// Returns the min value of z.
+    ///
+    /// # Returns
+    /// The min value of z.
     #[inline]
     #[must_use]
     pub(crate) fn min_z<T: Float>() -> T {
         T::from_f64(0.0)
     }
 
-    /// Return max value of z.
+    /// Returns the max value of z.
+    ///
+    /// # Returns
+    /// The max value of z.
     #[inline]
     #[must_use]
     pub(crate) fn max_z<T: Float>() -> T {
@@ -77,19 +103,19 @@ where
 
     #[inline]
     #[must_use]
-    fn normalize_x(value: F) -> F {
+    fn clamp_x(value: F) -> F {
         value.clamp(Self::min_x(), Self::max_x())
     }
 
     #[inline]
     #[must_use]
-    fn normalize_y(value: F) -> F {
+    fn clamp_y(value: F) -> F {
         value.clamp(Self::min_y(), Self::max_y())
     }
 
     #[inline]
     #[must_use]
-    fn normalize_z(value: F) -> F {
+    fn clamp_z(value: F) -> F {
         value.clamp(Self::min_z(), Self::max_z())
     }
 }
@@ -110,6 +136,7 @@ where
     W: WhitePoint<F>,
 {
     #[inline]
+    #[must_use]
     fn from(rgba: &Rgba) -> Self {
         let f = |value: F| -> F {
             if value <= F::from_f64(0.04045) {
@@ -137,6 +164,7 @@ where
     W: WhitePoint<F>,
 {
     #[inline]
+    #[must_use]
     fn from(lab: &Lab<F>) -> Self {
         let epsilon = F::from_f64(6.0 / 29.0);
         let kappa = F::from_f64(108.0 / 841.0); // 3.0 * ((6.0 / 29.0) ^ 2)
@@ -164,94 +192,63 @@ where
 mod tests {
     use super::*;
     use crate::assert_close_to;
+    use rstest::rstest;
 
     #[test]
-    fn new_should_create_xyz_color() {
-        let xyz: XYZ<f64, D65> = XYZ::new(0.256394, 0.223987, 0.975798);
+    fn test_xyz() {
+        let xyz: XYZ<_, D65> = XYZ::new(0.256394, 0.223987, 0.975798);
         assert_eq!(xyz.x, 0.256394);
         assert_eq!(xyz.y, 0.223987);
         assert_eq!(xyz.z, 0.975798);
 
-        let xyz: XYZ<f64, D65> = XYZ::new(-1.0, -1.0, -1.0);
+        let xyz: XYZ<_, D65> = XYZ::new(-1.0, -1.0, -1.0);
         assert_eq!(xyz.x, 0.0);
         assert_eq!(xyz.y, 0.0);
         assert_eq!(xyz.z, 0.0);
 
-        let xyz: XYZ<f64, D65> = XYZ::new(1.0, 1.1, 1.2);
+        let xyz: XYZ<_, D65> = XYZ::new(1.0, 1.1, 1.2);
         assert_eq!(xyz.x, 0.950456);
         assert_eq!(xyz.y, 1.0);
         assert_eq!(xyz.z, 1.088644);
     }
 
     #[test]
-    fn to_string_should_return_string_representation() {
-        let xyz: XYZ<f64, D65> = XYZ::new(0.256394, 0.223987, 0.975798);
+    fn test_to_string() {
+        let xyz: XYZ<_, D65> = XYZ::new(0.256394, 0.223987, 0.975798);
         assert_eq!(xyz.to_string(), "XYZ(0.256394, 0.223987, 0.975798)");
     }
 
-    #[test]
-    fn from_rgba_should_convert_to_xyz() {
-        let black = Rgba::black();
-        let actual: XYZ<f64, D65> = XYZ::from(&black);
-        assert_eq!(actual, XYZ::<f64, D65>::new(0.0, 0.0, 0.0));
-
-        let white = Rgba::white();
-        let actual: XYZ<f64, D65> = XYZ::from(&white);
-        assert_close_to!(actual.x, 0.950456);
-        assert_close_to!(actual.y, 1.0);
-        assert_close_to!(actual.z, 1.088644);
-
-        let red = Rgba::red();
-        let actual: XYZ<f64, D65> = XYZ::from(&red);
-        assert_close_to!(actual.x, 0.412391);
-        assert_close_to!(actual.y, 0.212639);
-        assert_close_to!(actual.z, 0.019331);
-
-        let green = Rgba::green();
-        let actual: XYZ<f64, D65> = XYZ::from(&green);
-        assert_close_to!(actual.x, 0.357584);
-        assert_close_to!(actual.y, 0.715169);
-        assert_close_to!(actual.z, 0.119195);
-
-        let blue = Rgba::blue();
-        let actual: XYZ<f64, D65> = XYZ::from(&blue);
-        assert_close_to!(actual.x, 0.180481);
-        assert_close_to!(actual.y, 0.072192);
-        assert_close_to!(actual.z, 0.950532);
-
-        let transparent = Rgba::transparent();
-        let actual: XYZ<f64, D65> = XYZ::from(&transparent);
-        assert_eq!(actual, XYZ::<f64, D65>::new(0.0, 0.0, 0.0));
+    #[rstest]
+    #[case((0, 0, 0, 255), (0.0000, 0.0000, 0.0000))] // Black
+    #[case((255, 255, 255, 255), (0.9505, 1.0000, 1.0890))] // White
+    #[case((255, 0, 0, 255), (0.4124, 0.2126, 0.0193))] // Red
+    #[case((0, 255, 0, 255), (0.3576, 0.7152, 0.1192))] // Green
+    #[case((0, 0, 255, 255), (0.1805, 0.0722, 0.9505))] // Blue
+    #[case((0, 255, 255, 255), (0.5381, 0.7874, 1.0697))] // Cyan
+    #[case((255, 0, 255, 255), (0.5929, 0.2848, 0.9698))] // Magenta
+    #[case((255, 255, 0, 255), (0.7700, 0.9278, 0.1385))] // Yellow
+    fn test_from_rgba(#[case] rgba: (u8, u8, u8, u8), #[case] expected: (f64, f64, f64)) {
+        let actual: XYZ<_, D65> = XYZ::from(&Rgba::new(rgba.0, rgba.1, rgba.2, rgba.3));
+        let (x, y, z) = expected;
+        assert_close_to!(actual.x, x);
+        assert_close_to!(actual.y, y);
+        assert_close_to!(actual.z, z);
     }
 
-    #[test]
-    fn from_lab_should_convert_to_xyz() {
-        let black = Lab::new(0.0, 0.0, 0.0);
-        let actual: XYZ<f64, D65> = XYZ::from(&black);
-        assert_eq!(actual, XYZ::<f64, D65>::new(0.0, 0.0, 0.0));
-
-        let white = Lab::new(100.0, 0.0, 0.0);
-        let actual: XYZ<f64, D65> = XYZ::from(&white);
-        assert_close_to!(actual.x, 0.950456);
-        assert_close_to!(actual.y, 1.0);
-        assert_close_to!(actual.z, 1.088644);
-
-        let red = Lab::new(53.237114, 80.089636, 67.203135);
-        let actual: XYZ<f64, D65> = XYZ::from(&red);
-        assert_close_to!(actual.x, 0.412391);
-        assert_close_to!(actual.y, 0.212639);
-        assert_close_to!(actual.z, 0.019331);
-
-        let green = Lab::new(87.735534, -86.182293, 83.186653);
-        let actual: XYZ<f64, D65> = XYZ::from(&green);
-        assert_close_to!(actual.x, 0.357584);
-        assert_close_to!(actual.y, 0.715169);
-        assert_close_to!(actual.z, 0.119195);
-
-        let blue = Lab::new(32.300802, 79.195275, -107.855445);
-        let actual: XYZ<f64, D65> = XYZ::from(&blue);
-        assert_close_to!(actual.x, 0.180481);
-        assert_close_to!(actual.y, 0.072192);
-        assert_close_to!(actual.z, 0.950532);
+    #[rstest]
+    #[case((0.0, 0.0, 0.0), (0.0000, 0.0000, 0.0000))] // Black
+    #[case((100.0, 0.0, 0.0254), (0.9505, 1.0000, 1.0890))] // White
+    #[case((53.2371, 80.1106, 67.2237), (0.4124, 0.2126, 0.0193))] // Red
+    #[case((87.7355, - 86.1822, 83.1866), (0.3576, 0.7152, 0.1192))] // Green
+    #[case((32.3008, 79.1952, - 107.8554), (0.1805, 0.0722, 0.9505))] // Blue
+    #[case((91.1132, - 48.0875, - 14.1312), (0.5381, 0.7874, 1.0697))] // Cyan
+    #[case((60.3242, 98.2557, - 60.8249), (0.5929, 0.2848, 0.9698))] // Magenta
+    #[case((97.1393, - 21.5537, 94.4896), (0.7700, 0.9278, 0.1385))] // Yellow
+    fn test_from_lab(#[case] lab: (f64, f64, f64), #[case] expected: (f64, f64, f64)) {
+        let actual: XYZ<_, D65> = XYZ::from(&Lab::new(lab.0, lab.1, lab.2));
+        let (x, y, z) = expected;
+        assert_close_to!(actual.x, x);
+        assert_close_to!(actual.y, y);
+        assert_close_to!(actual.z, z);
     }
 }
