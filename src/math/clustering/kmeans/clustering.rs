@@ -1,6 +1,6 @@
 use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::clustering::Clustering;
-use crate::math::clustering::kmeans::init::Initializer;
+use crate::math::clustering::kmeans::init::Initialization;
 use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
 use crate::math::neighbors::kdtree::kdtree_search::KDTreeSearch;
@@ -16,20 +16,22 @@ use std::collections::HashSet;
 /// * `F` - The float type used for calculations (e.g., f32 or f64).
 /// * `R` - The type of random number generator used for initializing centroids.
 #[derive(Debug, PartialEq)]
-pub struct Kmeans<F, R>
+pub struct Kmeans<F, P, R>
 where
     F: Float,
+    P: Point<F>,
     R: Rng + Clone,
 {
     k: usize,
     max_iter: usize,
     tolerance: F,
-    initializer: Initializer<R>,
+    initialization: Initialization<F, P, R>,
 }
 
-impl<F, R> Kmeans<F, R>
+impl<F, P, R> Kmeans<F, P, R>
 where
     F: Float,
+    P: Point<F>,
     R: Rng + Clone,
 {
     /// Creates a new `Kmeans` instance.
@@ -38,25 +40,27 @@ where
     /// * `k` - The number of clusters.
     /// * `max_iter` - The maximum number of iterations.
     /// * `tolerance` - The minimum change in cluster centroids required to continue iterating.
-    /// * `initializer` - The method to use for initializing the cluster centroids.
+    /// * `initializer` - The cluster centroids initialization method.
     ///
     /// # Returns
     /// A new `Kmeans` instance.
     #[must_use]
-    pub fn new(k: usize, max_iter: usize, tolerance: F, initializer: Initializer<R>) -> Self {
+    pub fn new(
+        k: usize,
+        max_iter: usize,
+        tolerance: F,
+        initialization: Initialization<F, P, R>,
+    ) -> Self {
         Self {
             k,
             max_iter,
             tolerance,
-            initializer,
+            initialization,
         }
     }
 
     #[must_use]
-    fn reassign<P>(&self, dataset: &[P], clusters: &mut [Cluster<F, P>]) -> bool
-    where
-        P: Point<F>,
-    {
+    fn reassign(&self, dataset: &[P], clusters: &mut [Cluster<F, P>]) -> bool {
         let mut centroids = Vec::with_capacity(clusters.len());
         for cluster in clusters.iter_mut() {
             centroids.push(*cluster.centroid());
@@ -95,7 +99,7 @@ where
     }
 }
 
-impl<F, P, R> Clustering<F, P> for Kmeans<F, R>
+impl<F, P, R> Clustering<F, P> for Kmeans<F, P, R>
 where
     F: Float,
     P: Point<F>,
@@ -121,8 +125,8 @@ where
         }
 
         let mut clusters: Vec<Cluster<F, P>> = self
-            .initializer
-            .initialize(dataset, self.k, &Distance::SquaredEuclidean)
+            .initialization
+            .initialize(dataset, self.k)
             .into_iter()
             .enumerate()
             .map(|(cluster_id, centroid)| {
@@ -145,7 +149,7 @@ where
 mod tests {
     use super::*;
     use crate::math::clustering::clustering::Clustering;
-    use crate::math::clustering::kmeans::init::Initializer;
+    use crate::math::clustering::kmeans::init::Initialization;
     use crate::math::point::Point2;
     use rand::thread_rng;
 
@@ -158,7 +162,7 @@ mod tests {
             Point2(5.0, 5.0),
             Point2(2.0, 4.0),
         ];
-        let initializer = Initializer::KmeansPlusPlus(thread_rng());
+        let initializer = Initialization::KmeansPlusPlus(Distance::SquaredEuclidean, thread_rng());
         let kmeans = Kmeans::new(2, 10, 0.001_f64, initializer);
         let model = kmeans.train(&dataset);
         println!("{:?}", model);

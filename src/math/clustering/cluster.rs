@@ -3,18 +3,15 @@ use crate::math::point::Point;
 use std::marker::PhantomData;
 
 /// Struct representing a cluster.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Cluster<F, P>
 where
     F: Float,
     P: Point<F>,
 {
-    /// The label of this cluster.
     pub label: usize,
-    /// The centroid of this cluster.
     pub(crate) centroid: P,
-    /// The indices of the points in the dataset that belong to this cluster.
-    membership: Vec<usize>,
+    pub(crate) membership: Vec<usize>,
     _marker: PhantomData<F>,
 }
 
@@ -23,13 +20,13 @@ where
     F: Float,
     P: Point<F>,
 {
-    /// Create a new `Cluster` with the given label.
+    /// Creates a new `Cluster` instance with the given label.
     ///
     /// # Arguments
     /// * `label` - The label of the new cluster.
     ///
     /// # Returns
-    /// A new `Cluster`.
+    /// A new `Cluster` instance.
     pub fn new(label: usize) -> Self {
         Self {
             label,
@@ -39,7 +36,7 @@ where
         }
     }
 
-    /// Return a reference to the centroid of this cluster.
+    /// Returns a reference to the centroid of this cluster.
     ///
     /// # Returns
     /// A reference to the centroid of this cluster.
@@ -47,7 +44,7 @@ where
         &self.centroid
     }
 
-    /// Check whether this cluster is empty.
+    /// Checks whether this cluster is empty.
     ///
     /// # Returns
     /// `true` if this cluster is empty.
@@ -55,7 +52,7 @@ where
         self.membership.is_empty()
     }
 
-    /// Return the number of points in this cluster.
+    /// Returns the number of points in this cluster.
     ///
     /// # Returns
     /// The number of points in this cluster.
@@ -63,7 +60,18 @@ where
         self.membership.len()
     }
 
-    /// Insert a point with index.
+    /// Checks whether this cluster contains the point with the given index.
+    ///
+    /// # Arguments
+    /// * `index` - The index of the point to check.
+    ///
+    /// # Returns
+    /// `true` if this cluster contains the point with the given index.
+    pub fn contains(&self, index: usize) -> bool {
+        self.membership.contains(&index)
+    }
+
+    /// Inserts a point with index.
     ///
     /// # Arguments
     /// * `index` - The index of the point to insert.
@@ -73,7 +81,7 @@ where
         self.membership.push(index);
     }
 
-    /// Clear the centroid and all the membership.
+    /// Clears the centroid and all the membership.
     pub fn clear(&mut self) {
         self.centroid.set_zero();
         self.membership.clear();
