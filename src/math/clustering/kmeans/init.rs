@@ -188,7 +188,7 @@ mod tests {
     )]
     fn test_precomputed_should_panic_if_k_does_not_match() {
         let centroids = vec![Point2(1.0, 2.0)];
-        let initialization = Initialization::Precomputed::<_, _, ThreadRng>(vec![Point2(1.0, 2.0)]);
+        let initialization = Initialization::Precomputed::<_, _, ThreadRng>(centroids);
 
         let dataset = sample_dataset();
         let _ = initialization.initialize(&dataset, 2);

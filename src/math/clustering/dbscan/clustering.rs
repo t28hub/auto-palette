@@ -142,7 +142,7 @@ where
                 Label::Assigned(cluster_id) => {
                     let cluster = cluster_map
                         .entry(cluster_id)
-                        .or_insert_with(|| Cluster::new(cluster_id));
+                        .or_insert_with(Cluster::default);
                     cluster.insert(index, &dataset[index]);
                 }
                 Label::Outlier => {

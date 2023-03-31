@@ -116,7 +116,7 @@ where
                 .iter()
                 .enumerate()
                 .map(|(index, data)| {
-                    let mut cluster = Cluster::new(index);
+                    let mut cluster = Cluster::default();
                     cluster.insert(index, data);
                     cluster
                 })
@@ -128,12 +128,7 @@ where
             .initialization
             .initialize(dataset, self.k)
             .into_iter()
-            .enumerate()
-            .map(|(cluster_id, centroid)| {
-                let mut cluster = Cluster::new(cluster_id);
-                cluster.centroid = centroid;
-                cluster
-            })
+            .map(|centroid| Cluster::new(centroid))
             .collect();
         for _ in 0..self.max_iter {
             let converged = self.reassign(dataset, &mut clusters);

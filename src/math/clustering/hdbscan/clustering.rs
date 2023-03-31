@@ -221,7 +221,7 @@ impl HDBSCAN {
             if cluster_id > min_parent {
                 let cluster = cluster_map
                     .entry(cluster_id)
-                    .or_insert_with(|| Cluster::new(cluster_id));
+                    .or_insert_with(Cluster::default);
                 cluster.insert(node_id, &dataset[node_id]);
             } else {
                 outlier_set.insert(node_id);

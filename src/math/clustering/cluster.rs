@@ -9,7 +9,6 @@ where
     F: Float,
     P: Point<F>,
 {
-    pub label: usize,
     pub(crate) centroid: P,
     pub(crate) membership: Vec<usize>,
     _marker: PhantomData<F>,
@@ -23,14 +22,14 @@ where
     /// Creates a new `Cluster` instance with the given label.
     ///
     /// # Arguments
-    /// * `label` - The label of the new cluster.
+    /// * `initial_centroid` - The initial centroid of the new cluster.
     ///
     /// # Returns
     /// A new `Cluster` instance.
-    pub fn new(label: usize) -> Self {
+    #[must_use]
+    pub fn new(initial_centroid: P) -> Self {
         Self {
-            label,
-            centroid: P::zero(),
+            centroid: initial_centroid,
             membership: Vec::new(),
             _marker: PhantomData::default(),
         }
@@ -40,6 +39,7 @@ where
     ///
     /// # Returns
     /// A reference to the centroid of this cluster.
+    #[must_use]
     pub fn centroid(&self) -> &P {
         &self.centroid
     }
@@ -48,6 +48,7 @@ where
     ///
     /// # Returns
     /// `true` if this cluster is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.membership.is_empty()
     }
@@ -56,19 +57,18 @@ where
     ///
     /// # Returns
     /// The number of points in this cluster.
+    #[must_use]
     pub fn size(&self) -> usize {
         self.membership.len()
     }
 
-    /// Checks whether this cluster contains the point with the given index.
-    ///
-    /// # Arguments
-    /// * `index` - The index of the point to check.
+    /// Returns a reference to the membership of this cluster.
     ///
     /// # Returns
-    /// `true` if this cluster contains the point with the given index.
-    pub fn contains(&self, index: usize) -> bool {
-        self.membership.contains(&index)
+    /// A reference to the membership of this cluster.
+    #[must_use]
+    pub fn membership(&self) -> &[usize] {
+        &self.membership
     }
 
     /// Inserts a point with index.
@@ -85,5 +85,20 @@ where
     pub fn clear(&mut self) {
         self.centroid.set_zero();
         self.membership.clear();
+    }
+}
+
+impl<F, P> Default for Cluster<F, P>
+where
+    F: Float,
+    P: Point<F>,
+{
+    #[must_use]
+    fn default() -> Self {
+        Self {
+            centroid: P::zero(),
+            membership: Vec::new(),
+            _marker: PhantomData::default(),
+        }
     }
 }
