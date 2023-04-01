@@ -1,7 +1,6 @@
 use crate::math::distance::Distance;
 use crate::math::number::Float;
 use crate::math::point::Point;
-use rand::rngs::ThreadRng;
 use rand::Rng;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
@@ -139,6 +138,7 @@ mod tests {
     use super::*;
     use crate::math::distance::Distance;
     use crate::math::point::Point2;
+    use rand::rngs::ThreadRng;
     use rand::thread_rng;
 
     fn sample_dataset() -> Vec<Point2<f64>> {

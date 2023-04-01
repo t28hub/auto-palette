@@ -3,9 +3,10 @@ use crate::math::number::Float;
 use crate::math::point::Point;
 use std::cmp::Ordering;
 
-pub struct ReversedSize<F: Float, P: Point<F>>(pub Cluster<F, P>);
+#[derive(Debug)]
+pub struct SizeOrder<F: Float, P: Point<F>>(pub Cluster<F, P>);
 
-impl<F, P> ReversedSize<F, P>
+impl<F, P> SizeOrder<F, P>
 where
     F: Float,
     P: Point<F>,
@@ -16,27 +17,27 @@ where
     }
 }
 
-impl<F, P> PartialOrd for ReversedSize<F, P>
+impl<F, P> PartialOrd for SizeOrder<F, P>
 where
     F: Float,
     P: Point<F>,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(other.size().cmp(&self.size()))
+        Some(self.size().cmp(&other.size()))
     }
 }
 
-impl<F, P> Ord for ReversedSize<F, P>
+impl<F, P> Ord for SizeOrder<F, P>
 where
     F: Float,
     P: Point<F>,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        other.size().cmp(&self.size())
+        self.size().cmp(&other.size())
     }
 }
 
-impl<F, P> PartialEq for ReversedSize<F, P>
+impl<F, P> PartialEq for SizeOrder<F, P>
 where
     F: Float,
     P: Point<F>,
@@ -46,7 +47,7 @@ where
     }
 }
 
-impl<F, P> Eq for ReversedSize<F, P>
+impl<F, P> Eq for SizeOrder<F, P>
 where
     F: Float,
     P: Point<F>,

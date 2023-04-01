@@ -1,5 +1,6 @@
 use crate::math::clustering::clustering::Clustering;
 use crate::math::clustering::dbscan::clustering::DBSCAN;
+use crate::math::clustering::gmeans::clustering::Gmeans;
 use crate::math::clustering::hdbscan::clustering::HDBSCAN;
 use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
@@ -9,6 +10,7 @@ use crate::math::point::Point;
 /// Enum representing the supported palette extraction algorithms.
 pub enum Algorithm {
     DBSCAN,
+    GMEANS,
     HDBSCAN,
 }
 
@@ -29,6 +31,11 @@ impl Algorithm {
             Algorithm::DBSCAN => {
                 let dbscan = DBSCAN::new(9, F::from_f64(0.0025), Distance::SquaredEuclidean);
                 dbscan.train(dataset)
+            }
+            Algorithm::GMEANS => {
+                let gmeans =
+                    Gmeans::new(25, 10, 25, F::from_f64(0.001), Distance::SquaredEuclidean);
+                gmeans.train(dataset)
             }
             Algorithm::HDBSCAN => {
                 let hdbscan = HDBSCAN::new(9, 25, Distance::SquaredEuclidean);
@@ -63,6 +70,16 @@ mod tests {
         let actual = Algorithm::DBSCAN.apply(&dataset);
 
         let clustering = DBSCAN::new(9, 0.0025, Distance::SquaredEuclidean);
+        let expected = clustering.train(&dataset);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_gmeans_algorithm() {
+        let dataset = sample_dataset();
+        let actual = Algorithm::GMEANS.apply(&dataset);
+
+        let clustering = Gmeans::new(25, 10, 25, 0.001, Distance::SquaredEuclidean);
         let expected = clustering.train(&dataset);
         assert_eq!(actual, expected);
     }

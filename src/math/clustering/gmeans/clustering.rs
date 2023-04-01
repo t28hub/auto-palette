@@ -1,6 +1,6 @@
 use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::clustering::Clustering;
-use crate::math::clustering::gmeans::cmp::ReversedSize;
+use crate::math::clustering::gmeans::cmp::SizeOrder;
 use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
 use crate::math::neighbors::linear_search::LinearSearch;
@@ -9,7 +9,7 @@ use crate::math::number::Float;
 use crate::math::point::Point;
 use statrs::distribution::{ContinuousCDF, Normal};
 use std::cmp::Ordering;
-use std::collections::HashSet;
+use std::collections::{BinaryHeap, HashSet};
 
 /// Struct representing G-means clustering algorithm.
 ///
@@ -24,6 +24,7 @@ where
 {
     max_k: usize,
     max_iter: usize,
+    min_cluster_size: usize,
     tolerance: F,
     distance: Distance,
 }
@@ -37,13 +38,20 @@ where
     /// # Arguments
     /// * `max_k` - The maximum number of clusters.
     /// * `max_iter` - The maximum number of iterations.
+    /// * `min_cluster_size` - The minimum number of points required to form a cluster.
     /// * `tolerance` - The minimum change in cluster centroids required to continue iterating.
     /// * `distance` - The distance metric to use for calculating distances between points.
     ///
     /// # Returns
     /// A new `Gmeans` instance.
     #[must_use]
-    pub fn new(max_k: usize, max_iter: usize, tolerance: F, distance: Distance) -> Self {
+    pub fn new(
+        max_k: usize,
+        max_iter: usize,
+        min_cluster_size: usize,
+        tolerance: F,
+        distance: Distance,
+    ) -> Self {
         assert!(
             max_k >= 2,
             "The maximum number of clusters must be at least 2."
@@ -51,6 +59,7 @@ where
         Self {
             max_k,
             max_iter,
+            min_cluster_size,
             tolerance,
             distance,
         }
@@ -138,14 +147,18 @@ where
             cluster
         };
 
-        let mut candidates = Vec::with_capacity(self.max_k);
-        candidates.push(ReversedSize(cluster));
+        let mut heap = BinaryHeap::with_capacity(self.max_k);
+        heap.push(SizeOrder(cluster));
 
         let mut clusters = Vec::with_capacity(self.max_k);
         while clusters.len() < self.max_k {
-            let Some(largest) = candidates.pop() else {
+            let Some(largest) = heap.pop() else {
                 break;
             };
+
+            if largest.size() < self.min_cluster_size {
+                continue;
+            }
 
             let largest_cluster = &largest.0;
             let (cluster1, cluster2) = self.split(largest_cluster, dataset);
@@ -166,8 +179,8 @@ where
                 clusters.push(cluster1);
                 clusters.push(cluster2);
             } else {
-                candidates.push(ReversedSize(cluster1));
-                candidates.push(ReversedSize(cluster2));
+                heap.push(SizeOrder(cluster1));
+                heap.push(SizeOrder(cluster2));
             }
         }
         Model::new(clusters, HashSet::new())
@@ -230,9 +243,10 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let gmeans = Gmeans::new(2, 10, 0.01_f64, Distance::Euclidean);
-        assert_eq!(gmeans.max_k, 2);
+        let gmeans = Gmeans::new(5, 10, 16, 0.01_f64, Distance::Euclidean);
+        assert_eq!(gmeans.max_k, 5);
         assert_eq!(gmeans.max_iter, 10);
+        assert_eq!(gmeans.min_cluster_size, 16);
         assert_eq!(gmeans.tolerance, 0.01_f64);
         assert_eq!(gmeans.distance, Distance::Euclidean);
     }
@@ -240,12 +254,12 @@ mod tests {
     #[test]
     #[should_panic(expected = "The maximum number of clusters must be at least 2.")]
     fn test_new_panic() {
-        let _ = Gmeans::new(1, 10, 0.01_f64, Distance::Euclidean);
+        let _ = Gmeans::new(1, 10, 2, 0.01_f64, Distance::Euclidean);
     }
 
     #[test]
     fn test_train() {
-        let gmeans = Gmeans::new(5, 10, 0.01_f64, Distance::Euclidean);
+        let gmeans = Gmeans::new(5, 10, 2, 0.01_f64, Distance::Euclidean);
         let dataset = vec![
             Point2::new(1.0, 1.0),
             Point2::new(4.0, 4.0),
