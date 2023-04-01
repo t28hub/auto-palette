@@ -61,7 +61,7 @@ where
             return None;
         }
 
-        let axis = depth % dataset[0].dim();
+        let axis = depth % dataset[0].dimension();
         indices.sort_unstable_by(|index1, index2| {
             let value1 = dataset[*index1].index(axis);
             let value2 = dataset[*index2].index(axis);

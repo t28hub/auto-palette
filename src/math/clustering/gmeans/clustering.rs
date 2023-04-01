@@ -1,14 +1,19 @@
 use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::clustering::Clustering;
+use crate::math::clustering::gmeans::cmp::ReversedSize;
 use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
 use crate::math::neighbors::linear_search::LinearSearch;
 use crate::math::neighbors::neighbor_search::NeighborSearch;
 use crate::math::number::Float;
 use crate::math::point::Point;
+use statrs::distribution::{ContinuousCDF, Normal};
+use std::cmp::Ordering;
 use std::collections::HashSet;
 
 /// Struct representing G-means clustering algorithm.
+///
+/// [The Gaussian-means (G-means) algorithm](https://proceedings.neurips.cc/paper_files/paper/2003/file/234833147b97bb6aed53a8f4f1c7a7d8-Paper.pdf)
 ///
 /// # Type Parameters
 /// * `F` - The float type used for calculations.
@@ -61,9 +66,9 @@ where
         let mut clusters = Vec::with_capacity(2);
         for i in 0..2 {
             let index = cluster.size() * (i + 1) / 3;
-            let data_index = membership[index];
-            let centroid = dataset[data_index];
-            clusters.push(Cluster::new(centroid.clone()));
+            let centroid_index = membership[index];
+            let centroid = dataset[centroid_index];
+            clusters.push(Cluster::new(centroid));
         }
 
         for _ in 0..self.max_iter {
@@ -84,7 +89,7 @@ where
     ) -> bool {
         let mut centroids = Vec::with_capacity(clusters.len());
         for cluster in clusters.iter_mut() {
-            centroids.push(cluster.centroid().clone());
+            centroids.push(*cluster.centroid());
             cluster.clear();
         }
 
@@ -119,6 +124,7 @@ where
     F: Float,
     P: Point<F>,
 {
+    #[must_use]
     fn train(&self, dataset: &[P]) -> Model<F, P> {
         if dataset.is_empty() {
             return Model::default();
@@ -127,37 +133,100 @@ where
         let cluster = {
             let mut cluster = Cluster::default();
             let median = dataset.len() / 2;
-            cluster.centroid = dataset[median].clone();
+            cluster.centroid = dataset[median];
             cluster.membership = (0..dataset.len()).collect();
             cluster
         };
-        let mut clusters = Vec::with_capacity(self.max_k);
-        clusters.push(cluster);
 
-        let mut k = 1;
-        while k < self.max_k {
-            let largest = clusters
-                .iter()
-                .enumerate()
-                .max_by(|(_, cluster1), (_, cluster2)| cluster1.size().cmp(&cluster2.size()));
-            let Some((largest_index, largest_cluster)) = largest else {
+        let mut candidates = Vec::with_capacity(self.max_k);
+        candidates.push(ReversedSize(cluster));
+
+        let mut clusters = Vec::with_capacity(self.max_k);
+        while clusters.len() < self.max_k {
+            let Some(largest) = candidates.pop() else {
                 break;
             };
 
+            let largest_cluster = &largest.0;
             let (cluster1, cluster2) = self.split(largest_cluster, dataset);
-            clusters.remove(largest_index);
-            clusters.push(cluster1);
-            clusters.push(cluster2);
+            let centroid1 = *cluster1.centroid();
+            let centroid2 = *cluster2.centroid();
 
-            k += 1;
+            // Anderson Darling test
+            let v = centroid1.sub(centroid2);
+            let vp = dot(&v, &v);
+            let mut x = Vec::with_capacity(largest.size());
+            for index in largest_cluster.membership().iter() {
+                let point = dataset[*index];
+                x.push(dot(&point, &v) / vp);
+            }
+            standardize(&mut x);
+            let score = anderson_darling_test(&mut x);
+            if score < F::from_f64(1.8692) {
+                clusters.push(cluster1);
+                clusters.push(cluster2);
+            } else {
+                candidates.push(ReversedSize(cluster1));
+                candidates.push(ReversedSize(cluster2));
+            }
         }
         Model::new(clusters, HashSet::new())
     }
 }
 
+#[inline]
+#[must_use]
+fn dot<F: Float, P: Point<F>>(point1: &P, point2: &P) -> F {
+    let mut sum = F::zero();
+    for i in 0..point1.dimension() {
+        sum += point1[i] * point2[i];
+    }
+    sum
+}
+
+#[inline]
+fn standardize<F: Float>(x: &mut [F]) {
+    let n = F::from_usize(x.len());
+    let mean = x.iter().fold(F::zero(), |total, value| total + *value) / n;
+    let variance = x
+        .iter()
+        .map(|value| (*value - mean).powi(2))
+        .fold(F::zero(), |total, value| total + value)
+        / n;
+    let sd = variance.sqrt();
+    for value in x.iter_mut() {
+        *value = (*value - mean) / sd;
+    }
+}
+
+/// Tests whether a sample comes from a normal distribution.
+///
+/// [Anderson–Darling test - Wikipedia](https://en.wikipedia.org/wiki/Anderson%E2%80%93Darling_test)
+#[inline]
+#[must_use]
+fn anderson_darling_test<F: Float>(x: &mut [F]) -> F {
+    x.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
+
+    let normal = Normal::new(0.0, 1.0).unwrap();
+    for value in x.iter_mut() {
+        let p = normal.cdf(value.to_f64().unwrap_or(0.0));
+        *value = F::from_f64(p);
+    }
+
+    let n = x.len();
+    let n_f = F::from_usize(n);
+    let mut sum = F::zero();
+    for i in 0..n {
+        sum += F::from_usize(2 * i + 1) * (x[i].ln() + (F::one() - x[n - 1 - i]).ln());
+    }
+    let a_squared = sum / -n_f - n_f;
+    a_squared * (F::one() + F::from_u32(4) / n_f + F::from_u32(25) / n_f.powi(2))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::math::point::Point2;
 
     #[test]
     fn test_new() {
@@ -172,5 +241,24 @@ mod tests {
     #[should_panic(expected = "The maximum number of clusters must be at least 2.")]
     fn test_new_panic() {
         let _ = Gmeans::new(1, 10, 0.01_f64, Distance::Euclidean);
+    }
+
+    #[test]
+    fn test_train() {
+        let gmeans = Gmeans::new(5, 10, 0.01_f64, Distance::Euclidean);
+        let dataset = vec![
+            Point2::new(1.0, 1.0),
+            Point2::new(4.0, 4.0),
+            Point2::new(0.0, 1.0),
+            Point2::new(0.0, 0.0),
+            Point2::new(5.0, 4.0),
+            Point2::new(5.0, 6.0),
+            Point2::new(1.0, 0.0),
+        ];
+        let model = gmeans.train(&dataset);
+        assert_eq!(model.clusters().len(), 2);
+
+        assert_eq!(model.clusters()[0].size(), 4);
+        assert_eq!(model.clusters()[1].size(), 3);
     }
 }

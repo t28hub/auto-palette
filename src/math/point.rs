@@ -19,10 +19,10 @@ pub trait Point<F: Float>:
     + Div<F>
     + DivAssign<F>
 {
-    /// Return the dimension of this point.
-    fn dim(&self) -> usize;
+    /// Returns the dimension of this point.
+    fn dimension(&self) -> usize;
 
-    /// Return the vec representation of this point.
+    /// Returns a vector representation of this point.
     fn to_vec(&self) -> Vec<F>;
 }
 
@@ -109,7 +109,7 @@ macro_rules! impl_point {
 
     impl<F> Point<F> for $Point<F> where F: Float {
         #[inline]
-        fn dim(&self) -> usize {
+        fn dimension(&self) -> usize {
            $size
         }
 
@@ -239,9 +239,9 @@ mod tests {
     }
 
     #[test]
-    fn dim_should_return_dimension() {
-        assert_eq!(Point2::new(1.0, 2.0).dim(), 2);
-        assert_eq!(Point3::new(1.0, 2.0, 3.0).dim(), 3);
+    fn dimension_should_return_dimension() {
+        assert_eq!(Point2::new(1.0, 2.0).dimension(), 2);
+        assert_eq!(Point3::new(1.0, 2.0, 3.0).dimension(), 3);
     }
 
     #[test]
