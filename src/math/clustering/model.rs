@@ -44,6 +44,7 @@ where
     ///
     /// # Returns
     /// A slice containing the indices of the outliers.
+    #[allow(unused)]
     #[must_use]
     pub fn outliers(&self) -> &HashSet<usize> {
         &self.outliers
@@ -61,5 +62,35 @@ where
             clusters: Vec::new(),
             outliers: HashSet::new(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::math::clustering::cluster::Cluster;
+    use crate::math::point::Point2;
+    use std::collections::HashSet;
+
+    #[test]
+    fn test_model() {
+        let clusters = vec![{
+            let mut cluster = Cluster::new(Point2::new(0.0, 0.0));
+            cluster.insert(0, &Point2::new(1.0, 1.0));
+            cluster.insert(4, &Point2::new(2.0, 2.0));
+            cluster.insert(5, &Point2::new(3.0, 3.0));
+            cluster
+        }];
+        let outliers = HashSet::from([1, 2, 3]);
+        let actual = Model::new(clusters, outliers);
+        assert_eq!(actual.clusters().len(), 1);
+        assert_eq!(actual.outliers(), &HashSet::from([1, 2, 3]));
+    }
+
+    #[test]
+    fn test_default() {
+        let actual = Model::<f64, Point2<f64>>::default();
+        assert!(actual.clusters().is_empty());
+        assert!(actual.outliers().is_empty());
     }
 }

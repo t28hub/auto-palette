@@ -1,7 +1,7 @@
-use crate::math::clustering::clustering::Clustering;
-use crate::math::clustering::dbscan::clustering::DBSCAN;
-use crate::math::clustering::gmeans::clustering::Gmeans;
-use crate::math::clustering::hdbscan::clustering::HDBSCAN;
+use crate::math::clustering::algorithm::ClusteringAlgorithm;
+use crate::math::clustering::dbscan::algorithm::DBSCAN;
+use crate::math::clustering::gmeans::algorithm::Gmeans;
+use crate::math::clustering::hdbscan::algorithm::HDBSCAN;
 use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
 use crate::math::number::Float;

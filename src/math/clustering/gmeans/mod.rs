@@ -1,2 +1,2 @@
-pub mod clustering;
+pub mod algorithm;
 mod cmp;

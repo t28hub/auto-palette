@@ -4,6 +4,7 @@ use crate::math::point::Point;
 /// Enum representing distance metric.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Distance {
+    #[allow(unused)]
     Euclidean,
     SquaredEuclidean,
 }
@@ -35,7 +36,7 @@ mod tests {
     use crate::math::point::{Point2, Point3};
 
     #[test]
-    fn compute_should_compute_euclidean_distance() {
+    fn test_euclidean() {
         let metric = Distance::Euclidean;
         assert_eq!(
             metric.measure(&Point2(0.0, 1.0), &Point2(1.0, 0.0)),
@@ -48,7 +49,7 @@ mod tests {
     }
 
     #[test]
-    fn compute_should_compute_squared_euclidean_distance() {
+    fn test_squared_euclidean() {
         let metric = Distance::SquaredEuclidean;
         assert_eq!(metric.measure(&Point2(0.0, 1.0), &Point2(1.0, 0.0)), 2.0);
         assert_eq!(

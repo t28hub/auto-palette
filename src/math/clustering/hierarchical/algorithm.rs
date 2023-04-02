@@ -6,26 +6,24 @@ use crate::math::number::Float;
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, VecDeque};
 
+/// Struct representing a hierarchical clustering algorithm.
 #[derive(Debug, PartialEq)]
 pub struct HierarchicalClustering<F: Float> {
     hierarchy: Vec<HierarchicalNode<F>>,
-}
-
-impl<F> Default for HierarchicalClustering<F>
-where
-    F: Float,
-{
-    fn default() -> Self {
-        Self {
-            hierarchy: Vec::new(),
-        }
-    }
 }
 
 impl<F> HierarchicalClustering<F>
 where
     F: Float,
 {
+    /// Fits a hierarchical clustering algorithm to the given dataset.
+    ///
+    /// # Arguments
+    /// * `dataset` - The dataset to fit the algorithm to.
+    /// * `weight_fn` - The function used to calculate the weight of an edge between two data.
+    ///
+    /// # Returns
+    /// A new `HierarchicalClustering` instance.
     #[must_use]
     pub fn fit<T, WF>(dataset: &[T], weight_fn: WF) -> Self
     where
@@ -37,7 +35,7 @@ where
 
         let graph = WeightedGraph::new(dataset, weight_fn);
         let spanning_tree = MinimumSpanningTree::build(&graph);
-        let mut edges: Vec<WeightedEdge<F>> = spanning_tree.edges().iter().cloned().collect();
+        let mut edges: Vec<WeightedEdge<F>> = spanning_tree.edges().to_vec();
         edges.sort_unstable_by(|edge1, edge2| {
             edge1
                 .weight()
@@ -65,26 +63,36 @@ where
         Self { hierarchy: nodes }
     }
 
+    /// Returns a reference to the hierarchical nodes.
+    ///
+    /// # Returns
+    /// A reference to the hierarchical nodes.
     #[must_use]
     pub fn nodes(&self) -> &Vec<HierarchicalNode<F>> {
         &self.hierarchy
     }
 
+    /// Partitions the dataset into `k` clusters.
+    ///
+    /// # Arguments
+    /// * `k` - The number of clusters.
+    ///
+    /// # Returns
+    /// A vector of cluster labels.
     #[must_use]
     pub fn partition(&self, k: usize) -> Vec<usize> {
         let n_edge = self.hierarchy.len();
         let n_data = n_edge + 1;
-        assert!(k <= n_data);
-
-        let mut labels = vec![0; n_data];
         if k < 2 {
-            return labels;
+            return vec![0; n_data];
         }
 
+        let n_cluster = k.min(n_data);
+        let mut labels = vec![0; n_data];
         let mut node_ids = BinaryHeap::new();
         let root_node_id = n_edge * 2;
         node_ids.push(root_node_id);
-        while node_ids.len() < k {
+        while node_ids.len() < n_cluster {
             let Some(node_id) = node_ids.pop() else {
                 break;
             };
@@ -131,29 +139,46 @@ where
     }
 }
 
+impl<F> Default for HierarchicalClustering<F>
+where
+    F: Float,
+{
+    #[must_use]
+    fn default() -> Self {
+        Self {
+            hierarchy: Vec::new(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::math::distance::Distance::SquaredEuclidean;
     use crate::math::point::Point2;
 
+    #[must_use]
+    fn sample_dataset() -> Vec<Point2<f64>> {
+        vec![
+            Point2::new(0.0, 0.0),
+            Point2::new(1.0, 1.0),
+            Point2::new(2.0, 1.5),
+            Point2::new(1.0, 0.0),
+            Point2::new(2.0, 2.0),
+            Point2::new(2.5, 3.0),
+        ]
+    }
+
     #[test]
-    fn fit_should_return_hierarchical_clustering() {
-        let dataset = vec![
-            Point2::new(0.0, 0.0), // 0
-            Point2::new(1.0, 1.0), // 1
-            Point2::new(2.0, 1.5), // 2
-            Point2::new(1.0, 0.0), // 3
-            Point2::new(2.0, 2.0), // 4
-            Point2::new(2.5, 3.0), // 5
-        ];
-        let hierarchical_clustering = HierarchicalClustering::fit(&dataset, |u, v| {
+    fn test_fit() {
+        let dataset = sample_dataset();
+        let actual = HierarchicalClustering::fit(&dataset, |u, v| {
             let point_u = &dataset[u];
             let point_v = &dataset[v];
             SquaredEuclidean.measure(point_u, point_v)
         });
         assert_eq!(
-            hierarchical_clustering.hierarchy,
+            actual.hierarchy,
             vec![
                 HierarchicalNode {
                     left: 4,
@@ -191,14 +216,7 @@ mod tests {
 
     #[test]
     fn partition_should_partition_dataset() {
-        let dataset = vec![
-            Point2::new(0.0, 0.0), // 0
-            Point2::new(1.0, 1.0), // 1
-            Point2::new(2.0, 1.5), // 2
-            Point2::new(1.0, 0.0), // 3
-            Point2::new(2.0, 2.0), // 4
-            Point2::new(2.5, 3.0), // 5
-        ];
+        let dataset = sample_dataset();
         let hierarchical_clustering = HierarchicalClustering::fit(&dataset, |u, v| {
             let point_u = &dataset[u];
             let point_v = &dataset[v];
@@ -206,7 +224,10 @@ mod tests {
         });
         assert_eq!(hierarchical_clustering.partition(1), vec![0, 0, 0, 0, 0, 0]);
         assert_eq!(hierarchical_clustering.partition(2), vec![1, 1, 0, 1, 0, 0]);
+        assert_eq!(hierarchical_clustering.partition(3), vec![0, 0, 1, 0, 1, 2]);
         assert_eq!(hierarchical_clustering.partition(4), vec![3, 0, 1, 0, 1, 2]);
+        assert_eq!(hierarchical_clustering.partition(5), vec![4, 3, 0, 2, 0, 1]);
         assert_eq!(hierarchical_clustering.partition(6), vec![5, 4, 3, 2, 1, 0]);
+        assert_eq!(hierarchical_clustering.partition(7), vec![5, 4, 3, 2, 1, 0]);
     }
 }

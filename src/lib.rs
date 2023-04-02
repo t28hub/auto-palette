@@ -1,7 +1,6 @@
 mod algorithm;
 mod color;
 mod image;
-mod macros;
 mod math;
 mod palette;
 mod swatch;

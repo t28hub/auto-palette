@@ -191,8 +191,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::assert_close_to;
     use rstest::rstest;
+    use statrs::assert_almost_eq;
 
     #[test]
     fn test_xyz() {
@@ -230,9 +230,9 @@ mod tests {
     fn test_from_rgba(#[case] rgba: (u8, u8, u8, u8), #[case] expected: (f64, f64, f64)) {
         let actual: XYZ<_, D65> = XYZ::from(&Rgba::new(rgba.0, rgba.1, rgba.2, rgba.3));
         let (x, y, z) = expected;
-        assert_close_to!(actual.x, x);
-        assert_close_to!(actual.y, y);
-        assert_close_to!(actual.z, z);
+        assert_almost_eq!(actual.x, x, 1e-3);
+        assert_almost_eq!(actual.y, y, 1e-3);
+        assert_almost_eq!(actual.z, z, 1e-3);
     }
 
     #[rstest]
@@ -247,8 +247,8 @@ mod tests {
     fn test_from_lab(#[case] lab: (f64, f64, f64), #[case] expected: (f64, f64, f64)) {
         let actual: XYZ<_, D65> = XYZ::from(&Lab::new(lab.0, lab.1, lab.2));
         let (x, y, z) = expected;
-        assert_close_to!(actual.x, x);
-        assert_close_to!(actual.y, y);
-        assert_close_to!(actual.z, z);
+        assert_almost_eq!(actual.x, x, 1e-3);
+        assert_almost_eq!(actual.y, y, 1e-3);
+        assert_almost_eq!(actual.z, z, 1e-3);
     }
 }

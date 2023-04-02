@@ -6,10 +6,16 @@ pub struct UnionFind {
 }
 
 impl UnionFind {
-    /// Create an union find tree.
+    /// Creates a new `UnionFind` instance.
     ///
     /// # Arguments
-    /// n - The number of nodes.
+    /// * `n` - The number of elements.
+    ///
+    /// # Returns
+    /// A new `UnionFind` instance.
+    ///
+    /// # Panics
+    /// Panics if the given `n` less than or equal to 0.
     pub fn new(n: usize) -> Self {
         assert!(n > 0);
         let parent: Vec<usize> = (0..2 * n).collect();
@@ -23,10 +29,13 @@ impl UnionFind {
         }
     }
 
-    /// Find the root node the given node.
+    /// Finds the parent node of the given `x`.
     ///
     /// # Arguments
-    /// x - The node to find.
+    /// * `x` - The node to find its parent
+    ///
+    /// # Returns
+    /// The the parent node of the given `x`.
     pub fn find(&mut self, x: usize) -> usize {
         let mut root = x;
         let mut parenet = x;
@@ -42,11 +51,14 @@ impl UnionFind {
         root
     }
 
-    /// Union the given nodes.
+    /// Merges the `x` and `y`.
     ///
     /// # Arguments
-    /// * x - The first node to be union.
-    /// * y - The other node to be union.
+    /// * `x` - A node in the first node to merge.
+    /// * `y` - A node in the other node to merge.
+    ///
+    /// # Returns
+    /// The size of the merged node.
     pub fn union(&mut self, x: usize, y: usize) -> usize {
         self.parent[x] = self.next_label;
         self.parent[y] = self.next_label;
@@ -63,7 +75,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn new_should_create_union_find() {
+    fn test_union_find() {
         assert_eq!(
             UnionFind::new(3),
             UnionFind {
@@ -75,7 +87,13 @@ mod tests {
     }
 
     #[test]
-    fn find_should_find_root_node() {
+    #[should_panic(expected = "assertion failed: n > 0")]
+    fn test_union_find_panic() {
+        let _ = UnionFind::new(0);
+    }
+
+    #[test]
+    fn test_find() {
         let mut union_find = UnionFind::new(4);
         assert_eq!(union_find.find(0), 0);
         assert_eq!(union_find.find(1), 1);
@@ -99,7 +117,7 @@ mod tests {
     }
 
     #[test]
-    fn union_should_union_2_nodes() {
+    fn test_union() {
         let mut union_find = UnionFind::new(4);
         assert_eq!(union_find.union(0, 1), 2);
         assert_eq!(union_find.union(2, 3), 2);

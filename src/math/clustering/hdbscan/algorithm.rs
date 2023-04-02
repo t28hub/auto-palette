@@ -1,8 +1,8 @@
+use crate::math::clustering::algorithm::ClusteringAlgorithm;
 use crate::math::clustering::cluster::Cluster;
-use crate::math::clustering::clustering::Clustering;
 use crate::math::clustering::hdbscan::core_distance::CoreDistance;
 use crate::math::clustering::hdbscan::union_find::UnionFind;
-use crate::math::clustering::hierarchical::clustering::HierarchicalClustering;
+use crate::math::clustering::hierarchical::algorithm::HierarchicalClustering;
 use crate::math::clustering::hierarchical::node::HierarchicalNode;
 use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
@@ -11,6 +11,9 @@ use crate::math::point::Point;
 use std::collections::{HashMap, HashSet};
 
 /// Struct representing HDBSCAN clustering algorithm.
+///
+/// # References
+/// * [How HDBSCAN Works](https://hdbscan.readthedocs.io/en/latest/how_hdbscan_works.html)
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, PartialEq)]
 pub struct HDBSCAN {
@@ -20,7 +23,7 @@ pub struct HDBSCAN {
 }
 
 impl HDBSCAN {
-    /// Creates a new HDBSCAN instance.
+    /// Creates a new `HDBSCAN` instance.
     ///
     /// # Arguments
     /// * `min_samples` - The minimum number of points.
@@ -28,7 +31,7 @@ impl HDBSCAN {
     /// * `distance` - The distance metric to measure core distances.
     ///
     /// # Returns
-    /// A new HDBSCAN instance.
+    /// A new `HDBSCAN` instance.
     #[must_use]
     pub fn new(min_samples: usize, min_cluster_size: usize, distance: Distance) -> Self {
         Self {
@@ -216,6 +219,7 @@ impl HDBSCAN {
 
         let mut cluster_map = HashMap::new();
         let mut outlier_set = HashSet::new();
+        #[allow(clippy::needless_range_loop)]
         for node_id in 0..min_parent {
             let cluster_id = union_find.find(node_id);
             if cluster_id > min_parent {
@@ -321,7 +325,7 @@ impl HDBSCAN {
     }
 }
 
-impl<F, P> Clustering<F, P> for HDBSCAN
+impl<F, P> ClusteringAlgorithm<F, P> for HDBSCAN
 where
     F: Float,
     P: Point<F>,

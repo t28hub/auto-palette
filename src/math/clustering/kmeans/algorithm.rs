@@ -1,5 +1,5 @@
+use crate::math::clustering::algorithm::ClusteringAlgorithm;
 use crate::math::clustering::cluster::Cluster;
-use crate::math::clustering::clustering::Clustering;
 use crate::math::clustering::kmeans::init::Initialization;
 use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
@@ -14,6 +14,7 @@ use std::collections::HashSet;
 ///
 /// # Type Parameters
 /// * `F` - The float type used for calculations (e.g., f32 or f64).
+/// * `P` - The type of points used in the clustering algorithm.
 /// * `R` - The type of random number generator used for initializing centroids.
 #[derive(Debug, PartialEq)]
 pub struct Kmeans<F, P, R>
@@ -44,6 +45,7 @@ where
     ///
     /// # Returns
     /// A new `Kmeans` instance.
+    #[allow(unused)]
     #[must_use]
     pub fn new(
         k: usize,
@@ -99,7 +101,7 @@ where
     }
 }
 
-impl<F, P, R> Clustering<F, P> for Kmeans<F, P, R>
+impl<F, P, R> ClusteringAlgorithm<F, P> for Kmeans<F, P, R>
 where
     F: Float,
     P: Point<F>,
@@ -143,7 +145,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::clustering::clustering::Clustering;
+    use crate::math::clustering::algorithm::ClusteringAlgorithm;
     use crate::math::clustering::kmeans::init::Initialization;
     use crate::math::point::Point2;
     use rand::thread_rng;

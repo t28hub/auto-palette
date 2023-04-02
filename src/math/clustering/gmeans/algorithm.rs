@@ -1,6 +1,6 @@
+use crate::math::clustering::algorithm::ClusteringAlgorithm;
 use crate::math::clustering::cluster::Cluster;
-use crate::math::clustering::clustering::Clustering;
-use crate::math::clustering::gmeans::cmp::SizeOrder;
+use crate::math::clustering::gmeans::cmp::SizeOrdered;
 use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
 use crate::math::neighbors::linear_search::LinearSearch;
@@ -13,10 +13,11 @@ use std::collections::{BinaryHeap, HashSet};
 
 /// Struct representing G-means clustering algorithm.
 ///
-/// [The Gaussian-means (G-means) algorithm](https://proceedings.neurips.cc/paper_files/paper/2003/file/234833147b97bb6aed53a8f4f1c7a7d8-Paper.pdf)
-///
 /// # Type Parameters
 /// * `F` - The float type used for calculations.
+///
+/// # References
+/// * [The Gaussian-means (G-means) algorithm](https://proceedings.neurips.cc/paper_files/paper/2003/file/234833147b97bb6aed53a8f4f1c7a7d8-Paper.pdf)
 #[derive(Debug, PartialEq)]
 pub struct Gmeans<F>
 where
@@ -128,7 +129,7 @@ where
     }
 }
 
-impl<F, P> Clustering<F, P> for Gmeans<F>
+impl<F, P> ClusteringAlgorithm<F, P> for Gmeans<F>
 where
     F: Float,
     P: Point<F>,
@@ -148,7 +149,7 @@ where
         };
 
         let mut heap = BinaryHeap::with_capacity(self.max_k);
-        heap.push(SizeOrder(cluster));
+        heap.push(SizeOrdered(cluster));
 
         let mut clusters = Vec::with_capacity(self.max_k);
         while clusters.len() < self.max_k {
@@ -179,8 +180,8 @@ where
                 clusters.push(cluster1);
                 clusters.push(cluster2);
             } else {
-                heap.push(SizeOrder(cluster1));
-                heap.push(SizeOrder(cluster2));
+                heap.push(SizeOrdered(cluster1));
+                heap.push(SizeOrdered(cluster2));
             }
         }
         Model::new(clusters, HashSet::new())

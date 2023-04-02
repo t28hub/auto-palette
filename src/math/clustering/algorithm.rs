@@ -3,7 +3,7 @@ use crate::math::number::Float;
 use crate::math::point::Point;
 
 /// Trait representing a clustering algorithm.
-pub trait Clustering<F, P>
+pub trait ClusteringAlgorithm<F, P>
 where
     F: Float,
     P: Point<F>,

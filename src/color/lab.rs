@@ -161,8 +161,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::assert_close_to;
     use rstest::rstest;
+    use statrs::assert_almost_eq;
 
     #[test]
     fn test_lab() {
@@ -200,8 +200,8 @@ mod tests {
     fn test_from_xyz(#[case] xyz: (f64, f64, f64), #[case] expected: (f64, f64, f64)) {
         let actual: Lab<_, D65> = Lab::from(&XYZ::new(xyz.0, xyz.1, xyz.2));
         let (l, a, b) = expected;
-        assert_close_to!(actual.l, l);
-        assert_close_to!(actual.a, a);
-        assert_close_to!(actual.b, b);
+        assert_almost_eq!(actual.l, l, 0.01);
+        assert_almost_eq!(actual.a, a, 0.01);
+        assert_almost_eq!(actual.b, b, 0.01);
     }
 }

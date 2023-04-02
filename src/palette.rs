@@ -3,7 +3,7 @@ use crate::color::rgba::Rgba;
 use crate::color::white_point::D65;
 use crate::color::xyz::XYZ;
 use crate::image::data::ImageData;
-use crate::math::clustering::hierarchical::clustering::HierarchicalClustering;
+use crate::math::clustering::hierarchical::algorithm::HierarchicalClustering;
 use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
 use crate::math::number::Float;

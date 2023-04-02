@@ -3,6 +3,10 @@ use crate::math::point::Point;
 use std::marker::PhantomData;
 
 /// Struct representing a cluster.
+///
+/// # Type Parameters
+/// * `F` - The float type used for calculations (e.g., f32 or f64).
+/// * `P` - The type of points used in the clustering algorithm.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Cluster<F, P>
 where
@@ -100,5 +104,61 @@ where
             membership: Vec::new(),
             _marker: PhantomData::default(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::math::point::Point2;
+    use num_traits::Zero;
+
+    #[test]
+    fn test_cluster() {
+        let actual = Cluster::new(Point2::new(1.0, 2.0));
+        assert!(actual.is_empty());
+        assert_eq!(actual.centroid(), &Point2::new(1.0, 2.0));
+        assert_eq!(actual.size(), 0);
+        assert_eq!(actual.membership(), &[]);
+    }
+
+    #[test]
+    fn test_insert() {
+        let mut cluster = Cluster::new(Point2::new(1.0, 2.0));
+        cluster.insert(3, &Point2::new(2.0, 3.0));
+        assert!(!cluster.is_empty());
+        assert_eq!(cluster.centroid(), &Point2::new(3.0, 5.0));
+        assert_eq!(cluster.size(), 1);
+        assert_eq!(cluster.membership(), &[3]);
+
+        cluster.insert(5, &Point2::new(3.0, 5.0));
+        assert_eq!(cluster.centroid(), &Point2::new(6.0, 10.0));
+        assert!(!cluster.is_empty());
+        assert_eq!(cluster.size(), 2);
+        assert_eq!(cluster.membership(), &[3, 5]);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut cluster = Cluster::new(Point2::new(1.0, 2.0));
+        cluster.insert(2, &Point2::new(2.0, 3.0));
+        cluster.insert(3, &Point2::new(3.0, 5.0));
+        cluster.insert(5, &Point2::new(5.0, 7.0));
+        assert_eq!(cluster.size(), 3);
+
+        cluster.clear();
+        assert_eq!(cluster.centroid(), &Point2::zero());
+        assert!(cluster.is_empty());
+        assert_eq!(cluster.size(), 0);
+        assert_eq!(cluster.membership(), &[]);
+    }
+
+    #[test]
+    fn test_default() {
+        let actual = Cluster::<f64, Point2<f64>>::default();
+        assert!(actual.is_empty());
+        assert_eq!(actual.centroid(), &Point2::zero());
+        assert_eq!(actual.size(), 0);
+        assert_eq!(actual.membership(), &[]);
     }
 }

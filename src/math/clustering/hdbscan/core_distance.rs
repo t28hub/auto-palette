@@ -4,9 +4,15 @@ use crate::math::neighbors::neighbor_search::NeighborSearch;
 use crate::math::number::Float;
 use crate::math::point::Point;
 
-/// Core distance struct.
+/// Struct for calculating the core distance of points in a dataset using HDBSCAN algorithm.
+///
+/// # Type Parameters
+/// * `F` - The float type used for calculations (e.g., f32 or f64).
+///
+/// # References
+/// [How HDBSCAN Works](https://hdbscan.readthedocs.io/en/latest/how_hdbscan_works.html#transform-the-space)
 #[derive(Debug)]
-pub(crate) struct CoreDistance<F: Float> {
+pub struct CoreDistance<F: Float> {
     distances: Vec<F>,
 }
 
@@ -14,12 +20,19 @@ impl<F> CoreDistance<F>
 where
     F: Float,
 {
-    /// Create a core distance for the given dataset.
+    /// Creates a new `CoreDistance` instance.
+    ///
+    /// # Arguments
+    /// * `dataset` - The dataset to be clustered.
+    /// * `min_samples` - The number of samples required to form a dense region.
+    /// * `distance` - The distance metric to use for calculating core distances.
+    ///
+    /// # Returns
+    /// A new `CoreDistance` instance.
+    #[must_use]
     pub fn new<P: Point<F>>(dataset: &[P], min_samples: usize, distance: Distance) -> Self {
         if dataset.is_empty() {
-            return Self {
-                distances: Vec::new(),
-            };
+            return Self::default();
         }
 
         let k = dataset.len().min(min_samples);
@@ -37,21 +50,44 @@ where
         Self { distances }
     }
 
-    /// Returns the distance corresponding to the index.
+    /// Returns the core distance at the given index.
+    ///
+    /// # Arguments
+    /// * `index` - The index of the point in the dataset.
+    ///
+    /// # Returns
+    /// The core distance of the point at the given index.
+    ///
+    /// # Panics
+    /// Panics if the given index is out of bounds.
+    #[inline]
+    #[must_use]
     pub fn distance_at(&self, index: usize) -> F {
         assert!(index < self.distances.len());
         self.distances[index]
     }
 }
 
+impl<F> Default for CoreDistance<F>
+where
+    F: Float,
+{
+    #[must_use]
+    fn default() -> Self {
+        Self {
+            distances: Vec::new(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::assert_close_to;
     use crate::math::point::Point2;
+    use statrs::assert_almost_eq;
 
     #[test]
-    fn new_should_create_core_distance() {
+    fn test_core_distance() {
         let dataset = Vec::from([
             Point2::new(0.0, 0.0),
             Point2::new(1.1, 2.1),
@@ -60,13 +96,20 @@ mod tests {
             Point2::new(0.9, 1.9),
             Point2::new(2.5, 3.5),
         ]);
-        let core_distance = CoreDistance::new(&dataset, 3, Distance::SquaredEuclidean);
-        assert_eq!(core_distance.distances.len(), 6);
-        assert_close_to!(core_distance.distance_at(0), 5.00);
-        assert_close_to!(core_distance.distance_at(1), 0.08);
-        assert_close_to!(core_distance.distance_at(2), 1.62);
-        assert_close_to!(core_distance.distance_at(3), 0.02);
-        assert_close_to!(core_distance.distance_at(4), 0.08);
-        assert_close_to!(core_distance.distance_at(5), 3.92);
+
+        let actual = CoreDistance::new(&dataset, 3, Distance::SquaredEuclidean);
+        assert_eq!(actual.distances.len(), 6);
+        assert_almost_eq!(actual.distance_at(0), 5.00, 1e-5);
+        assert_almost_eq!(actual.distance_at(1), 0.08, 1e-5);
+        assert_almost_eq!(actual.distance_at(2), 1.62, 1e-5);
+        assert_almost_eq!(actual.distance_at(3), 0.02, 1e-5);
+        assert_almost_eq!(actual.distance_at(4), 0.08, 1e-5);
+        assert_almost_eq!(actual.distance_at(5), 3.92, 1e-5);
+    }
+
+    #[test]
+    fn test_default() {
+        let actual = CoreDistance::<f64>::default();
+        assert_eq!(actual.distances.len(), 0);
     }
 }

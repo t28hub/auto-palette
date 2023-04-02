@@ -3,7 +3,10 @@ use num_traits::Zero;
 use std::fmt::{Debug, Display, Formatter, Result};
 use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAssign};
 
-/// Point in n-dimensional space.
+/// Trait representing a point in n-dimensional space.
+///
+/// # Type Parameters
+/// * `F` - The type of the point's components.
 pub trait Point<F: Float>:
     Clone
     + Copy
@@ -20,14 +23,23 @@ pub trait Point<F: Float>:
     + DivAssign<F>
 {
     /// Returns the dimension of this point.
+    ///
+    /// # Returns
+    /// The dimension of this point.
     fn dimension(&self) -> usize;
 
     /// Returns a vector representation of this point.
+    ///
+    /// # Returns
+    /// A vector representation of this point.
     fn to_vec(&self) -> Vec<F>;
 }
 
-/// Point in 2-dimensional space.
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+/// Struct representing a point in 2-dimensional space.
+///
+/// # Type Parameters
+/// * `F` - The type of the point's components.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Point2<F: Float>(pub F, pub F);
 
 impl<F> Index<usize> for Point2<F>
@@ -37,17 +49,24 @@ where
     type Output = F;
 
     #[inline]
+    #[must_use]
     fn index(&self, index: usize) -> &Self::Output {
         match index {
             0 => &self.0,
             1 => &self.1,
-            _ => panic!("Index out of bounds"),
+            _ => panic!(
+                "Index out of bounds: the len is 2 but the index is {}",
+                index
+            ),
         }
     }
 }
 
-/// Point in 3-dimensional space.
-#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
+/// Struct representing a point in 3-dimensional space.
+///
+/// # Type Parameters
+/// * `F` - The type of the point's components.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Point3<F: Float>(pub F, pub F, pub F);
 
 impl<F> Index<usize> for Point3<F>
@@ -57,18 +76,25 @@ where
     type Output = F;
 
     #[inline]
+    #[must_use]
     fn index(&self, index: usize) -> &Self::Output {
         match index {
             0 => &self.0,
             1 => &self.1,
             2 => &self.2,
-            _ => panic!("Index out of bounds"),
+            _ => panic!(
+                "Index out of bounds: the len is 3 but the index is {}",
+                index
+            ),
         }
     }
 }
 
-/// Point in 5-dimensional space.
-#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
+/// Struct representing a point in 5-dimensional space.
+///
+/// # Type Parameters
+/// * `F` - The type of the point's components.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Point5<F: Float>(pub F, pub F, pub F, pub F, pub F);
 
 impl<F> Index<usize> for Point5<F>
@@ -85,7 +111,10 @@ where
             2 => &self.2,
             3 => &self.3,
             4 => &self.4,
-            _ => panic!("Index out of bounds"),
+            _ => panic!(
+                "Index out of bounds: the len is 5 but the index is {}",
+                index
+            ),
         }
     }
 }
@@ -93,7 +122,10 @@ where
 macro_rules! impl_point {
   ($Point:ident { $($label:tt: $field:tt),+ }, $size:expr) => {
     impl<F> $Point<F> where F: Float {
-        /// Create a new point.
+        /// Creates a new `Point` instance with the given components.
+        ///
+        /// # Returns
+        /// A new `Point` instance.
         #[inline]
         #[allow(unused)]
         pub fn new($($label: F),+) -> Self {
@@ -125,6 +157,7 @@ macro_rules! impl_point {
             Self { $($field: F::zero()),+ }
         }
 
+        #[inline]
         fn is_zero(&self) -> bool {
             $(self.$field.is_zero()) &&+
         }
@@ -220,7 +253,32 @@ mod tests {
     use super::*;
 
     #[test]
-    fn index_should_return_value_corresponding_to_index() {
+    fn test_point2() {
+        let point = Point2::new(1.0, 2.0);
+        assert_eq!(point.0, 1.0);
+        assert_eq!(point.1, 2.0);
+    }
+
+    #[test]
+    fn test_point3() {
+        let point = Point3::new(1.0, 2.0, 3.0);
+        assert_eq!(point.0, 1.0);
+        assert_eq!(point.1, 2.0);
+        assert_eq!(point.2, 3.0);
+    }
+
+    #[test]
+    fn test_point5() {
+        let point = Point5::new(1.0, 2.0, 3.0, 4.0, 5.0);
+        assert_eq!(point.0, 1.0);
+        assert_eq!(point.1, 2.0);
+        assert_eq!(point.2, 3.0);
+        assert_eq!(point.3, 4.0);
+        assert_eq!(point.4, 5.0);
+    }
+
+    #[test]
+    fn test_index() {
         let point2 = Point2::new(1.0, 2.0);
         assert_eq!(*point2.index(0), 1.0);
         assert_eq!(*point2.index(1), 2.0);
@@ -239,39 +297,115 @@ mod tests {
     }
 
     #[test]
-    fn dimension_should_return_dimension() {
+    #[should_panic(expected = "Index out of bounds: the len is 2 but the index is 2")]
+    fn test_point2_index_panic() {
+        let point2 = Point2::new(1.0, 2.0);
+        let _ = point2.index(2);
+    }
+
+    #[test]
+    #[should_panic(expected = "Index out of bounds: the len is 3 but the index is 3")]
+    fn test_point3_index_panic() {
+        let point3 = Point3::new(1.0, 2.0, 3.0);
+        let _ = point3.index(3);
+    }
+
+    #[test]
+    #[should_panic(expected = "Index out of bounds: the len is 5 but the index is 5")]
+    fn test_point5_index_panic() {
+        let point5 = Point5::new(1.0, 2.0, 3.0, 4.0, 5.0);
+        let _ = point5.index(5);
+    }
+
+    #[test]
+    fn test_dimension() {
         assert_eq!(Point2::new(1.0, 2.0).dimension(), 2);
         assert_eq!(Point3::new(1.0, 2.0, 3.0).dimension(), 3);
+        assert_eq!(Point5::new(1.0, 2.0, 3.0, 4.0, 5.0).dimension(), 5);
     }
 
     #[test]
-    fn to_vec_should_return_vec_representation() {
+    fn test_to_vec() {
         assert_eq!(Point2::new(1.0, 2.0).to_vec(), vec![1.0, 2.0]);
         assert_eq!(Point3::new(1.0, 2.0, 3.0).to_vec(), vec![1.0, 2.0, 3.0]);
+        assert_eq!(
+            Point5::new(1.0, 2.0, 3.0, 4.0, 5.0).to_vec(),
+            vec![1.0, 2.0, 3.0, 4.0, 5.0]
+        );
     }
 
     #[test]
-    fn to_string_should_return_string_representation() {
+    fn test_to_string() {
         assert_eq!(Point2::new(1.0, 2.0).to_string(), "Point2(1.0, 2.0)");
         assert_eq!(
             Point3::new(1.0, 2.0, 3.0).to_string(),
             "Point3(1.0, 2.0, 3.0)"
         );
+        assert_eq!(
+            Point5::new(1.0, 2.0, 3.0, 4.0, 5.0).to_string(),
+            "Point5(1.0, 2.0, 3.0, 4.0, 5.0)"
+        );
     }
 
     #[test]
-    fn add_should_add_other_point() {
+    fn test_add() {
         let point1 = Point2::new(1.0, 2.0);
         let point2 = Point2::new(2.0, 3.0);
-        assert_eq!(point1 + point2, Point2::new(3.0, 5.0));
+        assert_eq!(point1.add(point2), Point2::new(3.0, 5.0));
 
-        let point1 = &Point3::new(1.0, 2.0, 3.0);
-        let point2 = &Point3::new(2.0, 3.0, 5.0);
-        assert_eq!(point1.add(*point2), Point3::new(3.0, 5.0, 8.0));
+        let point1 = Point3::new(1.0, 2.0, 3.0);
+        let point2 = Point3::new(2.0, 3.0, 5.0);
+        assert_eq!(point1.add(point2), Point3::new(3.0, 5.0, 8.0));
+
+        let point1 = Point5::new(1.0, 2.0, 3.0, 4.0, 5.0);
+        let point2 = Point5::new(2.0, 3.0, 5.0, 7.0, 11.0);
+        assert_eq!(point1.add(point2), Point5::new(3.0, 5.0, 8.0, 11.0, 16.0));
     }
 
     #[test]
-    fn add_assign_should_add_assign_other() {
+    fn test_sub() {
+        let point1 = Point2::new(1.0, 3.0);
+        let point2 = Point2::new(2.0, 2.0);
+        assert_eq!(point1.sub(point2), Point2::new(-1.0, 1.0));
+
+        let point1 = Point3::new(3.0, 5.0, 7.0);
+        let point2 = Point3::new(1.0, 2.0, 3.0);
+        assert_eq!(point1.sub(point2), Point3::new(2.0, 3.0, 4.0));
+
+        let point1 = Point5::new(1.0, 2.0, 3.0, 4.0, 5.0);
+        let point2 = Point5::new(2.0, 3.0, 5.0, 7.0, 11.0);
+        assert_eq!(
+            point1.sub(point2),
+            Point5::new(-1.0, -1.0, -2.0, -3.0, -6.0)
+        );
+    }
+
+    #[test]
+    fn test_mul() {
+        let point = Point2::new(1.0, 3.0);
+        assert_eq!(point.mul(2.0), Point2::new(2.0, 6.0));
+
+        let point = Point3::new(3.0, 5.0, 7.0);
+        assert_eq!(point.mul(0.5), Point3::new(1.5, 2.5, 3.5));
+
+        let point = Point5::new(1.0, 2.0, 3.0, 4.0, 5.0);
+        assert_eq!(point.mul(2.5), Point5::new(2.5, 5.0, 7.5, 10.0, 12.5));
+    }
+
+    #[test]
+    fn test_div() {
+        let point = Point2::new(1.0, 3.0);
+        assert_eq!(point / 2.0, Point2::new(0.5, 1.5));
+
+        let point = Point3::new(3.0, 5.0, 7.0);
+        assert_eq!(point.div(0.5), Point3::new(6.0, 10.0, 14.0));
+
+        let point = Point5::new(1.0, 2.0, 3.0, 4.0, 5.0);
+        assert_eq!(point.div(2.0), Point5::new(0.5, 1.0, 1.5, 2.0, 2.5));
+    }
+
+    #[test]
+    fn test_add_assign() {
         let mut point1 = Point2::new(1.0, 2.0);
         let point2 = Point2::new(2.0, 3.0);
         point1.add_assign(point2);
@@ -279,31 +413,24 @@ mod tests {
     }
 
     #[test]
-    fn sub_should_sub_other_point() {
-        let point1 = Point2::new(1.0, 3.0);
+    fn test_sub_assign() {
+        let mut point1 = Point2::new(1.0, 3.0);
         let point2 = Point2::new(2.0, 2.0);
-        assert_eq!(point1 - point2, Point2::new(-1.0, 1.0));
-
-        let point1 = &Point3::new(3.0, 5.0, 7.0);
-        let point2 = &Point3::new(1.0, 2.0, 3.0);
-        assert_eq!(point1.sub(*point2), Point3::new(2.0, 3.0, 4.0));
+        point1.sub_assign(point2);
+        assert_eq!(point1, Point2::new(-1.0, 1.0));
     }
 
     #[test]
-    fn mul_should_mul_by_scalar() {
-        let point = Point2::new(1.0, 3.0);
-        assert_eq!(point * 2.0, Point2::new(2.0, 6.0));
-
-        let point = &Point3::new(3.0, 5.0, 7.0);
-        assert_eq!(point.mul(0.5), Point3::new(1.5, 2.5, 3.5));
+    fn test_mul_assign() {
+        let mut point = Point2::new(1.0, 3.0);
+        point.mul_assign(2.0);
+        assert_eq!(point, Point2::new(2.0, 6.0));
     }
 
     #[test]
-    fn div_should_div_by_scalar() {
-        let point = Point2::new(1.0, 3.0);
-        assert_eq!(point / 2.0, Point2::new(0.5, 1.5));
-
-        let point = &Point3::new(3.0, 5.0, 7.0);
-        assert_eq!(point.div(0.5), Point3::new(6.0, 10.0, 14.0));
+    fn test_div_assign() {
+        let mut point = Point2::new(1.0, 3.0);
+        point.div_assign(2.0);
+        assert_eq!(point, Point2::new(0.5, 1.5));
     }
 }

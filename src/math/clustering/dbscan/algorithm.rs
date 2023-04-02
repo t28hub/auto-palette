@@ -1,5 +1,5 @@
+use crate::math::clustering::algorithm::ClusteringAlgorithm;
 use crate::math::clustering::cluster::Cluster;
-use crate::math::clustering::clustering::Clustering;
 use crate::math::clustering::dbscan::label::Label;
 use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
@@ -14,7 +14,6 @@ use std::collections::{HashMap, HashSet, VecDeque};
 ///
 /// # Type Parameters
 /// * `F` - The float type used for calculations (e.g., f32 or f64).
-/// * `P` - The type of points used in the clustering algorithm.
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, PartialEq)]
 pub struct DBSCAN<F>
@@ -96,7 +95,7 @@ where
     }
 }
 
-impl<F, P> Clustering<F, P> for DBSCAN<F>
+impl<F, P> ClusteringAlgorithm<F, P> for DBSCAN<F>
 where
     F: Float,
     P: Point<F>,
@@ -175,28 +174,38 @@ mod tests {
     use crate::math::distance::Distance;
     use crate::math::point::Point2;
 
-    const DATASET: [Point2<f64>; 16] = [
-        Point2(0.0, 0.0), // 0
-        Point2(0.0, 1.0), // 0
-        Point2(0.0, 7.0), // 1
-        Point2(0.0, 8.0), // 1
-        Point2(1.0, 0.0), // 0
-        Point2(1.0, 1.0), // 0
-        Point2(1.0, 2.0), // 0
-        Point2(1.0, 7.0), // 2
-        Point2(1.0, 8.0), // 2
-        Point2(2.0, 1.0), // 0
-        Point2(2.0, 2.0), // 0
-        Point2(4.0, 3.0), // 2
-        Point2(4.0, 4.0), // 2
-        Point2(4.0, 5.0), // 2
-        Point2(5.0, 3.0), // 2
-        Point2(5.0, 4.0), // 2
-    ];
+    fn sample_dataset() -> Vec<Point2<f64>> {
+        vec![
+            Point2(0.0, 0.0), // 0
+            Point2(0.0, 1.0), // 0
+            Point2(0.0, 7.0), // 1
+            Point2(0.0, 8.0), // 1
+            Point2(1.0, 0.0), // 0
+            Point2(1.0, 1.0), // 0
+            Point2(1.0, 2.0), // 0
+            Point2(1.0, 7.0), // 2
+            Point2(1.0, 8.0), // 2
+            Point2(2.0, 1.0), // 0
+            Point2(2.0, 2.0), // 0
+            Point2(4.0, 3.0), // 2
+            Point2(4.0, 4.0), // 2
+            Point2(4.0, 5.0), // 2
+            Point2(5.0, 3.0), // 2
+            Point2(5.0, 4.0), // 2
+        ]
+    }
 
     #[test]
-    fn fit_should_fit_dataset() {
-        let dataset = Vec::from(DATASET);
+    fn test_dbscan() {
+        let actual = DBSCAN::new(4, 2.0_f64.sqrt(), Distance::Euclidean);
+        assert_eq!(actual.min_samples, 4);
+        assert_eq!(actual.epsilon, 2.0_f64.sqrt());
+        assert_eq!(actual.distance, Distance::Euclidean);
+    }
+
+    #[test]
+    fn test_train() {
+        let dataset = sample_dataset();
         let dbscan = DBSCAN::new(4, 2.0_f64.sqrt(), Distance::Euclidean);
         let model = dbscan.train(&dataset);
 
