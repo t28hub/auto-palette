@@ -89,8 +89,6 @@ where
                     return;
                 }
 
-                cluster.centroid.div_assign(F::from_usize(cluster.size()));
-
                 let difference =
                     Distance::SquaredEuclidean.measure(&old_centroid, cluster.centroid());
                 if difference < self.tolerance {
@@ -148,20 +146,38 @@ mod tests {
     use crate::math::clustering::algorithm::ClusteringAlgorithm;
     use crate::math::clustering::kmeans::init::Initialization;
     use crate::math::point::Point2;
-    use rand::thread_rng;
+    use rand::rngs::ThreadRng;
 
     #[test]
-    fn new_should_create_kmeans() {
+    fn test_train() {
         let dataset = vec![
-            Point2(1.0, 2.0),
             Point2(3.0, 1.0),
+            Point2(5.0, 6.0),
+            Point2(1.0, 2.0),
+            Point2(3.0, 4.0),
             Point2(4.0, 5.0),
-            Point2(5.0, 5.0),
-            Point2(2.0, 4.0),
         ];
-        let initializer = Initialization::KmeansPlusPlus(Distance::SquaredEuclidean, thread_rng());
+        let initializer = Initialization::Precomputed::<_, _, ThreadRng>(vec![
+            Point2::new(1.0, 1.0),
+            Point2::new(5.0, 5.0),
+        ]);
         let kmeans = Kmeans::new(2, 10, 0.001_f64, initializer);
-        let model = kmeans.train(&dataset);
-        println!("{:?}", model);
+        let actual = kmeans.train(&dataset);
+
+        assert_eq!(actual.clusters().len(), 2);
+        assert_eq!(actual.outliers().len(), 0);
+        assert_eq!(actual.clusters()[0], {
+            let mut cluster = Cluster::default();
+            cluster.insert(0, &dataset[0]);
+            cluster.insert(2, &dataset[2]);
+            cluster
+        });
+        assert_eq!(actual.clusters()[1], {
+            let mut cluster = Cluster::default();
+            cluster.insert(1, &dataset[1]);
+            cluster.insert(3, &dataset[3]);
+            cluster.insert(4, &dataset[4]);
+            cluster
+        });
     }
 }

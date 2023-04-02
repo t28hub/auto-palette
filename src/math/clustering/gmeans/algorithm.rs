@@ -82,7 +82,7 @@ where
         }
 
         for _ in 0..self.max_iter {
-            let converged = self.reassign(&mut clusters, membership, dataset);
+            let converged = self.assign(&mut clusters, membership, dataset);
             if converged {
                 break;
             }
@@ -91,7 +91,7 @@ where
     }
 
     #[must_use]
-    fn reassign<P: Point<F>>(
+    fn assign<P: Point<F>>(
         &self,
         clusters: &mut [Cluster<F, P>],
         indices: &[usize],
@@ -119,7 +119,6 @@ where
                 continue;
             }
 
-            cluster.centroid.div_assign(F::from_usize(cluster.size()));
             let difference = self.distance.measure(&bold_centroid, cluster.centroid());
             if difference < self.tolerance {
                 converged = true;
@@ -141,15 +140,22 @@ where
         }
 
         let cluster = {
-            let mut cluster = Cluster::default();
             let median = dataset.len() / 2;
-            cluster.centroid = dataset[median];
-            cluster.membership = (0..dataset.len()).collect();
-            cluster
+            Cluster::new(dataset[median])
+            // cluster.membership = (0..dataset.len()).collect();
+            // cluster
         };
 
+        let mut clusters = vec![cluster];
+        let membership: Vec<usize> = (0..dataset.len()).collect();
+        if self.assign(&mut clusters, &membership, dataset) {
+            return Model::new(clusters, HashSet::new());
+        }
+
         let mut heap = BinaryHeap::with_capacity(self.max_k);
-        heap.push(SizeOrdered(cluster));
+        if let Some(cluster) = clusters.pop() {
+            heap.push(SizeOrdered(cluster));
+        }
 
         let mut clusters = Vec::with_capacity(self.max_k);
         while clusters.len() < self.max_k {
@@ -263,17 +269,31 @@ mod tests {
         let gmeans = Gmeans::new(5, 10, 2, 0.01_f64, Distance::Euclidean);
         let dataset = vec![
             Point2::new(1.0, 1.0),
-            Point2::new(4.0, 4.0),
+            Point2::new(3.5, 5.0),
             Point2::new(0.0, 1.0),
             Point2::new(0.0, 0.0),
             Point2::new(5.0, 4.0),
             Point2::new(5.0, 6.0),
             Point2::new(1.0, 0.0),
         ];
-        let model = gmeans.train(&dataset);
-        assert_eq!(model.clusters().len(), 2);
+        let actual = gmeans.train(&dataset);
 
-        assert_eq!(model.clusters()[0].size(), 4);
-        assert_eq!(model.clusters()[1].size(), 3);
+        assert_eq!(actual.clusters().len(), 2);
+        assert_eq!(actual.outliers().len(), 0);
+        assert_eq!(actual.clusters()[0], {
+            let mut cluster = Cluster::default();
+            cluster.insert(0, &dataset[0]);
+            cluster.insert(2, &dataset[2]);
+            cluster.insert(3, &dataset[3]);
+            cluster.insert(6, &dataset[6]);
+            cluster
+        });
+        assert_eq!(actual.clusters()[1], {
+            let mut cluster = Cluster::default();
+            cluster.insert(1, &dataset[1]);
+            cluster.insert(4, &dataset[4]);
+            cluster.insert(5, &dataset[5]);
+            cluster
+        });
     }
 }

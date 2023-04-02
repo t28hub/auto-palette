@@ -13,8 +13,8 @@ where
     F: Float,
     P: Point<F>,
 {
-    pub(crate) centroid: P,
-    pub(crate) membership: Vec<usize>,
+    centroid: P,
+    membership: Vec<usize>,
     _marker: PhantomData<F>,
 }
 
@@ -81,7 +81,12 @@ where
     /// * `index` - The index of the point to insert.
     /// * `point` - The reference of the point to insert.
     pub fn insert(&mut self, index: usize, point: &P) {
+        // Updates the centroid.
+        self.centroid *= F::from_usize(self.membership.len());
         self.centroid += *point;
+        self.centroid /= F::from_usize(self.membership.len() + 1);
+
+        // Stores the index of the point.
         self.membership.push(index);
     }
 
@@ -124,15 +129,15 @@ mod tests {
 
     #[test]
     fn test_insert() {
-        let mut cluster = Cluster::new(Point2::new(1.0, 2.0));
+        let mut cluster = Cluster::default();
         cluster.insert(3, &Point2::new(2.0, 3.0));
         assert!(!cluster.is_empty());
-        assert_eq!(cluster.centroid(), &Point2::new(3.0, 5.0));
+        assert_eq!(cluster.centroid(), &Point2::new(2.0, 3.0));
         assert_eq!(cluster.size(), 1);
         assert_eq!(cluster.membership(), &[3]);
 
         cluster.insert(5, &Point2::new(3.0, 5.0));
-        assert_eq!(cluster.centroid(), &Point2::new(6.0, 10.0));
+        assert_eq!(cluster.centroid(), &Point2::new(2.5, 4.0));
         assert!(!cluster.is_empty());
         assert_eq!(cluster.size(), 2);
         assert_eq!(cluster.membership(), &[3, 5]);

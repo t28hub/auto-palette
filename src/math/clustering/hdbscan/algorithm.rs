@@ -234,11 +234,10 @@ impl HDBSCAN {
 
         let clusters = cluster_map
             .into_iter()
-            .filter_map(|(_, mut cluster)| {
+            .filter_map(|(_, cluster)| {
                 if cluster.is_empty() {
                     None
                 } else {
-                    cluster.centroid.div_assign(F::from_usize(cluster.size()));
                     Some(cluster)
                 }
             })
