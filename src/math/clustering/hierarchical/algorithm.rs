@@ -1,7 +1,9 @@
 use crate::math::clustering::hierarchical::node::HierarchicalNode;
 use crate::math::clustering::hierarchical::union_find::UnionFind;
-use crate::math::graph::graph::{Edge, WeightedEdge, WeightedGraph};
+use crate::math::graph::edge::Edge;
 use crate::math::graph::spanning_tree::{MinimumSpanningTree, SpanningTree};
+use crate::math::graph::weighted_edge::WeightedEdge;
+use crate::math::graph::weighted_graph::WeightedGraph;
 use crate::math::number::Float;
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, VecDeque};

@@ -1,4 +1,6 @@
-use crate::math::graph::graph::{Edge, Graph, WeightedEdge};
+use crate::math::graph::edge::Edge;
+use crate::math::graph::graph_trait::Graph;
+use crate::math::graph::weighted_edge::WeightedEdge;
 use crate::math::number::Float;
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashSet};
@@ -107,7 +109,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::graph::graph::WeightedGraph;
+    use crate::math::graph::weighted_graph::WeightedGraph;
 
     #[test]
     fn new_should_create_weighted_edge() {
