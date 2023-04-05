@@ -1,4 +1,4 @@
 pub mod kdtree;
-pub mod linear_search;
+pub mod linear;
 pub mod neighbor;
-pub mod neighbor_search;
+pub mod search;

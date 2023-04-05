@@ -1,7 +1,7 @@
 use crate::math::distance::Distance;
 use crate::math::neighbors::kdtree::kdnode::KDNode;
 use crate::math::neighbors::neighbor::Neighbor;
-use crate::math::neighbors::neighbor_search::NeighborSearch;
+use crate::math::neighbors::search::NeighborSearch;
 use crate::math::number::Float;
 use crate::math::point::Point;
 use std::cmp::{Ordering, Reverse};
