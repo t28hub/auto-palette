@@ -69,7 +69,7 @@ where
             cluster.clear();
         }
 
-        let nns = KDTreeSearch::new(&centroids, Distance::SquaredEuclidean);
+        let nns = KDTreeSearch::new_with_ref(&centroids, Distance::SquaredEuclidean);
         dataset.iter().enumerate().for_each(|(index, data)| {
             let result = nns.search_nearest(data);
             if let Some(nearest) = result {

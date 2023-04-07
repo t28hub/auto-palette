@@ -64,7 +64,7 @@ impl NamedColor {
 /// A new `NamedColor` instance.
 #[inline]
 #[must_use]
-const fn named(name: &'static str, r: u8, g: u8, b: u8) -> NamedColor {
+pub(crate) const fn named(name: &'static str, r: u8, g: u8, b: u8) -> NamedColor {
     NamedColor::new(name, Rgba::new(r, g, b, 255))
 }
 

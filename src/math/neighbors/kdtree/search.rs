@@ -4,6 +4,7 @@ use crate::math::neighbors::neighbor::Neighbor;
 use crate::math::neighbors::search::NeighborSearch;
 use crate::math::number::Float;
 use crate::math::point::Point;
+use std::borrow::Cow;
 use std::cmp::{Ordering, Reverse};
 use std::collections::BinaryHeap;
 use std::marker::PhantomData;
@@ -21,7 +22,7 @@ where
     P: Point<F>,
 {
     root: Option<Box<KDNode>>,
-    dataset: &'a [P],
+    dataset: Cow<'a, [P]>,
     distance: Distance,
     _marker: PhantomData<F>,
 }
@@ -29,9 +30,9 @@ where
 impl<'a, F, P> KDTreeSearch<'a, F, P>
 where
     F: Float,
-    P: Point<F>,
+    P: Point<F> + 'a,
 {
-    /// Creates a new `KDTreeSearch` instance.
+    /// Creates a new `KDTreeSearch` instance with a reference of a dataset of points.
     ///
     /// # Arguments
     /// * `dataset` - The reference of a dataset of points.
@@ -40,7 +41,7 @@ where
     /// # Returns
     /// A new `KDTreeSearch` instance.
     #[must_use]
-    pub fn new(dataset: &'a [P], distance: Distance) -> Self {
+    pub fn new_with_ref(dataset: &'a [P], distance: Distance) -> Self {
         let root = if dataset.is_empty() {
             None
         } else {
@@ -50,13 +51,38 @@ where
 
         Self {
             root: root.map(Box::new),
-            dataset,
+            dataset: Cow::Borrowed(dataset),
             distance,
             _marker: PhantomData::default(),
         }
     }
 
-    fn build_node(dataset: &'a [P], indices: &mut [usize], depth: usize) -> Option<KDNode> {
+    /// Creates a new `KDTreeSearch` instance with a vector of points.
+    ///
+    /// # Arguments
+    /// * `dataset` - The vector of points.
+    /// * `distance` - The distance metric to use.
+    ///
+    /// # Returns
+    /// A new `KDTreeSearch` instance.
+    #[must_use]
+    pub fn new_with_vec(dataset: Vec<P>, distance: Distance) -> Self {
+        let root = if dataset.is_empty() {
+            None
+        } else {
+            let mut indices: Vec<usize> = (0..dataset.len()).collect();
+            Self::build_node(&dataset, &mut indices, 0)
+        };
+
+        Self {
+            root: root.map(Box::new),
+            dataset: Cow::Owned(dataset),
+            distance,
+            _marker: PhantomData::default(),
+        }
+    }
+
+    fn build_node(dataset: &[P], indices: &mut [usize], depth: usize) -> Option<KDNode> {
         if indices.is_empty() {
             return None;
         }
@@ -217,19 +243,19 @@ mod tests {
     #[test]
     fn search_should_return_knearest_neighbors() {
         let dataset = empty_dataset();
-        let kdtree_search = KDTreeSearch::new(&dataset, Distance::SquaredEuclidean);
+        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, Distance::SquaredEuclidean);
         assert_eq!(kdtree_search.search(&Point2(3.0, 3.0), 4), vec![]);
 
         let dataset = sample_dataset();
-        let kdtree_search = KDTreeSearch::new(&dataset, Distance::SquaredEuclidean);
+        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, Distance::SquaredEuclidean);
         assert_eq!(kdtree_search.search(&Point2(3.0, 3.0), 0), vec![]);
         assert_eq!(
             kdtree_search.search(&Point2(3.0, 3.0), 1),
-            vec![Neighbor::new(4, 2.0),]
+            vec![Neighbor::new(4, 2.0)]
         );
         assert_eq!(
             kdtree_search.search(&Point2(3.0, 3.0), 2),
-            vec![Neighbor::new(4, 2.0), Neighbor::new(1, 4.0),]
+            vec![Neighbor::new(4, 2.0), Neighbor::new(1, 4.0)]
         );
         assert_eq!(
             kdtree_search.search(&Point2(3.0, 3.0), 10),
@@ -249,11 +275,11 @@ mod tests {
     #[test]
     fn search_nearest_should_return_nearest_neighbor() {
         let dataset = empty_dataset();
-        let kdtree_search = KDTreeSearch::new(&dataset, Distance::SquaredEuclidean);
+        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, Distance::SquaredEuclidean);
         assert_eq!(kdtree_search.search_nearest(&Point2(2.5, 3.0)), None);
 
         let dataset = sample_dataset();
-        let kdtree_search = KDTreeSearch::new(&dataset, Distance::SquaredEuclidean);
+        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, Distance::SquaredEuclidean);
         assert_eq!(
             kdtree_search.search_nearest(&Point2(2.5, 3.0)),
             Some(Neighbor::new(4, 1.25))
@@ -263,16 +289,16 @@ mod tests {
     #[test]
     fn search_radius_should_return_neighbors_within_radius() {
         let dataset = empty_dataset();
-        let kdtree_search = KDTreeSearch::new(&dataset, Distance::SquaredEuclidean);
+        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, Distance::SquaredEuclidean);
         assert_eq!(kdtree_search.search_radius(&Point2(3.0, 3.0), 5.0), vec![]);
 
         let dataset = sample_dataset();
-        let kdtree_search = KDTreeSearch::new(&dataset, Distance::SquaredEuclidean);
+        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, Distance::SquaredEuclidean);
         assert_eq!(kdtree_search.search_radius(&Point2(3.0, 3.0), -1.0), vec![]);
         assert_eq!(kdtree_search.search_radius(&Point2(3.0, 3.0), 1.0), vec![]);
         assert_eq!(
             kdtree_search.search_radius(&Point2(3.0, 3.0), 2.0),
-            vec![Neighbor::new(4, 2.0),]
+            vec![Neighbor::new(4, 2.0)]
         );
         assert_eq!(
             kdtree_search.search_radius(&Point2(2.0, 2.5), 2.5),

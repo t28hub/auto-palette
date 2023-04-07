@@ -107,7 +107,7 @@ where
         }
 
         let dataset_vec = dataset.to_vec();
-        let neighbor_search = KDTreeSearch::new(&dataset_vec, self.distance);
+        let neighbor_search = KDTreeSearch::new_with_ref(&dataset_vec, self.distance);
         let mut labels = vec![Label::Undefined; dataset.len()];
         let mut cluster_id: usize = 0;
         for (index, point) in dataset.iter().enumerate() {
