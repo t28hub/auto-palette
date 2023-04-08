@@ -1,20 +1,20 @@
-use crate::rgba::Rgba;
+use crate::rgb::Rgb;
 
 /// Struct representing a named color.
 ///
 /// # Examples
 /// ```
 /// use auto_palette::named::NamedColor;
-/// use auto_palette::rgba::Rgba;
+/// use auto_palette::rgb::Rgb;
 ///
-/// let red = NamedColor::new("red", Rgba::new(255, 0, 0, 255));
+/// let red = NamedColor::new("red", Rgb::new(255, 0, 0));
 /// assert_eq!(red.name, "red");
-/// assert_eq!(red.color, Rgba::new(255, 0, 0, 255));
+/// assert_eq!(red.color, Rgb::new(255, 0, 0));
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct NamedColor {
     pub name: &'static str,
-    pub color: Rgba,
+    pub color: Rgb,
 }
 
 impl NamedColor {
@@ -27,7 +27,7 @@ impl NamedColor {
     /// # Returns
     /// A new `NamedColor` instance.
     #[must_use]
-    pub const fn new(name: &'static str, color: Rgba) -> Self {
+    pub const fn new(name: &'static str, color: Rgb) -> Self {
         Self { name, color }
     }
 
@@ -47,7 +47,7 @@ impl NamedColor {
     /// A reference to the color.
     #[inline]
     #[must_use]
-    pub fn color(&self) -> &Rgba {
+    pub fn color(&self) -> &Rgb {
         &self.color
     }
 }
@@ -65,7 +65,7 @@ impl NamedColor {
 #[inline]
 #[must_use]
 pub(crate) const fn named(name: &'static str, r: u8, g: u8, b: u8) -> NamedColor {
-    NamedColor::new(name, Rgba::new(r, g, b, 255))
+    NamedColor::new(name, Rgb::new(r, g, b))
 }
 
 /// The list of named colors defined in the CSS3 specification.
@@ -222,7 +222,7 @@ mod tests {
     #[test]
     fn test_named_color() {
         let name = "Red";
-        let color = Rgba::new(255, 0, 0, 255);
+        let color = Rgb::new(255, 0, 0);
         let actual = NamedColor::new(name, color.clone());
 
         assert_eq!(actual.name, name);

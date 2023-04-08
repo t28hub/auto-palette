@@ -1,4 +1,4 @@
-use crate::color::white_point::{WhitePoint, D65};
+use crate::color::white_point::WhitePoint;
 use crate::color::xyz::XYZ;
 use crate::math::number::Float;
 use std::fmt::{Display, Formatter};
@@ -6,13 +6,18 @@ use std::marker::PhantomData;
 
 /// Struct representing a color in CIE L*a*b* color space.
 ///
-/// [CIELAB color space - Wikipedia](https://en.wikipedia.org/wiki/CIELAB_color_space)
+/// # Type Parameters
+/// * `F` - The floating point type.
+/// * `WP` - The white point.
+///
+/// # References
+/// * [CIELAB color space - Wikipedia](https://en.wikipedia.org/wiki/CIELAB_color_space)
 #[derive(Debug, Clone, PartialEq)]
-pub struct Lab<F: Float, W: WhitePoint<F> = D65> {
+pub struct Lab<F: Float, WP: WhitePoint<F>> {
     pub l: F,
     pub a: F,
     pub b: F,
-    _marker: PhantomData<W>,
+    _marker: PhantomData<WP>,
 }
 
 impl<F, W> Lab<F, W>
@@ -161,6 +166,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::white_point::D65;
     use rstest::rstest;
     use statrs::assert_almost_eq;
 

@@ -8,7 +8,7 @@ fn extract_with_gmeans() {
     let image_data =
         SimpleImageData::new(img.as_bytes().to_vec(), img.width(), img.height()).unwrap();
 
-    let palette: Palette<f64> = Palette::extract(&image_data, Algorithm::GMEANS);
+    let palette: Palette<f32> = Palette::extract(&image_data, Algorithm::GMEANS);
     let swatches = palette.get_swatches(5);
     assert_eq!(swatches.len(), 5);
 }
@@ -19,7 +19,7 @@ fn extract_with_dbscan() {
     let image_data =
         SimpleImageData::new(img.as_bytes().to_vec(), img.width(), img.height()).unwrap();
 
-    let palette: Palette<f64> = Palette::extract(&image_data, Algorithm::DBSCAN);
+    let palette: Palette<f32> = Palette::extract(&image_data, Algorithm::DBSCAN);
     let swatches = palette.get_swatches(5);
     assert_eq!(swatches.len(), 5);
 }
@@ -30,7 +30,7 @@ fn extract_with_hdbscan() {
     let image_data =
         SimpleImageData::new(img.as_bytes().to_vec(), img.width(), img.height()).unwrap();
 
-    let palette: Palette<f64> = Palette::extract(&image_data, Algorithm::HDBSCAN);
+    let palette: Palette<f32> = Palette::extract(&image_data, Algorithm::HDBSCAN);
     let swatches = palette.get_swatches(5);
     assert_eq!(swatches.len(), 5);
 }

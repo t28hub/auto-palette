@@ -1,21 +1,21 @@
-use crate::color::rgba::Rgba;
+use crate::color::rgb::Rgb;
 
 /// Struct representing a swatch that contains a color and its position.
 ///
 /// # Examples
 /// ```
 /// use auto_palette::Swatch;
-/// use auto_palette::rgba::Rgba;
+/// use auto_palette::rgb::Rgb;
 ///
-/// let color = Rgba::new(255, 0, 64, 255);
+/// let color = Rgb::new(255, 0, 64);
 /// let swatch = Swatch::new(color, (90, 120), 384);
-/// assert_eq!(swatch.color(), &Rgba::new(255, 0, 64, 255));
+/// assert_eq!(swatch.color(), &Rgb::new(255, 0, 64));
 /// assert_eq!(swatch.position(), (90, 120));
 /// assert_eq!(swatch.size(), 384);
 /// ```
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Swatch {
-    pub(crate) color: Rgba,
+    pub(crate) color: Rgb,
     pub(crate) position: (u32, u32),
     pub(crate) size: usize,
 }
@@ -31,7 +31,7 @@ impl Swatch {
     /// # Returns
     /// A `Swatch` instance.
     #[must_use]
-    pub fn new(color: Rgba, position: (u32, u32), size: usize) -> Self {
+    pub fn new(color: Rgb, position: (u32, u32), size: usize) -> Self {
         Self {
             color,
             position,
@@ -44,7 +44,7 @@ impl Swatch {
     /// # Returns
     /// A reference of RGBA color of this swatch.
     #[must_use]
-    pub fn color(&self) -> &Rgba {
+    pub fn color(&self) -> &Rgb {
         &self.color
     }
 
@@ -73,9 +73,9 @@ mod tests {
 
     #[test]
     fn test_swatch() {
-        let color = Rgba::new(255, 0, 64, 255);
+        let color = Rgb::new(255, 0, 64);
         let swatch = Swatch::new(color, (90, 120), 384);
-        assert_eq!(swatch.color(), &Rgba::new(255, 0, 64, 255));
+        assert_eq!(swatch.color(), &Rgb::new(255, 0, 64));
         assert_eq!(swatch.position(), (90, 120));
         assert_eq!(swatch.size(), 384);
     }
@@ -83,7 +83,7 @@ mod tests {
     #[test]
     fn test_default() {
         let swatch = Swatch::default();
-        assert_eq!(swatch.color(), &Rgba::default());
+        assert_eq!(swatch.color(), &Rgb::default());
         assert_eq!(swatch.position(), (0, 0));
         assert_eq!(swatch.size(), 0);
     }

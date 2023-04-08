@@ -4,7 +4,7 @@ use crate::math::neighbors::kdtree::search::KDTreeSearch;
 use crate::math::neighbors::search::NeighborSearch;
 use crate::math::point::Point3;
 use crate::named::NamedColor;
-use crate::rgba::Rgba;
+use crate::rgb::Rgb;
 use crate::white_point::D65;
 use crate::xyz::XYZ;
 
@@ -12,18 +12,18 @@ use crate::xyz::XYZ;
 ///
 /// # Examples
 /// ```
-/// use auto_palette::rgba::Rgba;
+/// use auto_palette::rgb::Rgb;
 /// use auto_palette::named::NamedColor;
 /// use auto_palette::search::ColorSearch;
 ///
 /// let colors = [
-///    NamedColor::new("red", Rgba::new(255, 0, 0, 255)),
-///    NamedColor::new("green", Rgba::new(0, 255, 0, 255)),
-///    NamedColor::new("blue", Rgba::new(0, 0, 255, 255)),
+///    NamedColor::new("red", Rgb::new(255, 0, 0)),
+///    NamedColor::new("green", Rgb::new(0, 255, 0)),
+///    NamedColor::new("blue", Rgb::new(0, 0, 255)),
 /// ];
 /// let search = ColorSearch::new(&colors);
-/// let actual = search.search(&Rgba::new(255, 0, 50, 255));
-/// assert_eq!(actual, Some(NamedColor::new("red", Rgba::new(255, 0, 0, 255))));
+/// let actual = search.search(&Rgb::new(255, 0, 50));
+/// assert_eq!(actual, Some(NamedColor::new("red", Rgb::new(255, 0, 0))));
 /// ```
 pub struct ColorSearch<'a> {
     colors: &'a [NamedColor],
@@ -60,7 +60,7 @@ impl<'a> ColorSearch<'a> {
     /// # Returns
     /// The closest named color to the given color, or `None` if no colors were given.
     #[must_use]
-    pub fn search(&self, color: &Rgba) -> Option<NamedColor> {
+    pub fn search(&self, color: &Rgb) -> Option<NamedColor> {
         let xyz = XYZ::<f64, D65>::from(color);
         let lab = Lab::<f64, D65>::from(&xyz);
         let point = Point3::new(lab.l, lab.a, lab.b);
@@ -75,7 +75,7 @@ impl<'a> ColorSearch<'a> {
 mod tests {
     use super::*;
     use crate::named::named;
-    use crate::rgba::Rgba;
+    use crate::rgb::Rgb;
 
     #[must_use]
     fn basic_colors() -> [NamedColor; 16] {
@@ -111,13 +111,13 @@ mod tests {
         let colors = basic_colors();
         let search = ColorSearch::new(&colors);
 
-        let actual = search.search(&Rgba::new(255, 0, 50, 255));
+        let actual = search.search(&Rgb::new(255, 0, 50));
         assert_eq!(actual, Some(named("red", 255, 0, 0)));
 
-        let actual = search.search(&Rgba::new(255, 0, 153, 255));
+        let actual = search.search(&Rgb::new(255, 0, 153));
         assert_eq!(actual, Some(named("purple", 128, 0, 128)));
 
-        let actual = search.search(&Rgba::new(48, 48, 48, 255));
+        let actual = search.search(&Rgb::new(48, 48, 48));
         assert_eq!(actual, Some(named("black", 0, 0, 0)));
     }
 }

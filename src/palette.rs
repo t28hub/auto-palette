@@ -1,5 +1,5 @@
 use crate::color::lab::Lab;
-use crate::color::rgba::Rgba;
+use crate::color::rgb::Rgb;
 use crate::color::white_point::D65;
 use crate::color::xyz::XYZ;
 use crate::image::data::ImageData;
@@ -63,13 +63,16 @@ where
                     continue;
                 }
 
-                let rgba = Rgba::new(r, g, b, a);
-                let xyz: XYZ<F, D65> = XYZ::from(&rgba);
+                let rgb = Rgb::new(r, g, b);
+                let xyz: XYZ<F, D65> = XYZ::from(&rgb);
                 let lab: Lab<F, D65> = Lab::from(&xyz);
                 pixels.push(Point5::new(
-                    lab.l.normalize(Lab::<F>::min_l(), Lab::<F>::max_l()),
-                    lab.a.normalize(Lab::<F>::min_a(), Lab::<F>::max_a()),
-                    lab.b.normalize(Lab::<F>::min_b(), Lab::<F>::max_b()),
+                    lab.l
+                        .normalize(Lab::<F, D65>::min_l(), Lab::<F, D65>::max_l()),
+                    lab.a
+                        .normalize(Lab::<F, D65>::min_a(), Lab::<F, D65>::max_a()),
+                    lab.b
+                        .normalize(Lab::<F, D65>::min_b(), Lab::<F, D65>::max_b()),
                     F::from_u32(x).normalize(F::zero(), width),
                     F::from_u32(y).normalize(F::zero(), height),
                 ));
@@ -116,13 +119,13 @@ where
                 }
 
                 let centroid = cluster.centroid();
-                let lab = Lab::new(
-                    centroid[0].denormalize(Lab::<F>::min_l(), Lab::<F>::max_l()),
-                    centroid[1].denormalize(Lab::<F>::min_a(), Lab::<F>::max_a()),
-                    centroid[2].denormalize(Lab::<F>::min_b(), Lab::<F>::max_b()),
+                let lab = Lab::<F, D65>::new(
+                    centroid[0].denormalize(Lab::<F, D65>::min_l(), Lab::<F, D65>::max_l()),
+                    centroid[1].denormalize(Lab::<F, D65>::min_a(), Lab::<F, D65>::max_a()),
+                    centroid[2].denormalize(Lab::<F, D65>::min_b(), Lab::<F, D65>::max_b()),
                 );
                 let xyz = XYZ::from(&lab);
-                swatch.color = Rgba::from(&xyz);
+                swatch.color = Rgb::from(&xyz);
 
                 let x = centroid[3].denormalize(F::zero(), self.width);
                 let y = centroid[4].denormalize(F::zero(), self.height);

@@ -1,19 +1,24 @@
 use crate::color::lab::Lab;
-use crate::color::rgba::Rgba;
-use crate::color::white_point::{WhitePoint, D65};
+use crate::color::rgb::Rgb;
+use crate::color::white_point::WhitePoint;
 use crate::math::number::Float;
 use std::fmt::{Display, Formatter, Result};
 use std::marker::PhantomData;
 
 /// Struct representing a color in CIE XYZ color space.
 ///
-/// [CIE 1931 color space - Wikipedia](https://en.wikipedia.org/wiki/CIE_1931_color_space)
+/// # Type Parameters
+/// * `F` - The floating point type.
+/// * `WP` - The white point.
+///
+/// # References
+/// * [CIE 1931 color space - Wikipedia](https://en.wikipedia.org/wiki/CIE_1931_color_space)
 #[derive(Debug, Clone, PartialEq)]
-pub struct XYZ<F: Float, W: WhitePoint<F> = D65> {
+pub struct XYZ<F: Float, WP: WhitePoint<F>> {
     pub x: F,
     pub y: F,
     pub z: F,
-    _marker: PhantomData<W>,
+    _marker: PhantomData<WP>,
 }
 
 impl<F, W> XYZ<F, W>
@@ -130,14 +135,14 @@ where
     }
 }
 
-impl<F, W> From<&Rgba> for XYZ<F, W>
+impl<F, W> From<&Rgb> for XYZ<F, W>
 where
     F: Float,
     W: WhitePoint<F>,
 {
     #[inline]
     #[must_use]
-    fn from(rgba: &Rgba) -> Self {
+    fn from(rgba: &Rgb) -> Self {
         let f = |value: F| -> F {
             if value <= F::from_f64(0.04045) {
                 value / F::from_f64(12.92)
@@ -146,7 +151,7 @@ where
             }
         };
 
-        let max_value: F = Rgba::max_value();
+        let max_value: F = Rgb::max_value();
         let r = f(rgba.r::<F>() / max_value);
         let g = f(rgba.g::<F>() / max_value);
         let b = f(rgba.b::<F>() / max_value);
@@ -158,14 +163,14 @@ where
     }
 }
 
-impl<F, W> From<&Lab<F>> for XYZ<F, W>
+impl<F, WP> From<&Lab<F, WP>> for XYZ<F, WP>
 where
     F: Float,
-    W: WhitePoint<F>,
+    WP: WhitePoint<F>,
 {
     #[inline]
     #[must_use]
-    fn from(lab: &Lab<F>) -> Self {
+    fn from(lab: &Lab<F, WP>) -> Self {
         let epsilon = F::from_f64(6.0 / 29.0);
         let kappa = F::from_f64(108.0 / 841.0); // 3.0 * ((6.0 / 29.0) ^ 2)
         let delta = F::from_f64(4.0 / 29.0);
@@ -181,9 +186,9 @@ where
         let a2 = lab.a / F::from_f64(500.0);
         let b2 = lab.b / F::from_f64(200.0);
 
-        let x = W::x() * f(l2 + a2);
-        let y = W::y() * f(l2);
-        let z = W::z() * f(l2 - b2);
+        let x = WP::x() * f(l2 + a2);
+        let y = WP::y() * f(l2);
+        let z = WP::z() * f(l2 - b2);
         XYZ::new(x, y, z)
     }
 }
@@ -191,6 +196,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::white_point::D65;
     use rstest::rstest;
     use statrs::assert_almost_eq;
 
@@ -219,16 +225,16 @@ mod tests {
     }
 
     #[rstest]
-    #[case((0, 0, 0, 255), (0.0000, 0.0000, 0.0000))] // Black
-    #[case((255, 255, 255, 255), (0.9505, 1.0000, 1.0890))] // White
-    #[case((255, 0, 0, 255), (0.4124, 0.2126, 0.0193))] // Red
-    #[case((0, 255, 0, 255), (0.3576, 0.7152, 0.1192))] // Green
-    #[case((0, 0, 255, 255), (0.1805, 0.0722, 0.9505))] // Blue
-    #[case((0, 255, 255, 255), (0.5381, 0.7874, 1.0697))] // Cyan
-    #[case((255, 0, 255, 255), (0.5929, 0.2848, 0.9698))] // Magenta
-    #[case((255, 255, 0, 255), (0.7700, 0.9278, 0.1385))] // Yellow
-    fn test_from_rgba(#[case] rgba: (u8, u8, u8, u8), #[case] expected: (f64, f64, f64)) {
-        let actual: XYZ<_, D65> = XYZ::from(&Rgba::new(rgba.0, rgba.1, rgba.2, rgba.3));
+    #[case((0, 0, 0), (0.0000, 0.0000, 0.0000))] // Black
+    #[case((255, 255, 255), (0.9505, 1.0000, 1.0890))] // White
+    #[case((255, 0, 0), (0.4124, 0.2126, 0.0193))] // Red
+    #[case((0, 255, 0), (0.3576, 0.7152, 0.1192))] // Green
+    #[case((0, 0, 255), (0.1805, 0.0722, 0.9505))] // Blue
+    #[case((0, 255, 255), (0.5381, 0.7874, 1.0697))] // Cyan
+    #[case((255, 0, 255), (0.5929, 0.2848, 0.9698))] // Magenta
+    #[case((255, 255, 0), (0.7700, 0.9278, 0.1385))] // Yellow
+    fn test_from_rgba(#[case] rgba: (u8, u8, u8), #[case] expected: (f64, f64, f64)) {
+        let actual: XYZ<_, D65> = XYZ::from(&Rgb::new(rgba.0, rgba.1, rgba.2));
         let (x, y, z) = expected;
         assert_almost_eq!(actual.x, x, 1e-3);
         assert_almost_eq!(actual.y, y, 1e-3);

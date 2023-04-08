@@ -3,7 +3,7 @@ use crate::math::number::Float;
 /// Trait representing a white point.
 ///
 /// [White point - Wikipedia](https://en.wikipedia.org/wiki/White_point)
-pub trait WhitePoint<F>
+pub trait WhitePoint<F>: Clone
 where
     F: Float,
 {
