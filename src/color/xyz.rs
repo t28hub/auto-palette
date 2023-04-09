@@ -143,7 +143,7 @@ where
 {
     #[inline]
     #[must_use]
-    fn from(rgba: &Rgb) -> Self {
+    fn from(rgb: &Rgb) -> Self {
         let f = |value: F| -> F {
             if value <= F::from_f64(0.04045) {
                 value / F::from_f64(12.92)
@@ -153,9 +153,9 @@ where
         };
 
         let max_value: F = Rgb::max_value();
-        let r = f(rgba.r::<F>() / max_value);
-        let g = f(rgba.g::<F>() / max_value);
-        let b = f(rgba.b::<F>() / max_value);
+        let r = f(rgb.r::<F>() / max_value);
+        let g = f(rgb.g::<F>() / max_value);
+        let b = f(rgb.b::<F>() / max_value);
 
         let x = F::from_f64(0.412391) * r + F::from_f64(0.357584) * g + F::from_f64(0.180481) * b;
         let y = F::from_f64(0.212639) * r + F::from_f64(0.715169) * g + F::from_f64(0.072192) * b;

@@ -1,3 +1,4 @@
+use crate::color_trait::Color;
 use crate::lab::Lab;
 use crate::math::distance::Distance;
 use crate::math::neighbors::kdtree::search::KDTreeSearch;
@@ -17,13 +18,18 @@ use crate::xyz::XYZ;
 /// use auto_palette::search::ColorSearch;
 ///
 /// let colors = [
-///    NamedColor::new("red", Rgb::new(255, 0, 0)),
-///    NamedColor::new("green", Rgb::new(0, 255, 0)),
-///    NamedColor::new("blue", Rgb::new(0, 0, 255)),
+///     NamedColor::new("red", 255, 0, 0),
+///     NamedColor::new("green", 0, 255, 0),
+///     NamedColor::new("blue", 0, 0, 255),
+///     NamedColor::new("yellow", 255, 255, 0),
+///     NamedColor::new("cyan", 0, 255, 255),
+///     NamedColor::new("magenta", 255, 0, 255),
+///     NamedColor::new("white", 255, 255, 255),
+///     NamedColor::new("black", 0, 0, 0),
 /// ];
 /// let search = ColorSearch::new(&colors);
 /// let actual = search.search(&Rgb::new(255, 0, 50));
-/// assert_eq!(actual, Some(NamedColor::new("red", Rgb::new(255, 0, 0))));
+/// assert_eq!(actual, Some(NamedColor::new("red", 255, 0, 0)));
 /// ```
 pub struct ColorSearch<'a> {
     colors: &'a [NamedColor],
@@ -43,8 +49,7 @@ impl<'a> ColorSearch<'a> {
         let points: Vec<Point3<f64>> = colors
             .iter()
             .map(|named| {
-                let xyz = XYZ::<f64, D65>::from(named.color());
-                let lab = Lab::<f64, D65>::from(&xyz);
+                let lab = named.to_lab();
                 Point3::new(lab.l, lab.a, lab.b)
             })
             .collect();
@@ -74,28 +79,27 @@ impl<'a> ColorSearch<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::named::named;
     use crate::rgb::Rgb;
 
     #[must_use]
     fn basic_colors() -> [NamedColor; 16] {
         [
-            named("black", 0, 0, 0),
-            named("silver", 192, 192, 192),
-            named("gray", 128, 128, 128),
-            named("white", 255, 255, 255),
-            named("maroon", 128, 0, 0),
-            named("red", 255, 0, 0),
-            named("purple", 128, 0, 128),
-            named("fuchsia", 255, 0, 255),
-            named("green", 0, 128, 0),
-            named("lime", 0, 255, 0),
-            named("olive", 128, 128, 0),
-            named("yellow", 255, 255, 0),
-            named("navy", 0, 0, 128),
-            named("blue", 0, 0, 255),
-            named("teal", 0, 128, 128),
-            named("aqua", 0, 255, 255),
+            NamedColor::new("black", 0, 0, 0),
+            NamedColor::new("silver", 192, 192, 192),
+            NamedColor::new("gray", 128, 128, 128),
+            NamedColor::new("white", 255, 255, 255),
+            NamedColor::new("maroon", 128, 0, 0),
+            NamedColor::new("red", 255, 0, 0),
+            NamedColor::new("purple", 128, 0, 128),
+            NamedColor::new("fuchsia", 255, 0, 255),
+            NamedColor::new("green", 0, 128, 0),
+            NamedColor::new("lime", 0, 255, 0),
+            NamedColor::new("olive", 128, 128, 0),
+            NamedColor::new("yellow", 255, 255, 0),
+            NamedColor::new("navy", 0, 0, 128),
+            NamedColor::new("blue", 0, 0, 255),
+            NamedColor::new("teal", 0, 128, 128),
+            NamedColor::new("aqua", 0, 255, 255),
         ]
     }
 
@@ -112,12 +116,12 @@ mod tests {
         let search = ColorSearch::new(&colors);
 
         let actual = search.search(&Rgb::new(255, 0, 50));
-        assert_eq!(actual, Some(named("red", 255, 0, 0)));
+        assert_eq!(actual, Some(NamedColor::new("red", 255, 0, 0)));
 
         let actual = search.search(&Rgb::new(255, 0, 153));
-        assert_eq!(actual, Some(named("purple", 128, 0, 128)));
+        assert_eq!(actual, Some(NamedColor::new("purple", 128, 0, 128)));
 
         let actual = search.search(&Rgb::new(48, 48, 48));
-        assert_eq!(actual, Some(named("black", 0, 0, 0)));
+        assert_eq!(actual, Some(NamedColor::new("black", 0, 0, 0)));
     }
 }
