@@ -1,6 +1,7 @@
 use crate::color::lab::Lab;
 use crate::color::rgb::Rgb;
 use crate::color::white_point::WhitePoint;
+use crate::color_trait::Color;
 use crate::math::number::Float;
 use std::fmt::{Display, Formatter, Result};
 use std::marker::PhantomData;
@@ -13,18 +14,18 @@ use std::marker::PhantomData;
 ///
 /// # References
 /// * [CIE 1931 color space - Wikipedia](https://en.wikipedia.org/wiki/CIE_1931_color_space)
-#[derive(Debug, Clone, PartialEq)]
-pub struct XYZ<F: Float, WP: WhitePoint<F>> {
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct XYZ<F: Float + Default, WP: WhitePoint<F>> {
     pub x: F,
     pub y: F,
     pub z: F,
     _marker: PhantomData<WP>,
 }
 
-impl<F, W> XYZ<F, W>
+impl<F, WP> XYZ<F, WP>
 where
-    F: Float,
-    W: WhitePoint<F>,
+    F: Float + Default,
+    WP: WhitePoint<F>,
 {
     /// Creates a new CIE XYZ color.
     ///
@@ -37,7 +38,7 @@ where
     /// A new XYZ color.
     #[inline]
     #[must_use]
-    pub fn new(x: F, y: F, z: F) -> XYZ<F, W> {
+    pub fn new(x: F, y: F, z: F) -> XYZ<F, WP> {
         Self {
             x: Self::clamp_x(x),
             y: Self::clamp_y(y),
@@ -125,20 +126,20 @@ where
     }
 }
 
-impl<F, W> Display for XYZ<F, W>
+impl<F, WP> Display for XYZ<F, WP>
 where
-    F: Float + Display,
-    W: WhitePoint<F>,
+    F: Float + Default + Display,
+    WP: WhitePoint<F>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "XYZ({x}, {y}, {z})", x = self.x, y = self.y, z = self.z)
     }
 }
 
-impl<F, W> From<&Rgb> for XYZ<F, W>
+impl<F, WP> From<&Rgb> for XYZ<F, WP>
 where
-    F: Float,
-    W: WhitePoint<F>,
+    F: Float + Default,
+    WP: WhitePoint<F>,
 {
     #[inline]
     #[must_use]
@@ -165,7 +166,7 @@ where
 
 impl<F, WP> From<&Lab<F, WP>> for XYZ<F, WP>
 where
-    F: Float,
+    F: Float + Default,
     WP: WhitePoint<F>,
 {
     #[inline]
@@ -190,6 +191,30 @@ where
         let y = WP::y() * f(l2);
         let z = WP::z() * f(l2 - b2);
         XYZ::new(x, y, z)
+    }
+}
+
+impl<F, WP> Color for XYZ<F, WP>
+where
+    F: Float + Default,
+    WP: WhitePoint<F>,
+{
+    type F = F;
+    type WP = WP;
+
+    #[must_use]
+    fn to_rgb(&self) -> Rgb {
+        Rgb::from(self)
+    }
+
+    #[must_use]
+    fn to_xyz(&self) -> XYZ<Self::F, Self::WP> {
+        self.clone()
+    }
+
+    #[must_use]
+    fn to_lab(&self) -> Lab<Self::F, Self::WP> {
+        Lab::from(self)
     }
 }
 

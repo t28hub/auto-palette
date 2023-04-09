@@ -5,8 +5,8 @@ use crate::white_point::WhitePoint;
 use crate::xyz::XYZ;
 
 /// Trait representing a color.
-pub trait Color {
-    type F: Float;
+pub trait Color: Default {
+    type F: Float + Default;
     type WP: WhitePoint<Self::F>;
 
     /// Returns the brightness of this color.
@@ -16,14 +16,23 @@ pub trait Color {
     ///
     /// # References
     /// * [Techniques For Accessibility Evaluation And Repair Tools](https://www.w3.org/TR/AERT/#color-contrast)
-    fn darkness(&self) -> Self::F;
+    #[must_use]
+    fn darkness(&self) -> Self::F {
+        let rgb = self.to_rgb();
+        let r = Self::F::from_f64(299.0) * rgb.r();
+        let g = Self::F::from_f64(587.0) * rgb.g();
+        let b = Self::F::from_f64(114.0) * rgb.b();
+        (r + g + b) / Self::F::from_f64(1000.0) / Rgb::max_value()
+    }
 
     /// Returns `true` if this color is light, `false` otherwise.
     ///
     /// # Returns
     /// `true` if this color is light, `false` otherwise.
     #[must_use]
-    fn is_light(&self) -> bool;
+    fn is_light(&self) -> bool {
+        self.darkness() > Self::F::from_f64(0.5)
+    }
 
     /// Returns `true` if this color is dark, `false` otherwise.
     ///
@@ -60,12 +69,18 @@ pub trait Color {
     /// # Returns
     /// A hex string representation of this color.
     #[must_use]
-    fn to_hex_string(&self) -> String;
+    fn to_hex_string(&self) -> String {
+        let rgb = self.to_rgb();
+        format!("#{:02x}{:02x}{:02x}", rgb.r, rgb.g, rgb.b)
+    }
 
     /// Returns an RGB string representation of this color.
     ///
     /// # Returns
     /// An RGB string representation of this color.
     #[must_use]
-    fn to_rgb_string(&self) -> String;
+    fn to_rgb_string(&self) -> String {
+        let rgb = self.to_rgb();
+        format!("rgb({} {} {})", rgb.r, rgb.g, rgb.b)
+    }
 }

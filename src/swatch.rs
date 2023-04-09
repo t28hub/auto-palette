@@ -1,6 +1,9 @@
-use crate::color::rgb::Rgb;
+use crate::color_trait::Color;
 
 /// Struct representing a swatch that contains a color and its position.
+///
+/// # Type Parameters
+/// * `C` - The color type.
 ///
 /// # Examples
 /// ```
@@ -14,24 +17,27 @@ use crate::color::rgb::Rgb;
 /// assert_eq!(swatch.size(), 384);
 /// ```
 #[derive(Debug, Clone, Default, PartialEq)]
-pub struct Swatch {
-    pub(crate) color: Rgb,
-    pub(crate) position: (u32, u32),
-    pub(crate) size: usize,
+pub struct Swatch<C: Color> {
+    color: C,
+    position: (u32, u32),
+    size: usize,
 }
 
-impl Swatch {
+impl<C> Swatch<C>
+where
+    C: Color,
+{
     /// Creates a new `Swatch` instance.
     ///
     /// # Arguments
-    /// * `color` - The RGBA color of the swatch.
+    /// * `color` - The color of the swatch.
     /// * `position` - The (x, y) position of the swatch.
     /// * `size` - The size of the swatch.
     ///
     /// # Returns
     /// A `Swatch` instance.
     #[must_use]
-    pub fn new(color: Rgb, position: (u32, u32), size: usize) -> Self {
+    pub fn new(color: C, position: (u32, u32), size: usize) -> Self {
         Self {
             color,
             position,
@@ -39,12 +45,12 @@ impl Swatch {
         }
     }
 
-    /// Returns the RGBA color of this swatch.
+    /// Returns the color of this swatch.
     ///
     /// # Returns
-    /// A reference of RGBA color of this swatch.
+    /// A reference of color of this swatch.
     #[must_use]
-    pub fn color(&self) -> &Rgb {
+    pub fn color(&self) -> &C {
         &self.color
     }
 
@@ -70,6 +76,9 @@ impl Swatch {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::lab::Lab;
+    use crate::rgb::Rgb;
+    use crate::white_point::D65;
 
     #[test]
     fn test_swatch() {
@@ -82,8 +91,8 @@ mod tests {
 
     #[test]
     fn test_default() {
-        let swatch = Swatch::default();
-        assert_eq!(swatch.color(), &Rgb::default());
+        let swatch: Swatch<Lab<f64, D65>> = Swatch::default();
+        assert_eq!(swatch.color(), &Lab::default());
         assert_eq!(swatch.position(), (0, 0));
         assert_eq!(swatch.size(), 0);
     }

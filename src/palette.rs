@@ -11,6 +11,7 @@ use crate::math::point::{Point3, Point5};
 use crate::swatch::Swatch;
 use crate::Algorithm;
 use num_traits::Zero;
+use std::cmp::Reverse;
 use std::collections::HashMap;
 
 /// Struct representing a color palette.
@@ -31,7 +32,7 @@ use std::collections::HashMap;
 ///     println!("{:?}", swatch);
 /// });
 /// ```
-pub struct Palette<F: Float> {
+pub struct Palette<F: Float + Default> {
     width: F,
     height: F,
     model: Model<F, Point5<F>>,
@@ -39,7 +40,7 @@ pub struct Palette<F: Float> {
 
 impl<F> Palette<F>
 where
-    F: Float,
+    F: Float + Default,
 {
     /// Extract a color palette from the given image using the specified algorithm.
     ///
@@ -105,7 +106,7 @@ where
     /// # Returns
     /// A vector of swatches containing the n-dominant colors.
     #[must_use]
-    pub fn swatches(&self, n: usize) -> Vec<Swatch> {
+    pub fn swatches(&self, n: usize) -> Vec<Swatch<Lab<F, D65>>> {
         let clusters = self.model.clusters();
         let centroids: Vec<Point3<F>> = clusters
             .iter()
@@ -120,32 +121,39 @@ where
             Distance::SquaredEuclidean.measure(&point_u, &point_v)
         });
 
-        let mut swatches = HashMap::new();
+        let mut swatches_map = HashMap::new();
         for (index, label) in hierarchical_clustering.partition(n).into_iter().enumerate() {
-            let mut swatch = swatches.entry(label).or_insert_with(Swatch::default);
+            let swatch = swatches_map.entry(label).or_insert_with(|| {
+                Swatch::new(
+                    Lab::<F, D65>::new(F::zero(), F::zero(), F::zero()),
+                    (0, 0),
+                    0,
+                )
+            });
             if let Some(cluster) = clusters.get(index) {
                 if cluster.size() < swatch.size() {
                     continue;
                 }
 
                 let centroid = cluster.centroid();
-                let lab = Lab::<F, D65>::new(
+                let color = Lab::<F, D65>::new(
                     centroid[0].denormalize(Lab::<F, D65>::min_l(), Lab::<F, D65>::max_l()),
                     centroid[1].denormalize(Lab::<F, D65>::min_a(), Lab::<F, D65>::max_a()),
                     centroid[2].denormalize(Lab::<F, D65>::min_b(), Lab::<F, D65>::max_b()),
                 );
-                let xyz = XYZ::from(&lab);
-                swatch.color = Rgb::from(&xyz);
 
                 let x = centroid[3].denormalize(F::zero(), self.width);
                 let y = centroid[4].denormalize(F::zero(), self.height);
-                swatch.position = (
+                let position = (
                     x.to_u32().expect("Could not convert x to u32"),
                     y.to_u32().expect("Could not convert y to u32"),
                 );
-                swatch.size = cluster.size();
+                *swatch = Swatch::new(color, position, cluster.size());
             }
         }
-        swatches.into_values().collect()
+
+        let mut swatches: Vec<_> = swatches_map.into_values().collect();
+        swatches.sort_unstable_by_key(|swatch| Reverse(swatch.size()));
+        swatches
     }
 }

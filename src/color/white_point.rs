@@ -2,8 +2,12 @@ use crate::math::number::Float;
 
 /// Trait representing a white point.
 ///
-/// [White point - Wikipedia](https://en.wikipedia.org/wiki/White_point)
-pub trait WhitePoint<F>: Clone
+/// # Type Parameters
+/// * `F` - The floating point type.
+///
+/// # References
+/// * [White point - Wikipedia](https://en.wikipedia.org/wiki/White_point)
+pub trait WhitePoint<F>: Clone + Default
 where
     F: Float,
 {
@@ -31,8 +35,9 @@ where
 
 /// Struct representing CIE standard illuminant D65
 ///
-/// [Illuminant D65](https://en.wikipedia.org/wiki/Illuminant_D65)
-#[derive(Debug, Clone, PartialEq)]
+/// # References
+/// * [Illuminant D65](https://en.wikipedia.org/wiki/Illuminant_D65)
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct D65;
 
 impl<F> WhitePoint<F> for D65

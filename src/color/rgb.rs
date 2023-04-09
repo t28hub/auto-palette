@@ -1,10 +1,12 @@
 use crate::color::xyz::XYZ;
+use crate::color_trait::Color;
+use crate::lab::Lab;
 use crate::math::number::{Float, Number};
-use crate::white_point::WhitePoint;
+use crate::white_point::{WhitePoint, D65};
 use std::fmt::{Display, Formatter, Result};
 
 /// Struct representing a color in standard RGB color space.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub struct Rgb {
     pub r: u8,
     pub g: u8,
@@ -78,13 +80,6 @@ impl Rgb {
     }
 }
 
-impl Default for Rgb {
-    #[must_use]
-    fn default() -> Self {
-        Self::new(0, 0, 0)
-    }
-}
-
 impl Display for Rgb {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "Rgba({r}, {g}, {b})", r = self.r, g = self.g, b = self.b,)
@@ -93,7 +88,7 @@ impl Display for Rgb {
 
 impl<F, WP> From<&XYZ<F, WP>> for Rgb
 where
-    F: Float,
+    F: Float + Default,
     WP: WhitePoint<F>,
 {
     #[inline]
@@ -127,6 +122,36 @@ where
             g: denormalize(fg),
             b: denormalize(fb),
         }
+    }
+}
+
+impl Color for Rgb {
+    type F = f64;
+    type WP = D65;
+
+    #[must_use]
+    fn to_rgb(&self) -> Rgb {
+        self.clone()
+    }
+
+    #[must_use]
+    fn to_xyz(&self) -> XYZ<Self::F, Self::WP> {
+        XYZ::from(self)
+    }
+
+    #[must_use]
+    fn to_lab(&self) -> Lab<Self::F, Self::WP> {
+        Lab::from(&self.to_xyz())
+    }
+
+    #[must_use]
+    fn to_hex_string(&self) -> String {
+        format!("#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
+    }
+
+    #[must_use]
+    fn to_rgb_string(&self) -> String {
+        format!("rgb({} {} {})", self.r, self.g, self.b)
     }
 }
 

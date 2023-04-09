@@ -1,7 +1,9 @@
 use crate::color::white_point::WhitePoint;
 use crate::color::xyz::XYZ;
+use crate::color_trait::Color;
 use crate::math::number::Float;
-use std::fmt::{Display, Formatter};
+use crate::rgb::Rgb;
+use std::fmt::{Display, Formatter, Result};
 use std::marker::PhantomData;
 
 /// Struct representing a color in CIE L*a*b* color space.
@@ -12,7 +14,7 @@ use std::marker::PhantomData;
 ///
 /// # References
 /// * [CIELAB color space - Wikipedia](https://en.wikipedia.org/wiki/CIELAB_color_space)
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Lab<F: Float, WP: WhitePoint<F>> {
     pub l: F,
     pub a: F,
@@ -124,19 +126,19 @@ where
     }
 }
 
-impl<F, W> Display for Lab<F, W>
+impl<F, WP> Display for Lab<F, WP>
 where
     F: Float + Display,
-    W: WhitePoint<F>,
+    WP: WhitePoint<F>,
 {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "Lab({l}, {a}, {b})", l = self.l, a = self.a, b = self.b)
     }
 }
 
 impl<F, W> From<&XYZ<F, W>> for Lab<F, W>
 where
-    F: Float,
+    F: Float + Default,
     W: WhitePoint<F>,
 {
     #[inline]
@@ -160,6 +162,31 @@ where
         let a = F::from_f64(500.0) * (fx - fy);
         let b = F::from_f64(200.0) * (fy - fz);
         Lab::new(l, a, b)
+    }
+}
+
+impl<F, WP> Color for Lab<F, WP>
+where
+    F: Float + Default,
+    WP: WhitePoint<F>,
+{
+    type F = F;
+    type WP = WP;
+
+    #[must_use]
+    fn to_rgb(&self) -> Rgb {
+        let xyz = self.to_xyz();
+        Rgb::from(&xyz)
+    }
+
+    #[must_use]
+    fn to_xyz(&self) -> XYZ<Self::F, Self::WP> {
+        XYZ::<F, WP>::from(self)
+    }
+
+    #[must_use]
+    fn to_lab(&self) -> Lab<Self::F, Self::WP> {
+        self.clone()
     }
 }
 
