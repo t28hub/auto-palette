@@ -9,13 +9,20 @@ use crate::math::point::Point;
 
 /// Enum representing the supported palette extraction algorithms.
 pub enum Algorithm {
+    /// Gmeans clustering algorithm.
+    Gmeans,
+    /// DBSCAN clustering algorithm.
     DBSCAN,
-    GMEANS,
+    /// HDBSCAN clustering algorithm.
     HDBSCAN,
 }
 
 impl Algorithm {
     /// Applies the selected palette extraction algorithm.
+    ///
+    /// # Type Parameters
+    /// * `F` - The float type used for calculations.
+    /// * `P` - The point type used for calculations.
     ///
     /// # Arguments
     /// * `dataset` - A slice of data points.
@@ -28,30 +35,50 @@ impl Algorithm {
         P: Point<F>,
     {
         match self {
-            Algorithm::DBSCAN => {
-                let min_samples = (dataset.len() / 1000).max(9);
-                let dbscan =
-                    DBSCAN::new(min_samples, F::from_f64(0.0025), Distance::SquaredEuclidean);
-                dbscan.train(dataset)
-            }
-            Algorithm::GMEANS => {
-                let min_cluster_size = (dataset.len() / 1000).max(9);
-                let gmeans = Gmeans::new(
-                    25,
-                    10,
-                    min_cluster_size,
-                    F::from_f64(0.001),
-                    Distance::SquaredEuclidean,
-                );
-                gmeans.train(dataset)
-            }
-            Algorithm::HDBSCAN => {
-                let min_samples = (dataset.len() / 1000).max(9);
-                let hdbscan = HDBSCAN::new(min_samples, min_samples, Distance::SquaredEuclidean);
-                hdbscan.train(dataset)
-            }
+            Algorithm::Gmeans => cluster_with_gmeans(dataset),
+            Algorithm::DBSCAN => cluster_with_dbscan(dataset),
+            Algorithm::HDBSCAN => cluster_with_hdbscan(dataset),
         }
     }
+}
+
+#[must_use]
+fn cluster_with_gmeans<F, P>(dataset: &[P]) -> Model<F, P>
+where
+    F: Float,
+    P: Point<F>,
+{
+    let min_cluster_size = (dataset.len() / 1000).max(9);
+    let gmeans = Gmeans::new(
+        25,
+        10,
+        min_cluster_size,
+        F::from_f64(0.001),
+        Distance::SquaredEuclidean,
+    );
+    gmeans.train(dataset)
+}
+
+#[must_use]
+fn cluster_with_dbscan<F, P>(dataset: &[P]) -> Model<F, P>
+where
+    F: Float,
+    P: Point<F>,
+{
+    let min_samples = (dataset.len() / 1000).max(9);
+    let dbscan = DBSCAN::new(min_samples, F::from_f64(0.0025), Distance::SquaredEuclidean);
+    dbscan.train(dataset)
+}
+
+#[must_use]
+fn cluster_with_hdbscan<F, P>(dataset: &[P]) -> Model<F, P>
+where
+    F: Float,
+    P: Point<F>,
+{
+    let min_samples = (dataset.len() / 1000).max(9);
+    let hdbscan = HDBSCAN::new(min_samples, min_samples, Distance::SquaredEuclidean);
+    hdbscan.train(dataset)
 }
 
 #[cfg(test)]
@@ -87,7 +114,7 @@ mod tests {
     #[test]
     fn test_gmeans_algorithm() {
         let dataset = sample_dataset();
-        let actual = Algorithm::GMEANS.apply(&dataset);
+        let actual = Algorithm::Gmeans.apply(&dataset);
 
         let clustering = Gmeans::new(25, 10, 9, 0.001, Distance::SquaredEuclidean);
         let expected = clustering.train(&dataset);

@@ -2,7 +2,7 @@ use crate::color::lab::Lab;
 use crate::color::rgb::Rgb;
 use crate::color::white_point::D65;
 use crate::color::xyz::XYZ;
-use crate::image::data::ImageData;
+use crate::image::image_data::ImageData;
 use crate::math::clustering::hierarchical::algorithm::HierarchicalClustering;
 use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
@@ -25,9 +25,9 @@ use std::collections::HashMap;
 /// use auto_palette::{Algorithm, Palette, SimpleImageData};
 ///
 /// let img = image::open("/path/to/image.png").unwrap();
-/// let image_data = SimpleImageData::new(img.as_bytes().to_vec(), img.width(), img.height()).unwrap();
+/// let image_data = SimpleImageData::new(img.as_bytes(), img.width(), img.height()).unwrap();
 /// let palette: Palette<f64> = Palette::extract(&image_data, Algorithm::DBSCAN);
-/// palette.get_swatches(5).iter().for_each(|swatch| {
+/// palette.swatches(5).iter().for_each(|swatch| {
 ///     println!("{:?}", swatch);
 /// });
 /// ```
@@ -51,38 +51,48 @@ where
     /// A new extracted `Palette` instance.
     #[must_use]
     pub fn extract<I: ImageData>(image: &I, algorithm: Algorithm) -> Palette<F> {
-        let width = F::from_u32(image.width());
-        let height = F::from_u32(image.height());
+        let data = image.data();
+        let width_f = F::from_u32(image.width());
+        let height_f = F::from_u32(image.height());
 
-        let mut pixels = Vec::new();
-        for x in 0..image.width() {
-            for y in 0..image.height() {
-                let [r, g, b, a] = image.get_pixel(x, y).unwrap_or([0, 0, 0, 0]);
-                // Ignore a transparent pixel
-                if a.is_zero() {
-                    continue;
-                }
+        let mut index = 0;
+        let mut pixels = Vec::with_capacity(data.len() / 4);
+        while index < data.len() {
+            let r = data[index];
+            let g = data[index + 1];
+            let b = data[index + 2];
+            let a = data[index + 3];
+            index += 4;
 
-                let rgb = Rgb::new(r, g, b);
-                let xyz: XYZ<F, D65> = XYZ::from(&rgb);
-                let lab: Lab<F, D65> = Lab::from(&xyz);
-                pixels.push(Point5::new(
-                    lab.l
-                        .normalize(Lab::<F, D65>::min_l(), Lab::<F, D65>::max_l()),
-                    lab.a
-                        .normalize(Lab::<F, D65>::min_a(), Lab::<F, D65>::max_a()),
-                    lab.b
-                        .normalize(Lab::<F, D65>::min_b(), Lab::<F, D65>::max_b()),
-                    F::from_u32(x).normalize(F::zero(), width),
-                    F::from_u32(y).normalize(F::zero(), height),
-                ));
+            // Ignore a transparent pixel
+            if a.is_zero() {
+                continue;
             }
+
+            let rgb = Rgb::new(r, g, b);
+            let xyz: XYZ<F, D65> = XYZ::from(&rgb);
+            let lab: Lab<F, D65> = Lab::from(&xyz);
+
+            let x = index / 4 % image.width() as usize;
+            let y = index / 4 / image.width() as usize;
+
+            let pixel = Point5::new(
+                lab.l
+                    .normalize(Lab::<F, D65>::min_l(), Lab::<F, D65>::max_l()),
+                lab.a
+                    .normalize(Lab::<F, D65>::min_a(), Lab::<F, D65>::max_a()),
+                lab.b
+                    .normalize(Lab::<F, D65>::min_b(), Lab::<F, D65>::max_b()),
+                F::from_usize(x).normalize(F::zero(), width_f),
+                F::from_usize(y).normalize(F::zero(), height_f),
+            );
+            pixels.push(pixel);
         }
 
         let model = algorithm.apply(&pixels);
         Self {
-            width,
-            height,
+            width: width_f,
+            height: height_f,
             model,
         }
     }
@@ -95,7 +105,7 @@ where
     /// # Returns
     /// A vector of swatches containing the n-dominant colors.
     #[must_use]
-    pub fn get_swatches(&self, n: usize) -> Vec<Swatch> {
+    pub fn swatches(&self, n: usize) -> Vec<Swatch> {
         let clusters = self.model.clusters();
         let centroids: Vec<Point3<F>> = clusters
             .iter()
