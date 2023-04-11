@@ -79,11 +79,34 @@ impl Color for NamedColor {
     }
 }
 
-/// The list of named colors defined in the CSS3 specification.
+/// The list of 16 basic colors.
 ///
 /// # References
-/// * [6.1. Named Colors - CSS3 Color Module Level 4](https://www.w3.org/TR/css-color-4/#named-colors)
-pub const CSS_COLORS: [NamedColor; 148] = [
+/// * [CSS/Properties/color/keywords](https://www.w3.org/wiki/CSS/Properties/color/keywords#Basic_Colors)
+pub const BASIC_COLORS: [NamedColor; 16] = [
+    NamedColor::new("black", 0, 0, 0),
+    NamedColor::new("silver", 192, 192, 192),
+    NamedColor::new("gray", 128, 128, 128),
+    NamedColor::new("white", 255, 255, 255),
+    NamedColor::new("maroon", 128, 0, 0),
+    NamedColor::new("red", 255, 0, 0),
+    NamedColor::new("purple", 128, 0, 128),
+    NamedColor::new("fuchsia", 255, 0, 255),
+    NamedColor::new("green", 0, 128, 0),
+    NamedColor::new("lime", 0, 255, 0),
+    NamedColor::new("olive", 128, 128, 0),
+    NamedColor::new("yellow", 255, 255, 0),
+    NamedColor::new("navy", 0, 0, 128),
+    NamedColor::new("blue", 0, 0, 255),
+    NamedColor::new("teal", 0, 128, 128),
+    NamedColor::new("aqua", 0, 255, 255),
+];
+
+/// The list of extended named colors defined in the CSS3 specification.
+///
+/// # References
+/// * [CSS/Properties/color/keywords](https://www.w3.org/wiki/CSS/Properties/color/keywords#Extended_colors)
+pub const EXTENDED_COLORS: [NamedColor; 148] = [
     NamedColor::new("aliceblue", 240, 248, 255),
     NamedColor::new("antiquewhite", 250, 235, 215),
     NamedColor::new("aqua", 0, 255, 255),

@@ -11,16 +11,18 @@ use crate::color_trait::Color;
 /// use auto_palette::rgb::Rgb;
 ///
 /// let color = Rgb::new(255, 0, 64);
-/// let swatch = Swatch::new(color, (90, 120), 384);
+/// let swatch = Swatch::new("red", color, (90, 120), 384);
+/// assert_eq!(swatch.name(), "red");
 /// assert_eq!(swatch.color(), &Rgb::new(255, 0, 64));
 /// assert_eq!(swatch.position(), (90, 120));
-/// assert_eq!(swatch.size(), 384);
+/// assert_eq!(swatch.population(), 384);
 /// ```
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Swatch<C: Color> {
+    name: &'static str,
     color: C,
     position: (u32, u32),
-    size: usize,
+    population: usize,
 }
 
 impl<C> Swatch<C>
@@ -30,19 +32,30 @@ where
     /// Creates a new `Swatch` instance.
     ///
     /// # Arguments
+    /// * `name` - The name of the swatch.
     /// * `color` - The color of the swatch.
     /// * `position` - The (x, y) position of the swatch.
-    /// * `size` - The size of the swatch.
+    /// * `population` - The population of the swatch.
     ///
     /// # Returns
     /// A `Swatch` instance.
     #[must_use]
-    pub fn new(color: C, position: (u32, u32), size: usize) -> Self {
+    pub fn new(name: &'static str, color: C, position: (u32, u32), population: usize) -> Self {
         Self {
+            name,
             color,
             position,
-            size,
+            population,
         }
+    }
+
+    /// Returns the name of this swatch.
+    ///
+    /// # Returns
+    /// The name of this swatch.
+    #[must_use]
+    pub fn name(&self) -> String {
+        self.name.to_string()
     }
 
     /// Returns the color of this swatch.
@@ -63,13 +76,13 @@ where
         self.position
     }
 
-    /// Returns the size of this swatch.
+    /// Returns the population of this swatch.
     ///
     /// # Returns
-    /// The size of this swatch.
+    /// The population of this swatch.
     #[must_use]
-    pub fn size(&self) -> usize {
-        self.size
+    pub fn population(&self) -> usize {
+        self.population
     }
 }
 
@@ -83,17 +96,19 @@ mod tests {
     #[test]
     fn test_swatch() {
         let color = Rgb::new(255, 0, 64);
-        let swatch = Swatch::new(color, (90, 120), 384);
+        let swatch = Swatch::new("red", color, (90, 120), 384);
+        assert_eq!(swatch.name(), "red");
         assert_eq!(swatch.color(), &Rgb::new(255, 0, 64));
         assert_eq!(swatch.position(), (90, 120));
-        assert_eq!(swatch.size(), 384);
+        assert_eq!(swatch.population(), 384);
     }
 
     #[test]
     fn test_default() {
         let swatch: Swatch<Lab<f64, D65>> = Swatch::default();
+        assert_eq!(swatch.name(), "");
         assert_eq!(swatch.color(), &Lab::default());
         assert_eq!(swatch.position(), (0, 0));
-        assert_eq!(swatch.size(), 0);
+        assert_eq!(swatch.population(), 0);
     }
 }

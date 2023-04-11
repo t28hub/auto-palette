@@ -8,6 +8,8 @@ use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
 use crate::math::number::Float;
 use crate::math::point::{Point3, Point5};
+use crate::named::EXTENDED_COLORS;
+use crate::search::ColorSearch;
 use crate::swatch::Swatch;
 use crate::Algorithm;
 use num_traits::Zero;
@@ -121,17 +123,12 @@ where
             Distance::SquaredEuclidean.measure(&point_u, &point_v)
         });
 
+        let color_search = ColorSearch::<F>::new(&EXTENDED_COLORS);
         let mut swatches_map = HashMap::new();
         for (index, label) in hierarchical_clustering.partition(n).into_iter().enumerate() {
-            let swatch = swatches_map.entry(label).or_insert_with(|| {
-                Swatch::new(
-                    Lab::<F, D65>::new(F::zero(), F::zero(), F::zero()),
-                    (0, 0),
-                    0,
-                )
-            });
+            let swatch = swatches_map.entry(label).or_insert_with(Swatch::default);
             if let Some(cluster) = clusters.get(index) {
-                if cluster.size() < swatch.size() {
+                if cluster.size() < swatch.population() {
                     continue;
                 }
 
@@ -142,18 +139,22 @@ where
                     centroid[2].denormalize(Lab::<F, D65>::min_b(), Lab::<F, D65>::max_b()),
                 );
 
+                let Some(named) = color_search.search(&color) else {
+                    continue;
+                };
+
                 let x = centroid[3].denormalize(F::zero(), self.width);
                 let y = centroid[4].denormalize(F::zero(), self.height);
                 let position = (
                     x.to_u32().expect("Could not convert x to u32"),
                     y.to_u32().expect("Could not convert y to u32"),
                 );
-                *swatch = Swatch::new(color, position, cluster.size());
+                *swatch = Swatch::new(named.name(), color, position, cluster.size());
             }
         }
 
         let mut swatches: Vec<_> = swatches_map.into_values().collect();
-        swatches.sort_unstable_by_key(|swatch| Reverse(swatch.size()));
+        swatches.sort_unstable_by_key(|swatch| Reverse(swatch.population()));
         swatches
     }
 }
