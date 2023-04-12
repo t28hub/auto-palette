@@ -47,51 +47,16 @@ where
     /// Extract a color palette from the given image using the specified algorithm.
     ///
     /// # Arguments
-    /// * `image` - The image data to use for color palette extraction.
+    /// * `image_data` - The image data to use for color palette extraction.
     /// * `algorithm` - The algorithm to use for color palette extraction.
     ///
     /// # Returns
     /// A new extracted `Palette` instance.
     #[must_use]
-    pub fn extract<I: ImageData>(image: &I, algorithm: Algorithm) -> Palette<F> {
-        let data = image.data();
-        let width_f = F::from_u32(image.width());
-        let height_f = F::from_u32(image.height());
-
-        let mut index = 0;
-        let mut pixels = Vec::with_capacity(data.len() / 4);
-        while index < data.len() {
-            let r = data[index];
-            let g = data[index + 1];
-            let b = data[index + 2];
-            let a = data[index + 3];
-            index += 4;
-
-            // Ignore a transparent pixel
-            if a.is_zero() {
-                continue;
-            }
-
-            let rgb = Rgb::new(r, g, b);
-            let xyz: XYZ<F, D65> = XYZ::from(&rgb);
-            let lab: Lab<F, D65> = Lab::from(&xyz);
-
-            let x = index / 4 % image.width() as usize;
-            let y = index / 4 / image.width() as usize;
-
-            let pixel = Point5::new(
-                lab.l
-                    .normalize(Lab::<F, D65>::min_l(), Lab::<F, D65>::max_l()),
-                lab.a
-                    .normalize(Lab::<F, D65>::min_a(), Lab::<F, D65>::max_a()),
-                lab.b
-                    .normalize(Lab::<F, D65>::min_b(), Lab::<F, D65>::max_b()),
-                F::from_usize(x).normalize(F::zero(), width_f),
-                F::from_usize(y).normalize(F::zero(), height_f),
-            );
-            pixels.push(pixel);
-        }
-
+    pub fn extract<I: ImageData>(image_data: &I, algorithm: Algorithm) -> Palette<F> {
+        let width_f = F::from_u32(image_data.width());
+        let height_f = F::from_u32(image_data.height());
+        let pixels = convert_to_pixels(image_data);
         let model = algorithm.apply(&pixels);
         Self {
             width: width_f,
@@ -157,4 +122,57 @@ where
         swatches.sort_unstable_by_key(|swatch| Reverse(swatch.population()));
         swatches
     }
+}
+
+/// Converts the given image data to pixels.
+///
+/// # Arguments
+/// * `image_data` - The image data to convert.
+///
+/// # Returns
+/// A vector of `Point5` instances.
+#[must_use]
+fn convert_to_pixels<F, I>(image_data: &I) -> Vec<Point5<F>>
+where
+    F: Float + Default,
+    I: ImageData,
+{
+    let width = image_data.width() as usize;
+    let width_f = F::from_u32(image_data.width());
+    let height_f = F::from_u32(image_data.height());
+    image_data
+        .data()
+        .chunks_exact(4)
+        .enumerate()
+        .filter_map(|(i, chunk)| {
+            let r = chunk[0];
+            let g = chunk[1];
+            let b = chunk[2];
+            let a = chunk[3];
+
+            // Ignore a transparent pixel
+            if a.is_zero() {
+                return None;
+            }
+
+            let rgb = Rgb::new(r, g, b);
+            let xyz: XYZ<F, D65> = XYZ::from(&rgb);
+            let lab: Lab<F, D65> = Lab::from(&xyz);
+
+            let x = i % width;
+            let y = i / width;
+
+            let pixel = Point5::new(
+                lab.l
+                    .normalize(Lab::<F, D65>::min_l(), Lab::<F, D65>::max_l()),
+                lab.a
+                    .normalize(Lab::<F, D65>::min_a(), Lab::<F, D65>::max_a()),
+                lab.b
+                    .normalize(Lab::<F, D65>::min_b(), Lab::<F, D65>::max_b()),
+                F::from_usize(x) / width_f,
+                F::from_usize(y) / height_f,
+            );
+            Some(pixel)
+        })
+        .collect()
 }

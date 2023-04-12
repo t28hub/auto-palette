@@ -11,11 +11,11 @@ fn extract_with_gmeans() {
     let palette: Palette<f32> = Palette::extract(&image_data, Algorithm::Gmeans);
     let swatches = palette.swatches(5);
     assert_eq!(swatches.len(), 5);
-    assert_eq!(swatches[0].color().to_hex_string(), "#08080c");
-    assert_eq!(swatches[1].color().to_hex_string(), "#c46f89");
-    assert_eq!(swatches[2].color().to_hex_string(), "#479547");
-    assert_eq!(swatches[3].color().to_hex_string(), "#1d898e");
-    assert_eq!(swatches[4].color().to_hex_string(), "#ba4791");
+    assert_eq!(swatches[0].color().to_hex_string(), "#050703");
+    assert_eq!(swatches[1].color().to_hex_string(), "#479548");
+    assert_eq!(swatches[2].color().to_hex_string(), "#c61f09");
+    assert_eq!(swatches[3].color().to_hex_string(), "#329596");
+    assert_eq!(swatches[4].color().to_hex_string(), "#189096");
 }
 
 #[test]
@@ -43,7 +43,7 @@ fn extract_with_hdbscan() {
     assert_eq!(swatches.len(), 5);
     assert_eq!(swatches[0].color().to_hex_string(), "#010300");
     assert_eq!(swatches[1].color().to_hex_string(), "#1e9498");
-    assert_eq!(swatches[2].color().to_hex_string(), "#f8dc06");
+    assert_eq!(swatches[2].color().to_hex_string(), "#ca7692");
     assert_eq!(swatches[3].color().to_hex_string(), "#44dacf");
-    assert_eq!(swatches[4].color().to_hex_string(), "#cf7795");
+    assert_eq!(swatches[4].color().to_hex_string(), "#f8dc05");
 }
