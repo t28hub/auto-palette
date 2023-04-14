@@ -1,6 +1,7 @@
 use crate::color::white_point::WhitePoint;
 use crate::color::xyz::XYZ;
 use crate::color_trait::Color;
+use crate::delta_e::DeltaE;
 use crate::math::number::Float;
 use crate::rgb::Rgb;
 use std::fmt::{Display, Formatter, Result};
@@ -22,10 +23,10 @@ pub struct Lab<F: Float, WP: WhitePoint<F>> {
     _marker: PhantomData<WP>,
 }
 
-impl<F, W> Lab<F, W>
+impl<F, WP> Lab<F, WP>
 where
     F: Float,
-    W: WhitePoint<F>,
+    WP: WhitePoint<F>,
 {
     /// Creates a new CIE L*a*b* color.
     ///
@@ -172,6 +173,11 @@ where
 {
     type F = F;
     type WP = WP;
+
+    #[must_use]
+    fn delta_e(&self, other: &Self, metric: DeltaE) -> Self::F {
+        metric.measure(self, other)
+    }
 
     #[must_use]
     fn to_rgb(&self) -> Rgb {

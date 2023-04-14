@@ -2,12 +2,13 @@ use crate::color::lab::Lab;
 use crate::color::rgb::Rgb;
 use crate::color::white_point::D65;
 use crate::color::xyz::XYZ;
+use crate::color_trait::Color;
+use crate::delta_e::DeltaE;
 use crate::image::image_data::ImageData;
 use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::hierarchical::algorithm::HierarchicalClustering;
-use crate::math::distance::Distance;
 use crate::math::number::Float;
-use crate::math::point::{Point3, Point5};
+use crate::math::point::Point5;
 use crate::named::EXTENDED_COLORS;
 use crate::search::ColorSearch;
 use crate::swatch::Swatch;
@@ -69,14 +70,9 @@ where
     #[must_use]
     pub fn swatches(&self, n: usize) -> Vec<Swatch<Lab<F, D65>>> {
         let hierarchical_clustering = HierarchicalClustering::fit(&self.swatches, |u, v| {
-            // TODO: Use the DeltaE 2000 algorithm instead of squared euclidean distance.
             let swatch_u = &self.swatches[u];
             let swatch_v = &self.swatches[v];
-            let color_u = swatch_u.color();
-            let color_v = swatch_v.color();
-            let point_u = Point3::new(color_u.l, color_u.a, color_u.b);
-            let point_v = Point3::new(color_v.l, color_v.a, color_v.b);
-            Distance::SquaredEuclidean.measure(&point_u, &point_v)
+            swatch_u.color().delta_e(swatch_v.color(), DeltaE::CIE2000)
         });
 
         let mut swatches_map = HashMap::new();

@@ -1,3 +1,4 @@
+use crate::delta_e::DeltaE;
 use crate::lab::Lab;
 use crate::math::number::Float;
 use crate::rgb::Rgb;
@@ -41,6 +42,21 @@ pub trait Color: Default {
     #[must_use]
     fn is_dark(&self) -> bool {
         !self.is_light()
+    }
+
+    /// Computes the delta E between this color and another color.
+    ///
+    /// # Arguments
+    /// * `other` - The other color.
+    /// * `metric` - The metric to use.
+    ///
+    /// # Returns
+    /// The delta E between this color and another color.
+    #[must_use]
+    fn delta_e(&self, other: &Self, metric: DeltaE) -> Self::F {
+        let lab1 = self.to_lab();
+        let lab2 = other.to_lab();
+        metric.measure(&lab1, &lab2)
     }
 
     /// Returns an RGB representation of this color.
