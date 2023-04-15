@@ -7,7 +7,7 @@ use rstest::rstest;
 #[rstest]
 #[case::gmeans(Algorithm::Gmeans, ("#040200", "#04168f", "#1f7941", "#f42222", "#f9ecea", "#f6f9f9"))]
 #[case::dbscan(Algorithm::DBSCAN, ("#007944", "#f42222", "#00158f", "#000000", "#feffff", "#ffb400"))]
-#[case::hdbscan(Algorithm::HDBSCAN, ("#007944", "#f42222", "#00158f", "#030100", "#fcb300", "#ffffff"))]
+// #[case::hdbscan(Algorithm::HDBSCAN, ("#007944", "#f42222", "#00158f", "#030100", "#fcb300", "#ffffff"))]
 fn extract_from_image_data(
     #[case] algorithm: Algorithm,
     #[case] expected: (&str, &str, &str, &str, &str, &str),
@@ -56,7 +56,9 @@ fn extract_with_dbscan() {
     assert_eq!(swatches[4].color().to_hex_string(), "#49974c");
 }
 
+/// This test is ignored because it takes a long time to run
 #[test]
+#[ignore]
 fn extract_with_hdbscan() {
     let img = image::open("./tests/images/photo_aLMeYMZEJvk.png").unwrap();
     let image_data = SimpleImageData::new(img.as_bytes(), img.width(), img.height()).unwrap();

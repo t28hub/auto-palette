@@ -1,4 +1,4 @@
-name: CI
+name: Build
 
 on:
   push:
@@ -40,4 +40,12 @@ jobs:
 
       - name: Build library
         run: cargo build --lib --release
+
+      - name: Install cargo-tarpaulin
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-tarpaulin
+
+      - name: Run cargo-tarpaulin
+        run: cargo tarpaulin --ignore-tests --out Lcov --output-dir target/tarpaulin
 
