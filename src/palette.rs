@@ -55,8 +55,9 @@ where
     pub fn extract<I: ImageData>(image_data: &I, algorithm: Algorithm) -> Palette<F> {
         let pixels = convert_to_pixels(image_data);
         let model = algorithm.apply(&pixels);
-        let swatches =
+        let mut swatches =
             convert_to_swatches(model.clusters(), image_data.width(), image_data.height());
+        swatches.sort_unstable_by_key(|swatch| Reverse(swatch.population()));
         Self { swatches }
     }
 
@@ -69,6 +70,10 @@ where
     /// A vector of swatches containing the n-dominant colors.
     #[must_use]
     pub fn swatches(&self, n: usize) -> Vec<Swatch<Lab<F, D65>>> {
+        if n >= self.swatches.len() {
+            return self.swatches.clone();
+        }
+
         let hierarchical_clustering = HierarchicalClustering::fit(&self.swatches, |u, v| {
             let swatch_u = &self.swatches[u];
             let swatch_v = &self.swatches[v];
