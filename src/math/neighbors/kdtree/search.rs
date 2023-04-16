@@ -65,6 +65,7 @@ where
     ///
     /// # Returns
     /// A new `KDTreeSearch` instance.
+    #[allow(unused)]
     #[must_use]
     pub fn new_with_vec(dataset: Vec<P>, distance: Distance) -> Self {
         let root = if dataset.is_empty() {

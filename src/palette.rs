@@ -9,8 +9,6 @@ use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::hierarchical::algorithm::HierarchicalClustering;
 use crate::math::number::Float;
 use crate::math::point::Point5;
-use crate::named::EXTENDED_COLORS;
-use crate::search::ColorSearch;
 use crate::swatch::Swatch;
 use crate::Algorithm;
 use num_traits::Zero;
@@ -177,7 +175,6 @@ where
 {
     let width_f = F::from_u32(width);
     let height_f = F::from_u32(height);
-    let color_search = ColorSearch::<F>::new(&EXTENDED_COLORS);
     clusters
         .iter()
         .filter_map(|cluster| {
@@ -191,9 +188,6 @@ where
                 centroid[1].denormalize(Lab::<F, D65>::min_a(), Lab::<F, D65>::max_a()),
                 centroid[2].denormalize(Lab::<F, D65>::min_b(), Lab::<F, D65>::max_b()),
             );
-            let Some(named) = color_search.search(&color) else {
-            return None;
-        };
 
             let x = centroid[3].denormalize(F::zero(), width_f);
             let y = centroid[4].denormalize(F::zero(), height_f);
@@ -201,7 +195,7 @@ where
                 x.to_u32().expect("Could not convert x to u32"),
                 y.to_u32().expect("Could not convert y to u32"),
             );
-            Some(Swatch::new(named.name(), color, position, cluster.size()))
+            Some(Swatch::new(color, position, cluster.size()))
         })
         .collect()
 }
