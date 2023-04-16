@@ -9,8 +9,8 @@
 
 ## Features
 
--  Easy-to-use API for color palette extraction
--  Supports Gmeans, DBSCAN, and HDBSCAN algorithms
+- Easy-to-use API for color palette extraction
+- Supports Gmeans, DBSCAN, and HDBSCAN algorithms
 
 ## Installation
 
@@ -32,15 +32,15 @@ extern crate auto_palette;
 use auto_palette::{SimpleImageData, Palette, Algorithm};
 
 pub fn main() {
-    let img = image::open("./path/to/image.png").unwrap();
-    let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
-    let palette: Palette<f64> = Palette::extract(&image_data);
-    let swatches = palette.get_swatches(6);
-    swatches.iter().for_each(|swatch| {
-        println!("{:?}", swatch.color().to_hex_string()); // The color of the swatch
-        println!("{:?}", swatch.position());    // The position of the swatch
-        println!("{:?}", swatch.population());  // The population of the swatch 
-    });
+  let img = image::open("./path/to/image.png").unwrap();
+  let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
+  let palette: Palette<f64> = Palette::extract(&image_data);
+  let swatches = palette.get_swatches(6);
+  swatches.iter().for_each(|swatch| {
+    println!("{:?}", swatch.color().to_hex_string()); // The color of the swatch
+    println!("{:?}", swatch.position());    // The position of the swatch
+    println!("{:?}", swatch.population());  // The population of the swatch 
+  });
 }
 ```
 
