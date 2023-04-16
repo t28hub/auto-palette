@@ -27,12 +27,15 @@ use std::collections::HashMap;
 /// extern crate image;
 ///
 /// use auto_palette::{Algorithm, Palette, SimpleImageData};
+/// use auto_palette::color_trait::Color;
 ///
 /// let img = image::open("/path/to/image.png").unwrap();
-/// let image_data = SimpleImageData::new(img.as_bytes(), img.width(), img.height()).unwrap();
-/// let palette: Palette<f64> = Palette::extract(&image_data, Algorithm::DBSCAN);
+/// let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
+/// let palette: Palette<f64> = Palette::extract(&image_data);
 /// palette.swatches(5).iter().for_each(|swatch| {
-///     println!("{:?}", swatch);
+///     println!("{:?}", swatch.color().to_hex_string());
+///     println!("{:?}", swatch.position());
+///     println!("{:?}", swatch.population());
 /// });
 /// ```
 pub struct Palette<F: Float + Default> {
@@ -43,6 +46,18 @@ impl<F> Palette<F>
 where
     F: Float + Default,
 {
+    /// Extract a color palette from the given image.
+    ///
+    /// # Arguments
+    /// * `image_data` - The image data to use for color palette extraction.
+    ///
+    /// # Returns
+    /// A new extracted `Palette` instance.
+    #[must_use]
+    pub fn extract<I: ImageData>(image_data: &I) -> Palette<F> {
+        Self::extract_with(image_data, Algorithm::DBSCAN)
+    }
+
     /// Extract a color palette from the given image using the specified algorithm.
     ///
     /// # Arguments
@@ -52,7 +67,7 @@ where
     /// # Returns
     /// A new extracted `Palette` instance.
     #[must_use]
-    pub fn extract<I: ImageData>(image_data: &I, algorithm: Algorithm) -> Palette<F> {
+    pub fn extract_with<I: ImageData>(image_data: &I, algorithm: Algorithm) -> Palette<F> {
         let pixels = convert_to_pixels(image_data);
         let model = algorithm.apply(&pixels);
         let mut swatches =

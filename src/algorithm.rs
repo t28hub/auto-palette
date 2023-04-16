@@ -9,8 +9,8 @@ use crate::math::point::Point;
 
 /// Enum representing the supported palette extraction algorithms.
 pub enum Algorithm {
-    /// Gmeans clustering algorithm.
-    Gmeans,
+    /// G-means clustering algorithm.
+    GMeans,
     /// DBSCAN clustering algorithm.
     DBSCAN,
     /// HDBSCAN clustering algorithm.
@@ -35,7 +35,7 @@ impl Algorithm {
         P: Point<F>,
     {
         match self {
-            Algorithm::Gmeans => cluster_with_gmeans(dataset),
+            Algorithm::GMeans => cluster_with_gmeans(dataset),
             Algorithm::DBSCAN => cluster_with_dbscan(dataset),
             Algorithm::HDBSCAN => cluster_with_hdbscan(dataset),
         }
@@ -114,7 +114,7 @@ mod tests {
     #[test]
     fn test_gmeans_algorithm() {
         let dataset = sample_dataset();
-        let actual = Algorithm::Gmeans.apply(&dataset);
+        let actual = Algorithm::GMeans.apply(&dataset);
 
         let clustering = Gmeans::new(25, 10, 9, 0.001, Distance::SquaredEuclidean);
         let expected = clustering.train(&dataset);
