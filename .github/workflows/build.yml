@@ -47,5 +47,13 @@ jobs:
           tool: cargo-tarpaulin
 
       - name: Run cargo-tarpaulin
-        run: cargo tarpaulin --ignore-tests --out Lcov --output-dir target/tarpaulin
+        run: cargo tarpaulin --ignore-tests --out Xml --output-dir target/tarpaulin
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./target/tarpaulin/cobertura.xml
+          verbose: true
+          fail_ci_if_error: true
 
