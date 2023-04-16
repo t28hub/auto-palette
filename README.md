@@ -1,5 +1,5 @@
-auto-palette
-=====
+# auto-palette
+
 [![Build](https://github.com/t28hub/auto-palette/actions/workflows/build.yml/badge.svg)](https://github.com/t28hub/auto-palette/actions/workflows/build.yml)
 [![Codacy](https://app.codacy.com/project/badge/Grade/43391928cd294ce88ef141338d9c053f)](https://app.codacy.com/gh/t28hub/auto-palette/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Codecov](https://codecov.io/gh/t28hub/auto-palette/branch/main/graph/badge.svg?token=KkgRPZMmSG)](https://codecov.io/gh/t28hub/auto-palette)
@@ -9,8 +9,8 @@ auto-palette
 
 ## Features
 
-- Easy-to-use API for color palette extraction
-- Supports Gmeans, DBSCAN, and HDBSCAN algorithms
+-  Easy-to-use API for color palette extraction
+-  Supports Gmeans, DBSCAN, and HDBSCAN algorithms
 
 ## Installation
 
