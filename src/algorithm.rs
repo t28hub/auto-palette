@@ -48,7 +48,7 @@ where
     F: Float,
     P: Point<F>,
 {
-    let min_cluster_size = (dataset.len() / 1000).max(9);
+    let min_cluster_size = (dataset.len() / 4096).max(16);
     let gmeans = Gmeans::new(
         25,
         10,
@@ -65,7 +65,7 @@ where
     F: Float,
     P: Point<F>,
 {
-    let min_samples = (dataset.len() / 1000).max(9);
+    let min_samples = (dataset.len() / 4096).max(16);
     let dbscan = DBSCAN::new(min_samples, F::from_f64(0.0025), Distance::SquaredEuclidean);
     dbscan.train(dataset)
 }
@@ -76,7 +76,7 @@ where
     F: Float,
     P: Point<F>,
 {
-    let min_samples = (dataset.len() / 1000).max(9);
+    let min_samples = (dataset.len() / 4096).max(16);
     let hdbscan = HDBSCAN::new(min_samples, min_samples, Distance::SquaredEuclidean);
     hdbscan.train(dataset)
 }
@@ -98,17 +98,41 @@ mod tests {
             Point2::new(0.1, 0.0),
             Point2::new(0.0, 0.1),
             Point2::new(0.0, 0.2),
+            Point2::new(0.0, 0.0),
+            Point2::new(0.1, 0.1),
+            Point2::new(0.1, 0.2),
+            Point2::new(0.2, 0.2),
+            Point2::new(0.2, 0.4),
+            Point2::new(0.3, 0.5),
+            Point2::new(0.1, 0.0),
+            Point2::new(0.0, 0.1),
+            Point2::new(0.0, 0.2),
+            Point2::new(0.0, 0.0),
+            Point2::new(0.1, 0.1),
+            Point2::new(0.1, 0.2),
+            Point2::new(0.2, 0.2),
+            Point2::new(0.2, 0.4),
+            Point2::new(0.3, 0.5),
+            Point2::new(0.1, 0.0),
+            Point2::new(0.0, 0.1),
+            Point2::new(0.0, 0.2),
+            Point2::new(0.0, 0.0),
+            Point2::new(0.1, 0.1),
+            Point2::new(0.1, 0.2),
+            Point2::new(0.2, 0.2),
+            Point2::new(0.2, 0.4),
+            Point2::new(0.3, 0.5),
+            Point2::new(0.1, 0.0),
+            Point2::new(0.0, 0.1),
+            Point2::new(0.0, 0.2),
+            Point2::new(0.0, 0.0),
+            Point2::new(0.1, 0.1),
+            Point2::new(0.1, 0.2),
+            Point2::new(0.2, 0.2),
+            Point2::new(0.2, 0.4),
+            Point2::new(0.3, 0.5),
+            Point2::new(0.1, 0.0),
         ]
-    }
-
-    #[test]
-    fn test_dbscan_algorithm() {
-        let dataset = sample_dataset();
-        let actual = Algorithm::DBSCAN.apply(&dataset);
-
-        let clustering = DBSCAN::new(9, 0.0025, Distance::SquaredEuclidean);
-        let expected = clustering.train(&dataset);
-        assert_eq!(actual, expected);
     }
 
     #[test]
@@ -116,7 +140,17 @@ mod tests {
         let dataset = sample_dataset();
         let actual = Algorithm::GMeans.apply(&dataset);
 
-        let clustering = Gmeans::new(25, 10, 9, 0.001, Distance::SquaredEuclidean);
+        let clustering = Gmeans::new(25, 10, 16, 0.001, Distance::SquaredEuclidean);
+        let expected = clustering.train(&dataset);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_dbscan_algorithm() {
+        let dataset = sample_dataset();
+        let actual = Algorithm::DBSCAN.apply(&dataset);
+
+        let clustering = DBSCAN::new(16, 0.0025, Distance::SquaredEuclidean);
         let expected = clustering.train(&dataset);
         assert_eq!(actual, expected);
     }
@@ -126,7 +160,7 @@ mod tests {
         let dataset = sample_dataset();
         let actual = Algorithm::HDBSCAN.apply(&dataset);
 
-        let clustering = HDBSCAN::new(9, 9, Distance::SquaredEuclidean);
+        let clustering = HDBSCAN::new(16, 16, Distance::SquaredEuclidean);
         let expected = clustering.train(&dataset);
         assert_eq!(actual, expected);
     }

@@ -47,10 +47,10 @@ fn extract_with_dbscan() {
     let palette: Palette<f64> = Palette::extract_with(&image_data, Algorithm::DBSCAN);
     let swatches = palette.swatches(4);
     assert_eq!(swatches.len(), 4);
-    assert_eq!(swatches[0].color().to_hex_string(), "#1d86e8");
-    assert_eq!(swatches[1].color().to_hex_string(), "#116902");
-    assert_eq!(swatches[2].color().to_hex_string(), "#5b2a03");
-    assert_eq!(swatches[3].color().to_hex_string(), "#f6a500");
+    assert_eq!(swatches[0].color().to_hex_string(), "#1687e8");
+    assert_eq!(swatches[1].color().to_hex_string(), "#582a03");
+    assert_eq!(swatches[2].color().to_hex_string(), "#127104");
+    assert_eq!(swatches[3].color().to_hex_string(), "#fbbd03");
 }
 
 /// This test is ignored because it takes a long time to run
@@ -63,8 +63,8 @@ fn extract_with_hdbscan() {
     let palette: Palette<f64> = Palette::extract_with(&image_data, Algorithm::HDBSCAN);
     let swatches = palette.swatches(4);
     assert_eq!(swatches.len(), 4);
-    assert_eq!(swatches[0].color().to_hex_string(), "#c08a07");
-    assert_eq!(swatches[1].color().to_hex_string(), "#256905");
-    assert_eq!(swatches[2].color().to_hex_string(), "#1783e7");
-    assert_eq!(swatches[3].color().to_hex_string(), "#80c1fb");
+    assert_eq!(swatches[0].color().to_hex_string(), "#3785e5");
+    assert_eq!(swatches[1].color().to_hex_string(), "#e8af02");
+    assert_eq!(swatches[2].color().to_hex_string(), "#165d06");
+    assert_eq!(swatches[3].color().to_hex_string(), "#552503");
 }
