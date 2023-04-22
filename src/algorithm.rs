@@ -48,7 +48,7 @@ where
     F: Float,
     P: Point<F>,
 {
-    let min_cluster_size = (dataset.len() / 4096).max(16);
+    let min_cluster_size = (dataset.len() / 4096).max(25);
     let gmeans = Gmeans::new(
         25,
         10,
@@ -65,7 +65,7 @@ where
     F: Float,
     P: Point<F>,
 {
-    let min_samples = (dataset.len() / 4096).max(16);
+    let min_samples = (dataset.len() / 4096).max(25);
     let dbscan = DBSCAN::new(min_samples, F::from_f64(0.0025), Distance::SquaredEuclidean);
     dbscan.train(dataset)
 }
@@ -76,7 +76,7 @@ where
     F: Float,
     P: Point<F>,
 {
-    let min_samples = (dataset.len() / 4096).max(16);
+    let min_samples = (dataset.len() / 4096).max(25);
     let hdbscan = HDBSCAN::new(min_samples, min_samples, Distance::SquaredEuclidean);
     hdbscan.train(dataset)
 }
