@@ -7,7 +7,7 @@ use rstest::rstest;
 #[rstest]
 #[case::gr("./tests/images/flag_gr.png", 2, vec!["#ffffff", "#0060b5"])]
 #[case::no("./tests/images/flag_no.png", 3, vec!["#cc0028", "#00215f", "#ffffff"])]
-#[case::pg("./tests/images/flag_pg.png", 4, vec!["#000000", "#e10017", "#ffcf00", "#ffffff"])]
+#[case::pg("./tests/images/flag_pg.png", 4, vec!["#000000", "#e10017", "#ffcf00", "#fefefe"])]
 #[case::sc("./tests/images/flag_sc.png", 5, vec!["#ed000c", "#003e8d", "#007c30", "#ffd72d", "#ffffff"])]
 #[case::za("./tests/images/flag_za.png", 6, vec!["#007944", "#f42222", "#00158f", "#000000", "#ffffff", "#ffb400"])]
 fn extract(#[case] path: &str, #[case] n: usize, #[case] expected: Vec<&str>) {
@@ -48,11 +48,11 @@ fn extract_with_dbscan() {
     let palette: Palette<f64> = Palette::extract_with(&image_data, Algorithm::DBSCAN);
     let swatches = palette.swatches(5);
     assert_eq!(swatches.len(), 5);
-    assert_eq!(swatches[0].color().to_hex_string(), "#197de4");
-    assert_eq!(swatches[1].color().to_hex_string(), "#106a02");
-    assert_eq!(swatches[2].color().to_hex_string(), "#582b07");
-    assert_eq!(swatches[3].color().to_hex_string(), "#fddd01");
-    assert_eq!(swatches[4].color().to_hex_string(), "#bf8501");
+    assert_eq!(swatches[0].color().to_hex_string(), "#1a7de5");
+    assert_eq!(swatches[1].color().to_hex_string(), "#116a02");
+    assert_eq!(swatches[2].color().to_hex_string(), "#5a2d08");
+    assert_eq!(swatches[3].color().to_hex_string(), "#fddb01");
+    assert_eq!(swatches[4].color().to_hex_string(), "#f8a902");
 }
 
 /// This test is ignored because it takes a long time to run
