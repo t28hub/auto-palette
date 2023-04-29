@@ -1,3 +1,7 @@
+#![feature(binary_heap_retain)]
+
+extern crate core;
+
 mod algorithm;
 mod color;
 mod image;

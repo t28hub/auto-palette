@@ -1,3 +1,4 @@
+use crate::math::clustering::hierarchical::linkage::Linkage;
 use crate::math::clustering::hierarchical::node::HierarchicalNode;
 use crate::math::clustering::hierarchical::union_find::UnionFind;
 use crate::math::graph::edge::Edge;
@@ -5,7 +6,7 @@ use crate::math::graph::spanning_tree::{MinimumSpanningTree, SpanningTree};
 use crate::math::graph::weighted_edge::WeightedEdge;
 use crate::math::graph::weighted_graph::WeightedGraph;
 use crate::math::number::Float;
-use std::cmp::Ordering;
+use std::cmp::{Ordering, Reverse};
 use std::collections::{BinaryHeap, VecDeque};
 
 /// Struct representing a hierarchical clustering algorithm.
@@ -62,6 +63,38 @@ where
                 }
             })
             .collect();
+        Self { hierarchy: nodes }
+    }
+
+    #[allow(unused)]
+    #[must_use]
+    pub fn fit_with_linkage<L>(linkage: &mut L) -> Self
+    where
+        L: Linkage<F>,
+    {
+        let size = linkage.size();
+        let mut heap = BinaryHeap::new();
+        for i in 0..size - 1 {
+            for j in i + 1..size {
+                let distance = linkage.distance(i, j);
+                heap.push(Reverse(WeightedEdge::new(i, j, distance)));
+            }
+        }
+
+        let mut nodes = Vec::with_capacity(size - 1);
+        for _ in 0..size {
+            let Some(Reverse(edge)) = heap.pop() else {
+                break;
+            };
+            linkage.union(edge.u(), edge.v());
+
+            nodes.push(HierarchicalNode {
+                left: edge.u(),
+                right: edge.v(),
+                weight: edge.weight(),
+                size: 0,
+            });
+        }
         Self { hierarchy: nodes }
     }
 
@@ -156,6 +189,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::math::clustering::hierarchical::linkage::SingleLinkage;
     use crate::math::distance::Distance::SquaredEuclidean;
     use crate::math::point::Point2;
 
@@ -179,6 +213,51 @@ mod tests {
             let point_v = &dataset[v];
             SquaredEuclidean.measure(point_u, point_v)
         });
+        assert_eq!(
+            actual.hierarchy,
+            vec![
+                HierarchicalNode {
+                    left: 4,
+                    right: 2,
+                    weight: 0.25,
+                    size: 2,
+                },
+                HierarchicalNode {
+                    left: 1,
+                    right: 3,
+                    weight: 1.0,
+                    size: 2,
+                },
+                HierarchicalNode {
+                    left: 7,
+                    right: 0,
+                    weight: 1.0,
+                    size: 3,
+                },
+                HierarchicalNode {
+                    left: 5,
+                    right: 6,
+                    weight: 1.25,
+                    size: 3,
+                },
+                HierarchicalNode {
+                    left: 9,
+                    right: 8,
+                    weight: 1.25,
+                    size: 6,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn test_fit_with_linkage() {
+        let dataset = sample_dataset();
+        let mut linkage = SingleLinkage::build(&dataset, |point1, point2| {
+            SquaredEuclidean.measure(point1, point2)
+        });
+        let actual = HierarchicalClustering::fit_with_linkage(&mut linkage);
+
         assert_eq!(
             actual.hierarchy,
             vec![
