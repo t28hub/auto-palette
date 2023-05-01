@@ -48,10 +48,23 @@ where
         }
     }
 
+    /// Returns the chroma of this color.
+    ///
+    /// # Returns
+    /// The chroma of this color.
+    #[inline]
+    #[must_use]
+    pub fn chroma(&self) -> F {
+        (self.a.powi(2) + self.b.powi(2)).sqrt()
+    }
+
     /// Returns the min value of l.
     ///
     /// # Returns
     /// The min value of l.
+    ///
+    /// # Type Parameters
+    /// * `T` - The floating point type.
     #[inline]
     #[must_use]
     pub(crate) fn min_l<T: Float>() -> T {
@@ -62,6 +75,9 @@ where
     ///
     /// # Returns
     /// The max value of l.
+    ///
+    /// # Type Parameters
+    /// * `T` - The floating point type.
     #[inline]
     #[must_use]
     pub(crate) fn max_l<T: Float>() -> T {
@@ -72,6 +88,9 @@ where
     ///
     /// # Returns
     /// The min value of a.
+    ///
+    /// # Type Parameters
+    /// * `T` - The floating point type.
     #[inline]
     #[must_use]
     pub(crate) fn min_a<T: Float>() -> T {
@@ -82,6 +101,9 @@ where
     ///
     /// # Returns
     /// The max value of a.
+    ///
+    /// # Type Parameters
+    /// * `T` - The floating point type.
     #[inline]
     #[must_use]
     pub(crate) fn max_a<T: Float>() -> T {
@@ -92,6 +114,9 @@ where
     ///
     /// # Returns
     /// The max value of b.
+    ///
+    /// # Type Parameters
+    /// * `T` - The floating point type.
     #[inline]
     #[must_use]
     pub(crate) fn min_b<T: Float>() -> T {
@@ -102,10 +127,41 @@ where
     ///
     /// # Returns
     /// The max value of b.
+    ///
+    /// # Type Parameters
+    /// * `T` - The floating point type.
     #[inline]
     #[must_use]
     pub(crate) fn max_b<T: Float>() -> T {
         T::from_f64(127.0)
+    }
+
+    /// Returns the min value of chroma.
+    ///
+    /// # Returns
+    /// The min value of chroma.
+    ///
+    /// # Type Parameters
+    /// * `T` - The floating point type.
+    #[inline]
+    #[must_use]
+    pub(crate) fn min_chroma<T: Float>() -> T {
+        // sqrt(0^2 + 0^2) = 0
+        T::from_f64(0.0)
+    }
+
+    /// Returns the max value of chroma.
+    ///
+    /// # Returns
+    /// The max value of chroma.
+    ///
+    /// # Type Parameters
+    /// * `T` - The floating point type.
+    #[inline]
+    #[must_use]
+    pub(crate) fn max_chroma<T: Float>() -> T {
+        // sqrt(127^2 + 127^2) = 179.605
+        T::from_f64(128.0)
     }
 
     #[inline]
@@ -227,6 +283,19 @@ mod tests {
         assert_eq!(lab.l, 100.0);
         assert_eq!(lab.a, 127.0);
         assert_eq!(lab.b, 127.0);
+    }
+
+    #[test]
+    fn test_chroma() {
+        let lab: Lab<f64, D65> = Lab::new(53.23, 80.11, 67.22);
+        assert_almost_eq!(lab.chroma(), 104.576, 1e-3);
+    }
+
+    #[test]
+    fn test_delta_e() {
+        let lab1: Lab<f64, D65> = Lab::new(53.23, 80.11, 67.22);
+        let lab2: Lab<f64, D65> = Lab::new(-4.0, -192.0, -192.0);
+        assert_almost_eq!(lab1.delta_e(&lab2, DeltaE::CIE76), 290.265, 1e-3);
     }
 
     #[test]
