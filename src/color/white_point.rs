@@ -7,7 +7,7 @@ use crate::math::number::Float;
 ///
 /// # References
 /// * [White point - Wikipedia](https://en.wikipedia.org/wiki/White_point)
-pub trait WhitePoint<F>: Clone + Default
+pub trait WhitePoint<F>: Clone + Default + PartialEq
 where
     F: Float,
 {

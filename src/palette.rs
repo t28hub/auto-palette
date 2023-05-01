@@ -1,3 +1,4 @@
+use crate::collection::Collection;
 use crate::color::lab::Lab;
 use crate::color::rgb::Rgb;
 use crate::color::white_point::D65;
@@ -6,14 +7,15 @@ use crate::color_trait::Color;
 use crate::delta_e::DeltaE;
 use crate::image::image_data::ImageData;
 use crate::math::clustering::cluster::Cluster;
-use crate::math::clustering::hierarchical::algorithm::HierarchicalClustering;
+use crate::math::graph::edge::Edge;
+use crate::math::graph::weighted_edge::WeightedEdge;
 use crate::math::number::Float;
 use crate::math::point::Point5;
 use crate::swatch::Swatch;
 use crate::Algorithm;
 use num_traits::Zero;
-use std::cmp::Reverse;
-use std::collections::HashMap;
+use std::cmp::{Ordering, Reverse};
+use std::collections::{BinaryHeap, HashMap};
 
 /// Struct representing a color palette.
 ///
@@ -36,8 +38,9 @@ use std::collections::HashMap;
 ///     println!("{:?}", swatch.population());
 /// });
 /// ```
+#[derive(Debug)]
 pub struct Palette<F: Float + Default> {
-    swatches: Vec<Swatch<Lab<F, D65>>>,
+    collection: Collection<F, Lab<F, D65>>,
 }
 
 impl<F> Palette<F>
@@ -68,10 +71,10 @@ where
     pub fn extract_with<I: ImageData>(image_data: &I, algorithm: Algorithm) -> Palette<F> {
         let pixels = convert_to_pixels(image_data);
         let model = algorithm.apply(&pixels);
-        let mut swatches =
+        let swatches =
             convert_to_swatches(model.clusters(), image_data.width(), image_data.height());
-        swatches.sort_unstable_by_key(|swatch| Reverse(swatch.population()));
-        Self { swatches }
+        let collection = Collection::new(swatches);
+        Self { collection }
     }
 
     /// Returns swatches representing the n-dominant colors in the palette.
@@ -83,31 +86,14 @@ where
     /// A vector of swatches containing the n-dominant colors.
     #[must_use]
     pub fn swatches(&self, n: usize) -> Vec<Swatch<Lab<F, D65>>> {
-        if n >= self.swatches.len() {
-            return self.swatches.clone();
+        if self.collection.is_empty() {
+            return Vec::new();
         }
 
-        let hierarchical_clustering = HierarchicalClustering::fit(&self.swatches, |u, v| {
-            let swatch_u = &self.swatches[u];
-            let swatch_v = &self.swatches[v];
-            swatch_u.color().delta_e(swatch_v.color(), DeltaE::CIE2000)
-        });
-
-        let mut swatches_map = HashMap::new();
-        for (index, label) in hierarchical_clustering.partition(n).into_iter().enumerate() {
-            let swatch = swatches_map.entry(label).or_insert_with(|| {
-                let swatch = &self.swatches[index];
-                swatch.clone()
-            });
-            if self.swatches[index].population() < swatch.population() {
-                continue;
-            }
-            *swatch = self.swatches[index].clone()
+        if self.collection.len() <= n {
+            return self.collection.swatches().to_vec();
         }
-
-        let mut swatches: Vec<_> = swatches_map.into_values().collect();
-        swatches.sort_unstable_by_key(|swatch| Reverse(swatch.population()));
-        swatches
+        self.collection.take(n)
     }
 }
 

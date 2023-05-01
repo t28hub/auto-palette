@@ -1,8 +1,7 @@
-#![feature(binary_heap_retain)]
-
 extern crate core;
 
 mod algorithm;
+mod collection;
 mod color;
 mod image;
 mod math;

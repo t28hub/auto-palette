@@ -15,6 +15,7 @@ fn extract(#[case] path: &str, #[case] n: usize, #[case] expected: Vec<&str>) {
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
     let palette: Palette<f64> = Palette::extract(&image_data);
+    println!("{:?}", palette);
     let swatches = palette.swatches(n);
     assert_eq!(swatches.len(), n);
 
@@ -32,6 +33,11 @@ fn extract_with_gmeans() {
 
     let palette: Palette<f64> = Palette::extract_with(&image_data, Algorithm::GMeans);
     let swatches = palette.swatches(5);
+    swatches.iter().for_each(|swatch| {
+        println!("{:?}", swatch.color().to_hex_string());
+        println!("{:?}", swatch.position());
+        println!("{:?}", swatch.population());
+    });
     assert_eq!(swatches.len(), 5);
     assert_eq!(swatches[0].color().to_hex_string(), "#f6be04");
     assert_eq!(swatches[1].color().to_hex_string(), "#367e0d");
@@ -47,6 +53,11 @@ fn extract_with_dbscan() {
 
     let palette: Palette<f64> = Palette::extract_with(&image_data, Algorithm::DBSCAN);
     let swatches = palette.swatches(5);
+    swatches.iter().for_each(|swatch| {
+        println!("{:?}", swatch.color().to_hex_string());
+        println!("{:?}", swatch.position());
+        println!("{:?}", swatch.population());
+    });
     assert_eq!(swatches.len(), 5);
     assert_eq!(swatches[0].color().to_hex_string(), "#1a7de5");
     assert_eq!(swatches[1].color().to_hex_string(), "#116a02");

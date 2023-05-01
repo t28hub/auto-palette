@@ -6,7 +6,7 @@ use crate::white_point::WhitePoint;
 use crate::xyz::XYZ;
 
 /// Trait representing a color.
-pub trait Color: Default {
+pub trait Color: Clone + Default + PartialEq {
     type F: Float + Default;
     type WP: WhitePoint<Self::F>;
 
@@ -58,6 +58,17 @@ pub trait Color: Default {
         let lab2 = other.to_lab();
         metric.measure(&lab1, &lab2)
     }
+
+    /// Mixes this color with another color.
+    ///
+    /// # Arguments
+    /// * `other` - The other color.
+    /// * `fraction` - The fraction of the other color to mix into this color.
+    ///
+    /// # Returns
+    /// The mixed color.
+    #[must_use]
+    fn mix(&self, other: &Self, fraction: Self::F) -> Self;
 
     /// Returns an RGB representation of this color.
     ///

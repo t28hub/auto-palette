@@ -180,6 +180,14 @@ where
     }
 
     #[must_use]
+    fn mix(&self, other: &Self, fraction: Self::F) -> Self {
+        let l = self.l + (other.l - self.l) * fraction;
+        let a = self.a + (other.a - self.a) * fraction;
+        let b = self.b + (other.b - self.b) * fraction;
+        Lab::new(l, a, b)
+    }
+
+    #[must_use]
     fn to_rgb(&self) -> Rgb {
         let xyz = self.to_xyz();
         Rgb::from(&xyz)

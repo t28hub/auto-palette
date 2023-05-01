@@ -130,6 +130,15 @@ impl Color for Rgb {
     type WP = D65;
 
     #[must_use]
+    fn mix(&self, other: &Self, fraction: Self::F) -> Self {
+        let fraction = fraction.clamp(Self::F::from_f64(0.0), Self::F::from_f64(1.0));
+        let r = self.r + (Self::F::from_u8(other.r - self.r) * fraction) as u8;
+        let g = self.g + (Self::F::from_u8(other.g - self.g) * fraction) as u8;
+        let b = self.b + (Self::F::from_u8(other.b - self.b) * fraction) as u8;
+        Rgb::new(r, g, b)
+    }
+
+    #[must_use]
     fn to_rgb(&self) -> Rgb {
         self.clone()
     }

@@ -203,6 +203,14 @@ where
     type WP = WP;
 
     #[must_use]
+    fn mix(&self, other: &Self, fraction: Self::F) -> Self {
+        let x = self.x + (other.x - self.x) * fraction;
+        let y = self.y + (other.y - self.y) * fraction;
+        let z = self.z + (other.z - self.z) * fraction;
+        XYZ::new(x, y, z)
+    }
+
+    #[must_use]
     fn to_rgb(&self) -> Rgb {
         Rgb::from(self)
     }
