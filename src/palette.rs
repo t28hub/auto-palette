@@ -10,6 +10,7 @@ use crate::math::point::Point5;
 use crate::swatch::Swatch;
 use crate::Algorithm;
 use num_traits::Zero;
+use std::cmp::Reverse;
 
 /// Struct representing a color palette.
 ///
@@ -84,10 +85,13 @@ where
             return Vec::new();
         }
 
-        if self.collection.len() <= n {
-            return self.collection.swatches().to_vec();
-        }
-        self.collection.find_best_swatches(n)
+        let mut swatches = if self.collection.len() <= n {
+            self.collection.swatches().to_vec()
+        } else {
+            self.collection.find_best_swatches(n)
+        };
+        swatches.sort_unstable_by_key(|swatch| Reverse(swatch.population()));
+        swatches
     }
 }
 

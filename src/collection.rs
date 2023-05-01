@@ -109,9 +109,6 @@ where
             candidates.insert(next_label, new_swatch);
             next_label += 1;
         }
-
-        let mut swatches: Vec<_> = candidates.into_values().collect();
-        swatches.sort_unstable_by_key(|swatch| Reverse(swatch.population()));
-        swatches
+        candidates.into_values().collect()
     }
 }

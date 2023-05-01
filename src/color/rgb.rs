@@ -82,7 +82,7 @@ impl Rgb {
 
 impl Display for Rgb {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "Rgba({r}, {g}, {b})", r = self.r, g = self.g, b = self.b,)
+        write!(f, "Rgb({r}, {g}, {b})", r = self.r, g = self.g, b = self.b,)
     }
 }
 
@@ -197,7 +197,7 @@ mod tests {
     #[test]
     fn test_to_string() {
         let rgb = Rgb::new(0, 64, 128);
-        assert_eq!(rgb.to_string(), "Rgba(0, 64, 128)");
+        assert_eq!(rgb.to_string(), "Rgb(0, 64, 128)");
     }
 
     #[rstest]
