@@ -1,8 +1,7 @@
 use crate::color_trait::Color;
-use crate::delta_e::DeltaE::CIE2000;
 use crate::math::graph::edge::Edge;
 use crate::math::graph::weighted_edge::WeightedEdge;
-use crate::math::number::{Float, Number};
+use crate::math::number::Float;
 use crate::Swatch;
 use std::cmp::{Ordering, Reverse};
 use std::collections::{BinaryHeap, HashMap};
@@ -12,14 +11,13 @@ use std::collections::{BinaryHeap, HashMap};
 /// # Type Parameters
 /// * `C` - The type of color.
 #[derive(Debug)]
-pub struct Collection<F: Float + Default, C: Color> {
-    root: Item<F, C>,
+pub struct Collection<C: Color> {
     swatches: Vec<Swatch<C>>,
 }
 
-impl<F, C> Collection<F, C>
+impl<F, C> Collection<C>
 where
-    F: Float + Default,
+    F: Float,
     C: Color<F = F>,
 {
     /// Creates a new `Collection` instance.
@@ -31,66 +29,7 @@ where
     /// A new `Collection` instance.
     #[must_use]
     pub fn new(swatches: Vec<Swatch<C>>) -> Self {
-        let n_swatches = swatches.len();
-        let mut items = HashMap::<usize, Item<F, C>>::new();
-        let mut heap = BinaryHeap::new();
-        swatches.iter().enumerate().for_each(|(i, swatch_i)| {
-            items.insert(i, Item::new(swatch_i.clone()));
-
-            for (j, swatch_j) in swatches.iter().enumerate().take(i) {
-                let distance = distance(swatch_i, &swatches[j]);
-                heap.push(Reverse(WeightedEdge::new(i, j, distance)));
-            }
-        });
-
-        let mut next_label = n_swatches;
-        while items.len() > 1 {
-            let Some(Reverse(edge)) = heap.pop() else {
-                break;
-            };
-
-            let Some(item1) = items.get(&edge.u()) else {
-                continue;
-            };
-            let Some(item2) = items.get(&edge.v()) else {
-                continue;
-            };
-
-            let merged_swatch = {
-                let swatch1 = item1.swatch();
-                let swatch2 = item2.swatch();
-                let population1 = F::from_usize(swatch1.population());
-                let population2 = F::from_usize(swatch2.population());
-                let fraction = population1 / (population1 + population2);
-                Swatch::new(
-                    swatch1.color().mix(swatch2.color(), fraction),
-                    swatch1.position(),
-                    swatch1.population() + swatch2.population(),
-                )
-            };
-
-            let merged_item = Item {
-                left: Some(Box::new(item1.clone())),
-                right: Some(Box::new(item2.clone())),
-                swatch: merged_swatch,
-                distance: edge.weight(),
-            };
-
-            items.remove(&edge.u());
-            items.remove(&edge.v());
-
-            items.iter().for_each(|(label, item)| {
-                let distance = distance(merged_item.swatch(), item.swatch());
-                heap.push(Reverse(WeightedEdge::new(*label, next_label, distance)));
-            });
-
-            items.insert(next_label, merged_item);
-            next_label += 1;
-        }
-        Self {
-            swatches,
-            root: items.values().take(1).next().unwrap().clone(),
-        }
+        Self { swatches }
     }
 
     /// Return the number of swatches in this collection.
@@ -122,53 +61,101 @@ where
 
     #[must_use]
     pub fn take(&self, n: usize) -> Vec<Swatch<C>> {
+        let mut items = HashMap::<usize, Item<F, C>>::new();
         let mut heap = BinaryHeap::new();
-        heap.push(&self.root);
-        while heap.len() < n {
-            let Some(item) = heap.pop() else {
+        self.swatches.iter().enumerate().for_each(|(i, swatch_i)| {
+            items.insert(i, Item::from(swatch_i.clone()));
+
+            for (j, swatch_j) in self.swatches.iter().enumerate().take(i) {
+                let distance = swatch_i.distance(swatch_j);
+                heap.push(Reverse(WeightedEdge::new(i, j, distance)));
+            }
+        });
+
+        let mut next_label = self.swatches.len();
+        while items.len() > n {
+            let Some(Reverse(edge)) = heap.pop() else {
                 break;
             };
 
-            if let Some(left) = &item.left {
-                heap.push(left);
-            }
-            if let Some(right) = &item.right {
-                heap.push(right);
-            }
+            let Some(swatch1) = items.get(&edge.u()).map(|item| item.swatch()) else {
+                continue;
+            };
+            let Some(swatch2) = items.get(&edge.v()).map(|item| item.swatch()) else {
+                continue;
+            };
+
+            let new_swatch = swatch1.combine(swatch2);
+            let merged_item = Item::new(new_swatch, edge.u(), edge.v(), edge.weight());
+            items.iter().for_each(|(label, item)| {
+                if label == &edge.u() || label == &edge.v() {
+                    return;
+                }
+
+                let distance1: F = item.swatch().distance(swatch1);
+                let distance2: F = item.swatch().distance(swatch2);
+                let distance: F = distance1.max(distance2);
+                heap.push(Reverse(WeightedEdge::new(*label, next_label, distance)));
+            });
+
+            items.remove(&edge.u());
+            items.remove(&edge.v());
+            items.insert(next_label, merged_item);
+            next_label += 1;
         }
 
-        let mut swatches: Vec<_> = heap.iter().map(|item| item.swatch.clone()).collect();
+        let mut swatches: Vec<_> = items
+            .values()
+            .map(|item| item.swatch())
+            .cloned()
+            .collect();
         swatches.sort_unstable_by_key(|swatch| Reverse(swatch.population()));
         swatches
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-struct Item<F: Float + Default, C: Color> {
-    left: Option<Box<Item<F, C>>>,
-    right: Option<Box<Item<F, C>>>,
+struct Item<F: Float, C: Color> {
     swatch: Swatch<C>,
+    left: Option<usize>,
+    right: Option<usize>,
     distance: F,
 }
 
 impl<F, C> Item<F, C>
 where
-    F: Float + Default,
+    F: Float,
     C: Color + PartialEq,
 {
     #[must_use]
-    fn new(swatch: Swatch<C>) -> Self {
+    fn new(swatch: Swatch<C>, left: usize, right: usize, distance: F) -> Self {
         Self {
-            left: None,
-            right: None,
+            left: Some(left),
+            right: Some(right),
             swatch,
-            distance: F::zero(),
+            distance,
         }
     }
 
     #[must_use]
     fn swatch(&self) -> &Swatch<C> {
         &self.swatch
+    }
+}
+
+impl<F, C> From<Swatch<C>> for Item<F, C>
+where
+    F: Float,
+    C: Color,
+{
+    #[must_use]
+    fn from(swatch: Swatch<C>) -> Self {
+        Self {
+            swatch,
+            left: None,
+            right: None,
+            distance: F::zero(),
+        }
     }
 }
 
@@ -201,14 +188,4 @@ where
     fn cmp(&self, other: &Self) -> Ordering {
         self.partial_cmp(other).unwrap_or(Ordering::Equal)
     }
-}
-
-#[inline]
-#[must_use]
-fn distance<C: Color>(swatch1: &Swatch<C>, swatch2: &Swatch<C>) -> C::F {
-    let color1 = swatch1.color();
-    let color2 = swatch2.color();
-    let delta_e = color1.delta_e(color2, CIE2000);
-    let weight = swatch1.population() + swatch2.population();
-    delta_e * C::F::from_usize(weight)
 }

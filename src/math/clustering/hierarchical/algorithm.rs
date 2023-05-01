@@ -98,7 +98,6 @@ where
         Self { hierarchy: nodes }
     }
 
-    /// Returns a reference to the hierarchical nodes.
     ///
     /// # Returns
     /// A reference to the hierarchical nodes.

@@ -1,4 +1,6 @@
 use crate::color_trait::Color;
+use crate::delta_e::DeltaE;
+use crate::math::number::Number;
 
 /// Struct representing a swatch that contains a color and its position.
 ///
@@ -70,6 +72,50 @@ where
     #[must_use]
     pub fn population(&self) -> usize {
         self.population
+    }
+
+    /// Calculates the distance between this swatch and another swatch.
+    ///
+    /// # Arguments
+    /// * `other` - The other swatch.
+    ///
+    /// # Returns
+    /// The distance between this swatch and another swatch.
+    ///
+    /// # Type Parameters
+    /// * `F` - The floating type for the distance.
+    #[inline]
+    #[must_use]
+    pub(crate) fn distance(&self, other: &Self) -> C::F {
+        self.color.delta_e(&other.color, DeltaE::CIE2000)
+    }
+
+    /// Combines this swatch with another swatch.
+    ///
+    /// # Arguments
+    /// * `other` - The other swatch.
+    ///
+    /// # Returns
+    /// The combined swatch.
+    #[inline]
+    #[must_use]
+    pub(crate) fn combine(&self, other: &Self) -> Self {
+        let population = self.population + other.population;
+
+        let fraction = C::F::from_usize(other.population) / C::F::from_usize(population);
+        let color = self.color.mix(other.color(), fraction);
+
+        let x = (self.position.0 * self.population as u32
+            + other.position.0 * other.population as u32)
+            / population as u32;
+        let y = (self.position.1 * self.population as u32
+            + other.position.1 * other.population as u32)
+            / population as u32;
+        Self {
+            color,
+            position: (x, y),
+            population,
+        }
     }
 }
 

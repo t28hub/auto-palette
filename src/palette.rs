@@ -3,19 +3,13 @@ use crate::color::lab::Lab;
 use crate::color::rgb::Rgb;
 use crate::color::white_point::D65;
 use crate::color::xyz::XYZ;
-use crate::color_trait::Color;
-use crate::delta_e::DeltaE;
 use crate::image::image_data::ImageData;
 use crate::math::clustering::cluster::Cluster;
-use crate::math::graph::edge::Edge;
-use crate::math::graph::weighted_edge::WeightedEdge;
 use crate::math::number::Float;
 use crate::math::point::Point5;
 use crate::swatch::Swatch;
 use crate::Algorithm;
 use num_traits::Zero;
-use std::cmp::{Ordering, Reverse};
-use std::collections::{BinaryHeap, HashMap};
 
 /// Struct representing a color palette.
 ///
@@ -40,7 +34,7 @@ use std::collections::{BinaryHeap, HashMap};
 /// ```
 #[derive(Debug)]
 pub struct Palette<F: Float + Default> {
-    collection: Collection<F, Lab<F, D65>>,
+    collection: Collection<Lab<F, D65>>,
 }
 
 impl<F> Palette<F>
