@@ -87,7 +87,7 @@ where
         if self.collection.len() <= n {
             return self.collection.swatches().to_vec();
         }
-        self.collection.take(n)
+        self.collection.find_best_swatches(n)
     }
 }
 

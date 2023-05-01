@@ -3,7 +3,7 @@ use crate::math::graph::edge::Edge;
 use crate::math::graph::weighted_edge::WeightedEdge;
 use crate::math::number::Float;
 use crate::Swatch;
-use std::cmp::{Ordering, Reverse};
+use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
 
 /// Struct representing a collection of swatches.
@@ -59,12 +59,19 @@ where
         &self.swatches
     }
 
+    /// Finds the n best swatches in this collection.
+    ///
+    /// # Arguments
+    /// * `n` - The number of swatches to find.
+    ///
+    /// # Returns
+    /// The n best swatches in this collection.
     #[must_use]
-    pub fn take(&self, n: usize) -> Vec<Swatch<C>> {
-        let mut items = HashMap::<usize, Item<F, C>>::new();
+    pub fn find_best_swatches(&self, n: usize) -> Vec<Swatch<C>> {
+        let mut candidates = HashMap::<usize, Swatch<C>>::new();
         let mut heap = BinaryHeap::new();
         self.swatches.iter().enumerate().for_each(|(i, swatch_i)| {
-            items.insert(i, Item::from(swatch_i.clone()));
+            candidates.insert(i, swatch_i.clone());
 
             for (j, swatch_j) in self.swatches.iter().enumerate().take(i) {
                 let distance = swatch_i.distance(swatch_j);
@@ -73,119 +80,38 @@ where
         });
 
         let mut next_label = self.swatches.len();
-        while items.len() > n {
+        while candidates.len() > n {
             let Some(Reverse(edge)) = heap.pop() else {
                 break;
             };
 
-            let Some(swatch1) = items.get(&edge.u()).map(|item| item.swatch()) else {
+            let Some(swatch1) = candidates.get(&edge.u()) else {
                 continue;
             };
-            let Some(swatch2) = items.get(&edge.v()).map(|item| item.swatch()) else {
+            let Some(swatch2) = candidates.get(&edge.v()) else {
                 continue;
             };
 
             let new_swatch = swatch1.combine(swatch2);
-            let merged_item = Item::new(new_swatch, edge.u(), edge.v(), edge.weight());
-            items.iter().for_each(|(label, item)| {
+            candidates.iter().for_each(|(label, swatch)| {
                 if label == &edge.u() || label == &edge.v() {
                     return;
                 }
 
-                let distance1: F = item.swatch().distance(swatch1);
-                let distance2: F = item.swatch().distance(swatch2);
+                let distance1: F = swatch.distance(swatch1);
+                let distance2: F = swatch.distance(swatch2);
                 let distance: F = distance1.max(distance2);
                 heap.push(Reverse(WeightedEdge::new(*label, next_label, distance)));
             });
 
-            items.remove(&edge.u());
-            items.remove(&edge.v());
-            items.insert(next_label, merged_item);
+            candidates.remove(&edge.u());
+            candidates.remove(&edge.v());
+            candidates.insert(next_label, new_swatch);
             next_label += 1;
         }
 
-        let mut swatches: Vec<_> = items
-            .values()
-            .map(|item| item.swatch())
-            .cloned()
-            .collect();
+        let mut swatches: Vec<_> = candidates.into_values().collect();
         swatches.sort_unstable_by_key(|swatch| Reverse(swatch.population()));
         swatches
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-struct Item<F: Float, C: Color> {
-    swatch: Swatch<C>,
-    left: Option<usize>,
-    right: Option<usize>,
-    distance: F,
-}
-
-impl<F, C> Item<F, C>
-where
-    F: Float,
-    C: Color + PartialEq,
-{
-    #[must_use]
-    fn new(swatch: Swatch<C>, left: usize, right: usize, distance: F) -> Self {
-        Self {
-            left: Some(left),
-            right: Some(right),
-            swatch,
-            distance,
-        }
-    }
-
-    #[must_use]
-    fn swatch(&self) -> &Swatch<C> {
-        &self.swatch
-    }
-}
-
-impl<F, C> From<Swatch<C>> for Item<F, C>
-where
-    F: Float,
-    C: Color,
-{
-    #[must_use]
-    fn from(swatch: Swatch<C>) -> Self {
-        Self {
-            swatch,
-            left: None,
-            right: None,
-            distance: F::zero(),
-        }
-    }
-}
-
-impl<F, C> Eq for Item<F, C>
-where
-    F: Float + Default,
-    C: Color,
-{
-}
-
-impl<F, C> PartialOrd<Self> for Item<F, C>
-where
-    F: Float + Default,
-    C: Color,
-{
-    #[inline]
-    #[must_use]
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.distance.partial_cmp(&other.distance)
-    }
-}
-
-impl<F, C> Ord for Item<F, C>
-where
-    F: Float + Default,
-    C: Color,
-{
-    #[inline]
-    #[must_use]
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap_or(Ordering::Equal)
     }
 }
