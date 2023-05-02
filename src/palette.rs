@@ -8,7 +8,7 @@ use crate::math::clustering::cluster::Cluster;
 use crate::math::number::Float;
 use crate::math::point::Point5;
 use crate::swatch::Swatch;
-use crate::Algorithm;
+use crate::{Algorithm, Theme};
 use num_traits::Zero;
 use std::cmp::Reverse;
 
@@ -81,6 +81,11 @@ where
     /// A vector of swatches containing the n-dominant colors.
     #[must_use]
     pub fn swatches(&self, n: usize) -> Vec<Swatch<Lab<F, D65>>> {
+        self.swatches_with(n, &Theme::Dominant)
+    }
+
+    #[must_use]
+    pub fn swatches_with(&self, n: usize, theme: &Theme) -> Vec<Swatch<Lab<F, D65>>> {
         if self.collection.is_empty() {
             return Vec::new();
         }
@@ -88,7 +93,8 @@ where
         let mut swatches = if self.collection.len() <= n {
             self.collection.swatches().to_vec()
         } else {
-            self.collection.find_best_swatches(n)
+            self.collection
+                .find_swatches(n, |swatch| theme.score(swatch.color()))
         };
         swatches.sort_unstable_by_key(|swatch| Reverse(swatch.population()));
         swatches

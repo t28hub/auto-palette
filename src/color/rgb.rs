@@ -6,7 +6,7 @@ use crate::white_point::{WhitePoint, D65};
 use std::fmt::{Display, Formatter, Result};
 
 /// Struct representing a color in standard RGB color space.
-#[derive(Debug, Clone, Default, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Rgb {
     pub r: u8,
     pub g: u8,
@@ -88,7 +88,7 @@ impl Display for Rgb {
 
 impl<F, WP> From<&XYZ<F, WP>> for Rgb
 where
-    F: Float + Default,
+    F: Float,
     WP: WhitePoint<F>,
 {
     #[inline]
@@ -184,14 +184,6 @@ mod tests {
         assert_eq!(rgb.r::<f64>(), 0.0);
         assert_eq!(rgb.g::<f64>(), 64.0);
         assert_eq!(rgb.b::<f64>(), 128.0);
-    }
-
-    #[test]
-    fn test_default() {
-        let rgb = Rgb::default();
-        assert_eq!(rgb.r, 0);
-        assert_eq!(rgb.g, 0);
-        assert_eq!(rgb.b, 0);
     }
 
     #[test]

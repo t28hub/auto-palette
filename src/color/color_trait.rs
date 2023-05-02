@@ -6,8 +6,8 @@ use crate::white_point::WhitePoint;
 use crate::xyz::XYZ;
 
 /// Trait representing a color.
-pub trait Color: Clone + Default + PartialEq {
-    type F: Float + Default;
+pub trait Color: Clone + PartialEq {
+    type F: Float;
     type WP: WhitePoint<Self::F>;
 
     /// Returns the brightness of this color.

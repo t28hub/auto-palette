@@ -14,8 +14,8 @@ use std::marker::PhantomData;
 ///
 /// # References
 /// * [CIE 1931 color space - Wikipedia](https://en.wikipedia.org/wiki/CIE_1931_color_space)
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct XYZ<F: Float + Default, WP: WhitePoint<F>> {
+#[derive(Debug, Clone, PartialEq)]
+pub struct XYZ<F: Float, WP: WhitePoint<F>> {
     pub x: F,
     pub y: F,
     pub z: F,
@@ -24,7 +24,7 @@ pub struct XYZ<F: Float + Default, WP: WhitePoint<F>> {
 
 impl<F, WP> XYZ<F, WP>
 where
-    F: Float + Default,
+    F: Float,
     WP: WhitePoint<F>,
 {
     /// Creates a new CIE XYZ color.
@@ -166,7 +166,7 @@ where
 
 impl<F, WP> From<&Lab<F, WP>> for XYZ<F, WP>
 where
-    F: Float + Default,
+    F: Float,
     WP: WhitePoint<F>,
 {
     #[inline]
@@ -196,7 +196,7 @@ where
 
 impl<F, WP> Color for XYZ<F, WP>
 where
-    F: Float + Default,
+    F: Float,
     WP: WhitePoint<F>,
 {
     type F = F;

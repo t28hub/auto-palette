@@ -195,7 +195,7 @@ where
 
 impl<F, W> From<&XYZ<F, W>> for Lab<F, W>
 where
-    F: Float + Default,
+    F: Float,
     W: WhitePoint<F>,
 {
     #[inline]
@@ -224,17 +224,19 @@ where
 
 impl<F, WP> Color for Lab<F, WP>
 where
-    F: Float + Default,
+    F: Float,
     WP: WhitePoint<F>,
 {
     type F = F;
     type WP = WP;
 
+    #[inline]
     #[must_use]
     fn delta_e(&self, other: &Self, metric: DeltaE) -> Self::F {
         metric.measure(self, other)
     }
 
+    #[inline]
     #[must_use]
     fn mix(&self, other: &Self, fraction: Self::F) -> Self {
         let l = self.l + (other.l - self.l) * fraction;

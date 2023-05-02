@@ -1,6 +1,7 @@
 use crate::color_trait::Color;
 use crate::delta_e::DeltaE;
 use crate::math::number::Number;
+use num_traits::{One, ToPrimitive};
 
 /// Struct representing a swatch that contains a color and its position.
 ///
@@ -90,30 +91,31 @@ where
         self.color.delta_e(&other.color, DeltaE::CIE2000)
     }
 
-    /// Combines this swatch with another swatch.
+    /// Merges this swatch with another swatch.
     ///
     /// # Arguments
     /// * `other` - The other swatch.
     ///
     /// # Returns
-    /// The combined swatch.
+    /// The merged swatch.
     #[inline]
     #[must_use]
-    pub(crate) fn combine(&self, other: &Self) -> Self {
-        let population = self.population + other.population;
-
-        let fraction = C::F::from_usize(other.population) / C::F::from_usize(population);
+    pub(crate) fn merge(&self, other: &Self, fraction: C::F) -> Self {
         let color = self.color.mix(other.color(), fraction);
 
-        let x = (self.position.0 * self.population as u32
-            + other.position.0 * other.population as u32)
-            / population as u32;
-        let y = (self.position.1 * self.population as u32
-            + other.position.1 * other.population as u32)
-            / population as u32;
+        let x: C::F = C::F::from_u32(self.position.0) * (C::F::one() - fraction)
+            + C::F::from_u32(other.position.0) * fraction;
+        let y: C::F = C::F::from_u32(self.position.1) * (C::F::one() - fraction)
+            + C::F::from_u32(other.position.1) * fraction;
+        let position = (
+            x.to_u32().expect("Failed to convert x coordinate to u32"),
+            y.to_u32().expect("Failed to convert y coordinate to u32"),
+        );
+
+        let population = self.population + other.population;
         Self {
             color,
-            position: (x, y),
+            position,
             population,
         }
     }
