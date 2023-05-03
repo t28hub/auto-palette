@@ -1,6 +1,8 @@
+use crate::color_trait::Color;
 use crate::lab::Lab;
-use crate::math::number::Float;
-use crate::white_point::WhitePoint;
+use crate::math::number::{Normalize, Number};
+use crate::Swatch;
+use num_traits::One;
 
 /// Enum representing a color theme.
 pub enum Theme {
@@ -10,37 +12,41 @@ pub enum Theme {
 }
 
 impl Theme {
-    /// Scores the given color.
+    /// Scores the given swatch.
     ///
     /// # Arguments
-    /// * `lab` - The CIE L*a*b* color to score.
+    /// * `swatch` - The swatch to score.
     ///
     /// # Returns
-    /// The score of the given color.
+    /// The score of the given swatch.
     ///
     /// # Type Parameters
-    /// * `F` - The floating point type.
-    /// * `WP` - The white point type.
+    /// * `C` - The type of color.
     #[inline]
     #[must_use]
-    pub(crate) fn score<F, WP>(&self, color: &Lab<F, WP>) -> F
+    pub(crate) fn score<C>(&self, swatch: &Swatch<C>) -> C::F
     where
-        F: Float,
-        WP: WhitePoint<F>,
+        C: Color,
     {
         match self {
-            Self::Dominant => F::one(),
+            Self::Dominant => {
+                let population = swatch.population();
+                C::F::from_usize(population)
+            }
             Self::Vivid => {
-                let c_score = color
-                    .chroma()
-                    .normalize(Lab::<F, WP>::min_chroma(), Lab::<F, WP>::max_chroma());
-                c_score.powi(2)
+                let chroma: C::F = swatch.color().to_lab().chroma();
+                chroma.normalize(
+                    Lab::<C::F, C::WP>::min_chroma(),
+                    Lab::<C::F, C::WP>::max_chroma(),
+                )
             }
             Self::Muted => {
-                let c_score = color
-                    .chroma()
-                    .normalize(Lab::<F, WP>::min_chroma(), Lab::<F, WP>::max_chroma());
-                (F::one() - c_score).powi(2)
+                let chroma: C::F = swatch.color().to_lab().chroma();
+                let c_score = chroma.normalize(
+                    Lab::<C::F, C::WP>::min_chroma(),
+                    Lab::<C::F, C::WP>::max_chroma(),
+                );
+                C::F::one() - c_score
             }
         }
     }

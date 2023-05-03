@@ -112,15 +112,15 @@ where
             clusters[nearest.index].insert(*index, &point);
         }
 
-        let mut converged = false;
+        let mut converged = true;
         for (cluster, bold_centroid) in clusters.iter_mut().zip(centroids) {
             if cluster.is_empty() {
                 continue;
             }
 
             let difference = self.distance.measure(&bold_centroid, cluster.centroid());
-            if difference < self.tolerance {
-                converged = true;
+            if difference >= self.tolerance {
+                converged = false;
             }
         }
         converged
@@ -141,14 +141,12 @@ where
         let cluster = {
             let median = dataset.len() / 2;
             Cluster::new(dataset[median])
-            // cluster.membership = (0..dataset.len()).collect();
-            // cluster
         };
 
         let mut clusters = vec![cluster];
         let membership: Vec<usize> = (0..dataset.len()).collect();
         if self.assign(&mut clusters, &membership, dataset) {
-            return Model::new(clusters, HashSet::new());
+            // do nothing
         }
 
         let mut heap = BinaryHeap::with_capacity(self.max_k);
@@ -162,8 +160,8 @@ where
                 break;
             };
 
-            if largest.size() < self.min_cluster_size {
-                continue;
+            if largest.size() < self.min_cluster_size || largest.size() <= 1 {
+                break;
             }
 
             let largest_cluster = &largest.0;

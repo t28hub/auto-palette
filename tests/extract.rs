@@ -37,11 +37,17 @@ fn extract_with_gmeans() {
 
 #[test]
 fn extract_with_dbscan() {
-    let img = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();
+    // let img = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();
+    let img = image::open("./tests/images/img.png").unwrap();
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
     let palette: Palette<f32> = Palette::extract_with(&image_data, Algorithm::DBSCAN);
     let swatches = palette.swatches_with(5, &Theme::Muted);
+    swatches.iter().for_each(|swatch| {
+        println!("{:?}", swatch.color().to_hex_string());
+        println!("{:?}", swatch.position());
+        println!("{:?}", swatch.population());
+    });
     assert_eq!(swatches.len(), 5);
 }
 

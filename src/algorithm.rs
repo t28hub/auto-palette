@@ -53,7 +53,7 @@ where
         25,
         10,
         min_cluster_size,
-        F::from_f64(0.001),
+        F::from_f64(1e-3),
         Distance::SquaredEuclidean,
     );
     gmeans.train(dataset)

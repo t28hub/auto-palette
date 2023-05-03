@@ -1,7 +1,5 @@
 use crate::color_trait::Color;
 use crate::delta_e::DeltaE;
-use crate::math::number::Number;
-use num_traits::{One, ToPrimitive};
 
 /// Struct representing a swatch that contains a color and its position.
 ///
@@ -89,35 +87,6 @@ where
     #[must_use]
     pub(crate) fn distance(&self, other: &Self) -> C::F {
         self.color.delta_e(&other.color, DeltaE::CIE2000)
-    }
-
-    /// Merges this swatch with another swatch.
-    ///
-    /// # Arguments
-    /// * `other` - The other swatch.
-    ///
-    /// # Returns
-    /// The merged swatch.
-    #[inline]
-    #[must_use]
-    pub(crate) fn merge(&self, other: &Self, fraction: C::F) -> Self {
-        let color = self.color.mix(other.color(), fraction);
-
-        let x: C::F = C::F::from_u32(self.position.0) * (C::F::one() - fraction)
-            + C::F::from_u32(other.position.0) * fraction;
-        let y: C::F = C::F::from_u32(self.position.1) * (C::F::one() - fraction)
-            + C::F::from_u32(other.position.1) * fraction;
-        let position = (
-            x.to_u32().expect("Failed to convert x coordinate to u32"),
-            y.to_u32().expect("Failed to convert y coordinate to u32"),
-        );
-
-        let population = self.population + other.population;
-        Self {
-            color,
-            position,
-            population,
-        }
     }
 }
 

@@ -93,8 +93,12 @@ where
         let mut swatches = if self.collection.len() <= n {
             self.collection.swatches().to_vec()
         } else {
-            self.collection
-                .find_swatches(n, |swatch| theme.score(swatch.color()))
+            match theme {
+                Theme::Dominant => self.collection.find(n),
+                _ => self
+                    .collection
+                    .find_with_score(n, |swatch| theme.score(swatch)),
+            }
         };
         swatches.sort_unstable_by_key(|swatch| Reverse(swatch.population()));
         swatches
