@@ -1,12 +1,11 @@
 use crate::color_trait::Color;
 use crate::lab::Lab;
-use crate::math::number::{Normalize, Number};
+use crate::math::number::Normalize;
 use crate::Swatch;
 use num_traits::One;
 
 /// Enum representing a color theme.
 pub enum Theme {
-    Dominant,
     Vivid,
     Muted,
 }
@@ -29,10 +28,6 @@ impl Theme {
         C: Color,
     {
         match self {
-            Self::Dominant => {
-                let population = swatch.population();
-                C::F::from_usize(population)
-            }
             Self::Vivid => {
                 let chroma: C::F = swatch.color().to_lab().chroma();
                 chroma.normalize(

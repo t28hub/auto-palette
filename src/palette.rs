@@ -1,16 +1,22 @@
-use crate::collection::Collection;
 use crate::color::lab::Lab;
 use crate::color::rgb::Rgb;
 use crate::color::white_point::D65;
 use crate::color::xyz::XYZ;
+use crate::color_trait::Color;
 use crate::image::image_data::ImageData;
+use crate::math::clustering::algorithm::ClusteringAlgorithm;
 use crate::math::clustering::cluster::Cluster;
+use crate::math::clustering::gmeans::algorithm::Gmeans;
+use crate::math::distance::Distance;
+use crate::math::graph::edge::Edge;
+use crate::math::graph::weighted_edge::WeightedEdge;
 use crate::math::number::Float;
-use crate::math::point::Point5;
+use crate::math::point::{Point3, Point5};
 use crate::swatch::Swatch;
 use crate::{Algorithm, Theme};
 use num_traits::Zero;
-use std::cmp::Reverse;
+use std::cmp::{Ordering, Reverse};
+use std::collections::{BinaryHeap, HashMap};
 
 /// Struct representing a color palette.
 ///
@@ -27,7 +33,7 @@ use std::cmp::Reverse;
 /// let img = image::open("/path/to/image.png").unwrap();
 /// let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 /// let palette: Palette<f64> = Palette::extract(&image_data);
-/// palette.swatches(5).iter().for_each(|swatch| {
+/// palette.find(5).iter().for_each(|swatch| {
 ///     println!("{:?}", swatch.color().to_hex_string());
 ///     println!("{:?}", swatch.position());
 ///     println!("{:?}", swatch.population());
@@ -35,7 +41,7 @@ use std::cmp::Reverse;
 /// ```
 #[derive(Debug)]
 pub struct Palette<F: Float + Default> {
-    collection: Collection<Lab<F, D65>>,
+    swatches: Vec<Swatch<Lab<F, D65>>>,
 }
 
 impl<F> Palette<F>
@@ -68,40 +74,153 @@ where
         let model = algorithm.apply(&pixels);
         let swatches =
             convert_to_swatches(model.clusters(), image_data.width(), image_data.height());
-        let collection = Collection::new(swatches);
-        Self { collection }
+        Self { swatches }
     }
 
-    /// Returns swatches representing the n-dominant colors in the palette.
+    /// Finds the n-dominant colors in this palette.
     ///
     /// # Arguments
     /// * `n` - The number of swatches to return.
     ///
     /// # Returns
-    /// A vector of swatches containing the n-dominant colors.
+    /// The n-dominant colors in this palette.
     #[must_use]
-    pub fn swatches(&self, n: usize) -> Vec<Swatch<Lab<F, D65>>> {
-        self.swatches_with(n, &Theme::Dominant)
-    }
-
-    #[must_use]
-    pub fn swatches_with(&self, n: usize, theme: &Theme) -> Vec<Swatch<Lab<F, D65>>> {
-        if self.collection.is_empty() {
+    pub fn find(&self, n: usize) -> Vec<Swatch<Lab<F, D65>>> {
+        if self.swatches.is_empty() {
             return Vec::new();
         }
 
-        let mut swatches = if self.collection.len() <= n {
-            self.collection.swatches().to_vec()
-        } else {
-            match theme {
-                Theme::Dominant => self.collection.find(n),
-                _ => self
-                    .collection
-                    .find_with_score(n, |swatch| theme.score(swatch)),
+        let mut candidates = HashMap::<usize, Swatch<Lab<F, D65>>>::new();
+        let mut heap = BinaryHeap::new();
+        self.swatches.iter().enumerate().for_each(|(i, swatch_i)| {
+            candidates.insert(i, swatch_i.clone());
+            for (j, swatch_j) in self.swatches.iter().enumerate().take(i) {
+                let distance = swatch_i.distance(swatch_j);
+                heap.push(Reverse(WeightedEdge::new(i, j, distance)));
             }
-        };
+        });
+
+        let mut next_label = self.swatches.len();
+        while candidates.len() > n {
+            let Some(Reverse(edge)) = heap.pop() else {
+                break;
+            };
+
+            let Some(swatch1) = candidates.get(&edge.u()) else {
+                continue;
+            };
+            let Some(swatch2) = candidates.get(&edge.v()) else {
+                continue;
+            };
+
+            let new_swatch = {
+                let population1: F = F::from_usize(swatch1.population());
+                let population2: F = F::from_usize(swatch2.population());
+                let fraction = population2 / (population1 + population2);
+
+                let color = swatch1.color().mix(swatch2.color(), fraction);
+                let position = if swatch1.population() > swatch2.population() {
+                    swatch1.position()
+                } else {
+                    swatch2.position()
+                };
+                let population = swatch1.population() + swatch2.population();
+                Swatch::new(color, position, population)
+            };
+
+            candidates.iter().for_each(|(label, swatch)| {
+                if label == &edge.u() || label == &edge.v() {
+                    return;
+                }
+
+                // Use UPGMA to calculate the distance between the new swatch and the other swatches.
+                let distance1 = swatch1.distance(swatch);
+                let distance2 = swatch2.distance(swatch);
+                let population1: F = F::from_usize(swatch1.population());
+                let population2: F = F::from_usize(swatch2.population());
+                let distance = (distance1 * population1 + distance2 * population2)
+                    / (population1 + population2);
+                heap.push(Reverse(WeightedEdge::new(*label, next_label, distance)));
+            });
+
+            candidates.remove(&edge.u());
+            candidates.remove(&edge.v());
+            candidates.insert(next_label, new_swatch);
+            next_label += 1;
+        }
+
+        let mut swatches: Vec<_> = candidates.into_values().collect();
         swatches.sort_unstable_by_key(|swatch| Reverse(swatch.population()));
         swatches
+    }
+
+    /// Finds the n-dominant colors in this palette using the specified theme.
+    ///
+    /// # Arguments
+    /// * `n` - The number of swatches to return.
+    /// * `theme` - The theme to use for color palette extraction.
+    ///
+    /// # Returns
+    /// The n-dominant colors in this palette.
+    #[must_use]
+    pub fn swatches_with_theme(&self, n: usize, theme: &Theme) -> Vec<Swatch<Lab<F, D65>>> {
+        if self.swatches.is_empty() {
+            return Vec::new();
+        }
+
+        let points: Vec<_> = self
+            .swatches
+            .iter()
+            .map(|swatch| {
+                let Lab { l, a, b, .. } = swatch.color();
+                Point3(
+                    l.normalize(Lab::<F, D65>::min_l(), Lab::<F, D65>::max_l()),
+                    a.normalize(Lab::<F, D65>::min_a(), Lab::<F, D65>::max_a()),
+                    b.normalize(Lab::<F, D65>::min_b(), Lab::<F, D65>::max_b()),
+                )
+            })
+            .collect();
+        let gmeans = Gmeans::new(64, 10, 2, F::from_f64(1e-4), Distance::SquaredEuclidean);
+        let model = gmeans.train(&points);
+
+        let clusters = model.clusters();
+        let mut swatches: Vec<_> = clusters
+            .iter()
+            .filter_map(|cluster| {
+                let membership = cluster.membership();
+                let first_swatch = membership.first().map(|i| &self.swatches[*i]);
+                let mut best_swatch = if let Some(swatch) = first_swatch {
+                    swatch.clone()
+                } else {
+                    return None;
+                };
+
+                membership.iter().skip(1).for_each(|i| {
+                    let swatch = &self.swatches[*i];
+                    if theme.score(swatch) < theme.score(&best_swatch) {
+                        return;
+                    }
+
+                    best_swatch = {
+                        let color = swatch.color().clone();
+                        let position = swatch.position();
+                        let population = swatch.population() + best_swatch.population();
+                        Swatch::new(color, position, population)
+                    };
+                });
+                Some(best_swatch)
+            })
+            .collect();
+
+        swatches.sort_unstable_by(|swatch1, swatch2| {
+            let weight1 = theme.score(swatch1);
+            let weight2 = theme.score(swatch2);
+            weight1
+                .partial_cmp(&weight2)
+                .unwrap_or(Ordering::Equal)
+                .reverse()
+        });
+        swatches.iter().take(n).cloned().collect()
     }
 }
 

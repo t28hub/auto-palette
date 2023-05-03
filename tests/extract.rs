@@ -7,15 +7,15 @@ use rstest::rstest;
 #[rstest]
 #[case::gr("./tests/images/flag_gr.png", 2, vec ! ["#0060b5", "#ffffff"])]
 #[case::no("./tests/images/flag_no.png", 3, vec ! ["#cc0028", "#00215f", "#ffffff"])]
-#[case::pg("./tests/images/flag_pg.png", 4, vec ! ["#020202", "#e10017", "#ffcf00", "#fefefe"])]
+#[case::pg("./tests/images/flag_pg.png", 4, vec ! ["#000000", "#e10017", "#ffcf00", "#ffffff"])]
 #[case::sc("./tests/images/flag_sc.png", 5, vec ! ["#ed000c", "#003e8d", "#007c30", "#ffd72d", "#ffffff"])]
-#[case::za("./tests/images/flag_za.png", 6, vec ! ["#007a46", "#f42222", "#00158f", "#ffffff", "#000000", "#ffb400"])]
+#[case::za("./tests/images/flag_za.png", 6, vec ! ["#007944", "#f42222", "#00158f", "#ffffff", "#000000", "#ffb400"])]
 fn extract(#[case] path: &str, #[case] n: usize, #[case] expected: Vec<&str>) {
     let img = image::open(path).unwrap();
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
     let palette: Palette<f32> = Palette::extract(&image_data);
-    let swatches = palette.swatches(n);
+    let swatches = palette.find(n);
     assert_eq!(swatches.len(), n);
 
     let colors: Vec<String> = swatches
@@ -31,23 +31,17 @@ fn extract_with_gmeans() {
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
     let palette: Palette<f32> = Palette::extract_with(&image_data, Algorithm::GMeans);
-    let swatches = palette.swatches(4);
+    let swatches = palette.find(4);
     assert_eq!(swatches.len(), 4);
 }
 
 #[test]
 fn extract_with_dbscan() {
-    // let img = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();
-    let img = image::open("./tests/images/img.png").unwrap();
+    let img = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
     let palette: Palette<f32> = Palette::extract_with(&image_data, Algorithm::DBSCAN);
-    let swatches = palette.swatches_with(5, &Theme::Muted);
-    swatches.iter().for_each(|swatch| {
-        println!("{:?}", swatch.color().to_hex_string());
-        println!("{:?}", swatch.position());
-        println!("{:?}", swatch.population());
-    });
+    let swatches = palette.swatches_with_theme(5, &Theme::Muted);
     assert_eq!(swatches.len(), 5);
 }
 
@@ -59,6 +53,6 @@ fn extract_with_hdbscan() {
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
     let palette: Palette<f32> = Palette::extract_with(&image_data, Algorithm::HDBSCAN);
-    let swatches = palette.swatches(4);
+    let swatches = palette.find(4);
     assert_eq!(swatches.len(), 4);
 }
