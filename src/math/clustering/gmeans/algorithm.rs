@@ -7,8 +7,7 @@ use crate::math::neighbors::linear::search::LinearSearch;
 use crate::math::neighbors::search::NeighborSearch;
 use crate::math::number::Float;
 use crate::math::point::Point;
-use statrs::distribution::{ContinuousCDF, Normal};
-use std::cmp::Ordering;
+use crate::math::stats::{anderson_darling_test, standardize};
 use std::collections::{BinaryHeap, HashSet};
 
 /// Struct representing G-means clustering algorithm.
@@ -181,7 +180,9 @@ where
                 x.push(dot(&point, &v) / vp);
             }
             standardize(&mut x);
-            let score = anderson_darling_test(&mut x);
+            let Some(score) = anderson_darling_test(&x) else {
+                break;
+            };
             if score < F::from_f64(1.8692) {
                 clusters.push(cluster1);
                 clusters.push(cluster2);
@@ -202,45 +203,6 @@ fn dot<F: Float, P: Point<F>>(point1: &P, point2: &P) -> F {
         sum += point1[i] * point2[i];
     }
     sum
-}
-
-#[inline]
-fn standardize<F: Float>(x: &mut [F]) {
-    let n = F::from_usize(x.len());
-    let mean = x.iter().fold(F::zero(), |total, value| total + *value) / n;
-    let variance = x
-        .iter()
-        .map(|value| (*value - mean).powi(2))
-        .fold(F::zero(), |total, value| total + value)
-        / n;
-    let sd = variance.sqrt();
-    for value in x.iter_mut() {
-        *value = (*value - mean) / sd;
-    }
-}
-
-/// Tests whether a sample comes from a normal distribution.
-///
-/// [Anderson–Darling test - Wikipedia](https://en.wikipedia.org/wiki/Anderson%E2%80%93Darling_test)
-#[inline]
-#[must_use]
-fn anderson_darling_test<F: Float>(x: &mut [F]) -> F {
-    x.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
-
-    let normal = Normal::new(0.0, 1.0).unwrap();
-    for value in x.iter_mut() {
-        let p = normal.cdf(value.to_f64().unwrap_or(0.0));
-        *value = F::from_f64(p);
-    }
-
-    let n = x.len();
-    let n_f = F::from_usize(n);
-    let mut sum = F::zero();
-    for i in 0..n {
-        sum += F::from_usize(2 * i + 1) * (x[i].ln() + (F::one() - x[n - 1 - i]).ln());
-    }
-    let a_squared = sum / -n_f - n_f;
-    a_squared * (F::one() + F::from_u32(4) / n_f + F::from_u32(25) / n_f.powi(2))
 }
 
 #[cfg(test)]

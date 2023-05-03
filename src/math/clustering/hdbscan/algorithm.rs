@@ -395,6 +395,6 @@ mod tests {
         ];
 
         let hdbscan = HDBSCAN::new(3, 4, Distance::SquaredEuclidean);
-        let model = hdbscan.train(&dataset);
+        let _model = hdbscan.train(&dataset);
     }
 }
