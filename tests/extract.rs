@@ -41,7 +41,7 @@ fn extract_with_dbscan() {
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
     let palette: Palette<f32> = Palette::extract_with(&image_data, Algorithm::DBSCAN);
-    let swatches = palette.swatches_with_theme(5, &Theme::Muted);
+    let swatches = palette.find_with_theme(5, &Theme::Vivid);
     assert_eq!(swatches.len(), 5);
 }
 

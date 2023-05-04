@@ -163,7 +163,7 @@ where
     /// # Returns
     /// The n-dominant colors in this palette.
     #[must_use]
-    pub fn swatches_with_theme(&self, n: usize, theme: &Theme) -> Vec<Swatch<Lab<F, D65>>> {
+    pub fn find_with_theme(&self, n: usize, theme: &Theme) -> Vec<Swatch<Lab<F, D65>>> {
         if self.swatches.is_empty() {
             return Vec::new();
         }
@@ -172,15 +172,11 @@ where
             .swatches
             .iter()
             .map(|swatch| {
-                let Lab { l, a, b, .. } = swatch.color();
-                Point3(
-                    l.normalize(Lab::<F, D65>::min_l(), Lab::<F, D65>::max_l()),
-                    a.normalize(Lab::<F, D65>::min_a(), Lab::<F, D65>::max_a()),
-                    b.normalize(Lab::<F, D65>::min_b(), Lab::<F, D65>::max_b()),
-                )
+                let lab = swatch.color();
+                Point3(lab.l, lab.a, lab.b)
             })
             .collect();
-        let gmeans = Gmeans::new(64, 10, 2, F::from_f64(1e-4), Distance::SquaredEuclidean);
+        let gmeans = Gmeans::new(256, 10, 1, F::from_f64(1e-4), Distance::SquaredEuclidean);
         let model = gmeans.train(&points);
 
         let clusters = model.clusters();
