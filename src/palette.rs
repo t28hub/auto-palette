@@ -33,7 +33,7 @@ use std::collections::{BinaryHeap, HashMap};
 /// let img = image::open("/path/to/image.png").unwrap();
 /// let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 /// let palette: Palette<f64> = Palette::extract(&image_data);
-/// palette.find(5).iter().for_each(|swatch| {
+/// palette.dominant_swatches(5).iter().for_each(|swatch| {
 ///     println!("{:?}", swatch.color().to_hex_string());
 ///     println!("{:?}", swatch.position());
 ///     println!("{:?}", swatch.population());
@@ -42,6 +42,7 @@ use std::collections::{BinaryHeap, HashMap};
 #[derive(Debug)]
 pub struct Palette<F: Float + Default> {
     swatches: Vec<Swatch<Lab<F, D65>>>,
+    dominant_swatches: Vec<Swatch<Lab<F, D65>>>,
 }
 
 impl<F> Palette<F>
@@ -71,36 +72,85 @@ where
     #[must_use]
     pub fn extract_with<I: ImageData>(image_data: &I, algorithm: Algorithm) -> Palette<F> {
         let pixels = convert_to_pixels(image_data);
+
+        // Merge pixels that are close in color and position, and exclude outliers.
         let model = algorithm.apply(&pixels);
-        let swatches =
-            convert_to_swatches(model.clusters(), image_data.width(), image_data.height());
-        Self { swatches }
+        let clusters = model.clusters();
+        let (swatches, colors): (Vec<_>, Vec<_>) = clusters
+            .iter()
+            .filter_map(|cluster| {
+                convert_to_swatch(cluster, image_data.width(), image_data.height()).map(|swatch| {
+                    let color = swatch.color();
+                    let point = Point3(color.l, color.a, color.b);
+                    (swatch, point)
+                })
+            })
+            .unzip();
+
+        // Merge colors with small color differences and extract the dominant swatches.
+        let gmeans = Gmeans::new(256, 10, 1, F::from_f64(1e-4), Distance::SquaredEuclidean);
+        let mut dominant_swatches: Vec<_> = gmeans
+            .train(&colors)
+            .clusters()
+            .iter()
+            .filter_map(|cluster| {
+                let membership = cluster.membership();
+                let Some(first_swatch) = membership.first().map(|&i| swatches[i].clone()) else {
+                    return None;
+                };
+
+                let dominant_swatch = membership.iter().skip(1).map(|&i| &swatches[i]).fold(
+                    first_swatch,
+                    |previous, current| {
+                        let population = previous.population() + current.population();
+                        let fraction =
+                            F::from_usize(current.population()) / F::from_usize(population);
+                        let color = previous.color().mix(current.color(), fraction);
+                        let position = if fraction > F::from_f64(0.5) {
+                            previous.position()
+                        } else {
+                            current.position()
+                        };
+                        Swatch::new(color, position, population)
+                    },
+                );
+                Some(dominant_swatch)
+            })
+            .collect();
+        dominant_swatches.sort_by_key(|swatch| Reverse(swatch.population()));
+        Self {
+            swatches,
+            dominant_swatches,
+        }
     }
 
-    /// Finds the n-dominant colors in this palette.
+    /// Finds the n-dominant swatches in this palette.
     ///
     /// # Arguments
     /// * `n` - The number of swatches to return.
     ///
     /// # Returns
-    /// The n-dominant colors in this palette.
+    /// The n-dominant swatches in this palette.
     #[must_use]
-    pub fn find(&self, n: usize) -> Vec<Swatch<Lab<F, D65>>> {
-        if self.swatches.is_empty() {
+    pub fn dominant_swatches(&self, n: usize) -> Vec<Swatch<Lab<F, D65>>> {
+        if self.dominant_swatches.is_empty() {
             return Vec::new();
         }
 
         let mut candidates = HashMap::<usize, Swatch<Lab<F, D65>>>::new();
         let mut heap = BinaryHeap::new();
-        self.swatches.iter().enumerate().for_each(|(i, swatch_i)| {
-            candidates.insert(i, swatch_i.clone());
-            for (j, swatch_j) in self.swatches.iter().enumerate().take(i) {
-                let distance = swatch_i.distance(swatch_j);
-                heap.push(Reverse(WeightedEdge::new(i, j, distance)));
-            }
-        });
+        self.dominant_swatches
+            .iter()
+            .enumerate()
+            .for_each(|(i, swatch_i)| {
+                candidates.insert(i, swatch_i.clone());
+                for (j, swatch_j) in self.dominant_swatches.iter().enumerate().take(i) {
+                    let distance = swatch_i.distance(swatch_j);
+                    heap.push(Reverse(WeightedEdge::new(i, j, distance)));
+                }
+            });
 
-        let mut next_label = self.swatches.len();
+        let mut next_label = self.dominant_swatches.len();
         while candidates.len() > n {
             let Some(Reverse(edge)) = heap.pop() else {
                 break;
@@ -150,7 +200,7 @@ where
         }
 
         let mut swatches: Vec<_> = candidates.into_values().collect();
-        swatches.sort_unstable_by_key(|swatch| Reverse(swatch.population()));
+        swatches.sort_by_key(|swatch| Reverse(swatch.population()));
         swatches
     }
 
@@ -274,37 +324,32 @@ where
 }
 
 #[must_use]
-fn convert_to_swatches<F>(
-    clusters: &[Cluster<F, Point5<F>>],
+fn convert_to_swatch<F>(
+    cluster: &Cluster<F, Point5<F>>,
     width: u32,
     height: u32,
-) -> Vec<Swatch<Lab<F, D65>>>
+) -> Option<Swatch<Lab<F, D65>>>
 where
     F: Float + Default,
 {
     let width_f = F::from_u32(width);
     let height_f = F::from_u32(height);
-    clusters
-        .iter()
-        .filter_map(|cluster| {
-            if cluster.is_empty() {
-                return None;
-            }
+    if cluster.is_empty() {
+        return None;
+    }
 
-            let centroid = cluster.centroid();
-            let color = Lab::<F, D65>::new(
-                centroid[0].denormalize(Lab::<F, D65>::min_l(), Lab::<F, D65>::max_l()),
-                centroid[1].denormalize(Lab::<F, D65>::min_a(), Lab::<F, D65>::max_a()),
-                centroid[2].denormalize(Lab::<F, D65>::min_b(), Lab::<F, D65>::max_b()),
-            );
+    let centroid = cluster.centroid();
+    let color = Lab::<F, D65>::new(
+        centroid[0].denormalize(Lab::<F, D65>::min_l(), Lab::<F, D65>::max_l()),
+        centroid[1].denormalize(Lab::<F, D65>::min_a(), Lab::<F, D65>::max_a()),
+        centroid[2].denormalize(Lab::<F, D65>::min_b(), Lab::<F, D65>::max_b()),
+    );
 
-            let x = centroid[3].denormalize(F::zero(), width_f);
-            let y = centroid[4].denormalize(F::zero(), height_f);
-            let position = (
-                x.to_u32().expect("Could not convert x to u32"),
-                y.to_u32().expect("Could not convert y to u32"),
-            );
-            Some(Swatch::new(color, position, cluster.size()))
-        })
-        .collect()
+    let x = centroid[3].denormalize(F::zero(), width_f);
+    let y = centroid[4].denormalize(F::zero(), height_f);
+    let position = (
+        x.to_u32().expect("Could not convert x to u32"),
+        y.to_u32().expect("Could not convert y to u32"),
+    );
+    Some(Swatch::new(color, position, cluster.size()))
 }

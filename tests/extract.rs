@@ -15,7 +15,7 @@ fn extract(#[case] path: &str, #[case] n: usize, #[case] expected: Vec<&str>) {
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
     let palette: Palette<f32> = Palette::extract(&image_data);
-    let swatches = palette.find(n);
+    let swatches = palette.dominant_swatches(n);
     assert_eq!(swatches.len(), n);
 
     let colors: Vec<String> = swatches
@@ -31,7 +31,7 @@ fn extract_with_gmeans() {
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
     let palette: Palette<f32> = Palette::extract_with(&image_data, Algorithm::GMeans);
-    let swatches = palette.find(4);
+    let swatches = palette.dominant_swatches(4);
     assert_eq!(swatches.len(), 4);
 }
 
@@ -41,7 +41,16 @@ fn extract_with_dbscan() {
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
     let palette: Palette<f32> = Palette::extract_with(&image_data, Algorithm::DBSCAN);
-    let swatches = palette.find_with_theme(5, &Theme::Vivid);
+    // let swatches = palette.find_with_theme(5, &Theme::Vivid);
+    let swatches = palette.dominant_swatches(5);
+    swatches.iter().for_each(|swatch| {
+        println!(
+            "color: {}, population: {}, position: {:?}",
+            swatch.color().to_hex_string(),
+            swatch.population(),
+            swatch.position(),
+        );
+    });
     assert_eq!(swatches.len(), 5);
 }
 
@@ -53,6 +62,6 @@ fn extract_with_hdbscan() {
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
     let palette: Palette<f32> = Palette::extract_with(&image_data, Algorithm::HDBSCAN);
-    let swatches = palette.find(4);
+    let swatches = palette.dominant_swatches(4);
     assert_eq!(swatches.len(), 4);
 }
