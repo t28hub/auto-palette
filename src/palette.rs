@@ -40,14 +40,14 @@ use std::collections::{BinaryHeap, HashMap};
 /// });
 /// ```
 #[derive(Debug)]
-pub struct Palette<F: Float + Default> {
+pub struct Palette<F: Float> {
     candidates: Vec<Swatch<Lab<F, D65>>>,
-    groups: HashMap<usize, Vec<usize>>,
+    color_groups: Vec<Vec<usize>>,
 }
 
 impl<F> Palette<F>
 where
-    F: Float + Default,
+    F: Float,
 {
     /// Extract a color palette from the given image.
     ///
@@ -88,17 +88,25 @@ where
             .unzip();
 
         // Merge colors with small color differences and extract the dominant swatches.
-        // Set epsilon to 2.0 for DBSCAN clustering, as DeltaE below 2.0 is perceptible to human eyes only through close observation.
+        // Set epsilon to 2.0 for DBSCAN, as DeltaE below 2.0 is perceptible to human eyes only through close observation.
         let dbscan = DBSCAN::new(1, F::from_f64(2.0), Distance::Euclidean);
-        let mut groups = HashMap::new();
-        for (i, cluster) in dbscan.train(&colors).clusters().iter().enumerate() {
-            if cluster.is_empty() {
-                continue;
-            }
-            let membership = cluster.membership().to_vec();
-            groups.insert(i, membership);
+        let mut groups: Vec<_> = dbscan
+            .train(&colors)
+            .clusters()
+            .iter()
+            .filter_map(|cluster| {
+                if cluster.is_empty() {
+                    return None;
+                }
+                let membership = cluster.membership().to_vec();
+                Some(membership)
+            })
+            .collect();
+        groups.sort_by_key(|membership| Reverse(membership.len()));
+        Self {
+            candidates,
+            color_groups: groups,
         }
-        Self { candidates, groups }
     }
 
     /// Finds the dominant swatches in this palette.
@@ -110,59 +118,76 @@ where
     /// The `n` dominant swatches in this palette.
     #[must_use]
     pub fn dominant_swatches(&self, n: usize) -> Vec<Swatch<Lab<F, D65>>> {
-        if self.groups.is_empty() {
+        if self.color_groups.is_empty() {
             return Vec::new();
         }
 
-        let mut swatches: HashMap<_, _> = HashMap::with_capacity(self.groups.len());
-        for (label, membership) in self.groups.iter() {
-            let merged = self.merge_to_swatch(membership, |swatch1, swatch2| {
-                let population = swatch1.population() + swatch2.population();
-                let fraction = F::from_usize(swatch2.population()) / F::from_usize(population);
-                let color = swatch1.color().mix(swatch2.color(), fraction);
-                let position = if fraction <= F::from_f64(0.5) {
-                    swatch1.position()
-                } else {
-                    swatch2.position()
-                };
-                Swatch::new(color, position, population)
-            });
+        let swatches: Vec<_> = self
+            .color_groups
+            .iter()
+            .map(|membership| {
+                let merged = self.merge_to_swatch(membership, |swatch1, swatch2| {
+                    let population = swatch1.population() + swatch2.population();
+                    let fraction = F::from_usize(swatch2.population()) / F::from_usize(population);
+                    let color = swatch1.color().mix(swatch2.color(), fraction);
+                    let position = if fraction <= F::from_f64(0.5) {
+                        swatch1.position()
+                    } else {
+                        swatch2.position()
+                    };
+                    Swatch::new(color, position, population)
+                });
+                merged.expect("Failed to merge swatches")
+            })
+            .collect();
 
-            if let Some(swatch) = merged {
-                swatches.insert(label, swatch);
-            }
-        }
-
+        let mut candidates = HashMap::<usize, Swatch<Lab<F, D65>>>::new();
         let mut heap = BinaryHeap::new();
-        for i in 0..swatches.len() {
-            for j in (i + 1)..swatches.len() {
-                let swatch_i = &swatches[&i];
-                let swatch_j = &swatches[&j];
+        for (i, swatch_i) in swatches.iter().enumerate() {
+            candidates.insert(i, swatch_i.clone());
+            for (j, swatch_j) in swatches.iter().skip(i + 1).enumerate() {
+                if i == j {
+                    continue;
+                }
                 let distance = swatch_i.distance(swatch_j);
-                heap.push(WeightedEdge::new(i, j, distance));
+                heap.push(Reverse(WeightedEdge::new(i, j, distance)));
             }
         }
 
-        while swatches.len() > n {
-            let Some(nearest) = heap.pop() else {
+        let mut next_label = swatches.len();
+        while candidates.len() > n {
+            let Some(Reverse(edge)) = heap.pop() else {
                 break;
             };
 
-            let Some(swatch_u) = swatches.get(&nearest.u()) else {
+            let Some(swatch1) = candidates.get(&edge.u()) else {
                 continue;
             };
-            let Some(swatch_v) = swatches.get(&nearest.v()) else {
+            let Some(swatch2) = candidates.get(&edge.v()) else {
                 continue;
             };
 
-            if swatch_u.population() < swatch_v.population() {
-                swatches.remove(&nearest.u());
+            let best_swatch = if swatch1.population() > swatch2.population() {
+                swatch1.clone()
             } else {
-                swatches.remove(&nearest.v());
-            }
+                swatch2.clone()
+            };
+
+            candidates.iter().for_each(|(label, swatch)| {
+                if label == &edge.u() || label == &edge.v() {
+                    return;
+                }
+                let distance = best_swatch.distance(swatch);
+                heap.push(Reverse(WeightedEdge::new(*label, next_label, distance)));
+            });
+
+            candidates.remove(&edge.u());
+            candidates.remove(&edge.v());
+            candidates.insert(next_label, best_swatch);
+            next_label += 1;
         }
 
-        let mut results: Vec<_> = swatches.into_values().collect();
+        let mut results: Vec<_> = candidates.into_values().collect();
         results.sort_by_key(|swatch| Reverse(swatch.population()));
         results
     }
@@ -181,8 +206,8 @@ where
             return Vec::new();
         }
 
-        let mut swatches: HashMap<_, _> = HashMap::with_capacity(self.groups.len());
-        for (label, membership) in self.groups.iter() {
+        let mut swatches: HashMap<_, _> = HashMap::with_capacity(self.color_groups.len());
+        for (label, membership) in self.color_groups.iter().enumerate() {
             let merged = self.merge_to_swatch(membership, |swatch1, swatch2| {
                 let population = swatch1.population() + swatch2.population();
                 let score1 = theme.score(swatch1);
@@ -246,7 +271,7 @@ where
 #[must_use]
 fn convert_to_pixels<F, I>(image_data: &I) -> Vec<Point5<F>>
 where
-    F: Float + Default,
+    F: Float,
     I: ImageData,
 {
     let width = image_data.width() as usize;
@@ -289,6 +314,15 @@ where
         .collect()
 }
 
+/// Converts the given cluster to a swatch.
+///
+/// # Arguments
+/// * `cluster` - The cluster to convert.
+/// * `width` - The width of the source image.
+/// * `height` - The height of the source image.
+///
+/// # Returns
+/// A swatch representing the given cluster.
 #[must_use]
 fn convert_to_swatch<F>(
     cluster: &Cluster<F, Point5<F>>,
@@ -296,7 +330,7 @@ fn convert_to_swatch<F>(
     height: u32,
 ) -> Option<Swatch<Lab<F, D65>>>
 where
-    F: Float + Default,
+    F: Float,
 {
     let width_f = F::from_u32(width);
     let height_f = F::from_u32(height);

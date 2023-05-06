@@ -138,7 +138,7 @@ where
 
 impl<F, WP> From<&Rgb> for XYZ<F, WP>
 where
-    F: Float + Default,
+    F: Float,
     WP: WhitePoint<F>,
 {
     #[inline]
