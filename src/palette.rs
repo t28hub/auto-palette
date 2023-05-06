@@ -6,7 +6,7 @@ use crate::color_trait::Color;
 use crate::image::image_data::ImageData;
 use crate::math::clustering::algorithm::ClusteringAlgorithm;
 use crate::math::clustering::cluster::Cluster;
-use crate::math::clustering::gmeans::algorithm::Gmeans;
+use crate::math::clustering::dbscan::algorithm::DBSCAN;
 use crate::math::distance::Distance;
 use crate::math::graph::edge::Edge;
 use crate::math::graph::weighted_edge::WeightedEdge;
@@ -88,26 +88,26 @@ where
             .unzip();
 
         // Merge colors with small color differences and extract the dominant swatches.
-        let gmeans = Gmeans::new(256, 10, 1, F::from_f64(1e-4), Distance::SquaredEuclidean);
+        // Set epsilon to 2.0 for DBSCAN clustering, as DeltaE below 2.0 is perceptible to human eyes only through close observation.
+        let dbscan = DBSCAN::new(1, F::from_f64(2.0), Distance::Euclidean);
         let mut groups = HashMap::new();
-        for (i, cluster) in gmeans.train(&colors).clusters().iter().enumerate() {
+        for (i, cluster) in dbscan.train(&colors).clusters().iter().enumerate() {
             if cluster.is_empty() {
                 continue;
             }
-
-            let indices = cluster.membership().to_vec();
-            groups.insert(i, indices);
+            let membership = cluster.membership().to_vec();
+            groups.insert(i, membership);
         }
         Self { candidates, groups }
     }
 
-    /// Finds the n-dominant swatches in this palette.
+    /// Finds the dominant swatches in this palette.
     ///
     /// # Arguments
     /// * `n` - The number of swatches to return.
     ///
     /// # Returns
-    /// The n-dominant swatches in this palette.
+    /// The `n` dominant swatches in this palette.
     #[must_use]
     pub fn dominant_swatches(&self, n: usize) -> Vec<Swatch<Lab<F, D65>>> {
         if self.groups.is_empty() {
@@ -116,7 +116,7 @@ where
 
         let mut swatches: HashMap<_, _> = HashMap::with_capacity(self.groups.len());
         for (label, membership) in self.groups.iter() {
-            let Some(merged) = self.merge_to_swatch(membership, |swatch1, swatch2| {
+            let merged = self.merge_to_swatch(membership, |swatch1, swatch2| {
                 let population = swatch1.population() + swatch2.population();
                 let fraction = F::from_usize(swatch2.population()) / F::from_usize(population);
                 let color = swatch1.color().mix(swatch2.color(), fraction);
@@ -126,10 +126,11 @@ where
                     swatch2.position()
                 };
                 Swatch::new(color, position, population)
-            }) else {
-                continue;
-            };
-            swatches.insert(label, merged);
+            });
+
+            if let Some(swatch) = merged {
+                swatches.insert(label, swatch);
+            }
         }
 
         let mut heap = BinaryHeap::new();
@@ -166,61 +167,40 @@ where
         results
     }
 
-    /// Finds the n-dominant colors in this palette using the specified theme.
+    /// Finds the dominant swatches in this palette using the specified theme.
     ///
     /// # Arguments
     /// * `n` - The number of swatches to return.
     /// * `theme` - The theme to use for color palette extraction.
     ///
     /// # Returns
-    /// The n-dominant colors in this palette.
+    /// The `n` dominant swatches in this palette.
     #[must_use]
-    pub fn find_with_theme(&self, n: usize, theme: &Theme) -> Vec<Swatch<Lab<F, D65>>> {
+    pub fn swatches_with_theme(&self, n: usize, theme: &Theme) -> Vec<Swatch<Lab<F, D65>>> {
         if self.candidates.is_empty() {
             return Vec::new();
         }
 
-        let points: Vec<_> = self
-            .candidates
-            .iter()
-            .map(|swatch| {
-                let lab = swatch.color();
-                Point3(lab.l, lab.a, lab.b)
-            })
-            .collect();
-        let gmeans = Gmeans::new(256, 10, 1, F::from_f64(1e-4), Distance::SquaredEuclidean);
-        let model = gmeans.train(&points);
-
-        let clusters = model.clusters();
-        let mut swatches: Vec<_> = clusters
-            .iter()
-            .filter_map(|cluster| {
-                let membership = cluster.membership();
-                let first_swatch = membership.first().map(|i| &self.candidates[*i]);
-                let mut best_swatch = if let Some(swatch) = first_swatch {
-                    swatch.clone()
+        let mut swatches: HashMap<_, _> = HashMap::with_capacity(self.groups.len());
+        for (label, membership) in self.groups.iter() {
+            let merged = self.merge_to_swatch(membership, |swatch1, swatch2| {
+                let population = swatch1.population() + swatch2.population();
+                let score1 = theme.score(swatch1);
+                let score2 = theme.score(swatch2);
+                if score1 > score2 {
+                    Swatch::new(swatch1.color().clone(), swatch1.position(), population)
                 } else {
-                    return None;
-                };
+                    Swatch::new(swatch2.color().clone(), swatch2.position(), population)
+                }
+            });
 
-                membership.iter().skip(1).for_each(|i| {
-                    let swatch = &self.candidates[*i];
-                    if theme.score(swatch) < theme.score(&best_swatch) {
-                        return;
-                    }
+            if let Some(swatch) = merged {
+                swatches.insert(label, swatch);
+            }
+        }
 
-                    best_swatch = {
-                        let color = swatch.color().clone();
-                        let position = swatch.position();
-                        let population = swatch.population() + best_swatch.population();
-                        Swatch::new(color, position, population)
-                    };
-                });
-                Some(best_swatch)
-            })
-            .collect();
-
-        swatches.sort_unstable_by(|swatch1, swatch2| {
+        let mut results: Vec<_> = swatches.into_values().collect();
+        results.sort_by(|swatch1, swatch2| {
             let weight1 = theme.score(swatch1);
             let weight2 = theme.score(swatch2);
             weight1
@@ -228,7 +208,7 @@ where
                 .unwrap_or(Ordering::Equal)
                 .reverse()
         });
-        swatches.iter().take(n).cloned().collect()
+        results.iter().take(n).cloned().collect()
     }
 
     #[inline]

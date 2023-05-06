@@ -1,13 +1,13 @@
 extern crate image;
 
 use auto_palette::color_trait::Color;
-use auto_palette::{Algorithm, Palette, SimpleImageData, Theme};
+use auto_palette::{Algorithm, Palette, SimpleImageData};
 use rstest::rstest;
 
 #[rstest]
 #[case::gr("./tests/images/flag_gr.png", 2, vec ! ["#0060b5", "#ffffff"])]
 #[case::no("./tests/images/flag_no.png", 3, vec ! ["#cc0028", "#00215f", "#ffffff"])]
-#[case::pg("./tests/images/flag_pg.png", 4, vec ! ["#000000", "#e10017", "#ffcf00", "#ffffff"])]
+#[case::pg("./tests/images/flag_pg.png", 4, vec ! ["#000000", "#e10017", "#ffcf00", "##fefefe"])]
 #[case::sc("./tests/images/flag_sc.png", 5, vec ! ["#ed000c", "#003e8d", "#007c30", "#ffd72d", "#ffffff"])]
 #[case::za("./tests/images/flag_za.png", 6, vec ! ["#007944", "#f42222", "#00158f", "#ffffff", "#000000", "#ffb400"])]
 fn extract(#[case] path: &str, #[case] n: usize, #[case] expected: Vec<&str>) {
@@ -41,7 +41,6 @@ fn extract_with_dbscan() {
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
     let palette: Palette<f32> = Palette::extract_with(&image_data, Algorithm::DBSCAN);
-    // let swatches = palette.find_with_theme(5, &Theme::Vivid);
     let swatches = palette.dominant_swatches(5);
     swatches.iter().for_each(|swatch| {
         println!(
