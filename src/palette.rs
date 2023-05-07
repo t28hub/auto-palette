@@ -125,8 +125,8 @@ where
         let swatches: Vec<_> = self
             .color_groups
             .iter()
-            .map(|membership| {
-                let merged = self.merge_to_swatch(membership, |swatch1, swatch2| {
+            .filter_map(|membership| {
+                self.merge_to_swatch(membership, |swatch1, swatch2| {
                     let population = swatch1.population() + swatch2.population();
                     let fraction = F::from_usize(swatch2.population()) / F::from_usize(population);
                     let color = swatch1.color().mix(swatch2.color(), fraction);
@@ -136,58 +136,12 @@ where
                         swatch2.position()
                     };
                     Swatch::new(color, position, population)
-                });
-                merged.expect("Failed to merge swatches")
+                })
             })
             .collect();
 
-        let mut candidates = HashMap::<usize, Swatch<Lab<F, D65>>>::new();
-        let mut heap = BinaryHeap::new();
-        for (i, swatch_i) in swatches.iter().enumerate() {
-            candidates.insert(i, swatch_i.clone());
-            for (j, swatch_j) in swatches.iter().skip(i + 1).enumerate() {
-                if i == j {
-                    continue;
-                }
-                let distance = swatch_i.distance(swatch_j);
-                heap.push(Reverse(WeightedEdge::new(i, j, distance)));
-            }
-        }
-
-        let mut next_label = swatches.len();
-        while candidates.len() > n {
-            let Some(Reverse(edge)) = heap.pop() else {
-                break;
-            };
-
-            let Some(swatch1) = candidates.get(&edge.u()) else {
-                continue;
-            };
-            let Some(swatch2) = candidates.get(&edge.v()) else {
-                continue;
-            };
-
-            let best_swatch = if swatch1.population() > swatch2.population() {
-                swatch1.clone()
-            } else {
-                swatch2.clone()
-            };
-
-            candidates.iter().for_each(|(label, swatch)| {
-                if label == &edge.u() || label == &edge.v() {
-                    return;
-                }
-                let distance = best_swatch.distance(swatch);
-                heap.push(Reverse(WeightedEdge::new(*label, next_label, distance)));
-            });
-
-            candidates.remove(&edge.u());
-            candidates.remove(&edge.v());
-            candidates.insert(next_label, best_swatch);
-            next_label += 1;
-        }
-
-        let mut results: Vec<_> = candidates.into_values().collect();
+        let mut results: Vec<_> =
+            find_best_swatches(&swatches, n, |swatch| F::from_usize(swatch.population()));
         results.sort_by_key(|swatch| Reverse(swatch.population()));
         results
     }
@@ -206,25 +160,25 @@ where
             return Vec::new();
         }
 
-        let mut swatches: HashMap<_, _> = HashMap::with_capacity(self.color_groups.len());
-        for (label, membership) in self.color_groups.iter().enumerate() {
-            let merged = self.merge_to_swatch(membership, |swatch1, swatch2| {
-                let population = swatch1.population() + swatch2.population();
-                let score1 = theme.score(swatch1);
-                let score2 = theme.score(swatch2);
-                if score1 > score2 {
-                    Swatch::new(swatch1.color().clone(), swatch1.position(), population)
-                } else {
-                    Swatch::new(swatch2.color().clone(), swatch2.position(), population)
-                }
-            });
+        let swatches: Vec<_> = self
+            .color_groups
+            .iter()
+            .filter_map(|membership| {
+                self.merge_to_swatch(membership, |swatch1, swatch2| {
+                    let population = swatch1.population() + swatch2.population();
+                    let fraction = F::from_usize(swatch2.population()) / F::from_usize(population);
+                    let color = swatch1.color().mix(swatch2.color(), fraction);
+                    let position = if fraction <= F::from_f64(0.5) {
+                        swatch1.position()
+                    } else {
+                        swatch2.position()
+                    };
+                    Swatch::new(color, position, population)
+                })
+            })
+            .collect();
 
-            if let Some(swatch) = merged {
-                swatches.insert(label, swatch);
-            }
-        }
-
-        let mut results: Vec<_> = swatches.into_values().collect();
+        let mut results: Vec<_> = find_best_swatches(&swatches, n, |swatch| theme.score(swatch));
         results.sort_by(|swatch1, swatch2| {
             let weight1 = theme.score(swatch1);
             let weight2 = theme.score(swatch2);
@@ -352,4 +306,82 @@ where
         y.to_u32().expect("Could not convert y to u32"),
     );
     Some(Swatch::new(color, position, cluster.size()))
+}
+
+/// Finds the best swatches in the given list.
+///
+/// # Arguments
+/// * `swatches` - The list of swatches to search.
+/// * `limit` - The maximum number of swatches to return.
+/// * `score_fn` - The function to use to score each swatch.
+///
+/// # Returns
+/// The best swatches.
+#[must_use]
+fn find_best_swatches<F, SF>(
+    swatches: &[Swatch<Lab<F, D65>>],
+    limit: usize,
+    score_fn: SF,
+) -> Vec<Swatch<Lab<F, D65>>>
+where
+    F: Float,
+    SF: Fn(&Swatch<Lab<F, D65>>) -> F,
+{
+    let mut candidates = HashMap::<usize, Swatch<Lab<F, D65>>>::new();
+    let mut heap = BinaryHeap::new();
+    for (i, swatch_i) in swatches.iter().enumerate() {
+        candidates.insert(i, swatch_i.clone());
+        for (j, swatch_j) in swatches.iter().skip(i + 1).enumerate() {
+            if i == j {
+                continue;
+            }
+
+            let distance = swatch_i.distance(swatch_j);
+            heap.push(Reverse(WeightedEdge::new(i, j, distance)));
+        }
+    }
+
+    let mut next_label = swatches.len();
+    while candidates.len() > limit {
+        let Some(Reverse(edge)) = heap.pop() else {
+            break;
+        };
+
+        let Some(swatch1) = candidates.get(&edge.u()) else {
+            continue;
+        };
+        let Some(swatch2) = candidates.get(&edge.v()) else {
+            continue;
+        };
+
+        let score1 = score_fn(swatch1);
+        let score2 = score_fn(swatch2);
+        if score1.is_zero() || score2.is_zero() {
+            continue;
+        }
+
+        let population = swatch1.population() + swatch2.population();
+        let best_swatch = if score1 >= score2 {
+            Swatch::new(swatch1.color().clone(), swatch1.position(), population)
+        } else {
+            Swatch::new(swatch2.color().clone(), swatch2.position(), population)
+        };
+
+        candidates.iter().for_each(|(label, swatch)| {
+            if label == &edge.u() || label == &edge.v() {
+                return;
+            }
+
+            let distance1 = swatch.distance(swatch1);
+            let distance2 = swatch.distance(swatch2);
+            let distance = (distance1 * score1 + distance2 * score2) / (score1 + score2);
+            heap.push(Reverse(WeightedEdge::new(*label, next_label, distance)));
+        });
+
+        candidates.remove(&edge.u());
+        candidates.remove(&edge.v());
+        candidates.insert(next_label, best_swatch);
+        next_label += 1;
+    }
+    candidates.into_values().collect()
 }
