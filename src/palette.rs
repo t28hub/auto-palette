@@ -33,7 +33,7 @@ use std::collections::{BinaryHeap, HashMap};
 /// let img = image::open("/path/to/image.png").unwrap();
 /// let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 /// let palette: Palette<f64> = Palette::extract(&image_data);
-/// palette.dominant_swatches(5).iter().for_each(|swatch| {
+/// palette.swatches(5).iter().for_each(|swatch| {
 ///     println!("{:?}", swatch.color().to_hex_string());
 ///     println!("{:?}", swatch.position());
 ///     println!("{:?}", swatch.population());
@@ -57,7 +57,7 @@ where
     /// A new extracted `Palette` instance.
     #[must_use]
     pub fn extract<I: ImageData>(image_data: &I) -> Palette<F> {
-        Self::extract_with(image_data, Algorithm::DBSCAN)
+        Self::extract_with_algorithm(image_data, &Algorithm::DBSCAN)
     }
 
     /// Extract a color palette from the given image using the specified algorithm.
@@ -69,7 +69,10 @@ where
     /// # Returns
     /// A new extracted `Palette` instance.
     #[must_use]
-    pub fn extract_with<I: ImageData>(image_data: &I, algorithm: Algorithm) -> Palette<F> {
+    pub fn extract_with_algorithm<I: ImageData>(
+        image_data: &I,
+        algorithm: &Algorithm,
+    ) -> Palette<F> {
         let pixels = convert_to_pixels(image_data);
 
         // Merge pixels that are close in color and position, and exclude outliers.
@@ -100,6 +103,24 @@ where
         Self { swatches }
     }
 
+    /// Returns the number of swatches in this palette.
+    ///
+    /// # Returns
+    /// The number of swatches in this palette.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.swatches.len()
+    }
+
+    /// Returns `true` if this palette contains no swatches.
+    ///
+    /// # Returns
+    /// `true` if this palette contains no swatches.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.swatches.is_empty()
+    }
+
     /// Finds the dominant swatches in this palette.
     ///
     /// # Arguments
@@ -108,7 +129,7 @@ where
     /// # Returns
     /// The `n` dominant swatches in this palette.
     #[must_use]
-    pub fn dominant_swatches(&self, n: usize) -> Vec<Swatch<Lab<F, D65>>> {
+    pub fn swatches(&self, n: usize) -> Vec<Swatch<Lab<F, D65>>> {
         if self.swatches.is_empty() {
             return Vec::new();
         }
@@ -344,4 +365,25 @@ where
             Swatch::new(color, position, population)
         });
     Some(best_swatch)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::SimpleImageData;
+
+    #[test]
+    fn test_extract() {
+        let data = vec![
+            255, 0, 0, 255, // red
+            0, 255, 0, 255, // green
+            0, 0, 255, 255, // blue
+            255, 255, 255, 255, // white
+        ];
+        let image_data = SimpleImageData::new(2, 2, &data).unwrap();
+        let palette: Palette<f64> = Palette::extract(&image_data);
+
+        assert!(palette.is_empty());
+        assert_eq!(palette.len(), 0);
+    }
 }

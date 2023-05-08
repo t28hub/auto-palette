@@ -15,7 +15,7 @@ fn extract(#[case] path: &str, #[case] n: usize, #[case] expected: Vec<&str>) {
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
     let palette: Palette<f64> = Palette::extract(&image_data);
-    let swatches = palette.dominant_swatches(n);
+    let swatches = palette.swatches(n);
     assert_eq!(swatches.len(), n);
 
     let colors: Vec<String> = swatches
@@ -30,8 +30,8 @@ fn extract_with_gmeans() {
     let img = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
-    let palette: Palette<f64> = Palette::extract_with(&image_data, Algorithm::GMeans);
-    let swatches = palette.dominant_swatches(4);
+    let palette: Palette<f64> = Palette::extract_with_algorithm(&image_data, &Algorithm::GMeans);
+    let swatches = palette.swatches(4);
     assert_eq!(swatches.len(), 4);
 }
 
@@ -40,8 +40,8 @@ fn extract_with_dbscan() {
     let img = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
-    let palette: Palette<f64> = Palette::extract_with(&image_data, Algorithm::DBSCAN);
-    let swatches = palette.dominant_swatches(5);
+    let palette: Palette<f64> = Palette::extract_with_algorithm(&image_data, &Algorithm::DBSCAN);
+    let swatches = palette.swatches(5);
     swatches.iter().for_each(|swatch| {
         println!(
             "color: {}, population: {}, position: {:?}",
@@ -60,7 +60,7 @@ fn extract_with_hdbscan() {
     let img = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
-    let palette: Palette<f64> = Palette::extract_with(&image_data, Algorithm::HDBSCAN);
-    let swatches = palette.dominant_swatches(4);
+    let palette: Palette<f64> = Palette::extract_with_algorithm(&image_data, &Algorithm::HDBSCAN);
+    let swatches = palette.swatches(4);
     assert_eq!(swatches.len(), 4);
 }

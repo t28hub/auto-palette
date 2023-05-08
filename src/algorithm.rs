@@ -8,6 +8,15 @@ use crate::math::number::Float;
 use crate::math::point::Point;
 
 /// Enum representing the supported palette extraction algorithms.
+///
+/// # Examples
+/// ```ignore
+/// use auto_palette::{Algorithm, Palette};
+///
+/// let palette = Palette::extract_with_algorithm(&image_data, &Algorithm::GMeans);
+/// let palette = Palette::extract_with_algorithm(&image_data, &Algorithm::DBSCAN);
+/// let palette = Palette::extract_with_algorithm(&image_data, &Algorithm::HDBSCAN);
+/// ```
 pub enum Algorithm {
     /// G-means clustering algorithm.
     GMeans,

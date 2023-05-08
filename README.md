@@ -55,9 +55,9 @@ Supported algorithms are as follows:
 
 To use a specific algorithm, pass it to the `extract_with` method like this:
 ```rust
-let palette = Palette::extract_with(&image_data, Algorithm::Gmeans);
-let palette = Palette::extract_with(&image_data, Algorithm::DBSCAN);
-let palette = Palette::extract_with(&image_data, Algorithm::HDBSCAN);
+let palette = Palette::extract_with_algorithm(&image_data, Algorithm::Gmeans);
+let palette = Palette::extract_with_algorithm(&image_data, Algorithm::DBSCAN);
+let palette = Palette::extract_with_algorithm(&image_data, Algorithm::HDBSCAN);
 ```
 
 ## License
