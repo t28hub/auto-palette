@@ -5,12 +5,13 @@
 [![Codecov](https://codecov.io/gh/t28hub/auto-palette/branch/main/graph/badge.svg?token=KkgRPZMmSG)](https://codecov.io/gh/t28hub/auto-palette)
 [![FOSSA](https://app.fossa.com/api/projects/custom%2B14538%2Fgithub.com%2Ft28hub%2Fauto-palette.svg?type=shield)](https://app.fossa.com/projects/custom%2B14538%2Fgithub.com%2Ft28hub%2Fauto-palette?ref=badge_shield)
 
-`auto-palette` is a Rust library for automatically extracting a color palette from an image.
+`auto-palette` is a Rust library for automatically extracting color palettes from an image.
 
 ## Features
-
-- Easy-to-use API for color palette extraction
-- Supports Gmeans, DBSCAN, and HDBSCAN algorithms
+- Extracts color palettes from images
+- Supports various clustering algorithms for palette extraction
+- Extracts dominant colors
+- Offers customizable themes for palette extraction
 
 ## Installation
 
@@ -42,6 +43,21 @@ pub fn main() {
     println!("{:?}", swatch.population());  // The population of the swatch 
   });
 }
+```
+
+## Algorithms
+`auto-palette` supports multiple clustering algorithms for color palette extraction.
+Default algorithm is `DBSCAN`.
+Supported algorithms are as follows:
+- Gmeans(Gaussian-means)
+- DBSCAN(Density-Based Spatial Clustering of Applications with Noise)
+- HDBSCAN(Hierarchical Density-Based Spatial Clustering of Applications with Noise)
+
+To use a specific algorithm, pass it to the `extract_with` method like this:
+```rust
+let palette = Palette::extract_with(&image_data, Algorithm::Gmeans);
+let palette = Palette::extract_with(&image_data, Algorithm::DBSCAN);
+let palette = Palette::extract_with(&image_data, Algorithm::HDBSCAN);
 ```
 
 ## License
