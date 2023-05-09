@@ -330,17 +330,17 @@ where
 #[inline]
 #[must_use]
 fn color_cluster_to_swatch<F>(
-    pixel_cluster: &Cluster<F, Point3<F>>,
+    color_cluster: &Cluster<F, Point3<F>>,
     candidates: &[Swatch<F>],
 ) -> Option<Swatch<F>>
 where
     F: Float,
 {
-    if pixel_cluster.is_empty() {
+    if color_cluster.is_empty() {
         return None;
     }
 
-    let membership = pixel_cluster.membership();
+    let membership = color_cluster.membership();
     let Some(first_swatch) = membership.first().map(|label| candidates[*label].clone()) else {
         return None;
     };
