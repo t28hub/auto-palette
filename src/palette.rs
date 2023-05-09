@@ -1,6 +1,5 @@
 use crate::color::lab::Lab;
 use crate::color::rgb::RGB;
-use crate::color::white_point::D65;
 use crate::color::xyz::XYZ;
 use crate::color_struct::Color;
 use crate::image::image_data::ImageData;
@@ -261,19 +260,16 @@ where
             }
 
             let rgb = RGB::new(r, g, b);
-            let xyz: XYZ<F, D65> = XYZ::from(&rgb);
-            let lab: Lab<F, D65> = Lab::from(&xyz);
+            let xyz: XYZ<F> = XYZ::from(&rgb);
+            let lab: Lab<F> = Lab::from(&xyz);
 
             let x = i % width;
             let y = i / width;
 
             let pixel = Point5::new(
-                lab.l
-                    .normalize(Lab::<F, D65>::min_l(), Lab::<F, D65>::max_l()),
-                lab.a
-                    .normalize(Lab::<F, D65>::min_a(), Lab::<F, D65>::max_a()),
-                lab.b
-                    .normalize(Lab::<F, D65>::min_b(), Lab::<F, D65>::max_b()),
+                lab.l.normalize(Lab::<F>::min_l(), Lab::<F>::max_l()),
+                lab.a.normalize(Lab::<F>::min_a(), Lab::<F>::max_a()),
+                lab.b.normalize(Lab::<F>::min_b(), Lab::<F>::max_b()),
                 F::from_usize(x) / width_f,
                 F::from_usize(y) / height_f,
             );
@@ -307,10 +303,10 @@ where
     }
 
     let centroid = pixel_cluster.centroid();
-    let lab = Lab::<F, D65>::new(
-        centroid[0].denormalize(Lab::<F, D65>::min_l(), Lab::<F, D65>::max_l()),
-        centroid[1].denormalize(Lab::<F, D65>::min_a(), Lab::<F, D65>::max_a()),
-        centroid[2].denormalize(Lab::<F, D65>::min_b(), Lab::<F, D65>::max_b()),
+    let lab = Lab::<F>::new(
+        centroid[0].denormalize(Lab::<F>::min_l(), Lab::<F>::max_l()),
+        centroid[1].denormalize(Lab::<F>::min_a(), Lab::<F>::max_a()),
+        centroid[2].denormalize(Lab::<F>::min_b(), Lab::<F>::max_b()),
     );
     let color = Color::from(&lab);
 
