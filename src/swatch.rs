@@ -1,32 +1,34 @@
-use crate::color_trait::Color;
+use crate::color_struct::Color;
 use crate::delta_e::DeltaE;
+use crate::math::number::Float;
 
 /// Struct representing a swatch that contains a color and its position.
 ///
 /// # Type Parameters
-/// * `C` - The color type.
+/// * `F` - The floating point type.
 ///
 /// # Examples
 /// ```
+/// use auto_palette::color_struct::Color;
 /// use auto_palette::Swatch;
-/// use auto_palette::rgb::Rgb;
+/// use auto_palette::rgb::RGB;
 ///
-/// let color = Rgb::new(255, 0, 64);
+/// let color = Color::<f64>::from(&RGB::new(255, 0, 64));
 /// let swatch = Swatch::new(color, (90, 120), 384);
-/// assert_eq!(swatch.color(), &Rgb::new(255, 0, 64));
+/// assert_eq!(swatch.color(), &Color::from(&RGB::new(255, 0, 64)));
 /// assert_eq!(swatch.position(), (90, 120));
 /// assert_eq!(swatch.population(), 384);
 /// ```
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct Swatch<C: Color> {
-    color: C,
+#[derive(Debug, Clone, PartialEq)]
+pub struct Swatch<F: Float> {
+    color: Color<F>,
     position: (u32, u32),
     population: usize,
 }
 
-impl<C> Swatch<C>
+impl<F> Swatch<F>
 where
-    C: Color,
+    F: Float,
 {
     /// Creates a new `Swatch` instance.
     ///
@@ -38,7 +40,7 @@ where
     /// # Returns
     /// A `Swatch` instance.
     #[must_use]
-    pub fn new(color: C, position: (u32, u32), population: usize) -> Self {
+    pub fn new(color: Color<F>, position: (u32, u32), population: usize) -> Self {
         Self {
             color,
             position,
@@ -51,7 +53,7 @@ where
     /// # Returns
     /// A reference of color of this swatch.
     #[must_use]
-    pub fn color(&self) -> &C {
+    pub fn color(&self) -> &Color<F> {
         &self.color
     }
 
@@ -85,32 +87,22 @@ where
     /// * `F` - The floating type for the distance.
     #[inline]
     #[must_use]
-    pub(crate) fn distance(&self, other: &Self) -> C::F {
-        self.color.delta_e(&other.color, DeltaE::CIE2000)
+    pub(crate) fn distance(&self, other: &Self) -> F {
+        self.color.difference(&other.color, &DeltaE::CIE2000)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lab::Lab;
-    use crate::rgb::Rgb;
-    use crate::white_point::D65;
+    use crate::rgb::RGB;
 
     #[test]
     fn test_swatch() {
-        let color = Rgb::new(255, 0, 64);
+        let color = Color::<f64>::from(&RGB::new(255, 0, 64));
         let swatch = Swatch::new(color, (90, 120), 384);
-        assert_eq!(swatch.color(), &Rgb::new(255, 0, 64));
+        assert_eq!(swatch.color(), &Color::<f64>::from(&RGB::new(255, 0, 64)));
         assert_eq!(swatch.position(), (90, 120));
         assert_eq!(swatch.population(), 384);
-    }
-
-    #[test]
-    fn test_default() {
-        let swatch: Swatch<Lab<f64, D65>> = Swatch::default();
-        assert_eq!(swatch.color(), &Lab::default());
-        assert_eq!(swatch.position(), (0, 0));
-        assert_eq!(swatch.population(), 0);
     }
 }

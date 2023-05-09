@@ -1,19 +1,17 @@
 use crate::color::xyz::XYZ;
-use crate::color_trait::Color;
-use crate::lab::Lab;
 use crate::math::number::{Float, Number};
-use crate::white_point::{WhitePoint, D65};
+use crate::white_point::WhitePoint;
 use std::fmt::{Display, Formatter, Result};
 
 /// Struct representing a color in standard RGB color space.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Rgb {
+pub struct RGB {
     pub r: u8,
     pub g: u8,
     pub b: u8,
 }
 
-impl Rgb {
+impl RGB {
     /// Creates a new RGB color.
     ///
     /// # Arguments
@@ -80,13 +78,14 @@ impl Rgb {
     }
 }
 
-impl Display for Rgb {
+impl Display for RGB {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "Rgb({r}, {g}, {b})", r = self.r, g = self.g, b = self.b,)
+        write!(f, "RGB({r}, {g}, {b})", r = self.r, g = self.g, b = self.b,)
     }
 }
 
-impl<F, WP> From<&XYZ<F, WP>> for Rgb
+impl<F, WP> From<&XYZ<F, WP>> for RGB
 where
     F: Float,
     WP: WhitePoint<F>,
@@ -111,56 +110,17 @@ where
         let fb = f(F::from_f64(0.05563) * xyz.x - F::from_f64(0.203977) * xyz.y
             + F::from_f64(1.056972) * xyz.z);
 
-        let min_value = Rgb::min_value::<F>();
-        let max_value = Rgb::max_value::<F>();
+        let min_value = RGB::min_value::<F>();
+        let max_value = RGB::max_value::<F>();
         let denormalize = |value: F| {
             let clamped = (value * max_value).clamp(min_value, max_value);
-            clamped.round().to_u8().unwrap_or_else(Rgb::min_value)
+            clamped.round().to_u8().unwrap_or_else(RGB::min_value)
         };
         Self {
             r: denormalize(fr),
             g: denormalize(fg),
             b: denormalize(fb),
         }
-    }
-}
-
-impl Color for Rgb {
-    type F = f64;
-    type WP = D65;
-
-    #[must_use]
-    fn mix(&self, other: &Self, fraction: Self::F) -> Self {
-        let fraction = fraction.clamp(Self::F::from_f64(0.0), Self::F::from_f64(1.0));
-        let r = self.r + (Self::F::from_u8(other.r - self.r) * fraction) as u8;
-        let g = self.g + (Self::F::from_u8(other.g - self.g) * fraction) as u8;
-        let b = self.b + (Self::F::from_u8(other.b - self.b) * fraction) as u8;
-        Rgb::new(r, g, b)
-    }
-
-    #[must_use]
-    fn to_rgb(&self) -> Rgb {
-        self.clone()
-    }
-
-    #[must_use]
-    fn to_xyz(&self) -> XYZ<Self::F, Self::WP> {
-        XYZ::from(self)
-    }
-
-    #[must_use]
-    fn to_lab(&self) -> Lab<Self::F, Self::WP> {
-        Lab::from(&self.to_xyz())
-    }
-
-    #[must_use]
-    fn to_hex_string(&self) -> String {
-        format!("#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
-    }
-
-    #[must_use]
-    fn to_rgb_string(&self) -> String {
-        format!("rgb({} {} {})", self.r, self.g, self.b)
     }
 }
 
@@ -172,7 +132,7 @@ mod tests {
 
     #[test]
     fn test_rgba() {
-        let actual = Rgb::new(0, 64, 128);
+        let actual = RGB::new(0, 64, 128);
         assert_eq!(actual.r, 0);
         assert_eq!(actual.g, 64);
         assert_eq!(actual.b, 128);
@@ -180,16 +140,16 @@ mod tests {
 
     #[test]
     fn test_components() {
-        let rgb = Rgb::new(0, 64, 128);
+        let rgb = RGB::new(0, 64, 128);
         assert_eq!(rgb.r::<f64>(), 0.0);
         assert_eq!(rgb.g::<f64>(), 64.0);
         assert_eq!(rgb.b::<f64>(), 128.0);
     }
 
     #[test]
-    fn test_to_string() {
-        let rgb = Rgb::new(0, 64, 128);
-        assert_eq!(rgb.to_string(), "Rgb(0, 64, 128)");
+    fn test_fmt() {
+        let rgb = RGB::new(0, 64, 128);
+        assert_eq!(format!("{}", rgb), "RGB(0, 64, 128)");
     }
 
     #[rstest]
@@ -202,7 +162,7 @@ mod tests {
     #[case((0.5929, 0.2848, 0.9698), (255, 0, 255))] // Magenta
     #[case((0.7700, 0.9278, 0.1385), (255, 255, 0))] // Yellow
     fn test_from_xyz(#[case] xyz: (f64, f64, f64), #[case] expected: (u8, u8, u8)) {
-        let actual = Rgb::from(&XYZ::<_, D65>::new(xyz.0, xyz.1, xyz.2));
+        let actual = RGB::from(&XYZ::<_, D65>::new(xyz.0, xyz.1, xyz.2));
         let (r, g, b) = expected;
         assert_eq!(actual.r, r);
         assert_eq!(actual.g, g);

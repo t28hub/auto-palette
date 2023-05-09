@@ -1,6 +1,5 @@
 extern crate image;
 
-use auto_palette::color_trait::Color;
 use auto_palette::{Algorithm, Palette, SimpleImageData};
 use rstest::rstest;
 

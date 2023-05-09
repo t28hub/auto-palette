@@ -1,8 +1,8 @@
 use crate::color::lab::Lab;
-use crate::color::rgb::Rgb;
+use crate::color::rgb::RGB;
 use crate::color::white_point::D65;
 use crate::color::xyz::XYZ;
-use crate::color_trait::Color;
+use crate::color_struct::Color;
 use crate::image::image_data::ImageData;
 use crate::math::clustering::algorithm::ClusteringAlgorithm;
 use crate::math::clustering::cluster::Cluster;
@@ -28,7 +28,6 @@ use std::collections::{BinaryHeap, HashMap};
 /// extern crate image;
 ///
 /// use auto_palette::{Algorithm, Palette, SimpleImageData};
-/// use auto_palette::color_trait::Color;
 ///
 /// let img = image::open("/path/to/image.png").unwrap();
 /// let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
@@ -41,7 +40,7 @@ use std::collections::{BinaryHeap, HashMap};
 /// ```
 #[derive(Debug)]
 pub struct Palette<F: Float> {
-    swatches: Vec<Swatch<Lab<F, D65>>>,
+    swatches: Vec<Swatch<F>>,
 }
 
 impl<F> Palette<F>
@@ -84,8 +83,8 @@ where
                 pixel_cluster_to_swatch(cluster, image_data.width(), image_data.height())
             })
             .map(|swatch| {
-                let color = swatch.color();
-                let point = Point3(color.l, color.a, color.b);
+                let Lab { l, a, b, .. } = swatch.color().to_lab();
+                let point = Point3(l, a, b);
                 (swatch, point)
             })
             .unzip();
@@ -129,7 +128,7 @@ where
     /// # Returns
     /// The `n` dominant swatches in this palette.
     #[must_use]
-    pub fn swatches(&self, n: usize) -> Vec<Swatch<Lab<F, D65>>> {
+    pub fn swatches(&self, n: usize) -> Vec<Swatch<F>> {
         if self.swatches.is_empty() {
             return Vec::new();
         }
@@ -148,7 +147,7 @@ where
     /// # Returns
     /// The `n` dominant swatches in this palette.
     #[must_use]
-    pub fn swatches_with_theme(&self, n: usize, theme: &Theme) -> Vec<Swatch<Lab<F, D65>>> {
+    pub fn swatches_with_theme(&self, n: usize, theme: &Theme) -> Vec<Swatch<F>> {
         if self.swatches.is_empty() {
             return Vec::new();
         }
@@ -166,11 +165,11 @@ where
     }
 
     #[must_use]
-    fn find_swatches<SF>(&self, n: usize, score_fn: SF) -> Vec<Swatch<Lab<F, D65>>>
+    fn find_swatches<SF>(&self, n: usize, score_fn: SF) -> Vec<Swatch<F>>
     where
-        SF: Fn(&Swatch<Lab<F, D65>>) -> F,
+        SF: Fn(&Swatch<F>) -> F,
     {
-        let mut candidates = HashMap::<usize, Swatch<Lab<F, D65>>>::new();
+        let mut candidates = HashMap::<usize, Swatch<F>>::new();
         let mut heap = BinaryHeap::new();
         for (i, swatch_i) in self.swatches.iter().enumerate() {
             candidates.insert(i, swatch_i.clone());
@@ -261,7 +260,7 @@ where
                 return None;
             }
 
-            let rgb = Rgb::new(r, g, b);
+            let rgb = RGB::new(r, g, b);
             let xyz: XYZ<F, D65> = XYZ::from(&rgb);
             let lab: Lab<F, D65> = Lab::from(&xyz);
 
@@ -297,7 +296,7 @@ fn pixel_cluster_to_swatch<F>(
     pixel_cluster: &Cluster<F, Point5<F>>,
     width: u32,
     height: u32,
-) -> Option<Swatch<Lab<F, D65>>>
+) -> Option<Swatch<F>>
 where
     F: Float,
 {
@@ -308,11 +307,12 @@ where
     }
 
     let centroid = pixel_cluster.centroid();
-    let color = Lab::<F, D65>::new(
+    let lab = Lab::<F, D65>::new(
         centroid[0].denormalize(Lab::<F, D65>::min_l(), Lab::<F, D65>::max_l()),
         centroid[1].denormalize(Lab::<F, D65>::min_a(), Lab::<F, D65>::max_a()),
         centroid[2].denormalize(Lab::<F, D65>::min_b(), Lab::<F, D65>::max_b()),
     );
+    let color = Color::from(&lab);
 
     let x = centroid[3].denormalize(F::zero(), width_f);
     let y = centroid[4].denormalize(F::zero(), height_f);
@@ -335,8 +335,8 @@ where
 #[must_use]
 fn color_cluster_to_swatch<F>(
     pixel_cluster: &Cluster<F, Point3<F>>,
-    candidates: &[Swatch<Lab<F, D65>>],
-) -> Option<Swatch<Lab<F, D65>>>
+    candidates: &[Swatch<F>],
+) -> Option<Swatch<F>>
 where
     F: Float,
 {

@@ -1,9 +1,7 @@
 use crate::color::white_point::WhitePoint;
 use crate::color::xyz::XYZ;
-use crate::color_trait::Color;
-use crate::delta_e::DeltaE;
 use crate::math::number::Float;
-use crate::rgb::Rgb;
+use crate::white_point::D65;
 use std::fmt::{Display, Formatter, Result};
 use std::marker::PhantomData;
 
@@ -15,8 +13,8 @@ use std::marker::PhantomData;
 ///
 /// # References
 /// * [CIELAB color space - Wikipedia](https://en.wikipedia.org/wiki/CIELAB_color_space)
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct Lab<F: Float, WP: WhitePoint<F>> {
+#[derive(Debug, Clone, PartialEq)]
+pub struct Lab<F: Float, WP: WhitePoint<F> = D65> {
     pub l: F,
     pub a: F,
     pub b: F,
@@ -188,8 +186,15 @@ where
     F: Float + Display,
     WP: WhitePoint<F>,
 {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "Lab({l}, {a}, {b})", l = self.l, a = self.a, b = self.b)
+        write!(
+            f,
+            "Lab({l:.4}, {a:.4}, {b:.4})",
+            l = self.l,
+            a = self.a,
+            b = self.b
+        )
     }
 }
 
@@ -222,46 +227,6 @@ where
     }
 }
 
-impl<F, WP> Color for Lab<F, WP>
-where
-    F: Float,
-    WP: WhitePoint<F>,
-{
-    type F = F;
-    type WP = WP;
-
-    #[inline]
-    #[must_use]
-    fn delta_e(&self, other: &Self, metric: DeltaE) -> Self::F {
-        metric.measure(self, other)
-    }
-
-    #[inline]
-    #[must_use]
-    fn mix(&self, other: &Self, fraction: Self::F) -> Self {
-        let l = self.l + (other.l - self.l) * fraction;
-        let a = self.a + (other.a - self.a) * fraction;
-        let b = self.b + (other.b - self.b) * fraction;
-        Lab::new(l, a, b)
-    }
-
-    #[must_use]
-    fn to_rgb(&self) -> Rgb {
-        let xyz = self.to_xyz();
-        Rgb::from(&xyz)
-    }
-
-    #[must_use]
-    fn to_xyz(&self) -> XYZ<Self::F, Self::WP> {
-        XYZ::<F, WP>::from(self)
-    }
-
-    #[must_use]
-    fn to_lab(&self) -> Lab<Self::F, Self::WP> {
-        self.clone()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -288,22 +253,9 @@ mod tests {
     }
 
     #[test]
-    fn test_chroma() {
-        let lab: Lab<f64, D65> = Lab::new(53.23, 80.11, 67.22);
-        assert_almost_eq!(lab.chroma(), 104.576, 1e-3);
-    }
-
-    #[test]
-    fn test_delta_e() {
-        let lab1: Lab<f64, D65> = Lab::new(53.23, 80.11, 67.22);
-        let lab2: Lab<f64, D65> = Lab::new(-4.0, -192.0, -192.0);
-        assert_almost_eq!(lab1.delta_e(&lab2, DeltaE::CIE76), 290.265, 1e-3);
-    }
-
-    #[test]
-    fn test_to_string() {
-        let lab: Lab<f64, D65> = Lab::new(53.23, 80.11, 67.22);
-        assert_eq!(lab.to_string(), "Lab(53.23, 80.11, 67.22)");
+    fn test_fmt() {
+        let lab = Lab::<f64, D65>::new(53.23, 80.11, 67.22);
+        assert_eq!(format!("{}", lab), "Lab(53.2300, 80.1100, 67.2200)");
     }
 
     #[rstest]

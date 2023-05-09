@@ -1,4 +1,4 @@
-pub mod color_trait;
+pub mod color_struct;
 pub mod delta_e;
 pub mod lab;
 pub mod rgb;

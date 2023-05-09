@@ -1,8 +1,8 @@
 use crate::color::lab::Lab;
-use crate::color::rgb::Rgb;
+use crate::color::rgb::RGB;
 use crate::color::white_point::WhitePoint;
-use crate::color_trait::Color;
 use crate::math::number::Float;
+use crate::white_point::D65;
 use std::fmt::{Display, Formatter, Result};
 use std::marker::PhantomData;
 
@@ -15,7 +15,7 @@ use std::marker::PhantomData;
 /// # References
 /// * [CIE 1931 color space - Wikipedia](https://en.wikipedia.org/wiki/CIE_1931_color_space)
 #[derive(Debug, Clone, PartialEq)]
-pub struct XYZ<F: Float, WP: WhitePoint<F>> {
+pub struct XYZ<F: Float, WP: WhitePoint<F> = D65> {
     pub x: F,
     pub y: F,
     pub z: F,
@@ -131,19 +131,26 @@ where
     F: Float + Default + Display,
     WP: WhitePoint<F>,
 {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "XYZ({x}, {y}, {z})", x = self.x, y = self.y, z = self.z)
+        write!(
+            f,
+            "XYZ({x:.4}, {y:.4}, {z:.4})",
+            x = self.x,
+            y = self.y,
+            z = self.z
+        )
     }
 }
 
-impl<F, WP> From<&Rgb> for XYZ<F, WP>
+impl<F, WP> From<&RGB> for XYZ<F, WP>
 where
     F: Float,
     WP: WhitePoint<F>,
 {
     #[inline]
     #[must_use]
-    fn from(rgb: &Rgb) -> Self {
+    fn from(rgb: &RGB) -> Self {
         let f = |value: F| -> F {
             if value <= F::from_f64(0.04045) {
                 value / F::from_f64(12.92)
@@ -152,7 +159,7 @@ where
             }
         };
 
-        let max_value: F = Rgb::max_value();
+        let max_value: F = RGB::max_value();
         let r = f(rgb.r::<F>() / max_value);
         let g = f(rgb.g::<F>() / max_value);
         let b = f(rgb.b::<F>() / max_value);
@@ -194,38 +201,6 @@ where
     }
 }
 
-impl<F, WP> Color for XYZ<F, WP>
-where
-    F: Float,
-    WP: WhitePoint<F>,
-{
-    type F = F;
-    type WP = WP;
-
-    #[must_use]
-    fn mix(&self, other: &Self, fraction: Self::F) -> Self {
-        let x = self.x + (other.x - self.x) * fraction;
-        let y = self.y + (other.y - self.y) * fraction;
-        let z = self.z + (other.z - self.z) * fraction;
-        XYZ::new(x, y, z)
-    }
-
-    #[must_use]
-    fn to_rgb(&self) -> Rgb {
-        Rgb::from(self)
-    }
-
-    #[must_use]
-    fn to_xyz(&self) -> XYZ<Self::F, Self::WP> {
-        self.clone()
-    }
-
-    #[must_use]
-    fn to_lab(&self) -> Lab<Self::F, Self::WP> {
-        Lab::from(self)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -252,9 +227,9 @@ mod tests {
     }
 
     #[test]
-    fn test_to_string() {
+    fn test_fmt() {
         let xyz: XYZ<_, D65> = XYZ::new(0.256394, 0.223987, 0.975798);
-        assert_eq!(xyz.to_string(), "XYZ(0.256394, 0.223987, 0.975798)");
+        assert_eq!(format!("{}", xyz), "XYZ(0.2564, 0.2240, 0.9758)");
     }
 
     #[rstest]
@@ -267,7 +242,7 @@ mod tests {
     #[case((255, 0, 255), (0.5929, 0.2848, 0.9698))] // Magenta
     #[case((255, 255, 0), (0.7700, 0.9278, 0.1385))] // Yellow
     fn test_from_rgba(#[case] rgba: (u8, u8, u8), #[case] expected: (f64, f64, f64)) {
-        let actual: XYZ<_, D65> = XYZ::from(&Rgb::new(rgba.0, rgba.1, rgba.2));
+        let actual: XYZ<_, D65> = XYZ::from(&RGB::new(rgba.0, rgba.1, rgba.2));
         let (x, y, z) = expected;
         assert_almost_eq!(actual.x, x, 1e-3);
         assert_almost_eq!(actual.y, y, 1e-3);
