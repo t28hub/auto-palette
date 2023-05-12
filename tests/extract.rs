@@ -1,6 +1,8 @@
 extern crate image;
 
-use auto_palette::{Algorithm, Palette, SimpleImageData};
+use auto_palette::lab::Lab;
+use auto_palette::Algorithm::DBSCAN;
+use auto_palette::{Algorithm, Dark, Light, Muted, Palette, SimpleImageData, Vivid};
 use rstest::rstest;
 
 #[rstest]
@@ -40,7 +42,8 @@ fn extract_with_dbscan() {
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
     let palette: Palette<f64> = Palette::extract_with_algorithm(&image_data, &Algorithm::DBSCAN);
-    let swatches = palette.swatches(5);
+    // let swatches = palette.swatches(5);
+    let swatches = palette.swatches_with_theme(5, &Muted);
     swatches.iter().for_each(|swatch| {
         println!(
             "color: {}, population: {}, position: {:?}",

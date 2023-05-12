@@ -146,15 +146,18 @@ where
     /// # Returns
     /// The `n` dominant swatches in this palette.
     #[must_use]
-    pub fn swatches_with_theme(&self, n: usize, theme: &Theme) -> Vec<Swatch<F>> {
+    pub fn swatches_with_theme(&self, n: usize, theme: &impl Theme) -> Vec<Swatch<F>> {
         if self.swatches.is_empty() {
             return Vec::new();
         }
 
-        let mut results = self.find_swatches(n, |swatch| theme.score(swatch));
+        let mut results = self.find_swatches(n, |swatch| {
+            let fraction = theme.score(swatch);
+            fraction.value()
+        });
         results.sort_by(|swatch1, swatch2| {
-            let weight1 = theme.score(swatch1);
-            let weight2 = theme.score(swatch2);
+            let weight1 = theme.score(swatch1).value();
+            let weight2 = theme.score(swatch2).value();
             weight1
                 .partial_cmp(&weight2)
                 .unwrap_or(Ordering::Equal)

@@ -118,6 +118,46 @@ pub trait Normalize {
     fn denormalize(self, min: Self, max: Self) -> Self;
 }
 
+/// Struct representing a fraction value.
+///
+/// # Type parameters
+/// * `F` - The float type.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Fraction<F: Float> {
+    value: F,
+}
+
+impl<F> Fraction<F>
+where
+    F: Float,
+{
+    /// Creates a new fraction value.
+    /// The value will be clamped to be within the range [0, 1].
+    ///
+    /// # Arguments
+    /// * `value` - The value of the fraction.
+    ///
+    /// # Returns
+    /// A new fraction value.
+    #[inline]
+    #[must_use]
+    pub fn new(value: F) -> Self {
+        Self {
+            value: value.clamp(F::zero(), F::one()),
+        }
+    }
+
+    /// Returns the value of the fraction.
+    ///
+    /// # Returns
+    /// The value of the fraction.
+    #[inline]
+    #[must_use]
+    pub fn value(&self) -> F {
+        self.value
+    }
+}
+
 macro_rules! impl_number {
     ($number:ty) => {
         impl Number for $number {
@@ -217,6 +257,7 @@ impl_normalize!(f64);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
 
     #[test]
     fn clamp_should_return_clamped_value() {
@@ -240,5 +281,16 @@ mod tests {
         assert_eq!(0.5_f64.denormalize(0.0, 128.0), 64.0);
         assert_eq!(1.0_f64.denormalize(0.0, 128.0), 128.0);
         assert_eq!(2.0_f64.denormalize(0.0, 128.0), 128.0);
+    }
+
+    #[rstest]
+    #[case(-0.1_f64, 0.0)]
+    #[case(0.0_f64, 0.0)]
+    #[case(0.5_f64, 0.5)]
+    #[case(1.0_f64, 1.0)]
+    #[case(1.1_f64, 1.0)]
+    fn test_fraction_new(#[case] value: f64, #[case] expected: f64) {
+        let fraction = Fraction::new(value);
+        assert_eq!(fraction.value, expected);
     }
 }
