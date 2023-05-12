@@ -86,6 +86,15 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_image_data() {
+        let data = vec![0, 0, 0, 255, 0, 0, 255, 255, 0, 255, 0, 255, 255, 0, 0, 255];
+        let image_data = SimpleImageData::new(2, 2, &data).unwrap();
+        assert_eq!(image_data.width, 2);
+        assert_eq!(image_data.height, 2);
+        assert_eq!(image_data.data, &data);
+    }
+
+    #[test]
     fn test_simple_image_data() {
         let data = vec![0, 0, 0, 255, 0, 0, 255, 255, 0, 255, 0, 255, 255, 0, 0, 255];
         let image_data = SimpleImageData::new(2, 2, &data);
