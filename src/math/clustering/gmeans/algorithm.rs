@@ -171,11 +171,11 @@ where
 
             // Anderson Darling test
             let v = centroid1.sub(centroid2);
-            let vp = dot(&v, &v);
+            let vp = v.dot(&v);
             let mut x = Vec::with_capacity(largest.size());
             for index in largest_cluster.membership().iter() {
                 let point = dataset[*index];
-                x.push(dot(&point, &v) / vp);
+                x.push(point.dot(&v) / vp);
             }
             standardize(&mut x);
             let Some(score) = anderson_darling_test(&x) else {
@@ -191,16 +191,6 @@ where
         }
         Model::new(clusters, HashSet::new())
     }
-}
-
-#[inline]
-#[must_use]
-fn dot<F: Float, P: Point<F>>(point1: &P, point2: &P) -> F {
-    let mut sum = F::zero();
-    for i in 0..point1.dimension() {
-        sum += point1[i] * point2[i];
-    }
-    sum
 }
 
 #[cfg(test)]

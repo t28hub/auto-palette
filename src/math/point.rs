@@ -28,6 +28,15 @@ pub trait Point<F: Float>:
     /// The dimension of this point.
     fn dimension(&self) -> usize;
 
+    /// Returns the dot product of this point and the given point.
+    ///
+    /// # Arguments
+    /// * `other` - The other point.
+    ///
+    /// # Returns
+    /// The dot product of this point and the given point.
+    fn dot(&self, other: &Self) -> F;
+
     /// Returns a vector representation of this point.
     ///
     /// # Returns
@@ -127,6 +136,7 @@ macro_rules! impl_point {
         /// # Returns
         /// A new `Point` instance.
         #[inline]
+        #[must_use]
         #[allow(unused)]
         pub fn new($($label: F),+) -> Self {
             Self { $($field: $label),+ }
@@ -141,11 +151,23 @@ macro_rules! impl_point {
 
     impl<F> Point<F> for $Point<F> where F: Float {
         #[inline]
+        #[must_use]
         fn dimension(&self) -> usize {
            $size
         }
 
         #[inline]
+        #[must_use]
+        fn dot(&self, other: &Self) -> F {
+            let mut sum = F::zero();
+            for i in 0..self.dimension() {
+                sum += self[i] * other[i];
+            }
+            sum
+        }
+
+        #[inline]
+        #[must_use]
         fn to_vec(&self) -> Vec<F> {
             vec![$(self.$field),+]
         }
@@ -153,11 +175,13 @@ macro_rules! impl_point {
 
     impl<F> Zero for $Point<F> where F: Float {
         #[inline]
+        #[must_use]
         fn zero() -> Self {
             Self { $($field: F::zero()),+ }
         }
 
         #[inline]
+        #[must_use]
         fn is_zero(&self) -> bool {
             $(self.$field.is_zero()) &&+
         }
@@ -325,6 +349,19 @@ mod tests {
     }
 
     #[test]
+    fn test_dot() {
+        assert_eq!(Point2::new(1.0, 2.0).dot(&Point2::new(3.0, 4.0)), 11.0);
+        assert_eq!(
+            Point3::new(1.0, 2.0, 3.0).dot(&Point3::new(4.0, 5.0, 6.0)),
+            32.0
+        );
+        assert_eq!(
+            Point5::new(1.0, 2.0, 3.0, 4.0, 5.0).dot(&Point5::new(6.0, 7.0, 8.0, 9.0, 10.0)),
+            130.0
+        );
+    }
+
+    #[test]
     fn test_to_vec() {
         assert_eq!(Point2::new(1.0, 2.0).to_vec(), vec![1.0, 2.0]);
         assert_eq!(Point3::new(1.0, 2.0, 3.0).to_vec(), vec![1.0, 2.0, 3.0]);
@@ -405,6 +442,13 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "Point2 cannot be divided by zero")]
+    fn test_div_panic() {
+        let point = Point2::new(1.0, 3.0);
+        let _ = point / 0.0;
+    }
+
+    #[test]
     fn test_add_assign() {
         let mut point1 = Point2::new(1.0, 2.0);
         let point2 = Point2::new(2.0, 3.0);
@@ -432,5 +476,12 @@ mod tests {
         let mut point = Point2::new(1.0, 3.0);
         point.div_assign(2.0);
         assert_eq!(point, Point2::new(0.5, 1.5));
+    }
+
+    #[test]
+    #[should_panic(expected = "Point2 cannot be divided by zero")]
+    fn test_div_assign_panic() {
+        let mut point = Point2::new(1.0, 3.0);
+        point /= 0.0;
     }
 }
