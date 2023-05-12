@@ -260,35 +260,82 @@ mod tests {
     use rstest::rstest;
 
     #[test]
-    fn clamp_should_return_clamped_value() {
-        assert_eq!(-1.125_f64.clamp(-1.0, 1.0), -1.0);
-        assert_eq!(-0.125_f64.clamp(-1.0, 1.0), -0.125);
-        assert_eq!(0.125_f64.clamp(-1.0, 1.0), 0.125);
-        assert_eq!(1.125_f64.clamp(-1.0, 1.0), 1.0);
+    fn test_from_u8() {
+        let value = f64::from_u8(8);
+        assert_eq!(value, 8.0_f64);
     }
 
     #[test]
-    fn normalize_should_return_normalized_value() {
-        assert_eq!(0.0_f64.normalize(0.0, 128.0), 0.0);
-        assert_eq!(32.0_f64.normalize(0.0, 128.0), 0.25);
-        assert_eq!(64.0_f64.normalize(0.0, 128.0), 0.50);
-        assert_eq!(128.0_f64.normalize(0.0, 128.0), 1.0);
+    fn test_from_u32() {
+        let value = f64::from_u32(32);
+        assert_eq!(value, 32.0_f64);
     }
 
     #[test]
-    fn denormalize_should_return_denormalized_value() {
-        assert_eq!(0.0_f64.denormalize(0.0, 128.0), 0.0);
-        assert_eq!(0.5_f64.denormalize(0.0, 128.0), 64.0);
-        assert_eq!(1.0_f64.denormalize(0.0, 128.0), 128.0);
-        assert_eq!(2.0_f64.denormalize(0.0, 128.0), 128.0);
+    fn test_from_u64() {
+        let value = f64::from_u64(64);
+        assert_eq!(value, 64.0_f64);
+    }
+
+    #[test]
+    fn test_from_usize() {
+        let value = f64::from_usize(256);
+        assert_eq!(value, 256.0_f64);
+    }
+
+    #[test]
+    fn test_from_f32() {
+        let value = f64::from_f32(256.0_f32);
+        assert_eq!(value, 256.0_f64);
+    }
+
+    #[test]
+    fn test_from_f64() {
+        let value = f64::from_f64(256.0_f64);
+        assert_eq!(value, 256.0_f64);
     }
 
     #[rstest]
-    #[case(-0.1_f64, 0.0)]
-    #[case(0.0_f64, 0.0)]
-    #[case(0.5_f64, 0.5)]
-    #[case(1.0_f64, 1.0)]
-    #[case(1.1_f64, 1.0)]
+    #[case(-1.125, -1.0)]
+    #[case(-1.000, -1.0)]
+    #[case(-0.125, -0.125)]
+    #[case(0.125, 0.125)]
+    #[case(1.000, 1.0)]
+    #[case(1.125, 1.0)]
+    fn test_clamp(#[case] value: f64, #[case] expected: f64) {
+        let clamped = value.clamp(-1.0, 1.0);
+        assert_eq!(clamped, expected);
+    }
+
+    #[rstest]
+    #[case(- 0.1, 0.0)]
+    #[case(0.0, 0.0)]
+    #[case(32.0, 0.25)]
+    #[case(64.0, 0.50)]
+    #[case(128.0, 1.0)]
+    #[case(129.0, 1.0)]
+    fn test_normalize(#[case] value: f64, #[case] expected: f64) {
+        let normalized = value.normalize(0.0, 128.0);
+        assert_eq!(normalized, expected);
+    }
+
+    #[rstest]
+    #[case(-0.1, 0.0)]
+    #[case(0.0, 0.0)]
+    #[case(0.5, 64.0)]
+    #[case(1.0, 128.0)]
+    #[case(2.0, 128.0)]
+    fn test_denormalize(#[case] value: f64, #[case] expected: f64) {
+        let denormalized = value.denormalize(0.0, 128.0);
+        assert_eq!(denormalized, expected);
+    }
+
+    #[rstest]
+    #[case(-0.1, 0.0)]
+    #[case(0.0, 0.0)]
+    #[case(0.5, 0.5)]
+    #[case(1.0, 1.0)]
+    #[case(1.1, 1.0)]
     fn test_fraction_new(#[case] value: f64, #[case] expected: f64) {
         let fraction = Fraction::new(value);
         assert_eq!(fraction.value, expected);
