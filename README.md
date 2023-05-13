@@ -7,6 +7,15 @@
 
 `auto-palette` is a Rust library for automatically extracting color palettes from an image.
 
+## Table of Contents
+* [Features](#features)
+* [Installation](#installation)
+* [Example](#example)
+  * [Basic Example](#basic-example)
+  * [Advanced Example](#advanced-example)
+* [Algorithms](#algorithms)
+* [License](#license)
+
 ## Features
 - Extracts color palettes from images
 - Supports various clustering algorithms for palette extraction
@@ -23,20 +32,63 @@ Add the following to your `Cargo.toml` file:
 ```
 
 ## Example
+* [Basic Example](#basic-example)
+* [Advanced Example](#advanced-example)
 
-In this example, we will extract a color palette from an image using the DBSCAN algorithm.
+### Basic Example
+This example demonstrates how to use this library in a simple way.  
+It loads an image using the `image` crate, converts the image data into a format that `auto_palette` can work with, and extracts a color palette of 6 dominant colors.  
 
 ```rust
 extern crate image;
 extern crate auto_palette;
 
-use auto_palette::{SimpleImageData, Palette, Algorithm};
+use auto_palette::{Algorithm, Palette, SimpleImageData};
 
 pub fn main() {
   let img = image::open("./path/to/image.png").unwrap();
   let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
+  
   let palette: Palette<f64> = Palette::extract(&image_data);
   let swatches = palette.get_swatches(6);
+  swatches.iter().for_each(|swatch| {
+    println!("{:?}", swatch.color().to_hex_string()); // The color of the swatch
+    println!("{:?}", swatch.position());    // The position of the swatch
+    println!("{:?}", swatch.population());  // The population of the swatch 
+  });
+}
+```
+
+### Advanced Example
+In this more advanced example, we demonstrate how to customize the extraction algorithm and theme used by `auto_palette`.  
+We first define a custom theme that weights swatches based on their chroma and lightness.  
+Then, we extract a color palette using the `Gmeans` algorithm instead of the default one(DBSCAN).  
+
+```rust
+extern crate image;
+extern crate auto_palette;
+
+use auto_palette::{Algorithm, Palette, SimpleImageData, Swatch, Theme};
+use auto_palette::number::{Float, Fraction};
+
+struct CustomTheme;
+
+impl Theme for CustomTheme {
+  #[must_use]
+  fn weight<F>(&self, swatch: &Swatch<F>) -> Fraction<F> where F: Float {
+    let color = swatch.color();
+    let chroma = color.chroma().normalize(F::zero(), F::from_u32(128));
+    let lightness = color.lightness().normalize(F::zero(), F::from_u32(100));
+    Fraction::new(chroma * lightness)
+  }
+}
+
+pub fn main() {
+  let img = image::open("./path/to/image.png").unwrap();
+  let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
+  
+  let palette: Palette<f64> = Palette::extract_with_algorithm(&image_data, &Algorithm::Gmeans);
+  let swatches = palette.swates_with_theme(6, &CustomTheme);
   swatches.iter().for_each(|swatch| {
     println!("{:?}", swatch.color().to_hex_string()); // The color of the swatch
     println!("{:?}", swatch.position());    // The position of the swatch

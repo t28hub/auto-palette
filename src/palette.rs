@@ -152,12 +152,12 @@ where
         }
 
         let mut results = self.find_swatches(n, |swatch| {
-            let fraction = theme.score(swatch);
+            let fraction = theme.weight(swatch);
             fraction.value()
         });
         results.sort_by(|swatch1, swatch2| {
-            let weight1 = theme.score(swatch1).value();
-            let weight2 = theme.score(swatch2).value();
+            let weight1 = theme.weight(swatch1).value();
+            let weight2 = theme.weight(swatch2).value();
             weight1
                 .partial_cmp(&weight2)
                 .unwrap_or(Ordering::Equal)

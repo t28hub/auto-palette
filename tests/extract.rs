@@ -1,8 +1,7 @@
 extern crate image;
 
-use auto_palette::lab::Lab;
-use auto_palette::Algorithm::DBSCAN;
-use auto_palette::{Algorithm, Palette, SimpleImageData};
+use auto_palette::number::{Float, Fraction};
+use auto_palette::{Algorithm, Palette, SimpleImageData, Swatch, Theme};
 use rstest::rstest;
 
 #[rstest]
@@ -32,8 +31,8 @@ fn extract_with_gmeans() {
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
     let palette: Palette<f64> = Palette::extract_with_algorithm(&image_data, &Algorithm::GMeans);
-    let swatches = palette.swatches(4);
-    assert_eq!(swatches.len(), 4);
+    let swatches = palette.swatches(5);
+    assert_eq!(swatches.len(), 5);
 }
 
 #[test]
@@ -62,6 +61,30 @@ fn extract_with_hdbscan() {
     let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
 
     let palette: Palette<f64> = Palette::extract_with_algorithm(&image_data, &Algorithm::HDBSCAN);
-    let swatches = palette.swatches(4);
-    assert_eq!(swatches.len(), 4);
+    let swatches = palette.swatches(5);
+    assert_eq!(swatches.len(), 5);
+}
+
+#[test]
+fn swatches_with_theme() {
+    let img = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();
+    let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
+
+    struct CustomTheme;
+    impl Theme for CustomTheme {
+        #[must_use]
+        fn weight<F>(&self, swatch: &Swatch<F>) -> Fraction<F>
+        where
+            F: Float,
+        {
+            let color = swatch.color();
+            let chroma = color.chroma().normalize(F::zero(), F::from_u32(128));
+            let lightness = color.lightness().normalize(F::zero(), F::from_u32(100));
+            Fraction::new(chroma * lightness)
+        }
+    }
+
+    let palette: Palette<f64> = Palette::extract(&image_data);
+    let swatches = palette.swatches_with_theme(5, &CustomTheme);
+    assert_eq!(swatches.len(), 5);
 }

@@ -4,18 +4,18 @@ use crate::Swatch;
 
 /// Trait representing a theme.
 pub trait Theme {
-    /// Scores a swatch based on the theme.
+    /// Weights a swatch based on the theme.
     ///
     /// # Arguments
-    /// * `swatch` - The swatch to be scored.
+    /// * `swatch` - The swatch to be weighted.
     ///
     /// # Returns
-    /// The score of the swatch.
+    /// The weight of the swatch.
     ///
     /// # Type Parameters
-    /// * `F` - The floating type for the score.
+    /// * `F` - The floating type for the weight.
     #[must_use]
-    fn score<F>(&self, swatch: &Swatch<F>) -> Fraction<F>
+    fn weight<F>(&self, swatch: &Swatch<F>) -> Fraction<F>
     where
         F: Float;
 }
@@ -26,7 +26,7 @@ pub struct Vivid;
 impl Theme for Vivid {
     #[inline]
     #[must_use]
-    fn score<F>(&self, swatch: &Swatch<F>) -> Fraction<F>
+    fn weight<F>(&self, swatch: &Swatch<F>) -> Fraction<F>
     where
         F: Float,
     {
@@ -42,7 +42,7 @@ pub struct Muted;
 impl Theme for Muted {
     #[inline]
     #[must_use]
-    fn score<F>(&self, swatch: &Swatch<F>) -> Fraction<F>
+    fn weight<F>(&self, swatch: &Swatch<F>) -> Fraction<F>
     where
         F: Float,
     {
@@ -58,7 +58,7 @@ pub struct Light;
 impl Theme for Light {
     #[inline]
     #[must_use]
-    fn score<F>(&self, swatch: &Swatch<F>) -> Fraction<F>
+    fn weight<F>(&self, swatch: &Swatch<F>) -> Fraction<F>
     where
         F: Float,
     {
@@ -74,7 +74,7 @@ pub struct Dark;
 impl Theme for Dark {
     #[inline]
     #[must_use]
-    fn score<F>(&self, swatch: &Swatch<F>) -> Fraction<F>
+    fn weight<F>(&self, swatch: &Swatch<F>) -> Fraction<F>
     where
         F: Float,
     {
@@ -95,7 +95,7 @@ mod tests {
     fn test_vivid_score() {
         let black = Color::<f64>::from(&RGB { r: 0, g: 0, b: 0 });
         let swatch = Swatch::new(black, (0, 0), 128);
-        let actual = Vivid.score(&swatch);
+        let actual = Vivid.weight(&swatch);
         assert_almost_eq!(actual.value(), 0.0, 1e-4);
 
         let white = Color::<f64>::from(&RGB {
@@ -104,7 +104,7 @@ mod tests {
             b: 255,
         });
         let swatch = Swatch::new(white, (0, 0), 128);
-        let actual = Vivid.score(&swatch);
+        let actual = Vivid.weight(&swatch);
         assert_almost_eq!(actual.value(), 0.0001, 1e-4);
 
         let magenta = Color::<f64>::from(&RGB {
@@ -113,7 +113,7 @@ mod tests {
             b: 255,
         });
         let swatch = Swatch::new(magenta, (0, 0), 128);
-        let actual = Vivid.score(&swatch);
+        let actual = Vivid.weight(&swatch);
         assert_almost_eq!(actual.value(), 0.9026, 1e-4);
 
         let marigold = Color::<f64>::from(&RGB {
@@ -122,7 +122,7 @@ mod tests {
             b: 33,
         });
         let swatch = Swatch::new(marigold, (0, 0), 128);
-        let actual = Vivid.score(&swatch);
+        let actual = Vivid.weight(&swatch);
         assert_almost_eq!(actual.value(), 0.5634, 1e-4);
     }
 
@@ -130,7 +130,7 @@ mod tests {
     fn test_muted_score() {
         let black = Color::<f64>::from(&RGB { r: 0, g: 0, b: 0 });
         let swatch = Swatch::new(black, (0, 0), 128);
-        let actual = Muted.score(&swatch);
+        let actual = Muted.weight(&swatch);
         assert_almost_eq!(actual.value(), 1.0, 1e-4);
 
         let white = Color::<f64>::from(&RGB {
@@ -139,7 +139,7 @@ mod tests {
             b: 255,
         });
         let swatch = Swatch::new(white, (0, 0), 128);
-        let actual = Muted.score(&swatch);
+        let actual = Muted.weight(&swatch);
         assert_almost_eq!(actual.value(), 0.9998, 1e-4);
 
         let magenta = Color::<f64>::from(&RGB {
@@ -148,7 +148,7 @@ mod tests {
             b: 255,
         });
         let swatch = Swatch::new(magenta, (0, 0), 128);
-        let actual = Muted.score(&swatch);
+        let actual = Muted.weight(&swatch);
         assert_almost_eq!(actual.value(), 0.0973, 1e-4);
 
         let marigold = Color::<f64>::from(&RGB {
@@ -157,7 +157,7 @@ mod tests {
             b: 33,
         });
         let swatch = Swatch::new(marigold, (0, 0), 128);
-        let actual = Muted.score(&swatch);
+        let actual = Muted.weight(&swatch);
         assert_almost_eq!(actual.value(), 0.4365, 1e-4);
     }
 
@@ -165,7 +165,7 @@ mod tests {
     fn test_light_score() {
         let black = Color::<f64>::from(&RGB { r: 0, g: 0, b: 0 });
         let swatch = Swatch::new(black, (0, 0), 128);
-        let actual = Light.score(&swatch);
+        let actual = Light.weight(&swatch);
         assert_almost_eq!(actual.value(), 0.0, 1e-4);
 
         let white = Color::<f64>::from(&RGB {
@@ -174,7 +174,7 @@ mod tests {
             b: 255,
         });
         let swatch = Swatch::new(white, (0, 0), 128);
-        let actual = Light.score(&swatch);
+        let actual = Light.weight(&swatch);
         assert_almost_eq!(actual.value(), 1.0, 1e-4);
 
         let magenta = Color::<f64>::from(&RGB {
@@ -183,7 +183,7 @@ mod tests {
             b: 255,
         });
         let swatch = Swatch::new(magenta, (0, 0), 128);
-        let actual = Light.score(&swatch);
+        let actual = Light.weight(&swatch);
         assert_almost_eq!(actual.value(), 0.6032, 1e-4);
 
         let marigold = Color::<f64>::from(&RGB {
@@ -192,7 +192,7 @@ mod tests {
             b: 33,
         });
         let swatch = Swatch::new(marigold, (0, 0), 128);
-        let actual = Light.score(&swatch);
+        let actual = Light.weight(&swatch);
         assert_almost_eq!(actual.value(), 0.7185, 1e-4);
     }
 
@@ -200,7 +200,7 @@ mod tests {
     fn test_dark_score() {
         let black = Color::<f64>::from(&RGB { r: 0, g: 0, b: 0 });
         let swatch = Swatch::new(black, (0, 0), 128);
-        let actual = Dark.score(&swatch);
+        let actual = Dark.weight(&swatch);
         assert_almost_eq!(actual.value(), 1.0, 1e-4);
 
         let white = Color::<f64>::from(&RGB {
@@ -209,7 +209,7 @@ mod tests {
             b: 255,
         });
         let swatch = Swatch::new(white, (0, 0), 128);
-        let actual = Dark.score(&swatch);
+        let actual = Dark.weight(&swatch);
         assert_almost_eq!(actual.value(), 0.0, 1e-4);
 
         let magenta = Color::<f64>::from(&RGB {
@@ -218,7 +218,7 @@ mod tests {
             b: 255,
         });
         let swatch = Swatch::new(magenta, (0, 0), 128);
-        let actual = Dark.score(&swatch);
+        let actual = Dark.weight(&swatch);
         assert_almost_eq!(actual.value(), 0.3968, 1e-4);
 
         let marigold = Color::<f64>::from(&RGB {
@@ -227,7 +227,7 @@ mod tests {
             b: 33,
         });
         let swatch = Swatch::new(marigold, (0, 0), 128);
-        let actual = Dark.score(&swatch);
+        let actual = Dark.weight(&swatch);
         assert_almost_eq!(actual.value(), 0.2815, 1e-4);
     }
 }
