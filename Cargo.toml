@@ -3,9 +3,14 @@ name = "auto-palette"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+readme = "README.md"
 authors = ["Tatsuya Maki <t28oogle@gmail.com>"]
-description = "A Rust library for extracting a color palette from an image automatically."
+description = "A Rust library for automatically extracting color palettes from an image."
 repository = "https://github.com/t28hub/auto-palette-rs"
+
+[[bench]]
+name = "algorithm"
+harness = false
 
 [dependencies]
 num-traits = "0.2.15"
@@ -13,6 +18,7 @@ statrs = "0.16.0"
 thiserror = "1.0.38"
 
 [dev-dependencies]
+criterion = { version = "0.4.0", features = ["html_reports"] }
 rstest = "0.17.0"
 
 [dev-dependencies.image]
