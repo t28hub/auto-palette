@@ -75,7 +75,11 @@ where
     P: Point<F>,
 {
     let min_samples = (dataset.len() / 4096).max(25);
-    let dbscan = DBSCAN::new(min_samples, F::from_f64(0.0025), Distance::SquaredEuclidean);
+    let dbscan = DBSCAN::new(
+        min_samples,
+        F::from_f64(0.0025),
+        &Distance::SquaredEuclidean,
+    );
     dbscan.train(dataset)
 }
 
@@ -86,7 +90,7 @@ where
     P: Point<F>,
 {
     let min_samples = (dataset.len() / 4096).max(25);
-    let hdbscan = HDBSCAN::new(min_samples, min_samples, Distance::SquaredEuclidean);
+    let hdbscan = HDBSCAN::new(min_samples, min_samples, &Distance::SquaredEuclidean);
     hdbscan.train(dataset)
 }
 
@@ -159,7 +163,7 @@ mod tests {
         let dataset = sample_dataset();
         let actual = Algorithm::DBSCAN.apply(&dataset);
 
-        let clustering = DBSCAN::new(16, 0.0025, Distance::SquaredEuclidean);
+        let clustering = DBSCAN::new(16, 0.0025, &Distance::SquaredEuclidean);
         let expected = clustering.train(&dataset);
         assert_eq!(actual, expected);
     }
@@ -169,7 +173,7 @@ mod tests {
         let dataset = sample_dataset();
         let actual = Algorithm::HDBSCAN.apply(&dataset);
 
-        let clustering = HDBSCAN::new(16, 16, Distance::SquaredEuclidean);
+        let clustering = HDBSCAN::new(16, 16, &Distance::SquaredEuclidean);
         let expected = clustering.train(&dataset);
         assert_eq!(actual, expected);
     }

@@ -16,13 +16,13 @@ use std::collections::{HashMap, HashSet};
 /// * [How HDBSCAN Works](https://hdbscan.readthedocs.io/en/latest/how_hdbscan_works.html)
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, PartialEq)]
-pub struct HDBSCAN {
+pub struct HDBSCAN<'a> {
     min_samples: usize,
     min_cluster_size: usize,
-    distance: Distance,
+    distance: &'a Distance,
 }
 
-impl HDBSCAN {
+impl<'a> HDBSCAN<'a> {
     /// Creates a new `HDBSCAN` instance.
     ///
     /// # Arguments
@@ -33,7 +33,7 @@ impl HDBSCAN {
     /// # Returns
     /// A new `HDBSCAN` instance.
     #[must_use]
-    pub fn new(min_samples: usize, min_cluster_size: usize, distance: Distance) -> Self {
+    pub fn new(min_samples: usize, min_cluster_size: usize, distance: &'a Distance) -> Self {
         Self {
             min_samples,
             min_cluster_size,
@@ -324,7 +324,7 @@ impl HDBSCAN {
     }
 }
 
-impl<F, P> ClusteringAlgorithm<F, P> for HDBSCAN
+impl<'a, F, P> ClusteringAlgorithm<F, P> for HDBSCAN<'a>
 where
     F: Float,
     P: Point<F>,
@@ -394,7 +394,7 @@ mod tests {
             Point2::new(8.0, 8.0), // 20
         ];
 
-        let hdbscan = HDBSCAN::new(3, 4, Distance::SquaredEuclidean);
+        let hdbscan = HDBSCAN::new(3, 4, &Distance::SquaredEuclidean);
         let _model = hdbscan.train(&dataset);
     }
 }

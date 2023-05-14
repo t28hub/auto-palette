@@ -16,16 +16,16 @@ use std::collections::{HashMap, HashSet, VecDeque};
 /// * `F` - The float type used for calculations (e.g., f32 or f64).
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, PartialEq)]
-pub struct DBSCAN<F>
+pub struct DBSCAN<'a, F>
 where
     F: Float,
 {
     min_samples: usize,
     epsilon: F,
-    distance: Distance,
+    distance: &'a Distance,
 }
 
-impl<F> DBSCAN<F>
+impl<'a, F> DBSCAN<'a, F>
 where
     F: Float,
 {
@@ -39,7 +39,7 @@ where
     /// # Returns
     /// A new `DBSCAN` instance.
     #[must_use]
-    pub fn new(min_samples: usize, epsilon: F, distance: Distance) -> Self {
+    pub fn new(min_samples: usize, epsilon: F, distance: &'a Distance) -> Self {
         Self {
             min_samples,
             epsilon,
@@ -95,7 +95,7 @@ where
     }
 }
 
-impl<F, P> ClusteringAlgorithm<F, P> for DBSCAN<F>
+impl<'a, F, P> ClusteringAlgorithm<F, P> for DBSCAN<'a, F>
 where
     F: Float,
     P: Point<F>,
@@ -196,16 +196,16 @@ mod tests {
 
     #[test]
     fn test_dbscan() {
-        let actual = DBSCAN::new(4, 2.0_f64.sqrt(), Distance::Euclidean);
+        let actual = DBSCAN::new(4, 2.0_f64.sqrt(), &Distance::Euclidean);
         assert_eq!(actual.min_samples, 4);
         assert_eq!(actual.epsilon, 2.0_f64.sqrt());
-        assert_eq!(actual.distance, Distance::Euclidean);
+        assert_eq!(actual.distance, &Distance::Euclidean);
     }
 
     #[test]
     fn test_train() {
         let dataset = sample_dataset();
-        let dbscan = DBSCAN::new(4, 2.0_f64.sqrt(), Distance::Euclidean);
+        let dbscan = DBSCAN::new(4, 2.0_f64.sqrt(), &Distance::Euclidean);
         let model = dbscan.train(&dataset);
 
         let mut centroids: Vec<_> = model

@@ -30,7 +30,7 @@ where
     /// # Returns
     /// A new `CoreDistance` instance.
     #[must_use]
-    pub fn new<P: Point<F>>(dataset: &[P], min_samples: usize, distance: Distance) -> Self {
+    pub fn new<P: Point<F>>(dataset: &[P], min_samples: usize, distance: &Distance) -> Self {
         if dataset.is_empty() {
             return Self::default();
         }
@@ -97,7 +97,7 @@ mod tests {
             Point2::new(2.5, 3.5),
         ]);
 
-        let actual = CoreDistance::new(&dataset, 3, Distance::SquaredEuclidean);
+        let actual = CoreDistance::new(&dataset, 3, &Distance::SquaredEuclidean);
         assert_eq!(actual.distances.len(), 6);
         assert_almost_eq!(actual.distance_at(0), 5.00, 1e-5);
         assert_almost_eq!(actual.distance_at(1), 0.08, 1e-5);

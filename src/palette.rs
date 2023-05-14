@@ -90,7 +90,7 @@ where
 
         // Merge colors with small color differences and extract the dominant swatches.
         // According to the Digital Color Imaging Handbook, a ∆E ≤ 2.3 is perceived as identical by human perception.
-        let dbscan = DBSCAN::new(1, F::from_f64(2.3), Distance::Euclidean);
+        let dbscan = DBSCAN::new(1, F::from_f64(2.3), &Distance::Euclidean);
         let model2 = dbscan.train(&colors);
         let mut swatches: Vec<_> = model2
             .clusters()

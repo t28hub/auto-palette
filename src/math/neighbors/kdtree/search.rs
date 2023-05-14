@@ -23,7 +23,7 @@ where
 {
     root: Option<Box<KDNode>>,
     dataset: Cow<'a, [P]>,
-    distance: Distance,
+    distance: &'a Distance,
     _marker: PhantomData<F>,
 }
 
@@ -41,7 +41,7 @@ where
     /// # Returns
     /// A new `KDTreeSearch` instance.
     #[must_use]
-    pub fn new_with_ref(dataset: &'a [P], distance: Distance) -> Self {
+    pub fn new_with_ref(dataset: &'a [P], distance: &'a Distance) -> Self {
         let root = if dataset.is_empty() {
             None
         } else {
@@ -67,7 +67,7 @@ where
     /// A new `KDTreeSearch` instance.
     #[allow(unused)]
     #[must_use]
-    pub fn new_with_vec(dataset: Vec<P>, distance: Distance) -> Self {
+    pub fn new_with_vec(dataset: Vec<P>, distance: &'a Distance) -> Self {
         let root = if dataset.is_empty() {
             None
         } else {
@@ -244,11 +244,11 @@ mod tests {
     #[test]
     fn search_should_return_knearest_neighbors() {
         let dataset = empty_dataset();
-        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, Distance::SquaredEuclidean);
+        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, &Distance::SquaredEuclidean);
         assert_eq!(kdtree_search.search(&Point2(3.0, 3.0), 4), vec![]);
 
         let dataset = sample_dataset();
-        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, Distance::SquaredEuclidean);
+        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, &Distance::SquaredEuclidean);
         assert_eq!(kdtree_search.search(&Point2(3.0, 3.0), 0), vec![]);
         assert_eq!(
             kdtree_search.search(&Point2(3.0, 3.0), 1),
@@ -276,11 +276,11 @@ mod tests {
     #[test]
     fn search_nearest_should_return_nearest_neighbor() {
         let dataset = empty_dataset();
-        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, Distance::SquaredEuclidean);
+        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, &Distance::SquaredEuclidean);
         assert_eq!(kdtree_search.search_nearest(&Point2(2.5, 3.0)), None);
 
         let dataset = sample_dataset();
-        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, Distance::SquaredEuclidean);
+        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, &Distance::SquaredEuclidean);
         assert_eq!(
             kdtree_search.search_nearest(&Point2(2.5, 3.0)),
             Some(Neighbor::new(4, 1.25))
@@ -290,11 +290,11 @@ mod tests {
     #[test]
     fn search_radius_should_return_neighbors_within_radius() {
         let dataset = empty_dataset();
-        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, Distance::SquaredEuclidean);
+        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, &Distance::SquaredEuclidean);
         assert_eq!(kdtree_search.search_radius(&Point2(3.0, 3.0), 5.0), vec![]);
 
         let dataset = sample_dataset();
-        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, Distance::SquaredEuclidean);
+        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, &Distance::SquaredEuclidean);
         assert_eq!(kdtree_search.search_radius(&Point2(3.0, 3.0), -1.0), vec![]);
         assert_eq!(kdtree_search.search_radius(&Point2(3.0, 3.0), 1.0), vec![]);
         assert_eq!(
