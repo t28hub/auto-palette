@@ -120,9 +120,9 @@ mod tests {
 
     #[test]
     fn test_cluster() {
-        let actual = Cluster::new(Point2::new(1.0, 2.0));
+        let actual = Cluster::new(Point2(1.0, 2.0));
         assert!(actual.is_empty());
-        assert_eq!(actual.centroid(), &Point2::new(1.0, 2.0));
+        assert_eq!(actual.centroid(), &Point2(1.0, 2.0));
         assert_eq!(actual.size(), 0);
         assert_eq!(actual.membership(), &[]);
     }
@@ -130,14 +130,14 @@ mod tests {
     #[test]
     fn test_insert() {
         let mut cluster = Cluster::default();
-        cluster.insert(3, &Point2::new(2.0, 3.0));
+        cluster.insert(3, &Point2(2.0, 3.0));
         assert!(!cluster.is_empty());
-        assert_eq!(cluster.centroid(), &Point2::new(2.0, 3.0));
+        assert_eq!(cluster.centroid(), &Point2(2.0, 3.0));
         assert_eq!(cluster.size(), 1);
         assert_eq!(cluster.membership(), &[3]);
 
-        cluster.insert(5, &Point2::new(3.0, 5.0));
-        assert_eq!(cluster.centroid(), &Point2::new(2.5, 4.0));
+        cluster.insert(5, &Point2(3.0, 5.0));
+        assert_eq!(cluster.centroid(), &Point2(2.5, 4.0));
         assert!(!cluster.is_empty());
         assert_eq!(cluster.size(), 2);
         assert_eq!(cluster.membership(), &[3, 5]);
@@ -145,10 +145,10 @@ mod tests {
 
     #[test]
     fn test_clear() {
-        let mut cluster = Cluster::new(Point2::new(1.0, 2.0));
-        cluster.insert(2, &Point2::new(2.0, 3.0));
-        cluster.insert(3, &Point2::new(3.0, 5.0));
-        cluster.insert(5, &Point2::new(5.0, 7.0));
+        let mut cluster = Cluster::new(Point2(1.0, 2.0));
+        cluster.insert(2, &Point2(2.0, 3.0));
+        cluster.insert(3, &Point2(3.0, 5.0));
+        cluster.insert(5, &Point2(5.0, 7.0));
         assert_eq!(cluster.size(), 3);
 
         cluster.clear();

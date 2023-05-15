@@ -269,7 +269,7 @@ where
             let x = i % width;
             let y = i / width;
 
-            let pixel = Point5::new(
+            let pixel = Point5(
                 lab.l.normalize(Lab::<F>::min_l(), Lab::<F>::max_l()),
                 lab.a.normalize(Lab::<F>::min_a(), Lab::<F>::max_a()),
                 lab.b.normalize(Lab::<F>::min_b(), Lab::<F>::max_b()),

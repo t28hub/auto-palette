@@ -89,12 +89,12 @@ mod tests {
     #[test]
     fn test_core_distance() {
         let dataset = Vec::from([
-            Point2::new(0.0, 0.0),
-            Point2::new(1.1, 2.1),
-            Point2::new(2.0, 3.0),
-            Point2::new(1.0, 2.0),
-            Point2::new(0.9, 1.9),
-            Point2::new(2.5, 3.5),
+            Point2(0.0, 0.0),
+            Point2(1.1, 2.1),
+            Point2(2.0, 3.0),
+            Point2(1.0, 2.0),
+            Point2(0.9, 1.9),
+            Point2(2.5, 3.5),
         ]);
 
         let actual = CoreDistance::new(&dataset, 3, &Distance::SquaredEuclidean);

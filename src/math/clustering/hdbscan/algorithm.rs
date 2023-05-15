@@ -371,27 +371,27 @@ mod tests {
     #[test]
     fn fit_should_cluster_dataset() {
         let dataset = vec![
-            Point2::new(0.0, 0.0), // 0
-            Point2::new(0.0, 1.0), // 1
-            Point2::new(0.0, 7.0), // 2
-            Point2::new(0.0, 8.0), // 3
-            Point2::new(1.0, 0.0), // 4
-            Point2::new(1.0, 1.0), // 5
-            Point2::new(1.0, 2.0), // 6
-            Point2::new(1.0, 7.0), // 7
-            Point2::new(1.0, 8.0), // 8
-            Point2::new(2.0, 1.0), // 9
-            Point2::new(2.0, 2.0), // 10
-            Point2::new(4.0, 3.0), // 11
-            Point2::new(4.0, 4.0), // 12
-            Point2::new(4.0, 5.0), // 13
-            Point2::new(5.0, 3.0), // 14
-            Point2::new(5.0, 4.0), // 15
-            Point2::new(8.0, 3.0), // 16
-            Point2::new(8.0, 4.0), // 17
-            Point2::new(8.0, 5.0), // 18
-            Point2::new(8.0, 7.0), // 19
-            Point2::new(8.0, 8.0), // 20
+            Point2(0.0, 0.0), // 0
+            Point2(0.0, 1.0), // 1
+            Point2(0.0, 7.0), // 2
+            Point2(0.0, 8.0), // 3
+            Point2(1.0, 0.0), // 4
+            Point2(1.0, 1.0), // 5
+            Point2(1.0, 2.0), // 6
+            Point2(1.0, 7.0), // 7
+            Point2(1.0, 8.0), // 8
+            Point2(2.0, 1.0), // 9
+            Point2(2.0, 2.0), // 10
+            Point2(4.0, 3.0), // 11
+            Point2(4.0, 4.0), // 12
+            Point2(4.0, 5.0), // 13
+            Point2(5.0, 3.0), // 14
+            Point2(5.0, 4.0), // 15
+            Point2(8.0, 3.0), // 16
+            Point2(8.0, 4.0), // 17
+            Point2(8.0, 5.0), // 18
+            Point2(8.0, 7.0), // 19
+            Point2(8.0, 8.0), // 20
         ];
 
         let hdbscan = HDBSCAN::new(3, 4, &Distance::SquaredEuclidean);

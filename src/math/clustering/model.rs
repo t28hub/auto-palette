@@ -75,10 +75,10 @@ mod tests {
     #[test]
     fn test_model() {
         let clusters = vec![{
-            let mut cluster = Cluster::new(Point2::new(0.0, 0.0));
-            cluster.insert(0, &Point2::new(1.0, 1.0));
-            cluster.insert(4, &Point2::new(2.0, 2.0));
-            cluster.insert(5, &Point2::new(3.0, 3.0));
+            let mut cluster = Cluster::new(Point2(0.0, 0.0));
+            cluster.insert(0, &Point2(1.0, 1.0));
+            cluster.insert(4, &Point2(2.0, 2.0));
+            cluster.insert(5, &Point2(3.0, 3.0));
             cluster
         }];
         let outliers = HashSet::from([1, 2, 3]);

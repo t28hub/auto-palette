@@ -218,13 +218,13 @@ mod tests {
     fn test_train() {
         let gmeans = Gmeans::new(5, 10, 2, 0.01_f64, Distance::Euclidean);
         let dataset = vec![
-            Point2::new(1.0, 1.0),
-            Point2::new(3.5, 5.0),
-            Point2::new(0.0, 1.0),
-            Point2::new(0.0, 0.0),
-            Point2::new(5.0, 4.0),
-            Point2::new(5.0, 6.0),
-            Point2::new(1.0, 0.0),
+            Point2(1.0, 1.0),
+            Point2(3.5, 5.0),
+            Point2(0.0, 1.0),
+            Point2(0.0, 0.0),
+            Point2(5.0, 4.0),
+            Point2(5.0, 6.0),
+            Point2(1.0, 0.0),
         ];
         let actual = gmeans.train(&dataset);
 

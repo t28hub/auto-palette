@@ -98,12 +98,12 @@ mod tests {
     #[must_use]
     fn sample_dataset() -> Vec<Point2<f64>> {
         vec![
-            Point2::new(0.0, 0.0),
-            Point2::new(1.0, 1.0),
-            Point2::new(2.0, 1.5),
-            Point2::new(1.0, 0.0),
-            Point2::new(2.0, 2.0),
-            Point2::new(2.5, 3.0),
+            Point2(0.0, 0.0),
+            Point2(1.0, 1.0),
+            Point2(2.0, 1.5),
+            Point2(1.0, 0.0),
+            Point2(2.0, 2.0),
+            Point2(2.5, 3.0),
         ]
     }
 

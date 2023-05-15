@@ -74,21 +74,21 @@ mod tests {
     fn test_size_ordered() {
         let cluster1 = {
             let mut cluster = Cluster::default();
-            cluster.insert(0, &Point2::new(2.0, 3.0));
+            cluster.insert(0, &Point2(2.0, 3.0));
             cluster
         };
         let cluster2 = {
             let mut cluster = Cluster::default();
-            cluster.insert(1, &Point2::new(0.0, 1.0));
-            cluster.insert(2, &Point2::new(0.0, 0.0));
-            cluster.insert(3, &Point2::new(1.0, 0.0));
-            cluster.insert(4, &Point2::new(1.0, 1.0));
+            cluster.insert(1, &Point2(0.0, 1.0));
+            cluster.insert(2, &Point2(0.0, 0.0));
+            cluster.insert(3, &Point2(1.0, 0.0));
+            cluster.insert(4, &Point2(1.0, 1.0));
             cluster
         };
         let cluster3 = {
             let mut cluster = Cluster::default();
-            cluster.insert(5, &Point2::new(5.0, 7.0));
-            cluster.insert(6, &Point2::new(5.0, 5.0));
+            cluster.insert(5, &Point2(5.0, 7.0));
+            cluster.insert(6, &Point2(5.0, 5.0));
             cluster
         };
 

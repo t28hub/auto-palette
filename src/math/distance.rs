@@ -20,12 +20,19 @@ impl Distance {
     /// The distance between `point1` and `point2`.
     pub fn measure<F: Float, P: Point<F>>(&self, point1: &P, point2: &P) -> F {
         match *self {
-            Distance::Euclidean => Distance::SquaredEuclidean.measure(point1, point2).sqrt(),
-            Distance::SquaredEuclidean => point1
-                .sub(*point2)
-                .to_vec()
-                .iter()
-                .fold(F::zero(), |total, delta| total + delta.powi(2)),
+            Distance::Euclidean => {
+                let squared = Distance::SquaredEuclidean.measure(point1, point2);
+                squared.sqrt()
+            }
+            Distance::SquaredEuclidean => {
+                point1
+                    .iter()
+                    .zip(point2.iter())
+                    .fold(F::zero(), |total, (p1, p2)| {
+                        let delta = p1 - p2;
+                        total + delta * delta
+                    })
+            }
         }
     }
 }
