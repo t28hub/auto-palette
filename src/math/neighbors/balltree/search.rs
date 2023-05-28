@@ -86,14 +86,15 @@ where
 
         self.search_recursive(first, query, k, neighbors);
 
-        if let Some(Reverse(neighbor)) = neighbors.peek() {
-            let distance = second.as_ref().map_or(F::max_value(), |node| {
-                self.distance.measure(query, node.center())
-            });
-            if distance < neighbor.distance {
-                self.search_recursive(second, query, k, neighbors);
-            }
-        }
+        let min_distance = neighbors
+            .peek()
+            .map_or(F::max_value(), |Reverse(neighbor)| neighbor.distance);
+        let second_distance = second.as_ref().map_or(F::max_value(), |node| {
+            self.distance.measure(query, node.center())
+        });
+        if neighbors.len() < k || second_distance < min_distance {
+            self.search_recursive(second, query, k, neighbors);
+        };
     }
 
     #[must_use]
@@ -182,6 +183,7 @@ where
 mod tests {
     use super::*;
     use crate::math::point::Point2;
+    use statrs::assert_almost_eq;
 
     fn empty_dataset() -> Vec<Point2<f64>> {
         vec![]
@@ -221,9 +223,25 @@ mod tests {
 
         let dataset = sample_dataset();
         let balltree_search = BallTreeSearch::new(&dataset, &Distance::Euclidean);
-        println!("{:?}", balltree_search);
-        assert_eq!(balltree_search.search(&Point2(3.0, 3.0), 0), vec![]);
+        let actual = balltree_search.search(&Point2(3.0, 3.0), 0);
+        assert_eq!(actual.len(), 0);
 
-        assert_eq!(balltree_search.search(&Point2(3.0, 3.0), 10), vec![]);
+        let actual = balltree_search.search(&Point2(3.0, 3.0), 1);
+        assert_eq!(actual.len(), 1);
+        assert_eq!(actual[0].index, 2);
+        assert_almost_eq!(actual[0].distance, 1.0, 1e-6);
+
+        let actual = balltree_search.search(&Point2(3.0, 3.0), 5);
+        assert_eq!(actual.len(), 5);
+        assert_eq!(actual[0].index, 2);
+        assert_almost_eq!(actual[0].distance, 1.0, 1e-6);
+        assert_eq!(actual[1].index, 4);
+        assert_almost_eq!(actual[1].distance, 2.0, 1e-6);
+        assert_eq!(actual[2].index, 0);
+        assert_almost_eq!(actual[2].distance, 2.236067, 1e-6);
+        assert_eq!(actual[3].index, 3);
+        assert_almost_eq!(actual[3].distance, 2.236067, 1e-6);
+        assert_eq!(actual[4].index, 5);
+        assert_almost_eq!(actual[4].distance, 3.162277, 1e-6);
     }
 }
