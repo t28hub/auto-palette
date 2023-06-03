@@ -37,6 +37,7 @@ where
     ///
     /// # Returns
     /// A new `BallTreeSearch` instance.
+    #[allow(unused)]
     #[must_use]
     pub fn new(dataset: &'a [P], distance: &'a Distance) -> Self {
         let mut indices: Vec<usize> = (0..dataset.len()).collect();
@@ -72,7 +73,7 @@ where
             .max_by(|point1, point2| point1.partial_cmp(point2).unwrap_or(Ordering::Equal))
             .unwrap_or(F::zero());
 
-        if indices.len() <= 4 {
+        if indices.len() <= 8 {
             return Some(Node::new(center, radius, indices.to_vec(), None, None));
         }
 
@@ -88,9 +89,8 @@ where
 
         // Split the sorted dataset in the middle
         let median = indices.len() / 2;
-        let (left_indices, right_indices) = indices.split_at_mut(median);
-        let left = Self::build_node(dataset, left_indices, distance);
-        let right = Self::build_node(dataset, right_indices, distance);
+        let left = Self::build_node(dataset, &mut indices[..median], distance);
+        let right = Self::build_node(dataset, &mut indices[median..], distance);
         let node = Node::new(center, radius, indices.to_vec(), left, right);
         Some(node)
     }

@@ -147,9 +147,7 @@ where
                 Label::Outlier => {
                     outlier_set.insert(index);
                 }
-                _ => unreachable!(
-                    "All points in the dataset are assigned to any cluster or labeled as outlier"
-                ),
+                _ => {}
             }
         }
 

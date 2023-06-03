@@ -74,7 +74,7 @@ where
     /// A reference to the indices of the points in the dataset.
     #[inline]
     #[must_use]
-    pub fn indices(&self) -> &Vec<usize> {
+    pub fn indices(&self) -> &[usize] {
         &self.indices
     }
 
