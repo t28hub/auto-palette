@@ -1,2 +1,2 @@
-mod kdnode;
+mod node;
 pub mod search;

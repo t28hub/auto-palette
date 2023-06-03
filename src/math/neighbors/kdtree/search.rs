@@ -1,5 +1,5 @@
 use crate::math::distance::Distance;
-use crate::math::neighbors::kdtree::kdnode::KDNode;
+use crate::math::neighbors::kdtree::node::KDNode;
 use crate::math::neighbors::neighbor::Neighbor;
 use crate::math::neighbors::search::NeighborSearch;
 use crate::math::number::Float;
@@ -112,7 +112,7 @@ where
         root: &Option<Box<KDNode>>,
         query: &P,
         k: usize,
-        heap: &mut BinaryHeap<Reverse<Neighbor<F>>>,
+        neighbors: &mut BinaryHeap<Reverse<Neighbor<F>>>,
     ) {
         let Some(ref node) = root else {
             return;
@@ -123,24 +123,24 @@ where
             let distance = self.distance.measure(&point, query);
             Neighbor::new(node.index, distance)
         };
-        heap.push(Reverse(neighbor));
+        neighbors.push(Reverse(neighbor));
 
         if node.is_leaf() {
             return;
         }
 
         let delta = query[node.axis] - point[node.axis];
-        let distance = heap
+        let distance = neighbors
             .peek()
-            .map(|neighbor| neighbor.0.distance)
+            .map(|Reverse(neighbor)| neighbor.distance)
             .unwrap_or(F::min_value());
-        if heap.len() < k || delta.abs() <= distance {
-            self.search_recursively(node.left(), query, k, heap);
-            self.search_recursively(node.right(), query, k, heap);
+        if neighbors.len() < k || delta.abs() <= distance {
+            self.search_recursively(node.left(), query, k, neighbors);
+            self.search_recursively(node.right(), query, k, neighbors);
         } else if delta < F::zero() {
-            self.search_recursively(node.left(), query, k, heap);
+            self.search_recursively(node.left(), query, k, neighbors);
         } else {
-            self.search_recursively(node.right(), query, k, heap);
+            self.search_recursively(node.right(), query, k, neighbors);
         }
     }
 
@@ -149,7 +149,7 @@ where
         root: &Option<Box<KDNode>>,
         query: &P,
         radius: F,
-        heap: &mut BinaryHeap<Reverse<Neighbor<F>>>,
+        neighbors: &mut BinaryHeap<Reverse<Neighbor<F>>>,
     ) {
         let Some(ref node) = root else {
             return;
@@ -158,17 +158,17 @@ where
         let point = self.dataset[node.index];
         let distance = self.distance.measure(&point, query);
         if distance <= radius {
-            heap.push(Reverse(Neighbor::new(node.index, distance)));
+            neighbors.push(Reverse(Neighbor::new(node.index, distance)));
         }
 
         let delta = query[node.axis] - point[node.axis];
         if delta.abs() <= radius {
-            self.search_radius_recursively(node.left(), query, radius, heap);
-            self.search_radius_recursively(node.right(), query, radius, heap);
+            self.search_radius_recursively(node.left(), query, radius, neighbors);
+            self.search_radius_recursively(node.right(), query, radius, neighbors);
         } else if delta < F::zero() {
-            self.search_radius_recursively(node.left(), query, radius, heap);
+            self.search_radius_recursively(node.left(), query, radius, neighbors);
         } else {
-            self.search_radius_recursively(node.right(), query, radius, heap);
+            self.search_radius_recursively(node.right(), query, radius, neighbors);
         }
     }
 }
@@ -188,8 +188,8 @@ where
         self.search_recursively(&self.root, query, k, &mut heap);
 
         let mut neighbors = Vec::with_capacity(k);
-        while let Some(neighbor) = heap.pop() {
-            neighbors.push(neighbor.0);
+        while let Some(Reverse(neighbor)) = heap.pop() {
+            neighbors.push(neighbor);
             if neighbors.len() == k {
                 break;
             }
@@ -212,8 +212,8 @@ where
         self.search_radius_recursively(&self.root, query, radius, &mut heap);
 
         let mut neighbors = Vec::with_capacity(heap.len());
-        while let Some(neighbor) = heap.pop() {
-            neighbors.push(neighbor.0);
+        while let Some(Reverse(neighbor)) = heap.pop() {
+            neighbors.push(neighbor);
         }
         neighbors
     }
@@ -223,10 +223,6 @@ where
 mod tests {
     use super::*;
     use crate::math::point::Point2;
-
-    fn empty_dataset() -> Vec<Point2<f64>> {
-        vec![]
-    }
 
     fn sample_dataset() -> Vec<Point2<f64>> {
         vec![
@@ -242,11 +238,7 @@ mod tests {
     }
 
     #[test]
-    fn search_should_return_knearest_neighbors() {
-        let dataset = empty_dataset();
-        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, &Distance::SquaredEuclidean);
-        assert_eq!(kdtree_search.search(&Point2(3.0, 3.0), 4), vec![]);
-
+    fn test_search() {
         let dataset = sample_dataset();
         let kdtree_search = KDTreeSearch::new_with_ref(&dataset, &Distance::SquaredEuclidean);
         assert_eq!(kdtree_search.search(&Point2(3.0, 3.0), 0), vec![]);
@@ -274,11 +266,14 @@ mod tests {
     }
 
     #[test]
-    fn search_nearest_should_return_nearest_neighbor() {
-        let dataset = empty_dataset();
+    fn test_search_empty() {
+        let dataset: Vec<Point2<f64>> = vec![];
         let kdtree_search = KDTreeSearch::new_with_ref(&dataset, &Distance::SquaredEuclidean);
-        assert_eq!(kdtree_search.search_nearest(&Point2(2.5, 3.0)), None);
+        assert_eq!(kdtree_search.search(&Point2(3.0, 3.0), 4), vec![]);
+    }
 
+    #[test]
+    fn test_search_nearest() {
         let dataset = sample_dataset();
         let kdtree_search = KDTreeSearch::new_with_ref(&dataset, &Distance::SquaredEuclidean);
         assert_eq!(
@@ -288,11 +283,14 @@ mod tests {
     }
 
     #[test]
-    fn search_radius_should_return_neighbors_within_radius() {
-        let dataset = empty_dataset();
+    fn test_search_nearest_empty() {
+        let dataset: Vec<Point2<f64>> = vec![];
         let kdtree_search = KDTreeSearch::new_with_ref(&dataset, &Distance::SquaredEuclidean);
-        assert_eq!(kdtree_search.search_radius(&Point2(3.0, 3.0), 5.0), vec![]);
+        assert_eq!(kdtree_search.search_nearest(&Point2(2.5, 3.0)), None);
+    }
 
+    #[test]
+    fn test_search_radius() {
         let dataset = sample_dataset();
         let kdtree_search = KDTreeSearch::new_with_ref(&dataset, &Distance::SquaredEuclidean);
         assert_eq!(kdtree_search.search_radius(&Point2(3.0, 3.0), -1.0), vec![]);
@@ -333,5 +331,12 @@ mod tests {
                 Neighbor::new(3, 20.0),
             ]
         );
+    }
+
+    #[test]
+    fn test_search_radius_empty() {
+        let dataset: Vec<Point2<f64>> = vec![];
+        let kdtree_search = KDTreeSearch::new_with_ref(&dataset, &Distance::SquaredEuclidean);
+        assert_eq!(kdtree_search.search_radius(&Point2(3.0, 3.0), 5.0), vec![]);
     }
 }
