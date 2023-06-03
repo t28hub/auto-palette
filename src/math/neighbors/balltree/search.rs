@@ -58,12 +58,6 @@ where
             return None;
         }
 
-        if indices.len() == 1 {
-            let index = indices[0];
-            let point = dataset[index];
-            return Some(Node::new(point, F::zero(), indices.to_vec(), None, None));
-        }
-
         let mut center = indices.iter().fold(P::zero(), |mut centroid, index| {
             centroid += dataset[*index];
             centroid
@@ -77,6 +71,10 @@ where
             })
             .max_by(|point1, point2| point1.partial_cmp(point2).unwrap_or(Ordering::Equal))
             .unwrap_or(F::zero());
+
+        if indices.len() <= 4 {
+            return Some(Node::new(center, radius, indices.to_vec(), None, None));
+        }
 
         let max_dimension = Self::find_split_dimension(dataset, indices);
         // Sort the indices by the dimension with the maximum variance
@@ -101,7 +99,6 @@ where
     fn find_split_dimension(dataset: &[P], indices: &mut [usize]) -> usize {
         let dimension = dataset[0].dimension();
         let mut dimension_iter = (0..dimension)
-            .into_iter()
             .map(|dimension| {
                 let (min, max) =
                     indices
@@ -116,7 +113,7 @@ where
 
         let (initial_dimension, initial_delta) =
             dimension_iter.next().expect("No dimensions found");
-        let (max_dimension, ..) = dimension_iter.into_iter().skip(1).fold(
+        let (max_dimension, ..) = dimension_iter.skip(1).fold(
             (initial_dimension, initial_delta),
             |(max_dimension, max_delta), (dimension, delta)| {
                 if delta.partial_cmp(&max_delta).unwrap_or(Ordering::Equal) == Ordering::Greater {
@@ -141,10 +138,13 @@ where
         };
 
         if node.is_leaf() {
-            let point_index = node.index_at(0);
-            let distance = self.distance.measure(query, node.center());
-            let neighbor = Neighbor::new(point_index, distance);
-            neighbors.push(Reverse(neighbor));
+            let neighbor_iter = node.indices().iter().map(|index| {
+                let point = &self.dataset[*index];
+                let distance = self.distance.measure(query, point);
+                let neighbor = Neighbor::new(*index, distance);
+                Reverse(neighbor)
+            });
+            neighbors.extend(neighbor_iter);
             return;
         }
 
@@ -187,12 +187,17 @@ where
         };
 
         if node.is_leaf() {
-            let point_index = node.index_at(0);
-            let distance = self.distance.measure(query, node.center());
-            if distance <= radius {
-                let neighbor = Neighbor::new(point_index, distance);
-                neighbors.push(Reverse(neighbor));
-            }
+            let neighbor_iter = node.indices().iter().filter_map(|index| {
+                let point = &self.dataset[*index];
+                let distance = self.distance.measure(query, point);
+                if distance <= radius {
+                    let neighbor = Neighbor::new(*index, distance);
+                    Some(Reverse(neighbor))
+                } else {
+                    None
+                }
+            });
+            neighbors.extend(neighbor_iter);
             return;
         }
 
@@ -206,10 +211,10 @@ where
             self.distance.measure(query, node.center())
         });
 
-        if left_distance <= radius + radius {
+        if left_distance - node.radius() <= radius {
             self.search_radius_recursive(left, query, radius, neighbors);
         }
-        if right_distance <= radius + radius {
+        if right_distance - node.radius() <= radius {
             self.search_radius_recursive(right, query, radius, neighbors);
         }
     }
@@ -232,6 +237,9 @@ where
         let mut neighbors = Vec::with_capacity(k);
         while let Some(Reverse(neighbor)) = heap.pop() {
             neighbors.push(neighbor);
+            if neighbors.len() == k {
+                break;
+            }
         }
         neighbors
     }
@@ -336,6 +344,12 @@ mod tests {
         let neighbor = actual.unwrap();
         assert_eq!(neighbor.index, 2);
         assert_almost_eq!(neighbor.distance, 1.0, 1e-6);
+
+        let actual = balltree_search.search_nearest(&Point2(2.0, 6.0));
+        assert!(actual.is_some());
+        let neighbor = actual.unwrap();
+        assert_eq!(neighbor.index, 5);
+        assert_almost_eq!(neighbor.distance, 0.0, 1e-6);
     }
 
     #[test]

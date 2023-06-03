@@ -58,20 +58,24 @@ where
         &self.center
     }
 
-    /// Returns an index of a point in the dataset.
-    ///
-    /// # Arguments
-    /// * `index` - The index of the point in the dataset.
+    /// Returns the radius of this node.
     ///
     /// # Returns
-    /// An index of a point in the dataset.
-    ///
-    /// # Panics
-    /// Panics if the index is out of bounds.
+    /// The radius of this node.
     #[inline]
     #[must_use]
-    pub fn index_at(&self, index: usize) -> usize {
-        self.indices[index]
+    pub fn radius(&self) -> F {
+        self.radius
+    }
+
+    /// Returns a reference to the indices of the points in the dataset.
+    ///
+    /// # Returns
+    /// A reference to the indices of the points in the dataset.
+    #[inline]
+    #[must_use]
+    pub fn indices(&self) -> &Vec<usize> {
+        &self.indices
     }
 
     /// Returns a reference to the left child node.
