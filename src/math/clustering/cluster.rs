@@ -83,7 +83,7 @@ where
     pub fn insert(&mut self, index: usize, point: &P) {
         // Updates the centroid.
         self.centroid *= F::from_usize(self.membership.len());
-        self.centroid += *point;
+        self.centroid += point;
         self.centroid /= F::from_usize(self.membership.len() + 1);
 
         // Stores the index of the point.

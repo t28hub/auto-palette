@@ -166,8 +166,8 @@ where
 
             let largest_cluster = &largest.0;
             let (cluster1, cluster2) = self.split(largest_cluster, dataset);
-            let centroid1 = *cluster1.centroid();
-            let centroid2 = *cluster2.centroid();
+            let centroid1 = cluster1.centroid();
+            let centroid2 = cluster2.centroid();
 
             // Anderson Darling test
             let v = centroid1.sub(centroid2);

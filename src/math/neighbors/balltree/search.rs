@@ -60,7 +60,7 @@ where
         }
 
         let mut center = indices.iter().fold(P::zero(), |mut centroid, index| {
-            centroid += dataset[*index];
+            centroid += &dataset[*index];
             centroid
         });
         center /= F::from_usize(indices.len());

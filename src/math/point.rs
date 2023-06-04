@@ -9,15 +9,16 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAs
 /// # Type Parameters
 /// * `F` - The type of the point's components.
 pub trait Point<F: Float>:
-    Clone
-    + Copy
+    Copy
     + Debug
     + Index<usize, Output = F>
     + Zero
-    + Add<Output = Self>
-    + AddAssign
-    + Sub<Output = Self>
-    + SubAssign
+    + Add<Self, Output = Self>
+    + for<'a> Sub<&'a Self, Output = Self>
+    + for<'a> Add<&'a Self, Output = Self>
+    + for<'a> AddAssign<&'a Self>
+    + for<'a> Sub<&'a Self, Output = Self>
+    + for<'a> SubAssign<&'a Self>
     + Mul<F>
     + MulAssign<F>
     + Div<F>
@@ -220,7 +221,7 @@ macro_rules! impl_point {
         }
     }
 
-    impl<F> Add for $Point<F> where F: Float {
+    impl<F> Add<$Point<F>> for $Point<F> where F: Float {
         type Output = Self;
 
         #[inline]
@@ -229,11 +230,20 @@ macro_rules! impl_point {
         }
     }
 
-    impl<F> Sub for $Point<F> where F: Float {
+    impl<'a, F> Add<&'a $Point<F>> for $Point<F> where F: Float {
         type Output = Self;
 
         #[inline]
-        fn sub(self, rhs: Self) -> Self::Output {
+        fn add(self, rhs: &'a Self) -> Self::Output {
+            Self { $($field: self.$field + rhs.$field),+ }
+        }
+    }
+
+    impl<'a, F> Sub<&'a $Point<F>> for $Point<F> where F: Float {
+        type Output = Self;
+
+        #[inline]
+        fn sub(self, rhs: &'a Self) -> Self::Output {
             Self { $($field: self.$field - rhs.$field),+ }
         }
     }
@@ -259,16 +269,16 @@ macro_rules! impl_point {
         }
     }
 
-    impl<F> AddAssign<$Point<F>> for $Point<F> where F: Float {
+    impl<'a, F> AddAssign<&'a $Point<F>> for $Point<F> where F: Float {
         #[inline]
-        fn add_assign(&mut self, rhs: $Point<F>) {
+        fn add_assign(&mut self, rhs: &'a Self) {
             $(self.$field += rhs.$field);+
         }
     }
 
-    impl<F> SubAssign<$Point<F>> for $Point<F> where F: Float {
+    impl<'a, F> SubAssign<&'a $Point<F>> for $Point<F> where F: Float {
         #[inline]
-        fn sub_assign(&mut self, rhs: $Point<F>) {
+        fn sub_assign(&mut self, rhs: &'a Self) {
             $(self.$field -= rhs.$field);+
         }
     }
@@ -420,30 +430,30 @@ mod tests {
     fn test_add() {
         let point1 = Point2(1.0, 2.0);
         let point2 = Point2(2.0, 3.0);
-        assert_eq!(point1.add(point2), Point2(3.0, 5.0));
+        assert_eq!(point1.add(&point2), Point2(3.0, 5.0));
 
         let point1 = Point3(1.0, 2.0, 3.0);
         let point2 = Point3(2.0, 3.0, 5.0);
-        assert_eq!(point1.add(point2), Point3(3.0, 5.0, 8.0));
+        assert_eq!(point1.add(&point2), Point3(3.0, 5.0, 8.0));
 
         let point1 = Point5(1.0, 2.0, 3.0, 4.0, 5.0);
         let point2 = Point5(2.0, 3.0, 5.0, 7.0, 11.0);
-        assert_eq!(point1.add(point2), Point5(3.0, 5.0, 8.0, 11.0, 16.0));
+        assert_eq!(point1.add(&point2), Point5(3.0, 5.0, 8.0, 11.0, 16.0));
     }
 
     #[test]
     fn test_sub() {
         let point1 = Point2(1.0, 3.0);
         let point2 = Point2(2.0, 2.0);
-        assert_eq!(point1.sub(point2), Point2(-1.0, 1.0));
+        assert_eq!(point1.sub(&point2), Point2(-1.0, 1.0));
 
         let point1 = Point3(3.0, 5.0, 7.0);
         let point2 = Point3(1.0, 2.0, 3.0);
-        assert_eq!(point1.sub(point2), Point3(2.0, 3.0, 4.0));
+        assert_eq!(point1.sub(&point2), Point3(2.0, 3.0, 4.0));
 
         let point1 = Point5(1.0, 2.0, 3.0, 4.0, 5.0);
         let point2 = Point5(2.0, 3.0, 5.0, 7.0, 11.0);
-        assert_eq!(point1.sub(point2), Point5(-1.0, -1.0, -2.0, -3.0, -6.0));
+        assert_eq!(point1.sub(&point2), Point5(-1.0, -1.0, -2.0, -3.0, -6.0));
     }
 
     #[test]
@@ -480,16 +490,14 @@ mod tests {
     #[test]
     fn test_add_assign() {
         let mut point1 = Point2(1.0, 2.0);
-        let point2 = Point2(2.0, 3.0);
-        point1.add_assign(point2);
+        point1.add_assign(&Point2(2.0, 3.0));
         assert_eq!(point1, Point2(3.0, 5.0));
     }
 
     #[test]
     fn test_sub_assign() {
         let mut point1 = Point2(1.0, 3.0);
-        let point2 = Point2(2.0, 2.0);
-        point1.sub_assign(point2);
+        point1.sub_assign(&Point2(2.0, 2.0));
         assert_eq!(point1, Point2(-1.0, 1.0));
     }
 
