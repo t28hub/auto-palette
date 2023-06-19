@@ -1,10 +1,10 @@
-extern crate core;
-
 mod algorithm;
 mod color;
 mod image;
+mod image2;
 mod math;
 mod palette;
+mod palette2;
 mod swatch;
 mod theme;
 
@@ -14,5 +14,6 @@ pub use crate::math::number;
 pub use algorithm::*;
 pub use color::*;
 pub use palette::*;
+pub use palette2::*;
 pub use swatch::*;
 pub use theme::*;

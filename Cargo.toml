@@ -13,15 +13,16 @@ name = "algorithm"
 harness = false
 
 [dependencies]
+ndarray = "0.15.6"
 num-traits = "0.2.15"
 statrs = "0.16.0"
 thiserror = "1.0.38"
 
+[dependencies.image]
+version = "0.24.6"
+default-features = false
+features = ["jpeg", "png"]
+
 [dev-dependencies]
 criterion = { version = "0.5.0", features = ["html_reports"] }
 rstest = "0.17.0"
-
-[dev-dependencies.image]
-version = "0.24.5"
-default-features = false
-features = ["jpeg", "png"]
