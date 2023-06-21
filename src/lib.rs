@@ -3,6 +3,7 @@ mod color;
 mod image;
 mod image2;
 mod math;
+mod math2;
 mod palette;
 mod palette2;
 mod swatch;
