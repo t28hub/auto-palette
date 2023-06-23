@@ -4,15 +4,18 @@ use std::fmt::Debug;
 
 /// Enum representing a distance measure.
 #[derive(Debug, PartialEq, Eq)]
-pub enum DistanceMeasure {
+pub enum DistanceMetric {
     #[allow(unused)]
     Euclidean,
     #[allow(unused)]
     SquaredEuclidean,
 }
 
-impl DistanceMeasure {
+impl DistanceMetric {
     /// Measures the distance between two points.
+    ///
+    /// # Type parameters
+    /// * `F` - The float type used for the distance.
     ///
     /// # Arguments
     /// * `point1` - The first point.
@@ -33,10 +36,10 @@ impl DistanceMeasure {
         );
 
         match *self {
-            DistanceMeasure::Euclidean => DistanceMeasure::SquaredEuclidean
+            DistanceMetric::Euclidean => DistanceMetric::SquaredEuclidean
                 .measure(point1, point2)
                 .sqrt(),
-            DistanceMeasure::SquaredEuclidean => {
+            DistanceMetric::SquaredEuclidean => {
                 point1
                     .iter()
                     .zip(point2.iter())
@@ -57,7 +60,7 @@ mod tests {
 
     #[test]
     fn test_euclidean() {
-        let metric = DistanceMeasure::Euclidean;
+        let metric = DistanceMetric::Euclidean;
 
         let point1 = aview1(&[0.0, 1.0]);
         let point2 = aview1(&[1.0, 0.0]);
@@ -70,7 +73,7 @@ mod tests {
 
     #[test]
     fn test_squared_euclidean() {
-        let metric = DistanceMeasure::SquaredEuclidean;
+        let metric = DistanceMetric::SquaredEuclidean;
 
         let point1 = aview1(&[0.0, 1.0]);
         let point2 = aview1(&[1.0, 0.0]);
