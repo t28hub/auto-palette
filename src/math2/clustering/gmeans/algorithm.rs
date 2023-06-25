@@ -1,11 +1,12 @@
 use crate::math::stats::{anderson_darling_test, standardize};
 use crate::math2::clustering::algorithm::ClusteringAlgorithm;
+use crate::math2::clustering::cluster::Cluster;
 use crate::math2::clustering::gmeans::cmp::SizeOrdered;
 use crate::math2::distance::DistanceMetric;
 use crate::math2::neighbors::linear::search::LinearSearch;
 use crate::math2::neighbors::search::NeighborSearch;
 use crate::number::Float;
-use ndarray::{Array1, Array2, ArrayView1, ArrayView2, CowArray, Ix2, NdFloat};
+use ndarray::{Array2, ArrayView2, CowArray, Ix2, NdFloat};
 use std::collections::BinaryHeap;
 
 /// Struct representing the G-Means clustering algorithm.
@@ -174,66 +175,6 @@ where
             }
         }
         clusters
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Cluster<F>
-where
-    F: Float,
-{
-    centroid: Array1<F>,
-    membership: Vec<usize>,
-}
-
-impl<F> Cluster<F>
-where
-    F: Float + NdFloat,
-{
-    #[must_use]
-    pub fn new(centroid: Array1<F>, membership: Vec<usize>) -> Self {
-        Self {
-            centroid,
-            membership,
-        }
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn centroid(&self) -> ArrayView1<F> {
-        self.centroid.view()
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn membership(&self) -> &[usize] {
-        &self.membership
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.membership.is_empty()
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn size(&self) -> usize {
-        self.membership.len()
-    }
-
-    #[inline]
-    pub fn insert(&mut self, index: usize, point: &ArrayView1<F>) {
-        let diff = point - &self.centroid;
-        let size = F::from_usize(self.membership.len() + 1);
-        self.centroid += &(&diff / size);
-        self.membership.push(index);
-    }
-
-    #[inline]
-    pub fn clear(&mut self) {
-        self.centroid.fill(F::zero());
-        self.membership.clear();
     }
 }
 
