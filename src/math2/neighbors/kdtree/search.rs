@@ -97,7 +97,7 @@ where
         let min_distance = neighbors
             .peek()
             .map(|Reverse(neighbor)| neighbor.distance)
-            .unwrap_or(F::max_value());
+            .unwrap_or(F::min_positive_value());
         if neighbors.len() < k || delta.abs() <= min_distance {
             self.search_recursively(node.left(), query, k, neighbors);
             self.search_recursively(node.right(), query, k, neighbors);
