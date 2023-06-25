@@ -127,7 +127,7 @@ mod tests {
     fn test_size() {
         let centroid = array![1.0, 2.0, 3.0];
         let membership = vec![0, 1, 2];
-        let mut cluster = Cluster::new(centroid, membership);
+        let cluster = Cluster::new(centroid, membership);
         assert_eq!(cluster.size(), 3);
 
         let centroid = array![0.0, 0.0, 0.0];

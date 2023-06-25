@@ -1,12 +1,12 @@
-use crate::math::stats::{anderson_darling_test, standardize};
 use crate::math2::clustering::algorithm::ClusteringAlgorithm;
 use crate::math2::clustering::cluster::Cluster;
 use crate::math2::clustering::gmeans::cmp::SizeOrdered;
 use crate::math2::distance::DistanceMetric;
 use crate::math2::neighbors::linear::search::LinearSearch;
 use crate::math2::neighbors::search::NeighborSearch;
+use crate::math2::stats::{anderson_darling_test, standardize};
 use crate::number::Float;
-use ndarray::{Array2, ArrayView2, CowArray, Ix2, NdFloat};
+use ndarray::{Array1, Array2, ArrayView2, CowArray, Ix2, NdFloat};
 use std::collections::BinaryHeap;
 
 /// Struct representing the G-Means clustering algorithm.
@@ -157,13 +157,13 @@ where
             // Anderson Darling test
             let v = &centroid1 - &centroid2;
             let vp = v.dot(&v);
-            let mut x = Vec::with_capacity(largest.size());
+            let mut x = Array1::zeros(largest.size());
             for &index in largest.data().membership().iter() {
                 let point = points.row(index);
-                x.push(point.dot(&v) / vp);
+                x[index] = point.dot(&v) / vp;
             }
-            standardize(&mut x);
-            let Some(score) = anderson_darling_test(&x) else {
+            standardize(&mut x.view_mut());
+            let Some(score) = anderson_darling_test(&x.view()) else {
                 break;
             };
             if score < F::from_f64(1.8692) {
