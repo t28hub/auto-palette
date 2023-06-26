@@ -1,7 +1,7 @@
 extern crate image;
 
 use auto_palette::number::{Float, Fraction};
-use auto_palette::{Algorithm, Palette, SimpleImageData, Swatch, Theme};
+use auto_palette::{Algorithm, Palette, Swatch, Theme};
 use rstest::rstest;
 
 #[rstest]
@@ -11,10 +11,8 @@ use rstest::rstest;
 #[case::sc("./tests/images/flag_sc.png", 5, vec ! ["#ed000c", "#003e8d", "#007c30", "#ffd72d", "#ffffff"])]
 #[case::za("./tests/images/flag_za.png", 6, vec ! ["#007944", "#f42222", "#00158f", "#ffffff", "#000000", "#ffb400"])]
 fn extract(#[case] path: &str, #[case] n: usize, #[case] expected: Vec<&str>) {
-    let img = image::open(path).unwrap();
-    let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
-
-    let palette: Palette<f64> = Palette::extract(&image_data);
+    let image = image::open(path).unwrap();
+    let palette: Palette<f64> = Palette::extract(&image);
     let swatches = palette.swatches(n);
     assert_eq!(swatches.len(), n);
 
@@ -27,20 +25,16 @@ fn extract(#[case] path: &str, #[case] n: usize, #[case] expected: Vec<&str>) {
 
 #[test]
 fn extract_with_gmeans() {
-    let img = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();
-    let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
-
-    let palette: Palette<f64> = Palette::extract_with_algorithm(&image_data, &Algorithm::GMeans);
+    let image = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();
+    let palette: Palette<f64> = Palette::extract_with_algorithm(&image, &Algorithm::GMeans);
     let swatches = palette.swatches(5);
     assert_eq!(swatches.len(), 5);
 }
 
 #[test]
 fn extract_with_dbscan() {
-    let img = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();
-    let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
-
-    let palette: Palette<f64> = Palette::extract_with_algorithm(&image_data, &Algorithm::DBSCAN);
+    let image = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();
+    let palette: Palette<f64> = Palette::extract_with_algorithm(&image, &Algorithm::DBSCAN);
     let swatches = palette.swatches(5);
     swatches.iter().for_each(|swatch| {
         println!(
@@ -57,18 +51,15 @@ fn extract_with_dbscan() {
 #[test]
 #[ignore]
 fn extract_with_hdbscan() {
-    let img = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();
-    let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
-
-    let palette: Palette<f64> = Palette::extract_with_algorithm(&image_data, &Algorithm::HDBSCAN);
+    let image = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();
+    let palette: Palette<f64> = Palette::extract_with_algorithm(&image, &Algorithm::HDBSCAN);
     let swatches = palette.swatches(5);
     assert_eq!(swatches.len(), 5);
 }
 
 #[test]
 fn swatches_with_theme() {
-    let img = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();
-    let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
+    let image = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();
 
     struct CustomTheme;
     impl Theme for CustomTheme {
@@ -84,7 +75,7 @@ fn swatches_with_theme() {
         }
     }
 
-    let palette: Palette<f64> = Palette::extract(&image_data);
+    let palette: Palette<f64> = Palette::extract(&image);
     let swatches = palette.swatches_with_theme(5, &CustomTheme);
     assert_eq!(swatches.len(), 5);
 }

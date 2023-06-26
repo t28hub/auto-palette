@@ -1,12 +1,12 @@
 use image::{RgbImage, RgbaImage};
-use ndarray::{Array, ArrayView, Ix3};
 
 /// Struct representing an image data.
+#[derive(Debug)]
 pub struct ImageData {
     width: u32,
     height: u32,
     channels: u8,
-    data: Array<u8, Ix3>,
+    data: Vec<u8>,
 }
 
 impl ImageData {
@@ -14,9 +14,8 @@ impl ImageData {
     ///
     /// # Returns
     /// The width of the image data.
-    #[allow(unused)]
     #[must_use]
-    fn width(&self) -> u32 {
+    pub fn width(&self) -> u32 {
         self.width
     }
 
@@ -24,9 +23,8 @@ impl ImageData {
     ///
     /// # Returns
     /// The height of the image data.
-    #[allow(unused)]
     #[must_use]
-    fn height(&self) -> u32 {
+    pub fn height(&self) -> u32 {
         self.height
     }
 
@@ -34,9 +32,8 @@ impl ImageData {
     ///
     /// # Returns
     /// The number of channels of the image data.
-    #[allow(unused)]
     #[must_use]
-    fn channels(&self) -> u8 {
+    pub fn channels(&self) -> u8 {
         self.channels
     }
 
@@ -44,10 +41,9 @@ impl ImageData {
     ///
     /// # Returns
     /// The raw data of the image data.
-    #[allow(unused)]
     #[must_use]
-    fn data(&self) -> ArrayView<u8, Ix3> {
-        self.data.view()
+    pub fn data(&self) -> &[u8] {
+        &self.data
     }
 }
 
@@ -55,14 +51,11 @@ impl From<&RgbImage> for ImageData {
     #[must_use]
     fn from(value: &RgbImage) -> Self {
         let (width, height) = value.dimensions();
-        let samples = value.as_flat_samples();
-        let array = ArrayView::from_shape((height as usize, width as usize, 3), samples.as_slice())
-            .unwrap();
         Self {
             width,
             height,
             channels: 3,
-            data: array.to_owned(),
+            data: value.to_vec(),
         }
     }
 }
@@ -71,14 +64,11 @@ impl From<&RgbaImage> for ImageData {
     #[must_use]
     fn from(value: &RgbaImage) -> Self {
         let (width, height) = value.dimensions();
-        let samples = value.as_flat_samples();
-        let array = ArrayView::from_shape((height as usize, width as usize, 4), samples.as_slice())
-            .unwrap();
         Self {
             width,
             height,
             channels: 4,
-            data: array.to_owned(),
+            data: value.to_vec(),
         }
     }
 }
@@ -93,11 +83,11 @@ mod tests {
             0, 0, 0, 0, 0, 255, 0, 255, 0, 0, 255, 255, 255, 0, 0, 255, 0, 255, 255, 255, 0, 255,
             255, 255,
         ];
-        let image_data = ImageData::from(&RgbImage::from_raw(2, 2, buffer).unwrap());
+        let image_data = ImageData::from(&RgbImage::from_raw(2, 2, buffer.clone()).unwrap());
         assert_eq!(image_data.width(), 2);
         assert_eq!(image_data.height(), 2);
         assert_eq!(image_data.channels(), 3);
-        assert_eq!(image_data.data().shape(), &[2, 2, 3]);
+        assert_eq!(image_data.data(), &buffer);
     }
 
     #[test]
@@ -106,10 +96,10 @@ mod tests {
             0, 0, 0, 255, 0, 0, 255, 255, 0, 255, 0, 255, 0, 255, 255, 255, 255, 0, 0, 255, 255, 0,
             255, 255, 255, 255, 0, 255, 255, 255, 255, 255,
         ];
-        let image_data = ImageData::from(&RgbaImage::from_raw(2, 2, buffer).unwrap());
+        let image_data = ImageData::from(&RgbaImage::from_raw(2, 2, buffer.clone()).unwrap());
         assert_eq!(image_data.width(), 2);
         assert_eq!(image_data.height(), 2);
         assert_eq!(image_data.channels(), 4);
-        assert_eq!(image_data.data().shape(), &[2, 2, 4]);
+        assert_eq!(image_data.data(), &buffer);
     }
 }

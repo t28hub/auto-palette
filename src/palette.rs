@@ -2,7 +2,7 @@ use crate::color::lab::Lab;
 use crate::color::rgb::RGB;
 use crate::color::xyz::XYZ;
 use crate::color_struct::Color;
-use crate::image::image_data::ImageData;
+use crate::image::ImageData;
 use crate::math::clustering::algorithm::ClusteringAlgorithm;
 use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::dbscan::algorithm::DBSCAN;
@@ -13,6 +13,7 @@ use crate::math::number::Float;
 use crate::math::point::{Point3, Point5};
 use crate::swatch::Swatch;
 use crate::{Algorithm, Theme};
+use image::{ColorType, DynamicImage};
 use num_traits::Zero;
 use std::cmp::{Ordering, Reverse};
 use std::collections::{BinaryHeap, HashMap};
@@ -26,11 +27,10 @@ use std::collections::{BinaryHeap, HashMap};
 /// ```no_run
 /// extern crate image;
 ///
-/// use auto_palette::{Algorithm, Palette, SimpleImageData};
+/// use auto_palette::{Algorithm, Palette};
 ///
-/// let img = image::open("/path/to/image.png").unwrap();
-/// let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
-/// let palette: Palette<f64> = Palette::extract(&image_data);
+/// let image = image::open("/path/to/image.png").unwrap();
+/// let palette: Palette<f64> = Palette::extract(&image);
 /// palette.swatches(5).iter().for_each(|swatch| {
 ///     println!("{:?}", swatch.color().to_hex_string());
 ///     println!("{:?}", swatch.position());
@@ -49,29 +49,33 @@ where
     /// Extract a color palette from the given image.
     ///
     /// # Arguments
-    /// * `image_data` - The image data to use for color palette extraction.
+    /// * `image` - The image to use for color palette extraction.
     ///
     /// # Returns
     /// A new extracted `Palette` instance.
     #[must_use]
-    pub fn extract<I: ImageData>(image_data: &I) -> Palette<F> {
-        Self::extract_with_algorithm(image_data, &Algorithm::DBSCAN)
+    pub fn extract(image: &DynamicImage) -> Palette<F> {
+        Self::extract_with_algorithm(image, &Algorithm::DBSCAN)
     }
 
     /// Extract a color palette from the given image using the specified algorithm.
     ///
     /// # Arguments
-    /// * `image_data` - The image data to use for color palette extraction.
+    /// * `image` - The image to use for color palette extraction.
     /// * `algorithm` - The algorithm to use for color palette extraction.
     ///
     /// # Returns
     /// A new extracted `Palette` instance.
     #[must_use]
-    pub fn extract_with_algorithm<I: ImageData>(
-        image_data: &I,
-        algorithm: &Algorithm,
-    ) -> Palette<F> {
-        let pixels = convert_to_pixels(image_data);
+    pub fn extract_with_algorithm(image: &DynamicImage, algorithm: &Algorithm) -> Palette<F> {
+        let image_data = match image.color() {
+            ColorType::Rgb8 => ImageData::from(&image.to_rgb8()),
+            ColorType::Rgba8 => ImageData::from(&image.to_rgba8()),
+            _ => {
+                unimplemented!("Unsupported image type")
+            }
+        };
+        let pixels = convert_to_pixels(&image_data);
 
         // Merge pixels that are close in color and position, and exclude outliers.
         let model = algorithm.apply(&pixels);
@@ -239,22 +243,22 @@ where
 /// # Returns
 /// A vector of `Point5` instances.
 #[must_use]
-fn convert_to_pixels<F, I>(image_data: &I) -> Vec<Point5<F>>
+fn convert_to_pixels<F>(image_data: &ImageData) -> Vec<Point5<F>>
 where
     F: Float,
-    I: ImageData,
 {
     let width = image_data.width() as usize;
     let width_f = F::from_u32(image_data.width());
     let height_f = F::from_u32(image_data.height());
     image_data
         .data()
-        .chunks_exact(4)
+        .chunks_exact(image_data.channels() as usize)
         .enumerate()
         .filter_map(|(i, chunk)| {
             let r = chunk[0];
             let g = chunk[1];
             let b = chunk[2];
+            // TODO
             let a = chunk[3];
 
             // Ignore a transparent pixel
@@ -369,7 +373,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::SimpleImageData;
+    use image::RgbaImage;
 
     #[test]
     fn test_extract() {
@@ -379,8 +383,8 @@ mod tests {
             0, 0, 255, 255, // blue
             255, 255, 255, 255, // white
         ];
-        let image_data = SimpleImageData::new(2, 2, &data).unwrap();
-        let palette: Palette<f64> = Palette::extract(&image_data);
+        let image = DynamicImage::from(RgbaImage::from_raw(2, 2, data).unwrap());
+        let palette: Palette<f64> = Palette::extract(&image);
 
         assert!(palette.is_empty());
         assert_eq!(palette.len(), 0);

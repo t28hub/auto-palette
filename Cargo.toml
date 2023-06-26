@@ -13,7 +13,6 @@ name = "algorithm"
 harness = false
 
 [dependencies]
-ndarray = "0.15.6"
 num-traits = "0.2.15"
 statrs = "0.16.0"
 thiserror = "1.0.38"
