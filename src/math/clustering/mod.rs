@@ -4,4 +4,3 @@ pub mod dbscan;
 pub mod gmeans;
 pub mod hdbscan;
 pub mod hierarchical;
-pub mod model;

@@ -1,7 +1,6 @@
 use crate::math::clustering::algorithm::ClusteringAlgorithm;
 use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::dbscan::label::Label;
-use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
 use crate::math::neighbors::kdtree::search::KDTreeSearch;
 use crate::math::neighbors::neighbor::Neighbor;
@@ -13,7 +12,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 /// Struct representing DBSCAN clustering algorithm.
 ///
 /// # Type Parameters
-/// * `F` - The float type used for calculations (e.g., f32 or f64).
+/// * `F` - The float type used for calculations.
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, PartialEq)]
 pub struct DBSCAN<'a, F>
@@ -50,7 +49,7 @@ where
     fn expand_cluster<P, N>(
         &self,
         cluster_id: usize,
-        dataset: &[P],
+        points: &[P],
         ns: &N,
         neighbors: &[Neighbor<F>],
         labels: &mut [Label],
@@ -72,7 +71,7 @@ where
 
             labels[current_index] = Label::Assigned(cluster_id);
 
-            let point = dataset[current_index];
+            let point = points[current_index];
             let secondary_neighbors = ns.search_radius(&point, self.epsilon);
             if secondary_neighbors.len() < self.min_samples {
                 continue;
@@ -100,17 +99,18 @@ where
     F: Float,
     P: Point<F>,
 {
+    type Output = (Vec<Cluster<F, P>>, HashSet<usize>);
+
     #[must_use]
-    fn train(&self, dataset: &[P]) -> Model<F, P> {
-        if dataset.is_empty() {
-            return Model::default();
+    fn fit(&self, points: &[P]) -> Self::Output {
+        if points.is_empty() {
+            return (Vec::new(), HashSet::new());
         }
 
-        let dataset_vec = dataset.to_vec();
-        let neighbor_search = KDTreeSearch::new_with_ref(&dataset_vec, self.distance);
-        let mut labels = vec![Label::Undefined; dataset.len()];
+        let neighbor_search = KDTreeSearch::new_with_ref(points, self.distance);
+        let mut labels = vec![Label::Undefined; points.len()];
         let mut cluster_id: usize = 0;
-        for (index, point) in dataset.iter().enumerate() {
+        for (index, point) in points.iter().enumerate() {
             if !labels[index].is_undefined() {
                 continue;
             }
@@ -126,7 +126,7 @@ where
             });
             self.expand_cluster(
                 cluster_id,
-                dataset,
+                points,
                 &neighbor_search,
                 &neighbors,
                 &mut labels,
@@ -142,7 +142,7 @@ where
                     let cluster = cluster_map
                         .entry(cluster_id)
                         .or_insert_with(Cluster::default);
-                    cluster.insert(index, &dataset[index]);
+                    cluster.insert(index, &points[index]);
                 }
                 Label::Outlier => {
                     outlier_set.insert(index);
@@ -161,7 +161,7 @@ where
                 }
             })
             .collect();
-        Model::new(clusters, outlier_set)
+        (clusters, outlier_set)
     }
 }
 
@@ -171,7 +171,8 @@ mod tests {
     use crate::math::distance::Distance;
     use crate::math::point::Point2;
 
-    fn sample_dataset() -> Vec<Point2<f64>> {
+    #[must_use]
+    fn sample_points() -> Vec<Point2<f64>> {
         vec![
             Point2(0.0, 0.0), // 0
             Point2(0.0, 1.0), // 0
@@ -201,13 +202,12 @@ mod tests {
     }
 
     #[test]
-    fn test_train() {
-        let dataset = sample_dataset();
+    fn test_fit() {
+        let points = sample_points();
         let dbscan = DBSCAN::new(4, 2.0_f64.sqrt(), &Distance::Euclidean);
-        let model = dbscan.train(&dataset);
+        let (clusters, outliers) = dbscan.fit(&points);
 
-        let mut centroids: Vec<_> = model
-            .clusters()
+        let mut centroids: Vec<_> = clusters
             .iter()
             .map(|cluster| cluster.centroid())
             .cloned()
@@ -217,6 +217,6 @@ mod tests {
             centroids,
             Vec::from([Point2(0.5, 7.5), Point2(1.0, 1.0), Point2(4.4, 3.8)])
         );
-        assert_eq!(model.outliers(), &HashSet::new());
+        assert_eq!(outliers, HashSet::new());
     }
 }

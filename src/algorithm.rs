@@ -1,8 +1,8 @@
 use crate::math::clustering::algorithm::ClusteringAlgorithm;
+use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::dbscan::algorithm::DBSCAN;
 use crate::math::clustering::gmeans::algorithm::Gmeans;
 use crate::math::clustering::hdbscan::algorithm::HDBSCAN;
-use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
 use crate::math::number::Float;
 use crate::math::point::Point;
@@ -13,10 +13,12 @@ use crate::math::point::Point;
 /// ```ignore
 /// use auto_palette::{Algorithm, Palette};
 ///
-/// let palette = Palette::extract_with_algorithm(&image_data, &Algorithm::GMeans);
-/// let palette = Palette::extract_with_algorithm(&image_data, &Algorithm::DBSCAN);
-/// let palette = Palette::extract_with_algorithm(&image_data, &Algorithm::HDBSCAN);
+/// let image = image::open("./path/to/image.png").unwrap();
+/// let palette = Palette::extract_with_algorithm(&image, &Algorithm::GMeans);
+/// let palette = Palette::extract_with_algorithm(&image, &Algorithm::DBSCAN);
+/// let palette = Palette::extract_with_algorithm(&image, &Algorithm::HDBSCAN);
 /// ```
+#[derive(Debug)]
 pub enum Algorithm {
     /// G-means clustering algorithm.
     GMeans,
@@ -27,37 +29,37 @@ pub enum Algorithm {
 }
 
 impl Algorithm {
-    /// Applies the selected palette extraction algorithm.
+    /// Applies the clustering algorithm to the given points.
+    ///
+    /// # Arguments
+    /// * `points` - The points to cluster.
+    ///
+    /// # Returns
+    /// The clusters found by the algorithm.
     ///
     /// # Type Parameters
     /// * `F` - The float type used for calculations.
     /// * `P` - The point type used for calculations.
-    ///
-    /// # Arguments
-    /// * `dataset` - A slice of data points.
-    ///
-    /// # Returns
-    /// A trained `Model` containing the results of the clustering algorithm applied to the dataset.
-    pub(crate) fn apply<F, P>(&self, dataset: &[P]) -> Model<F, P>
+    pub(crate) fn apply<F, P>(&self, points: &[P]) -> Vec<Cluster<F, P>>
     where
         F: Float,
         P: Point<F>,
     {
         match self {
-            Algorithm::GMeans => cluster_with_gmeans(dataset),
-            Algorithm::DBSCAN => cluster_with_dbscan(dataset),
-            Algorithm::HDBSCAN => cluster_with_hdbscan(dataset),
+            Algorithm::GMeans => cluster_with_gmeans(points),
+            Algorithm::DBSCAN => cluster_with_dbscan(points),
+            Algorithm::HDBSCAN => cluster_with_hdbscan(points),
         }
     }
 }
 
 #[must_use]
-fn cluster_with_gmeans<F, P>(dataset: &[P]) -> Model<F, P>
+fn cluster_with_gmeans<F, P>(points: &[P]) -> Vec<Cluster<F, P>>
 where
     F: Float,
     P: Point<F>,
 {
-    let min_cluster_size = (dataset.len() / 4096).max(25);
+    let min_cluster_size = (points.len() / 4096).max(25);
     let gmeans = Gmeans::new(
         25,
         10,
@@ -65,33 +67,35 @@ where
         F::from_f64(1e-3),
         Distance::SquaredEuclidean,
     );
-    gmeans.train(dataset)
+    gmeans.fit(points)
 }
 
 #[must_use]
-fn cluster_with_dbscan<F, P>(dataset: &[P]) -> Model<F, P>
+fn cluster_with_dbscan<F, P>(points: &[P]) -> Vec<Cluster<F, P>>
 where
     F: Float,
     P: Point<F>,
 {
-    let min_samples = (dataset.len() / 4096).max(25);
+    let min_samples = (points.len() / 4096).max(25);
     let dbscan = DBSCAN::new(
         min_samples,
         F::from_f64(0.0025),
         &Distance::SquaredEuclidean,
     );
-    dbscan.train(dataset)
+    let (clusters, _) = dbscan.fit(points);
+    clusters
 }
 
 #[must_use]
-fn cluster_with_hdbscan<F, P>(dataset: &[P]) -> Model<F, P>
+fn cluster_with_hdbscan<F, P>(points: &[P]) -> Vec<Cluster<F, P>>
 where
     F: Float,
     P: Point<F>,
 {
-    let min_samples = (dataset.len() / 4096).max(25);
+    let min_samples = (points.len() / 4096).max(25);
     let hdbscan = HDBSCAN::new(min_samples, min_samples, &Distance::SquaredEuclidean);
-    hdbscan.train(dataset)
+    let (clusters, _) = hdbscan.fit(points);
+    clusters
 }
 
 #[cfg(test)]
@@ -100,7 +104,7 @@ mod tests {
     use crate::math::point::Point2;
 
     #[must_use]
-    fn sample_dataset() -> Vec<Point2<f64>> {
+    fn sample_points() -> Vec<Point2<f64>> {
         vec![
             Point2(0.0, 0.0),
             Point2(0.1, 0.1),
@@ -150,31 +154,31 @@ mod tests {
 
     #[test]
     fn test_gmeans_algorithm() {
-        let dataset = sample_dataset();
-        let actual = Algorithm::GMeans.apply(&dataset);
+        let points = sample_points();
+        let actual = Algorithm::GMeans.apply(&points);
 
         let clustering = Gmeans::new(25, 10, 16, 0.001, Distance::SquaredEuclidean);
-        let expected = clustering.train(&dataset);
+        let expected = clustering.fit(&points);
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn test_dbscan_algorithm() {
-        let dataset = sample_dataset();
-        let actual = Algorithm::DBSCAN.apply(&dataset);
+        let points = sample_points();
+        let actual = Algorithm::DBSCAN.apply(&points);
 
         let clustering = DBSCAN::new(16, 0.0025, &Distance::SquaredEuclidean);
-        let expected = clustering.train(&dataset);
-        assert_eq!(actual, expected);
+        let expected = clustering.fit(&points);
+        assert_eq!(actual, expected.0);
     }
 
     #[test]
     fn test_hdbscan_algorithm() {
-        let dataset = sample_dataset();
-        let actual = Algorithm::HDBSCAN.apply(&dataset);
+        let points = sample_points();
+        let actual = Algorithm::HDBSCAN.apply(&points);
 
         let clustering = HDBSCAN::new(16, 16, &Distance::SquaredEuclidean);
-        let expected = clustering.train(&dataset);
-        assert_eq!(actual, expected);
+        let expected = clustering.fit(&points);
+        assert_eq!(actual, expected.0);
     }
 }

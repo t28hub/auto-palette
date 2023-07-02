@@ -4,7 +4,6 @@ use crate::math::clustering::hdbscan::core_distance::CoreDistance;
 use crate::math::clustering::hdbscan::union_find::UnionFind;
 use crate::math::clustering::hierarchical::algorithm::HierarchicalClustering;
 use crate::math::clustering::hierarchical::node::HierarchicalNode;
-use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
 use crate::math::number::Float;
 use crate::math::point::Point;
@@ -329,16 +328,18 @@ where
     F: Float,
     P: Point<F>,
 {
+    type Output = (Vec<Cluster<F, P>>, HashSet<usize>);
+
     #[must_use]
-    fn train(&self, dataset: &[P]) -> Model<F, P> {
-        if dataset.is_empty() {
-            return Model::default();
+    fn fit(&self, points: &[P]) -> Self::Output {
+        if points.is_empty() {
+            return (Vec::new(), HashSet::new());
         }
 
-        let core_distance = CoreDistance::new(dataset, self.min_samples, self.distance);
+        let core_distance = CoreDistance::new(points, self.min_samples, self.distance);
         let mutual_reachability_distance = |u: usize, v: usize| -> F {
-            let point_u = &dataset[u];
-            let point_v = &dataset[v];
+            let point_u = &points[u];
+            let point_v = &points[v];
             let distance = self.distance.measure(point_u, point_v);
             distance.max(
                 core_distance
@@ -347,11 +348,10 @@ where
             )
         };
         let hierarchical_clustering =
-            HierarchicalClustering::fit(dataset, mutual_reachability_distance);
+            HierarchicalClustering::fit(points, mutual_reachability_distance);
         let hierarchy = hierarchical_clustering.nodes();
         let condensed = self.condense_tree(hierarchy);
-        let (clusters, outliers) = HDBSCAN::extract_clusters(dataset, &condensed);
-        Model::new(clusters, outliers)
+        HDBSCAN::extract_clusters(points, &condensed)
     }
 }
 
@@ -369,8 +369,8 @@ mod tests {
     use crate::math::point::Point2;
 
     #[test]
-    fn fit_should_cluster_dataset() {
-        let dataset = vec![
+    fn test_fit() {
+        let points = vec![
             Point2(0.0, 0.0), // 0
             Point2(0.0, 1.0), // 1
             Point2(0.0, 7.0), // 2
@@ -395,6 +395,9 @@ mod tests {
         ];
 
         let hdbscan = HDBSCAN::new(3, 4, &Distance::SquaredEuclidean);
-        let _model = hdbscan.train(&dataset);
+        let (clusters, outliers) = hdbscan.fit(&points);
+
+        assert_eq!(clusters.len(), 4);
+        assert_eq!(outliers.len(), 0);
     }
 }

@@ -78,8 +78,7 @@ where
         let pixels = convert_to_pixels(&image_data);
 
         // Merge pixels that are close in color and position, and exclude outliers.
-        let model = algorithm.apply(&pixels);
-        let pixel_clusters = model.clusters();
+        let pixel_clusters = algorithm.apply(&pixels);
         let (candidates, colors): (Vec<_>, Vec<_>) = pixel_clusters
             .iter()
             .filter_map(|cluster| {
@@ -95,9 +94,8 @@ where
         // Merge colors with small color differences and extract the dominant swatches.
         // According to the Digital Color Imaging Handbook, a ∆E ≤ 2.3 is perceived as identical by human perception.
         let dbscan = DBSCAN::new(1, F::from_f64(2.3), &Distance::Euclidean);
-        let model2 = dbscan.train(&colors);
-        let mut swatches: Vec<_> = model2
-            .clusters()
+        let (swatch_clusters, _) = dbscan.fit(&colors);
+        let mut swatches: Vec<_> = swatch_clusters
             .iter()
             .filter_map(|cluster| color_cluster_to_swatch(cluster, &candidates))
             .collect();
@@ -258,11 +256,9 @@ where
             let r = chunk[0];
             let g = chunk[1];
             let b = chunk[2];
-            // TODO
-            let a = chunk[3];
 
-            // Ignore a transparent pixel
-            if a.is_zero() {
+            // Ignore if the alpha channel exists and the transparency value is 0.
+            if chunk.len() >= 4 && chunk[3].is_zero() {
                 return None;
             }
 

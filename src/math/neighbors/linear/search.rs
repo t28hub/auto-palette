@@ -35,6 +35,7 @@ where
     ///
     /// # Returns
     /// A new `LinearSearch` instance.
+    #[allow(unused)]
     #[must_use]
     pub fn new(dataset: &'a Vec<P>, distance: Distance) -> Self {
         Self {

@@ -83,6 +83,7 @@ where
         }
     }
 
+    #[inline]
     fn build_node(dataset: &[P], indices: &mut [usize], depth: usize) -> Option<KDNode> {
         if indices.is_empty() {
             return None;
@@ -107,6 +108,7 @@ where
         Some(node)
     }
 
+    #[inline]
     fn search_recursively(
         &self,
         root: &Option<Box<KDNode>>,
@@ -144,6 +146,7 @@ where
         }
     }
 
+    #[inline]
     fn search_radius_recursively(
         &self,
         root: &Option<Box<KDNode>>,

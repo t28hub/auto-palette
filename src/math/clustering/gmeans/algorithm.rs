@@ -1,14 +1,13 @@
 use crate::math::clustering::algorithm::ClusteringAlgorithm;
 use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::gmeans::cmp::SizeOrdered;
-use crate::math::clustering::model::Model;
 use crate::math::distance::Distance;
-use crate::math::neighbors::linear::search::LinearSearch;
+use crate::math::neighbors::kdtree::search::KDTreeSearch;
 use crate::math::neighbors::search::NeighborSearch;
 use crate::math::number::Float;
 use crate::math::point::Point;
 use crate::math::stats::{anderson_darling_test, standardize};
-use std::collections::{BinaryHeap, HashSet};
+use std::collections::BinaryHeap;
 
 /// Struct representing G-means clustering algorithm.
 ///
@@ -103,7 +102,7 @@ where
         }
 
         // Use the linear search algorithm because the number of centroids is only 2.
-        let neighbor_search = LinearSearch::new(&centroids, self.distance);
+        let neighbor_search = KDTreeSearch::new_with_ref(&centroids, &self.distance);
         for index in indices.iter() {
             let point = dataset[*index];
             let Some(nearest) = neighbor_search.search_nearest(&point) else {
@@ -132,20 +131,22 @@ where
     F: Float,
     P: Point<F>,
 {
+    type Output = Vec<Cluster<F, P>>;
+
     #[must_use]
-    fn train(&self, dataset: &[P]) -> Model<F, P> {
-        if dataset.is_empty() {
-            return Model::default();
+    fn fit(&self, points: &[P]) -> Self::Output {
+        if points.is_empty() {
+            return Vec::new();
         }
 
         let cluster = {
-            let median = dataset.len() / 2;
-            Cluster::new(dataset[median])
+            let median = points.len() / 2;
+            Cluster::new(points[median])
         };
 
         let mut clusters = vec![cluster];
-        let membership: Vec<usize> = (0..dataset.len()).collect();
-        if self.assign(&mut clusters, &membership, dataset) {
+        let membership: Vec<usize> = (0..points.len()).collect();
+        if self.assign(&mut clusters, &membership, points) {
             // do nothing
         }
 
@@ -165,7 +166,7 @@ where
             }
 
             let largest_cluster = &largest.0;
-            let (cluster1, cluster2) = self.split(largest_cluster, dataset);
+            let (cluster1, cluster2) = self.split(largest_cluster, points);
             let centroid1 = cluster1.centroid();
             let centroid2 = cluster2.centroid();
 
@@ -174,7 +175,7 @@ where
             let vp = v.dot(&v);
             let mut x = Vec::with_capacity(largest.size());
             for index in largest_cluster.membership().iter() {
-                let point = dataset[*index];
+                let point = points[*index];
                 x.push(point.dot(&v) / vp);
             }
             standardize(&mut x);
@@ -189,7 +190,7 @@ where
                 heap.push(SizeOrdered(cluster2));
             }
         }
-        Model::new(clusters, HashSet::new())
+        clusters
     }
 }
 
@@ -217,7 +218,7 @@ mod tests {
     #[test]
     fn test_train() {
         let gmeans = Gmeans::new(5, 10, 2, 0.01_f64, Distance::Euclidean);
-        let dataset = vec![
+        let points = vec![
             Point2(1.0, 1.0),
             Point2(3.5, 5.0),
             Point2(0.0, 1.0),
@@ -226,23 +227,22 @@ mod tests {
             Point2(5.0, 6.0),
             Point2(1.0, 0.0),
         ];
-        let actual = gmeans.train(&dataset);
+        let clusters = gmeans.fit(&points);
 
-        assert_eq!(actual.clusters().len(), 2);
-        assert_eq!(actual.outliers().len(), 0);
-        assert_eq!(actual.clusters()[0], {
+        assert_eq!(clusters.len(), 2);
+        assert_eq!(clusters[0], {
             let mut cluster = Cluster::default();
-            cluster.insert(0, &dataset[0]);
-            cluster.insert(2, &dataset[2]);
-            cluster.insert(3, &dataset[3]);
-            cluster.insert(6, &dataset[6]);
+            cluster.insert(0, &points[0]);
+            cluster.insert(2, &points[2]);
+            cluster.insert(3, &points[3]);
+            cluster.insert(6, &points[6]);
             cluster
         });
-        assert_eq!(actual.clusters()[1], {
+        assert_eq!(clusters[1], {
             let mut cluster = Cluster::default();
-            cluster.insert(1, &dataset[1]);
-            cluster.insert(4, &dataset[4]);
-            cluster.insert(5, &dataset[5]);
+            cluster.insert(1, &points[1]);
+            cluster.insert(4, &points[4]);
+            cluster.insert(5, &points[5]);
             cluster
         });
     }

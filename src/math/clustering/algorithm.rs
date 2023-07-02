@@ -1,20 +1,25 @@
-use crate::math::clustering::model::Model;
 use crate::math::number::Float;
 use crate::math::point::Point;
 
 /// Trait representing a clustering algorithm.
+///
+/// # Type Parameters
+/// * `F` - The float type used for calculations.
+/// * `P` - The point type used for calculations.
 pub trait ClusteringAlgorithm<F, P>
 where
     F: Float,
     P: Point<F>,
 {
-    /// Train the algorithm using the given dataset.
+    type Output;
+
+    /// Fits the clustering algorithm to the given points.
     ///
     /// # Arguments
-    /// * `dataset` - The dataset to train the algorithm with.
+    /// * `points` - A slice of data points to cluster.
     ///
     /// # Returns
-    /// The trained model.
+    /// A fitted output.
     #[must_use]
-    fn train(&self, dataset: &[P]) -> Model<F, P>;
+    fn fit(&self, points: &[P]) -> Self::Output;
 }
