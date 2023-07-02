@@ -165,7 +165,7 @@ where
                 .unwrap_or(Ordering::Equal)
                 .reverse()
         });
-        results.iter().take(n).cloned().collect()
+        results.into_iter().take(n).collect()
     }
 
     #[must_use]

@@ -205,18 +205,22 @@ mod tests {
     fn test_fit() {
         let points = sample_points();
         let dbscan = DBSCAN::new(4, 2.0_f64.sqrt(), &Distance::Euclidean);
-        let (clusters, outliers) = dbscan.fit(&points);
+        let (mut clusters, outliers) = dbscan.fit(&points);
 
-        let mut centroids: Vec<_> = clusters
-            .iter()
-            .map(|cluster| cluster.centroid())
-            .cloned()
-            .collect();
-        centroids.sort_by(|point1, point2| point1.0.total_cmp(&point2.0));
-        assert_eq!(
-            centroids,
-            Vec::from([Point2(0.5, 7.5), Point2(1.0, 1.0), Point2(4.4, 3.8)])
-        );
-        assert_eq!(outliers, HashSet::new());
+        clusters.sort_by(|cluster1, cluster2| {
+            cluster1
+                .membership()
+                .len()
+                .cmp(&cluster2.membership().len())
+        });
+
+        assert_eq!(clusters.len(), 3);
+        assert_eq!(clusters[0].centroid(), &Point2(0.5, 7.5));
+        assert_eq!(clusters[0].membership(), &[2, 3, 7, 8]);
+        assert_eq!(clusters[1].centroid(), &Point2(4.4, 3.8));
+        assert_eq!(clusters[1].membership(), &[11, 12, 13, 14, 15]);
+        assert_eq!(clusters[2].centroid(), &Point2(1.0, 1.0));
+        assert_eq!(clusters[2].membership(), &[0, 1, 4, 5, 6, 9, 10]);
+        assert_eq!(outliers.len(), 0);
     }
 }
