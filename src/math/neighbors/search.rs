@@ -3,6 +3,10 @@ use crate::math::number::Float;
 use crate::math::point::Point;
 
 /// Trait representing neighbor search algorithms.
+///
+/// # Type Parameters
+/// * `F` - The float type used for calculations.
+/// * `P` - The type of points used in the neighbor search algorithm.
 pub trait NeighborSearch<F, P>
 where
     F: Float,

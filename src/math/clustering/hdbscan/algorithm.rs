@@ -40,6 +40,7 @@ impl<'a> HDBSCAN<'a> {
         }
     }
 
+    #[must_use]
     fn condense_tree<F>(&self, hierarchy: &[HierarchicalNode<F>]) -> Vec<CondensedNode<F>>
     where
         F: Float,
@@ -154,8 +155,9 @@ impl<'a> HDBSCAN<'a> {
         condensed
     }
 
+    #[must_use]
     fn extract_clusters<F, P>(
-        dataset: &[P],
+        points: &[P],
         condensed: &[CondensedNode<F>],
     ) -> (Vec<Cluster<F, P>>, HashSet<usize>)
     where
@@ -225,7 +227,7 @@ impl<'a> HDBSCAN<'a> {
                 let cluster = cluster_map
                     .entry(cluster_id)
                     .or_insert_with(Cluster::default);
-                cluster.insert(node_id, &dataset[node_id]);
+                cluster.insert(node_id, &points[node_id]);
             } else {
                 outlier_set.insert(node_id);
             }
@@ -244,6 +246,7 @@ impl<'a> HDBSCAN<'a> {
         (clusters, outlier_set)
     }
 
+    #[must_use]
     fn compute_stability<F>(condensed: &[CondensedNode<F>]) -> HashMap<usize, F>
     where
         F: Float,
@@ -275,6 +278,7 @@ impl<'a> HDBSCAN<'a> {
             })
     }
 
+    #[must_use]
     fn bfs_hierarchy<F>(hierarchy: &[HierarchicalNode<F>], root_id: usize) -> Vec<usize>
     where
         F: Float,
@@ -300,6 +304,7 @@ impl<'a> HDBSCAN<'a> {
         node_ids
     }
 
+    #[must_use]
     fn bfs_condensed_tree<F>(condensed: &[CondensedNode<F>], root_node_id: usize) -> Vec<usize>
     where
         F: Float,

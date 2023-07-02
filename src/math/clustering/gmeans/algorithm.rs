@@ -68,19 +68,19 @@ where
     fn split<P: Point<F>>(
         &self,
         cluster: &Cluster<F, P>,
-        dataset: &[P],
+        points: &[P],
     ) -> (Cluster<F, P>, Cluster<F, P>) {
         let membership = cluster.membership();
         let mut clusters = Vec::with_capacity(2);
         for i in 0..2 {
             let index = cluster.size() * (i + 1) / 3;
             let centroid_index = membership[index];
-            let centroid = dataset[centroid_index];
+            let centroid = points[centroid_index];
             clusters.push(Cluster::new(centroid));
         }
 
         for _ in 0..self.max_iter {
-            let converged = self.assign(&mut clusters, membership, dataset);
+            let converged = self.assign(&mut clusters, membership, points);
             if converged {
                 break;
             }
@@ -93,7 +93,7 @@ where
         &self,
         clusters: &mut [Cluster<F, P>],
         indices: &[usize],
-        dataset: &[P],
+        points: &[P],
     ) -> bool {
         let mut centroids = Vec::with_capacity(clusters.len());
         for cluster in clusters.iter_mut() {
@@ -102,9 +102,9 @@ where
         }
 
         // Use the linear search algorithm because the number of centroids is only 2.
-        let neighbor_search = KDTreeSearch::new_with_ref(&centroids, &self.distance);
+        let neighbor_search = KDTreeSearch::new(&centroids, &self.distance);
         for index in indices.iter() {
-            let point = dataset[*index];
+            let point = points[*index];
             let Some(nearest) = neighbor_search.search_nearest(&point) else {
                 continue;
             };

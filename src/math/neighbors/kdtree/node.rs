@@ -1,7 +1,7 @@
 /// Struct representing a node of kd-tree.
 #[derive(Debug)]
 pub struct KDNode {
-    /// The index of a point in the dataset.
+    /// The index of a point in the points.
     pub index: usize,
 
     /// The axis of the split.

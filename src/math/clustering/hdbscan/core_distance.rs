@@ -30,16 +30,15 @@ where
     /// # Returns
     /// A new `CoreDistance` instance.
     #[must_use]
-    pub fn new<P: Point<F>>(dataset: &[P], min_samples: usize, distance: &Distance) -> Self {
-        if dataset.is_empty() {
+    pub fn new<P: Point<F>>(points: &[P], min_samples: usize, metric: &Distance) -> Self {
+        if points.is_empty() {
             return Self::default();
         }
 
-        let k = dataset.len().min(min_samples);
-        let dataset_vec = dataset.to_vec();
-        let neighbor_search = KDTreeSearch::new_with_ref(&dataset_vec, distance);
-        let mut distances = Vec::with_capacity(dataset.len());
-        for (index, point) in dataset.iter().enumerate() {
+        let k = points.len().min(min_samples);
+        let neighbor_search = KDTreeSearch::new(points, metric);
+        let mut distances = Vec::with_capacity(points.len());
+        for (index, point) in points.iter().enumerate() {
             let neighbors = neighbor_search.search(point, k);
             if let Some(core_neighbor) = neighbors.last() {
                 distances.insert(index, core_neighbor.distance);
@@ -88,7 +87,7 @@ mod tests {
 
     #[test]
     fn test_core_distance() {
-        let dataset = Vec::from([
+        let points = Vec::from([
             Point2(0.0, 0.0),
             Point2(1.1, 2.1),
             Point2(2.0, 3.0),
@@ -97,7 +96,7 @@ mod tests {
             Point2(2.5, 3.5),
         ]);
 
-        let actual = CoreDistance::new(&dataset, 3, &Distance::SquaredEuclidean);
+        let actual = CoreDistance::new(&points, 3, &Distance::SquaredEuclidean);
         assert_eq!(actual.distances.len(), 6);
         assert_almost_eq!(actual.distance_at(0), 5.00, 1e-5);
         assert_almost_eq!(actual.distance_at(1), 0.08, 1e-5);

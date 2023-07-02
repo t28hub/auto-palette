@@ -2,7 +2,10 @@ use crate::math::number::Float;
 use std::cmp::Ordering;
 
 /// Struct representing a neighbor point.
-#[derive(Debug, Clone)]
+///
+/// # Type Parameters
+/// * `F` - The float type used for calculations.
+#[derive(Debug)]
 pub struct Neighbor<F: Float> {
     /// The index of the neighbor.
     pub index: usize,

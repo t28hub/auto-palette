@@ -20,8 +20,8 @@ where
     P: Point<F>,
 {
     root: Option<Box<Node<F, P>>>,
-    dataset: Cow<'a, [P]>,
-    distance: &'a Distance,
+    points: Cow<'a, [P]>,
+    metric: &'a Distance,
 }
 
 impl<'a, F, P> BallTreeSearch<'a, F, P>
@@ -32,43 +32,44 @@ where
     /// Creates a new `BallTreeSearch` instance.
     ///
     /// # Arguments
-    /// * `dataset` - The reference of a dataset of points.
-    /// * `distance` - The distance metric to use.
+    /// * `points` - The reference of a dataset of points.
+    /// * `metric` - The distance metric to use.
     ///
     /// # Returns
     /// A new `BallTreeSearch` instance.
     #[allow(unused)]
     #[must_use]
-    pub fn new(dataset: &'a [P], distance: &'a Distance) -> Self {
-        let mut indices: Vec<usize> = (0..dataset.len()).collect();
-        let root = Self::build_node(dataset, &mut indices, distance);
+    pub fn new(points: &'a [P], metric: &'a Distance) -> Self {
+        let mut indices: Vec<usize> = (0..points.len()).collect();
+        let root = Self::build_node(points, &mut indices, metric);
         Self {
             root: root.map(Box::new),
-            dataset: Cow::Borrowed(dataset),
-            distance,
+            points: Cow::Borrowed(points),
+            metric,
         }
     }
 
+    #[inline]
     #[must_use]
     fn build_node(
-        dataset: &'a [P],
+        points: &'a [P],
         indices: &mut [usize],
-        distance: &'a Distance,
+        metric: &'a Distance,
     ) -> Option<Node<F, P>> {
         if indices.is_empty() {
             return None;
         }
 
         let mut center = indices.iter().fold(P::zero(), |mut centroid, index| {
-            centroid += &dataset[*index];
+            centroid += &points[*index];
             centroid
         });
         center /= F::from_usize(indices.len());
         let radius = indices
             .iter()
             .map(|index| {
-                let point = dataset[*index];
-                distance.measure(&point, &center)
+                let point = points[*index];
+                metric.measure(&point, &center)
             })
             .max_by(|point1, point2| point1.partial_cmp(point2).unwrap_or(Ordering::Equal))
             .unwrap_or(F::zero());
@@ -77,34 +78,34 @@ where
             return Some(Node::new(center, radius, indices.to_vec(), None, None));
         }
 
-        let max_dimension = Self::find_split_dimension(dataset, indices);
+        let max_dimension = Self::find_split_dimension(points, indices);
         // Sort the indices by the dimension with the maximum variance
         indices.sort_by(|index1, index2| {
-            let point1 = dataset[*index1];
-            let point2 = dataset[*index2];
+            let point1 = points[*index1];
+            let point2 = points[*index2];
             point1[max_dimension]
                 .partial_cmp(&point2[max_dimension])
                 .unwrap_or(Ordering::Equal)
         });
 
-        // Split the sorted dataset in the middle
+        // Split the sorted points in the middle
         let median = indices.len() / 2;
-        let left = Self::build_node(dataset, &mut indices[..median], distance);
-        let right = Self::build_node(dataset, &mut indices[median..], distance);
+        let left = Self::build_node(points, &mut indices[..median], metric);
+        let right = Self::build_node(points, &mut indices[median..], metric);
         let node = Node::new(center, radius, indices.to_vec(), left, right);
         Some(node)
     }
 
     #[must_use]
-    fn find_split_dimension(dataset: &[P], indices: &mut [usize]) -> usize {
-        let dimension = dataset[0].dimension();
+    fn find_split_dimension(points: &[P], indices: &mut [usize]) -> usize {
+        let dimension = points[0].dimension();
         let mut dimension_iter = (0..dimension)
             .map(|dimension| {
                 let (min, max) =
                     indices
                         .iter()
                         .fold((F::max_value(), F::min_value()), |(min, max), index| {
-                            let point = &dataset[*index];
+                            let point = &points[*index];
                             (min.min(point[dimension]), max.max(point[dimension]))
                         });
                 max - min
@@ -126,6 +127,7 @@ where
         max_dimension
     }
 
+    #[inline]
     fn search_recursive(
         &self,
         root: &Option<Box<Node<F, P>>>,
@@ -139,8 +141,8 @@ where
 
         if node.is_leaf() {
             let neighbor_iter = node.indices().iter().map(|index| {
-                let point = &self.dataset[*index];
-                let distance = self.distance.measure(query, point);
+                let point = &self.points[*index];
+                let distance = self.metric.measure(query, point);
                 let neighbor = Neighbor::new(*index, distance);
                 Reverse(neighbor)
             });
@@ -150,12 +152,12 @@ where
 
         let left = node.left();
         let left_distance = left.as_ref().map_or(F::max_value(), |node| {
-            self.distance.measure(query, node.center())
+            self.metric.measure(query, node.center())
         });
 
         let right = node.right();
         let right_distance = right.as_ref().map_or(F::max_value(), |node| {
-            self.distance.measure(query, node.center())
+            self.metric.measure(query, node.center())
         });
 
         let (first, second, second_distance) = if left_distance < right_distance {
@@ -175,6 +177,7 @@ where
         }
     }
 
+    #[inline]
     fn search_radius_recursive(
         &self,
         root: &Option<Box<Node<F, P>>>,
@@ -188,8 +191,8 @@ where
 
         if node.is_leaf() {
             let neighbor_iter = node.indices().iter().filter_map(|index| {
-                let point = &self.dataset[*index];
-                let distance = self.distance.measure(query, point);
+                let point = &self.points[*index];
+                let distance = self.metric.measure(query, point);
                 if distance <= radius {
                     let neighbor = Neighbor::new(*index, distance);
                     Some(Reverse(neighbor))
@@ -203,12 +206,12 @@ where
 
         let left = node.left();
         let left_distance = left.as_ref().map_or(F::max_value(), |node| {
-            self.distance.measure(query, node.center())
+            self.metric.measure(query, node.center())
         });
 
         let right = node.right();
         let right_distance = right.as_ref().map_or(F::max_value(), |node| {
-            self.distance.measure(query, node.center())
+            self.metric.measure(query, node.center())
         });
 
         if left_distance - node.radius() <= radius {
@@ -272,7 +275,8 @@ mod tests {
     use crate::math::point::Point2;
     use statrs::assert_almost_eq;
 
-    fn sample_dataset() -> Vec<Point2<f64>> {
+    #[must_use]
+    fn sample_points() -> Vec<Point2<f64>> {
         vec![
             Point2(1.0, 2.0), // 0
             Point2(8.0, 3.0), // 1
@@ -288,34 +292,34 @@ mod tests {
 
     #[test]
     fn test_ball_tree_search() {
-        let dataset: Vec<Point2<f64>> = vec![];
-        let balltree_search = BallTreeSearch::new(&dataset, &Distance::Euclidean);
-        assert!(balltree_search.root.is_none());
-        assert_eq!(balltree_search.root, None);
+        let points: Vec<Point2<f64>> = vec![];
+        let balltree = BallTreeSearch::new(&points, &Distance::Euclidean);
+        assert!(balltree.root.is_none());
+        assert_eq!(balltree.root, None);
 
-        let dataset = sample_dataset();
-        let balltree_search = BallTreeSearch::new(&dataset, &Distance::Euclidean);
+        let points = sample_points();
+        let balltree_search = BallTreeSearch::new(&points, &Distance::Euclidean);
         assert!(balltree_search.root.is_some());
     }
 
     #[test]
     fn test_search() {
-        let dataset = sample_dataset();
-        let balltree_search = BallTreeSearch::new(&dataset, &Distance::Euclidean);
-        let actual = balltree_search.search(&Point2(3.0, 3.0), 0);
+        let points = sample_points();
+        let balltree = BallTreeSearch::new(&points, &Distance::Euclidean);
+        let actual = balltree.search(&Point2(3.0, 3.0), 0);
         assert_eq!(actual.len(), 0);
 
-        let actual = balltree_search.search(&Point2(3.0, 3.0), 1);
+        let actual = balltree.search(&Point2(3.0, 3.0), 1);
         assert_eq!(actual.len(), 1);
         assert_eq!(actual[0].index, 2);
         assert_almost_eq!(actual[0].distance, 1.0, 1e-6);
 
-        let actual = balltree_search.search(&Point2(3.0, 3.0), 2);
+        let actual = balltree.search(&Point2(3.0, 3.0), 2);
         assert_eq!(actual.len(), 2);
         assert_eq!(actual[1].index, 4);
         assert_almost_eq!(actual[1].distance, 2.0, 1e-6);
 
-        let actual = balltree_search.search(&Point2(3.0, 3.0), 5);
+        let actual = balltree.search(&Point2(3.0, 3.0), 5);
         assert_eq!(actual.len(), 5);
         assert_eq!(actual[2].index, 0);
         assert_almost_eq!(actual[2].distance, 2.236067, 1e-6);
@@ -327,25 +331,25 @@ mod tests {
 
     #[test]
     fn test_search_empty() {
-        let dataset: Vec<Point2<f64>> = vec![];
-        let balltree_search = BallTreeSearch::new(&dataset, &Distance::Euclidean);
-        assert_eq!(balltree_search.search(&Point2(3.0, 3.0), 0), vec![]);
-        assert_eq!(balltree_search.search(&Point2(3.0, 3.0), 1), vec![]);
-        assert_eq!(balltree_search.search(&Point2(3.0, 3.0), 2), vec![]);
+        let points: Vec<Point2<f64>> = vec![];
+        let balltree = BallTreeSearch::new(&points, &Distance::Euclidean);
+        assert_eq!(balltree.search(&Point2(3.0, 3.0), 0), vec![]);
+        assert_eq!(balltree.search(&Point2(3.0, 3.0), 1), vec![]);
+        assert_eq!(balltree.search(&Point2(3.0, 3.0), 2), vec![]);
     }
 
     #[test]
     fn test_search_nearest() {
-        let dataset = sample_dataset();
-        let balltree_search = BallTreeSearch::new(&dataset, &Distance::Euclidean);
+        let points = sample_points();
+        let balltree = BallTreeSearch::new(&points, &Distance::Euclidean);
 
-        let actual = balltree_search.search_nearest(&Point2(3.0, 3.0));
+        let actual = balltree.search_nearest(&Point2(3.0, 3.0));
         assert!(actual.is_some());
         let neighbor = actual.unwrap();
         assert_eq!(neighbor.index, 2);
         assert_almost_eq!(neighbor.distance, 1.0, 1e-6);
 
-        let actual = balltree_search.search_nearest(&Point2(2.0, 6.0));
+        let actual = balltree.search_nearest(&Point2(2.0, 6.0));
         assert!(actual.is_some());
         let neighbor = actual.unwrap();
         assert_eq!(neighbor.index, 5);
@@ -354,54 +358,45 @@ mod tests {
 
     #[test]
     fn test_search_nearest_empty() {
-        let dataset: Vec<Point2<f64>> = vec![];
-        let balltree_search = BallTreeSearch::new(&dataset, &Distance::Euclidean);
-        assert!(balltree_search.search_nearest(&Point2(3.0, 3.0)).is_none());
+        let points: Vec<Point2<f64>> = vec![];
+        let balltree = BallTreeSearch::new(&points, &Distance::Euclidean);
+        assert!(balltree.search_nearest(&Point2(3.0, 3.0)).is_none());
     }
 
     #[test]
     fn test_search_radius() {
-        let dataset = sample_dataset();
-        let balltree_search = BallTreeSearch::new(&dataset, &Distance::Euclidean);
-        let actual = balltree_search.search_radius(&Point2(3.0, 3.0), 0.0);
+        let points = sample_points();
+        let balltree = BallTreeSearch::new(&points, &Distance::Euclidean);
+        let actual = balltree.search_radius(&Point2(3.0, 3.0), 0.0);
         assert_eq!(actual.len(), 0);
 
-        let actual = balltree_search.search_radius(&Point2(3.0, 3.0), 1.0);
+        let actual = balltree.search_radius(&Point2(3.0, 3.0), 1.0);
         assert_eq!(actual.len(), 1);
         assert_eq!(actual[0].index, 2);
         assert_almost_eq!(actual[0].distance, 1.0, 1e-6);
 
-        let actual = balltree_search.search_radius(&Point2(3.0, 3.0), 2.0);
+        let actual = balltree.search_radius(&Point2(3.0, 3.0), 2.0);
         assert_eq!(actual.len(), 2);
         assert_eq!(actual[1].index, 4);
         assert_almost_eq!(actual[1].distance, 2.0, 1e-6);
 
-        let actual = balltree_search.search_radius(&Point2(3.0, 3.0), 3.0);
+        let actual = balltree.search_radius(&Point2(3.0, 3.0), 3.0);
         assert_eq!(actual.len(), 4);
         assert_eq!(actual[2].index, 0);
         assert_almost_eq!(actual[2].distance, 2.236067, 1e-6);
         assert_eq!(actual[3].index, 3);
         assert_almost_eq!(actual[3].distance, 2.236067, 1e-6);
 
-        let actual = balltree_search.search_radius(&Point2(3.0, 3.0), 8.0);
+        let actual = balltree.search_radius(&Point2(3.0, 3.0), 8.0);
         assert_eq!(actual.len(), 9);
     }
 
     #[test]
     fn test_search_radius_empty() {
-        let dataset: Vec<Point2<f64>> = vec![];
-        let balltree_search = BallTreeSearch::new(&dataset, &Distance::Euclidean);
-        assert_eq!(
-            balltree_search.search_radius(&Point2(3.0, 3.0), -1.0),
-            vec![]
-        );
-        assert_eq!(
-            balltree_search.search_radius(&Point2(3.0, 3.0), 0.0),
-            vec![]
-        );
-        assert_eq!(
-            balltree_search.search_radius(&Point2(3.0, 3.0), 1.0),
-            vec![]
-        );
+        let points: Vec<Point2<f64>> = vec![];
+        let balltree = BallTreeSearch::new(&points, &Distance::Euclidean);
+        assert_eq!(balltree.search_radius(&Point2(3.0, 3.0), -1.0), vec![]);
+        assert_eq!(balltree.search_radius(&Point2(3.0, 3.0), 0.0), vec![]);
+        assert_eq!(balltree.search_radius(&Point2(3.0, 3.0), 1.0), vec![]);
     }
 }
