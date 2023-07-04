@@ -5,8 +5,7 @@ use crate::math::neighbors::search::NeighborSearch;
 use crate::math::number::Float;
 use crate::math::point::Point;
 use std::borrow::Cow;
-use std::cmp::{Ordering, Reverse};
-use std::collections::BinaryHeap;
+use std::cmp::Ordering;
 use std::marker::PhantomData;
 use std::ops::Div;
 
@@ -85,29 +84,40 @@ where
         root: &Option<Box<KDNode>>,
         query: &P,
         k: usize,
-        neighbors: &mut BinaryHeap<Reverse<Neighbor<F>>>,
+        neighbors: &mut Vec<Neighbor<F>>,
     ) {
         let Some(ref node) = root else {
             return;
         };
 
         let point = self.points[node.index];
-        let neighbor = {
-            let distance = self.metric.measure(&point, query);
-            Neighbor::new(node.index, distance)
-        };
-        neighbors.push(Reverse(neighbor));
+        let distance = self.metric.measure(&point, query);
+        let neighbor = Neighbor::new(node.index, distance);
+        if neighbors.len() < k {
+            neighbors.push(neighbor);
+            neighbors.sort_unstable_by(|neighbor1, neighbor2| {
+                neighbor1
+                    .distance
+                    .partial_cmp(&neighbor2.distance)
+                    .unwrap_or(Ordering::Equal)
+            });
+        } else if distance < neighbors[k - 1].distance {
+            neighbors.pop();
+            neighbors.push(neighbor);
+            neighbors.sort_unstable_by(|neighbor1, neighbor2| {
+                neighbor1
+                    .distance
+                    .partial_cmp(&neighbor2.distance)
+                    .unwrap_or(Ordering::Equal)
+            });
+        }
 
         if node.is_leaf() {
             return;
         }
 
         let delta = query[node.axis] - point[node.axis];
-        let distance = neighbors
-            .peek()
-            .map(|Reverse(neighbor)| neighbor.distance)
-            .unwrap_or(F::min_value());
-        if neighbors.len() < k || delta.abs() <= distance {
+        if neighbors.len() < k || delta.abs() <= neighbors[k - 1].distance {
             self.search_recursively(node.left(), query, k, neighbors);
             self.search_recursively(node.right(), query, k, neighbors);
         } else if delta < F::zero() {
@@ -123,7 +133,7 @@ where
         root: &Option<Box<KDNode>>,
         query: &P,
         radius: F,
-        neighbors: &mut BinaryHeap<Reverse<Neighbor<F>>>,
+        neighbors: &mut Vec<Neighbor<F>>,
     ) {
         let Some(ref node) = root else {
             return;
@@ -132,7 +142,7 @@ where
         let point = self.points[node.index];
         let distance = self.metric.measure(&point, query);
         if distance <= radius {
-            neighbors.push(Reverse(Neighbor::new(node.index, distance)));
+            neighbors.push(Neighbor::new(node.index, distance));
         }
 
         let delta = query[node.axis] - point[node.axis];
@@ -158,17 +168,15 @@ where
             return Vec::new();
         }
 
-        let mut heap = BinaryHeap::new();
-        self.search_recursively(&self.root, query, k, &mut heap);
-
-        let mut neighbors = Vec::with_capacity(k);
-        while let Some(Reverse(neighbor)) = heap.pop() {
-            neighbors.push(neighbor);
-            if neighbors.len() == k {
-                break;
-            }
-        }
-        neighbors
+        let mut neighbors = Vec::new();
+        self.search_recursively(&self.root, query, k, &mut neighbors);
+        neighbors.sort_unstable_by(|neighbor1, neighbor2| {
+            neighbor1
+                .distance
+                .partial_cmp(&neighbor2.distance)
+                .unwrap_or(Ordering::Equal)
+        });
+        neighbors.into_iter().take(k).collect()
     }
 
     #[must_use]
@@ -182,13 +190,8 @@ where
             return Vec::new();
         }
 
-        let mut heap = BinaryHeap::new();
-        self.search_radius_recursively(&self.root, query, radius, &mut heap);
-
-        let mut neighbors = Vec::with_capacity(heap.len());
-        while let Some(Reverse(neighbor)) = heap.pop() {
-            neighbors.push(neighbor);
-        }
+        let mut neighbors = Vec::new();
+        self.search_radius_recursively(&self.root, query, radius, &mut neighbors);
         neighbors
     }
 }
@@ -226,17 +229,31 @@ mod tests {
     fn test_search() {
         let points = sample_points();
         let kdtree = KDTreeSearch::new(&points, &Distance::SquaredEuclidean);
-        assert_eq!(kdtree.search(&Point2(3.0, 3.0), 0), vec![]);
+
+        let actual = kdtree.search(&Point2(3.0, 3.0), 0);
+        assert_eq!(actual, vec![]);
+
+        let actual = kdtree.search(&Point2(3.0, 3.0), 1);
+        assert_eq!(actual, vec![Neighbor::new(4, 2.0)]);
+
+        let mut actual = kdtree.search(&Point2(3.0, 3.0), 2);
+        actual.sort_unstable_by(|neighbor1, neighbors2| {
+            neighbor1
+                .distance
+                .partial_cmp(&neighbors2.distance)
+                .unwrap_or(Ordering::Equal)
+        });
+        assert_eq!(actual, vec![Neighbor::new(4, 2.0), Neighbor::new(1, 4.0)]);
+
+        let mut actual = kdtree.search(&Point2(3.0, 3.0), 10);
+        actual.sort_unstable_by(|neighbor1, neighbors2| {
+            neighbor1
+                .distance
+                .partial_cmp(&neighbors2.distance)
+                .unwrap_or(Ordering::Equal)
+        });
         assert_eq!(
-            kdtree.search(&Point2(3.0, 3.0), 1),
-            vec![Neighbor::new(4, 2.0)]
-        );
-        assert_eq!(
-            kdtree.search(&Point2(3.0, 3.0), 2),
-            vec![Neighbor::new(4, 2.0), Neighbor::new(1, 4.0)]
-        );
-        assert_eq!(
-            kdtree.search(&Point2(3.0, 3.0), 10),
+            actual,
             vec![
                 Neighbor::new(4, 2.0),
                 Neighbor::new(1, 4.0),
@@ -278,33 +295,41 @@ mod tests {
     fn test_search_radius() {
         let points = sample_points();
         let kdtree = KDTreeSearch::new(&points, &Distance::SquaredEuclidean);
-        assert_eq!(kdtree.search_radius(&Point2(3.0, 3.0), -1.0), vec![]);
-        assert_eq!(kdtree.search_radius(&Point2(3.0, 3.0), 1.0), vec![]);
+
+        let actual = kdtree.search_radius(&Point2(3.0, 3.0), -1.0);
+        assert_eq!(actual, vec![]);
+
+        let actual = kdtree.search_radius(&Point2(3.0, 3.0), 1.0);
+        assert_eq!(actual, vec![]);
+
+        let actual = kdtree.search_radius(&Point2(3.0, 3.0), 2.0);
+        assert_eq!(actual, vec![Neighbor::new(4, 2.0)]);
+
+        let mut actual = kdtree.search_radius(&Point2(2.0, 2.5), 2.5);
+        actual.sort_unstable_by(|neighbor1, neighbors2| {
+            neighbor1
+                .distance
+                .partial_cmp(&neighbors2.distance)
+                .unwrap_or(Ordering::Equal)
+        });
         assert_eq!(
-            kdtree.search_radius(&Point2(3.0, 3.0), 2.0),
-            vec![Neighbor::new(4, 2.0)]
-        );
-        assert_eq!(
-            kdtree.search_radius(&Point2(2.0, 2.5), 2.5),
+            actual,
             vec![
                 Neighbor::new(0, 1.25),
                 Neighbor::new(6, 2.25),
                 Neighbor::new(4, 2.25),
             ]
         );
+
+        let mut actual = kdtree.search_radius(&Point2(1.0, 3.0), 23.0);
+        actual.sort_unstable_by(|neighbor1, neighbors2| {
+            neighbor1
+                .distance
+                .partial_cmp(&neighbors2.distance)
+                .unwrap_or(Ordering::Equal)
+        });
         assert_eq!(
-            kdtree.search_radius(&Point2(3.0, 3.0), 5.0),
-            vec![
-                Neighbor::new(4, 2.0),
-                Neighbor::new(1, 4.0),
-                Neighbor::new(6, 5.0),
-                Neighbor::new(7, 5.0),
-                Neighbor::new(2, 5.0),
-                Neighbor::new(0, 5.0),
-            ]
-        );
-        assert_eq!(
-            kdtree.search_radius(&Point2(1.0, 3.0), 23.0),
+            actual,
             vec![
                 Neighbor::new(0, 1.0),
                 Neighbor::new(4, 2.0),
