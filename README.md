@@ -17,10 +17,10 @@
 * [License](#license)
 
 ## Features
-- Extracts color palettes from images
-- Supports various clustering algorithms for palette extraction
-- Extracts dominant colors
-- Offers customizable themes for palette extraction
+- Extract color palettes from images
+- Support various clustering algorithms for palette extraction
+- Extract dominant colors
+- Offer customizable themes for palette extraction
 
 ## Installation
 
@@ -37,7 +37,7 @@ Add the following to your `Cargo.toml` file:
 
 ### Basic Example
 This example demonstrates how to use this library in a simple way.  
-It loads an image using the `image` crate, converts the image data into a format that `auto_palette` can work with, and extracts a color palette of 6 dominant colors.  
+It loads an image using the `image` crate, and extracts a color palette using `auto-palette` of 6 dominant colors.
 
 ```rust
 extern crate image;
@@ -46,10 +46,8 @@ extern crate auto_palette;
 use auto_palette::{Algorithm, Palette, SimpleImageData};
 
 pub fn main() {
-  let img = image::open("./path/to/image.png").unwrap();
-  let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
-  
-  let palette: Palette<f64> = Palette::extract(&image_data);
+  let image = image::open("./path/to/image.png").unwrap();
+  let palette: Palette<f64> = Palette::extract(&image);
   let swatches = palette.get_swatches(6);
   swatches.iter().for_each(|swatch| {
     println!("{:?}", swatch.color().to_hex_string()); // The color of the swatch
@@ -62,7 +60,7 @@ pub fn main() {
 ### Advanced Example
 In this more advanced example, we demonstrate how to customize the extraction algorithm and theme used by `auto_palette`.  
 We first define a custom theme that weights swatches based on their chroma and lightness.  
-Then, we extract a color palette using the `Gmeans` algorithm instead of the default one(DBSCAN).  
+Then, we extract a color palette using the `Gmeans` algorithm instead of the default one(DBSCAN).
 
 ```rust
 extern crate image;
@@ -84,10 +82,8 @@ impl Theme for CustomTheme {
 }
 
 pub fn main() {
-  let img = image::open("./path/to/image.png").unwrap();
-  let image_data = SimpleImageData::new(img.width(), img.height(), img.as_bytes()).unwrap();
-  
-  let palette: Palette<f64> = Palette::extract_with_algorithm(&image_data, &Algorithm::Gmeans);
+  let image = image::open("./path/to/image.png").unwrap();
+  let palette: Palette<f64> = Palette::extract_with_algorithm(&image, &Algorithm::Gmeans);
   let swatches = palette.swates_with_theme(6, &CustomTheme);
   swatches.iter().for_each(|swatch| {
     println!("{:?}", swatch.color().to_hex_string()); // The color of the swatch
@@ -107,9 +103,9 @@ Supported algorithms are as follows:
 
 To use a specific algorithm, pass it to the `extract_with` method like this:
 ```rust
-let palette = Palette::extract_with_algorithm(&image_data, Algorithm::Gmeans);
-let palette = Palette::extract_with_algorithm(&image_data, Algorithm::DBSCAN);
-let palette = Palette::extract_with_algorithm(&image_data, Algorithm::HDBSCAN);
+let palette = Palette::extract_with_algorithm(&image, &Algorithm::Gmeans);
+let palette = Palette::extract_with_algorithm(&image, &Algorithm::DBSCAN);
+let palette = Palette::extract_with_algorithm(&image, &Algorithm::HDBSCAN);
 ```
 
 ## License
