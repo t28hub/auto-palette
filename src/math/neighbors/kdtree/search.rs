@@ -7,7 +7,6 @@ use crate::math::point::Point;
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
-use std::ops::Div;
 
 /// Struct representing kd-tree search algorithm for neighbor search.
 ///
@@ -54,27 +53,79 @@ where
 
     #[inline]
     #[must_use]
+    fn partition_by_key<V, T>(slice: &mut [T], value_fn: &V) -> usize
+    where
+        T: Ord,
+        V: Fn(&T) -> F,
+    {
+        let pivot = slice.len() / 2;
+        let pivot_value = value_fn(&slice[pivot]);
+
+        let mut left = 0;
+        let mut right = slice.len() - 1;
+        while left <= right {
+            while value_fn(&slice[left]) < pivot_value {
+                left += 1;
+            }
+            while value_fn(&slice[right]) > pivot_value {
+                right -= 1;
+            }
+
+            if left <= right {
+                slice.swap(left, right);
+                left += 1;
+                right -= 1;
+            }
+        }
+        left - 1
+    }
+
+    #[inline]
+    #[must_use]
+    fn find_nth_index<T, V>(slice: &mut [T], n: usize, value_fn: V) -> usize
+    where
+        T: Ord,
+        V: Fn(&T) -> F,
+    {
+        if slice.len() <= 1 {
+            return 0;
+        }
+
+        let pivot_index = Self::partition_by_key(slice, &value_fn);
+        match n.cmp(&pivot_index) {
+            Ordering::Less => Self::find_nth_index(&mut slice[..pivot_index], n, value_fn),
+            Ordering::Greater => {
+                let index = Self::find_nth_index(
+                    &mut slice[pivot_index + 1..],
+                    n - pivot_index - 1,
+                    value_fn,
+                );
+                index + pivot_index + 1
+            }
+            _ => pivot_index,
+        }
+    }
+
+    #[inline]
+    #[must_use]
     fn build_node(points: &[P], indices: &mut [usize], depth: usize) -> Option<KDNode> {
         if indices.is_empty() {
             return None;
         }
 
         let axis = depth % points[0].dimension();
-        indices.sort_unstable_by(|&index1, &index2| {
-            let value1 = points[index1].index(axis);
-            let value2 = points[index2].index(axis);
-            value1.partial_cmp(value2).unwrap_or(Ordering::Equal)
+        let median = indices.len() / 2;
+        let median_index = Self::find_nth_index(indices, median, |&index: &usize| {
+            let point = &points[index];
+            point[axis]
         });
 
-        let node = {
-            let median = indices.len().div(2);
-            KDNode::new(
-                indices[median],
-                axis,
-                Self::build_node(points, &mut indices[..median], depth + 1),
-                Self::build_node(points, &mut indices[median + 1..], depth + 1),
-            )
-        };
+        let node = KDNode::new(
+            indices[median_index],
+            axis,
+            Self::build_node(points, &mut indices[..median], depth + 1),
+            Self::build_node(points, &mut indices[median + 1..], depth + 1),
+        );
         Some(node)
     }
 
