@@ -5,7 +5,7 @@ use std::cmp::Ordering;
 ///
 /// # Type Parameters
 /// * `F` - The float type used for calculations.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Neighbor<F: Float> {
     /// The index of the neighbor.
     pub index: usize,

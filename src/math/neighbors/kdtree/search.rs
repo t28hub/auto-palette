@@ -141,8 +141,8 @@ where
             return;
         };
 
-        let point = self.points[node.index];
-        let distance = self.metric.measure(&point, query);
+        let point = &self.points[node.index];
+        let distance = self.metric.measure(point, query);
         let neighbor = Neighbor::new(node.index, distance);
         if neighbors.len() < k {
             neighbors.push(neighbor);
@@ -175,6 +175,48 @@ where
             self.search_recursively(node.left(), query, k, neighbors);
         } else {
             self.search_recursively(node.right(), query, k, neighbors);
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    fn search_nearest_recursively(
+        &self,
+        root: &Option<Box<KDNode>>,
+        query: &P,
+        best_neighbor: Option<Neighbor<F>>,
+    ) -> Option<Neighbor<F>> {
+        let Some(ref node) = root else {
+            return best_neighbor;
+        };
+
+        let point = &self.points[node.index];
+        let distance = self.metric.measure(point, query);
+        let neighbor = Neighbor::new(node.index, distance);
+
+        let best_distance = best_neighbor.map(|n| n.distance).unwrap_or(F::max_value());
+        if distance >= best_distance {
+            return best_neighbor;
+        }
+
+        let nearest = Some(neighbor);
+        if node.is_leaf() {
+            return nearest;
+        }
+
+        let delta = query[node.axis] - point[node.axis];
+        let (primary, secondary) = if delta < F::zero() {
+            (node.left(), node.right())
+        } else {
+            (node.right(), node.left())
+        };
+
+        let nearest = self.search_nearest_recursively(primary, query, nearest);
+        let best_distance = nearest.map(|n| n.distance).unwrap_or(F::max_value());
+        if delta.abs() < best_distance {
+            self.search_nearest_recursively(secondary, query, nearest)
+        } else {
+            nearest
         }
     }
 
@@ -232,7 +274,7 @@ where
 
     #[must_use]
     fn search_nearest(&self, query: &P) -> Option<Neighbor<F>> {
-        self.search(query, 1).pop()
+        self.search_nearest_recursively(&self.root, query, None)
     }
 
     #[must_use]
@@ -241,7 +283,7 @@ where
             return Vec::new();
         }
 
-        let mut neighbors = Vec::new();
+        let mut neighbors = Vec::with_capacity(32);
         self.search_radius_recursively(&self.root, query, radius, &mut neighbors);
         neighbors
     }
