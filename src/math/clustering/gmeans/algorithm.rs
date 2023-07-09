@@ -1,7 +1,7 @@
 use crate::math::clustering::algorithm::ClusteringAlgorithm;
 use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::gmeans::cmp::SizeOrdered;
-use crate::math::distance::Distance;
+use crate::math::distance::DistanceMetric;
 use crate::math::neighbors::kdtree::search::KDTreeSearch;
 use crate::math::neighbors::search::NeighborSearch;
 use crate::math::number::Float;
@@ -17,7 +17,7 @@ use std::collections::BinaryHeap;
 /// # References
 /// * [The Gaussian-means (G-means) algorithm](https://proceedings.neurips.cc/paper_files/paper/2003/file/234833147b97bb6aed53a8f4f1c7a7d8-Paper.pdf)
 #[derive(Debug, PartialEq)]
-pub struct Gmeans<F>
+pub struct Gmeans<'a, F>
 where
     F: Float,
 {
@@ -25,10 +25,10 @@ where
     max_iter: usize,
     min_cluster_size: usize,
     tolerance: F,
-    distance: Distance,
+    metric: &'a DistanceMetric,
 }
 
-impl<F> Gmeans<F>
+impl<'a, F> Gmeans<'a, F>
 where
     F: Float,
 {
@@ -39,7 +39,7 @@ where
     /// * `max_iter` - The maximum number of iterations.
     /// * `min_cluster_size` - The minimum number of points required to form a cluster.
     /// * `tolerance` - The minimum change in cluster centroids required to continue iterating.
-    /// * `distance` - The distance metric to use for calculating distances between points.
+    /// * `metric` - The distance metric to use.
     ///
     /// # Returns
     /// A new `Gmeans` instance.
@@ -49,7 +49,7 @@ where
         max_iter: usize,
         min_cluster_size: usize,
         tolerance: F,
-        distance: Distance,
+        metric: &'a DistanceMetric,
     ) -> Self {
         assert!(
             max_k >= 2,
@@ -60,7 +60,7 @@ where
             max_iter,
             min_cluster_size,
             tolerance,
-            distance,
+            metric,
         }
     }
 
@@ -101,23 +101,22 @@ where
             cluster.clear();
         }
 
-        // Use the linear search algorithm because the number of centroids is only 2.
-        let neighbor_search = KDTreeSearch::new(&centroids, &self.distance);
-        for index in indices.iter() {
-            let point = points[*index];
-            let Some(nearest) = neighbor_search.search_nearest(&point) else {
+        let neighbor_search = KDTreeSearch::new(&centroids, self.metric);
+        for &index in indices.iter() {
+            let point = &points[index];
+            let Some(nearest) = neighbor_search.search_nearest(point) else {
                 continue;
             };
-            clusters[nearest.index].insert(*index, &point);
+            clusters[nearest.index].insert(index, point);
         }
 
         let mut converged = true;
-        for (cluster, bold_centroid) in clusters.iter_mut().zip(centroids) {
+        for (cluster, old_centroid) in clusters.iter_mut().zip(centroids) {
             if cluster.is_empty() {
                 continue;
             }
 
-            let difference = self.distance.measure(&bold_centroid, cluster.centroid());
+            let difference = self.metric.measure(&old_centroid, cluster.centroid());
             if difference >= self.tolerance {
                 converged = false;
             }
@@ -126,7 +125,7 @@ where
     }
 }
 
-impl<F, P> ClusteringAlgorithm<F, P> for Gmeans<F>
+impl<'a, F, P> ClusteringAlgorithm<F, P> for Gmeans<'a, F>
 where
     F: Float,
     P: Point<F>,
@@ -147,14 +146,10 @@ where
         let mut clusters = vec![cluster];
         let membership: Vec<usize> = (0..points.len()).collect();
         if self.assign(&mut clusters, &membership, points) {
-            // do nothing
+            return clusters;
         }
 
-        let mut heap = BinaryHeap::with_capacity(self.max_k);
-        if let Some(cluster) = clusters.pop() {
-            heap.push(SizeOrdered(cluster));
-        }
-
+        let mut heap = BinaryHeap::from_iter(clusters.into_iter().map(SizeOrdered));
         let mut clusters = Vec::with_capacity(self.max_k);
         while clusters.len() < self.max_k {
             let Some(largest) = heap.pop() else {
@@ -174,8 +169,8 @@ where
             let v = centroid1.sub(centroid2);
             let vp = v.dot(&v);
             let mut x = Vec::with_capacity(largest.size());
-            for index in largest_cluster.membership().iter() {
-                let point = points[*index];
+            for &index in largest_cluster.membership().iter() {
+                let point = &points[index];
                 x.push(point.dot(&v) / vp);
             }
             standardize(&mut x);
@@ -201,23 +196,23 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let gmeans = Gmeans::new(5, 10, 16, 0.01_f64, Distance::Euclidean);
+        let gmeans = Gmeans::new(5, 10, 16, 0.01_f64, &DistanceMetric::Euclidean);
         assert_eq!(gmeans.max_k, 5);
         assert_eq!(gmeans.max_iter, 10);
         assert_eq!(gmeans.min_cluster_size, 16);
         assert_eq!(gmeans.tolerance, 0.01_f64);
-        assert_eq!(gmeans.distance, Distance::Euclidean);
+        assert_eq!(gmeans.metric, &DistanceMetric::Euclidean);
     }
 
     #[test]
     #[should_panic(expected = "The maximum number of clusters must be at least 2.")]
     fn test_new_panic() {
-        let _ = Gmeans::new(1, 10, 2, 0.01_f64, Distance::Euclidean);
+        let _ = Gmeans::new(1, 10, 2, 0.01_f64, &DistanceMetric::Euclidean);
     }
 
     #[test]
     fn test_train() {
-        let gmeans = Gmeans::new(5, 10, 2, 0.01_f64, Distance::Euclidean);
+        let gmeans = Gmeans::new(5, 10, 2, 0.01_f64, &DistanceMetric::Euclidean);
         let points = vec![
             Point2(1.0, 1.0),
             Point2(3.5, 5.0),

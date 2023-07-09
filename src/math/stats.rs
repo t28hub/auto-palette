@@ -16,12 +16,18 @@ pub fn standardize<F: Float>(x: &mut [F]) {
     }
 
     let n = F::from_usize(x.len());
-    let mean = x.iter().fold(F::zero(), |total, value| total + *value) / n;
-    let variance = x
-        .iter()
-        .map(|value| (*value - mean).powi(2))
-        .fold(F::zero(), |total, value| total + value)
-        / n;
+    let mean = x.iter().fold(F::zero(), |mut total, &value| {
+        total += value;
+        total
+    }) / n;
+    let variance =
+        x.iter()
+            .map(|&value| (value - mean).powi(2))
+            .fold(F::zero(), |mut total, value| {
+                total += value;
+                total
+            })
+            / n;
     let sd = variance.sqrt();
     for value in x.iter_mut() {
         *value = (*value - mean) / sd;
@@ -49,7 +55,7 @@ pub fn anderson_darling_test<F: Float>(x: &[F]) -> Option<F> {
     }
 
     let mut sorted_x = x.to_vec();
-    sorted_x.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
+    sorted_x.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
 
     let normal = Normal::new(0.0, 1.0).unwrap();
     let p_values: Vec<F> = sorted_x

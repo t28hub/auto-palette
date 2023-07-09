@@ -1,4 +1,4 @@
-use crate::math::distance::Distance;
+use crate::math::distance::DistanceMetric;
 use crate::math::neighbors::kdtree::node::KDNode;
 use crate::math::neighbors::neighbor::Neighbor;
 use crate::math::neighbors::search::NeighborSearch;
@@ -21,7 +21,7 @@ where
 {
     root: Option<Box<KDNode>>,
     points: Cow<'a, [P]>,
-    metric: &'a Distance,
+    metric: &'a DistanceMetric,
     _marker: PhantomData<F>,
 }
 
@@ -39,7 +39,7 @@ where
     /// # Returns
     /// A new `KDTreeSearch` instance.
     #[must_use]
-    pub fn new(points: &'a [P], metric: &'a Distance) -> Self {
+    pub fn new(points: &'a [P], metric: &'a DistanceMetric) -> Self {
         let mut indices: Vec<usize> = (0..points.len()).collect();
         let root = Self::build_node(points, &mut indices, 0);
 
@@ -269,17 +269,17 @@ mod tests {
     #[test]
     fn test_kdtree_search() {
         let points = sample_points();
-        let kdtree = KDTreeSearch::new(&points, &Distance::Euclidean);
+        let kdtree = KDTreeSearch::new(&points, &DistanceMetric::Euclidean);
         assert!(kdtree.root.as_ref().is_some());
         assert_eq!(kdtree.points, points);
-        assert_eq!(kdtree.metric, &Distance::Euclidean);
+        assert_eq!(kdtree.metric, &DistanceMetric::Euclidean);
         assert_eq!(kdtree._marker, PhantomData);
     }
 
     #[test]
     fn test_search() {
         let points = sample_points();
-        let kdtree = KDTreeSearch::new(&points, &Distance::SquaredEuclidean);
+        let kdtree = KDTreeSearch::new(&points, &DistanceMetric::SquaredEuclidean);
 
         let actual = kdtree.search(&Point2(3.0, 3.0), 0);
         assert_eq!(actual, vec![]);
@@ -321,14 +321,14 @@ mod tests {
     #[test]
     fn test_search_empty() {
         let points: Vec<Point2<f64>> = vec![];
-        let kdtree = KDTreeSearch::new(&points, &Distance::SquaredEuclidean);
+        let kdtree = KDTreeSearch::new(&points, &DistanceMetric::SquaredEuclidean);
         assert_eq!(kdtree.search(&Point2(3.0, 3.0), 4), vec![]);
     }
 
     #[test]
     fn test_search_nearest() {
         let points = sample_points();
-        let kdtree = KDTreeSearch::new(&points, &Distance::SquaredEuclidean);
+        let kdtree = KDTreeSearch::new(&points, &DistanceMetric::SquaredEuclidean);
         assert_eq!(
             kdtree.search_nearest(&Point2(2.5, 3.0)),
             Some(Neighbor::new(4, 1.25))
@@ -338,14 +338,14 @@ mod tests {
     #[test]
     fn test_search_nearest_empty() {
         let points: Vec<Point2<f64>> = vec![];
-        let kdtree = KDTreeSearch::new(&points, &Distance::SquaredEuclidean);
+        let kdtree = KDTreeSearch::new(&points, &DistanceMetric::SquaredEuclidean);
         assert_eq!(kdtree.search_nearest(&Point2(2.5, 3.0)), None);
     }
 
     #[test]
     fn test_search_radius() {
         let points = sample_points();
-        let kdtree = KDTreeSearch::new(&points, &Distance::SquaredEuclidean);
+        let kdtree = KDTreeSearch::new(&points, &DistanceMetric::SquaredEuclidean);
 
         let actual = kdtree.search_radius(&Point2(3.0, 3.0), -1.0);
         assert_eq!(actual, vec![]);
@@ -397,7 +397,7 @@ mod tests {
     #[test]
     fn test_search_radius_empty() {
         let points: Vec<Point2<f64>> = vec![];
-        let kdtree = KDTreeSearch::new(&points, &Distance::SquaredEuclidean);
+        let kdtree = KDTreeSearch::new(&points, &DistanceMetric::SquaredEuclidean);
         assert_eq!(kdtree.search_radius(&Point2(3.0, 3.0), 5.0), vec![]);
     }
 }

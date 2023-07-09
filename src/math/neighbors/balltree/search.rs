@@ -1,4 +1,4 @@
-use crate::math::distance::Distance;
+use crate::math::distance::DistanceMetric;
 use crate::math::neighbors::balltree::node::Node;
 use crate::math::neighbors::neighbor::Neighbor;
 use crate::math::neighbors::search::NeighborSearch;
@@ -21,7 +21,7 @@ where
 {
     root: Option<Box<Node<F, P>>>,
     points: Cow<'a, [P]>,
-    metric: &'a Distance,
+    metric: &'a DistanceMetric,
 }
 
 impl<'a, F, P> BallTreeSearch<'a, F, P>
@@ -39,7 +39,7 @@ where
     /// A new `BallTreeSearch` instance.
     #[allow(unused)]
     #[must_use]
-    pub fn new(points: &'a [P], metric: &'a Distance) -> Self {
+    pub fn new(points: &'a [P], metric: &'a DistanceMetric) -> Self {
         let mut indices: Vec<usize> = (0..points.len()).collect();
         let root = Self::build_node(points, &mut indices, metric);
         Self {
@@ -54,7 +54,7 @@ where
     fn build_node(
         points: &'a [P],
         indices: &mut [usize],
-        metric: &'a Distance,
+        metric: &'a DistanceMetric,
     ) -> Option<Node<F, P>> {
         if indices.is_empty() {
             return None;
@@ -293,19 +293,19 @@ mod tests {
     #[test]
     fn test_ball_tree_search() {
         let points: Vec<Point2<f64>> = vec![];
-        let balltree = BallTreeSearch::new(&points, &Distance::Euclidean);
+        let balltree = BallTreeSearch::new(&points, &DistanceMetric::Euclidean);
         assert!(balltree.root.is_none());
         assert_eq!(balltree.root, None);
 
         let points = sample_points();
-        let balltree_search = BallTreeSearch::new(&points, &Distance::Euclidean);
+        let balltree_search = BallTreeSearch::new(&points, &DistanceMetric::Euclidean);
         assert!(balltree_search.root.is_some());
     }
 
     #[test]
     fn test_search() {
         let points = sample_points();
-        let balltree = BallTreeSearch::new(&points, &Distance::Euclidean);
+        let balltree = BallTreeSearch::new(&points, &DistanceMetric::Euclidean);
         let actual = balltree.search(&Point2(3.0, 3.0), 0);
         assert_eq!(actual.len(), 0);
 
@@ -332,7 +332,7 @@ mod tests {
     #[test]
     fn test_search_empty() {
         let points: Vec<Point2<f64>> = vec![];
-        let balltree = BallTreeSearch::new(&points, &Distance::Euclidean);
+        let balltree = BallTreeSearch::new(&points, &DistanceMetric::Euclidean);
         assert_eq!(balltree.search(&Point2(3.0, 3.0), 0), vec![]);
         assert_eq!(balltree.search(&Point2(3.0, 3.0), 1), vec![]);
         assert_eq!(balltree.search(&Point2(3.0, 3.0), 2), vec![]);
@@ -341,7 +341,7 @@ mod tests {
     #[test]
     fn test_search_nearest() {
         let points = sample_points();
-        let balltree = BallTreeSearch::new(&points, &Distance::Euclidean);
+        let balltree = BallTreeSearch::new(&points, &DistanceMetric::Euclidean);
 
         let actual = balltree.search_nearest(&Point2(3.0, 3.0));
         assert!(actual.is_some());
@@ -359,14 +359,14 @@ mod tests {
     #[test]
     fn test_search_nearest_empty() {
         let points: Vec<Point2<f64>> = vec![];
-        let balltree = BallTreeSearch::new(&points, &Distance::Euclidean);
+        let balltree = BallTreeSearch::new(&points, &DistanceMetric::Euclidean);
         assert!(balltree.search_nearest(&Point2(3.0, 3.0)).is_none());
     }
 
     #[test]
     fn test_search_radius() {
         let points = sample_points();
-        let balltree = BallTreeSearch::new(&points, &Distance::Euclidean);
+        let balltree = BallTreeSearch::new(&points, &DistanceMetric::Euclidean);
         let actual = balltree.search_radius(&Point2(3.0, 3.0), 0.0);
         assert_eq!(actual.len(), 0);
 
@@ -394,7 +394,7 @@ mod tests {
     #[test]
     fn test_search_radius_empty() {
         let points: Vec<Point2<f64>> = vec![];
-        let balltree = BallTreeSearch::new(&points, &Distance::Euclidean);
+        let balltree = BallTreeSearch::new(&points, &DistanceMetric::Euclidean);
         assert_eq!(balltree.search_radius(&Point2(3.0, 3.0), -1.0), vec![]);
         assert_eq!(balltree.search_radius(&Point2(3.0, 3.0), 0.0), vec![]);
         assert_eq!(balltree.search_radius(&Point2(3.0, 3.0), 1.0), vec![]);

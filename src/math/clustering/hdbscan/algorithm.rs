@@ -4,7 +4,7 @@ use crate::math::clustering::hdbscan::core_distance::CoreDistance;
 use crate::math::clustering::hdbscan::union_find::UnionFind;
 use crate::math::clustering::hierarchical::algorithm::HierarchicalClustering;
 use crate::math::clustering::hierarchical::node::HierarchicalNode;
-use crate::math::distance::Distance;
+use crate::math::distance::DistanceMetric;
 use crate::math::number::Float;
 use crate::math::point::Point;
 use std::collections::{HashMap, HashSet};
@@ -18,7 +18,7 @@ use std::collections::{HashMap, HashSet};
 pub struct HDBSCAN<'a> {
     min_samples: usize,
     min_cluster_size: usize,
-    distance: &'a Distance,
+    metric: &'a DistanceMetric,
 }
 
 impl<'a> HDBSCAN<'a> {
@@ -27,16 +27,16 @@ impl<'a> HDBSCAN<'a> {
     /// # Arguments
     /// * `min_samples` - The minimum number of points.
     /// * `min_cluster_size` - The minimum number of points required to form a cluster.
-    /// * `distance` - The distance metric to measure core distances.
+    /// * `metric` - The distance metric to use.
     ///
     /// # Returns
     /// A new `HDBSCAN` instance.
     #[must_use]
-    pub fn new(min_samples: usize, min_cluster_size: usize, distance: &'a Distance) -> Self {
+    pub fn new(min_samples: usize, min_cluster_size: usize, metric: &'a DistanceMetric) -> Self {
         Self {
             min_samples,
             min_cluster_size,
-            distance,
+            metric,
         }
     }
 
@@ -341,11 +341,11 @@ where
             return (Vec::new(), HashSet::new());
         }
 
-        let core_distance = CoreDistance::new(points, self.min_samples, self.distance);
+        let core_distance = CoreDistance::new(points, self.min_samples, self.metric);
         let mutual_reachability_distance = |u: usize, v: usize| -> F {
             let point_u = &points[u];
             let point_v = &points[v];
-            let distance = self.distance.measure(point_u, point_v);
+            let distance = self.metric.measure(point_u, point_v);
             distance.max(
                 core_distance
                     .distance_at(u)
@@ -399,7 +399,7 @@ mod tests {
             Point2(8.0, 8.0), // 20
         ];
 
-        let hdbscan = HDBSCAN::new(3, 4, &Distance::SquaredEuclidean);
+        let hdbscan = HDBSCAN::new(3, 4, &DistanceMetric::SquaredEuclidean);
         let (clusters, outliers) = hdbscan.fit(&points);
 
         assert_eq!(clusters.len(), 4);

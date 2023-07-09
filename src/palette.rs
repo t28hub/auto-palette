@@ -6,7 +6,7 @@ use crate::image::ImageData;
 use crate::math::clustering::algorithm::ClusteringAlgorithm;
 use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::dbscan::algorithm::DBSCAN;
-use crate::math::distance::Distance;
+use crate::math::distance::DistanceMetric;
 use crate::math::graph::edge::Edge;
 use crate::math::graph::weighted_edge::WeightedEdge;
 use crate::math::number::Float;
@@ -71,9 +71,7 @@ where
         let image_data = match image.color() {
             ColorType::Rgb8 => ImageData::from(&image.to_rgb8()),
             ColorType::Rgba8 => ImageData::from(&image.to_rgba8()),
-            _ => {
-                unimplemented!("Unsupported image type")
-            }
+            _ => unimplemented!("Unsupported image type"),
         };
         let pixels = convert_to_pixels(&image_data);
 
@@ -93,7 +91,7 @@ where
 
         // Merge colors with small color differences and extract the dominant swatches.
         // According to the Digital Color Imaging Handbook, a ∆E ≤ 2.3 is perceived as identical by human perception.
-        let dbscan = DBSCAN::new(1, F::from_f64(2.3), &Distance::Euclidean);
+        let dbscan = DBSCAN::new(1, F::from_f64(2.3), &DistanceMetric::Euclidean);
         let (swatch_clusters, _) = dbscan.fit(&colors);
         let mut swatches: Vec<_> = swatch_clusters
             .iter()

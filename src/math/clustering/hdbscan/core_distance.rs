@@ -1,4 +1,4 @@
-use crate::math::distance::Distance;
+use crate::math::distance::DistanceMetric;
 use crate::math::neighbors::kdtree::search::KDTreeSearch;
 use crate::math::neighbors::search::NeighborSearch;
 use crate::math::number::Float;
@@ -30,7 +30,7 @@ where
     /// # Returns
     /// A new `CoreDistance` instance.
     #[must_use]
-    pub fn new<P: Point<F>>(points: &[P], min_samples: usize, metric: &Distance) -> Self {
+    pub fn new<P: Point<F>>(points: &[P], min_samples: usize, metric: &DistanceMetric) -> Self {
         if points.is_empty() {
             return Self::default();
         }
@@ -96,7 +96,7 @@ mod tests {
             Point2(2.5, 3.5),
         ]);
 
-        let actual = CoreDistance::new(&points, 3, &Distance::SquaredEuclidean);
+        let actual = CoreDistance::new(&points, 3, &DistanceMetric::SquaredEuclidean);
         assert_eq!(actual.distances.len(), 6);
         assert_almost_eq!(actual.distance_at(0), 5.00, 1e-5);
         assert_almost_eq!(actual.distance_at(1), 0.08, 1e-5);

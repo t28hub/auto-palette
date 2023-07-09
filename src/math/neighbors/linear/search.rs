@@ -1,4 +1,4 @@
-use crate::math::distance::Distance;
+use crate::math::distance::DistanceMetric;
 use crate::math::neighbors::neighbor::Neighbor;
 use crate::math::neighbors::search::NeighborSearch;
 use crate::math::number::Float;
@@ -19,7 +19,7 @@ where
     P: Point<F>,
 {
     points: Cow<'a, [P]>,
-    metric: &'a Distance,
+    metric: &'a DistanceMetric,
     _marker: PhantomData<F>,
 }
 
@@ -38,7 +38,7 @@ where
     /// A new `LinearSearch` instance.
     #[allow(unused)]
     #[must_use]
-    pub fn new(points: &'a Vec<P>, metric: &'a Distance) -> Self {
+    pub fn new(points: &'a Vec<P>, metric: &'a DistanceMetric) -> Self {
         Self {
             points: Cow::Borrowed(points),
             metric,
@@ -135,16 +135,16 @@ mod tests {
     #[test]
     fn test_linear_search() {
         let points = sample_points();
-        let linear = LinearSearch::new(&points, &Distance::SquaredEuclidean);
+        let linear = LinearSearch::new(&points, &DistanceMetric::SquaredEuclidean);
         assert_eq!(linear.points.as_ref(), &points);
-        assert_eq!(linear.metric, &Distance::SquaredEuclidean);
+        assert_eq!(linear.metric, &DistanceMetric::SquaredEuclidean);
         assert_eq!(linear._marker, PhantomData::default());
     }
 
     #[test]
     fn test_search() {
         let points = sample_points();
-        let linear = LinearSearch::new(&points, &Distance::SquaredEuclidean);
+        let linear = LinearSearch::new(&points, &DistanceMetric::SquaredEuclidean);
         assert_eq!(linear.search(&Point2(3.0, 3.0), 0), vec![]);
         assert_eq!(
             linear.search(&Point2(3.0, 3.0), 3),
@@ -170,7 +170,7 @@ mod tests {
     #[test]
     fn test_search_empty() {
         let points: Vec<Point2<f64>> = vec![];
-        let linear = LinearSearch::new(&points, &Distance::SquaredEuclidean);
+        let linear = LinearSearch::new(&points, &DistanceMetric::SquaredEuclidean);
         assert_eq!(linear.search(&Point2(3.0, 3.0), 0), vec![]);
         assert_eq!(linear.search(&Point2(3.0, 3.0), 3), vec![]);
         assert_eq!(linear.search(&Point2(3.0, 3.0), 5), vec![]);
@@ -180,7 +180,7 @@ mod tests {
     #[test]
     fn test_search_nearest() {
         let points = sample_points();
-        let linear = LinearSearch::new(&points, &Distance::SquaredEuclidean);
+        let linear = LinearSearch::new(&points, &DistanceMetric::SquaredEuclidean);
         assert_eq!(
             linear.search_nearest(&Point2(2.5, 3.0)),
             Some(Neighbor::new(4, 1.25))
@@ -190,14 +190,14 @@ mod tests {
     #[test]
     fn test_search_nearest_empty() {
         let points: Vec<Point2<f64>> = vec![];
-        let linear = LinearSearch::new(&points, &Distance::SquaredEuclidean);
+        let linear = LinearSearch::new(&points, &DistanceMetric::SquaredEuclidean);
         assert_eq!(linear.search_nearest(&Point2(3.0, 3.0)), None);
     }
 
     #[test]
     fn test_search_radius() {
         let points = sample_points();
-        let linear = LinearSearch::new(&points, &Distance::SquaredEuclidean);
+        let linear = LinearSearch::new(&points, &DistanceMetric::SquaredEuclidean);
         assert_eq!(linear.search_radius(&Point2(2.0, 3.0), -1.0), vec![]);
         assert_eq!(linear.search_radius(&Point2(2.0, 3.0), 0.0), vec![]);
         assert_eq!(
@@ -226,7 +226,7 @@ mod tests {
     #[test]
     fn test_search_radius_empty() {
         let points: Vec<Point2<f64>> = vec![];
-        let linear = LinearSearch::new(&points, &Distance::SquaredEuclidean);
+        let linear = LinearSearch::new(&points, &DistanceMetric::SquaredEuclidean);
         assert_eq!(linear.search_radius(&Point2(2.0, 3.0), -1.0), vec![]);
         assert_eq!(linear.search_radius(&Point2(2.0, 3.0), 0.0), vec![]);
         assert_eq!(linear.search_radius(&Point2(2.0, 3.0), 1.0), vec![]);

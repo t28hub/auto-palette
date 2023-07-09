@@ -1,7 +1,7 @@
 use crate::math::clustering::algorithm::ClusteringAlgorithm;
 use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::dbscan::label::Label;
-use crate::math::distance::Distance;
+use crate::math::distance::DistanceMetric;
 use crate::math::neighbors::kdtree::search::KDTreeSearch;
 use crate::math::neighbors::neighbor::Neighbor;
 use crate::math::neighbors::search::NeighborSearch;
@@ -21,7 +21,7 @@ where
 {
     min_samples: usize,
     epsilon: F,
-    distance: &'a Distance,
+    metric: &'a DistanceMetric,
 }
 
 impl<'a, F> DBSCAN<'a, F>
@@ -33,16 +33,16 @@ where
     /// # Arguments
     /// * `min_samples` - The minimum number of points.
     /// * `epsilon` - The maximum distance between two points.
-    /// * `distance` - The distance metric.
+    /// * `metric` - The distance metric.
     ///
     /// # Returns
     /// A new `DBSCAN` instance.
     #[must_use]
-    pub fn new(min_samples: usize, epsilon: F, distance: &'a Distance) -> Self {
+    pub fn new(min_samples: usize, epsilon: F, metric: &'a DistanceMetric) -> Self {
         Self {
             min_samples,
             epsilon,
-            distance,
+            metric,
         }
     }
 
@@ -107,7 +107,7 @@ where
             return (Vec::new(), HashSet::new());
         }
 
-        let neighbor_search = KDTreeSearch::new(points, self.distance);
+        let neighbor_search = KDTreeSearch::new(points, self.metric);
         let mut labels = vec![Label::Undefined; points.len()];
         let mut cluster_id: usize = 0;
         for (index, point) in points.iter().enumerate() {
@@ -168,7 +168,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::distance::Distance;
+    use crate::math::distance::DistanceMetric;
     use crate::math::point::Point2;
 
     #[must_use]
@@ -195,16 +195,16 @@ mod tests {
 
     #[test]
     fn test_dbscan() {
-        let actual = DBSCAN::new(4, 2.0_f64.sqrt(), &Distance::Euclidean);
+        let actual = DBSCAN::new(4, 2.0_f64.sqrt(), &DistanceMetric::Euclidean);
         assert_eq!(actual.min_samples, 4);
         assert_eq!(actual.epsilon, 2.0_f64.sqrt());
-        assert_eq!(actual.distance, &Distance::Euclidean);
+        assert_eq!(actual.metric, &DistanceMetric::Euclidean);
     }
 
     #[test]
     fn test_fit() {
         let points = sample_points();
-        let dbscan = DBSCAN::new(4, 2.0_f64.sqrt(), &Distance::Euclidean);
+        let dbscan = DBSCAN::new(4, 2.0_f64.sqrt(), &DistanceMetric::Euclidean);
         let (mut clusters, outliers) = dbscan.fit(&points);
 
         clusters.sort_by(|cluster1, cluster2| {
