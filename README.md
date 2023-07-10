@@ -101,7 +101,7 @@ Supported algorithms are as follows:
 - DBSCAN(Density-Based Spatial Clustering of Applications with Noise)
 - HDBSCAN(Hierarchical Density-Based Spatial Clustering of Applications with Noise)
 
-To use a specific algorithm, pass it to the `extract_with` method like this:
+To use a specific algorithm, pass it to the `extract_with_algorithm` method like this:
 ```rust
 let palette = Palette::extract_with_algorithm(&image, &Algorithm::Gmeans);
 let palette = Palette::extract_with_algorithm(&image, &Algorithm::DBSCAN);
@@ -110,6 +110,5 @@ let palette = Palette::extract_with_algorithm(&image, &Algorithm::HDBSCAN);
 
 ## License
 
-This library is distributed under the MIT License.See
-the [LICENSE](https://github.com/t28hub/auto-palette/blob/main/LICENSE) for more information.  
+This library is distributed under the MIT License.See the [LICENSE](https://github.com/t28hub/auto-palette/blob/main/LICENSE) for more information.  
 [![FOSSA Status](https://app.fossa.com/api/projects/custom%2B14538%2Fgithub.com%2Ft28hub%2Fauto-palette.svg?type=large)](https://app.fossa.com/projects/custom%2B14538%2Fgithub.com%2Ft28hub%2Fauto-palette?ref=badge_large)

@@ -1,0 +1,17 @@
+[package]
+name = "auto-palette-wasm"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+readme = "README.md"
+authors = ["Tatsuya Maki <t28oogle@gmail.com>"]
+description = "A Wasm library for automatically extracting color palettes from an image."
+repository = "https://github.com/t28hub/auto-palette"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+auto-palette = { version = "0.1.0", path = "../core" }
+getrandom = { version = "0.2.3", features = ["js"] }
+wasm-bindgen = "0.2.87"
