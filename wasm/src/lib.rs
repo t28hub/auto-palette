@@ -1,17 +1,9 @@
-use wasm_bindgen::prelude::wasm_bindgen;
+mod color;
+mod palette;
+mod position;
+mod swatch;
 
-#[wasm_bindgen]
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use color::*;
+pub use palette::*;
+pub use position::*;
+pub use swatch::*;

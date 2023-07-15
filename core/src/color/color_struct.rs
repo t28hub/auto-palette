@@ -144,6 +144,8 @@ where
     ///
     /// # Returns
     /// The color difference.
+    #[inline]
+    #[must_use]
     pub fn difference(&self, other: &Color<F, WP>, metric: &DeltaE) -> F {
         let lab1 = self.to_lab();
         let lab2 = other.to_lab();

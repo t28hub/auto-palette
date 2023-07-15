@@ -46,6 +46,15 @@ impl<F> Palette<F>
 where
     F: Float,
 {
+    /// Create a new `Palette` instance.
+    ///
+    /// # Returns
+    /// A new `Palette` instance.
+    #[must_use]
+    pub fn new(swatches: Vec<Swatch<F>>) -> Self {
+        Self { swatches }
+    }
+
     /// Extract a color palette from the given image.
     ///
     /// # Arguments
@@ -98,7 +107,7 @@ where
             .filter_map(|cluster| color_cluster_to_swatch(cluster, &candidates))
             .collect();
         swatches.sort_by_key(|swatch| Reverse(swatch.population()));
-        Self { swatches }
+        Self::new(swatches)
     }
 
     /// Returns the number of swatches in this palette.
@@ -228,6 +237,16 @@ where
             next_label += 1;
         }
         candidates.into_values().collect()
+    }
+}
+
+impl<F> Default for Palette<F>
+where
+    F: Float,
+{
+    #[must_use]
+    fn default() -> Self {
+        Self::new(Vec::new())
     }
 }
 
@@ -370,6 +389,17 @@ mod tests {
     use image::RgbaImage;
 
     #[test]
+    fn test_palette() {
+        let swatches: Vec<Swatch<f64>> = vec![
+            Swatch::new(Color::from(&RGB::new(0, 255, 0)), (0, 0), 1),
+            Swatch::new(Color::from(&RGB::new(255, 0, 0)), (1, 1), 1),
+        ];
+        let palette = Palette::new(swatches);
+        assert!(!palette.is_empty());
+        assert_eq!(palette.len(), 2);
+    }
+
+    #[test]
     fn test_extract() {
         let data = vec![
             255, 0, 0, 255, // red
@@ -380,6 +410,13 @@ mod tests {
         let image = DynamicImage::from(RgbaImage::from_raw(2, 2, data).unwrap());
         let palette: Palette<f64> = Palette::extract(&image);
 
+        assert!(palette.is_empty());
+        assert_eq!(palette.len(), 0);
+    }
+
+    #[test]
+    fn test_default() {
+        let palette: Palette<f64> = Palette::default();
         assert!(palette.is_empty());
         assert_eq!(palette.len(), 0);
     }
