@@ -47,7 +47,6 @@ mod tests {
     use super::*;
     use auto_palette::color_struct::Color;
     use auto_palette::rgb::RGB;
-    use wasm_bindgen_test::*;
 
     #[test]
     fn test_swatch_wrapper() {

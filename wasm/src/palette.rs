@@ -74,20 +74,18 @@ impl PaletteWrapper {
     #[must_use]
     pub fn swatches(&self, n: usize) -> Array {
         let swatches = self.0.swatches(n);
-        let array = Array::new_with_length(swatches.len() as u32);
-        for swatch in swatches.into_iter() {
+        let result = Array::new_with_length(swatches.len() as u32);
+        for (index, swatch) in swatches.into_iter().enumerate() {
             let value = JsValue::from(SwatchWrapper(swatch));
-            array.push(&value);
+            result.set(index as u32, value);
         }
-        array
+        result
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wasm_bindgen::Clamped;
-    use wasm_bindgen_test::*;
 
     #[test]
     fn test_palette_wrapper() {
