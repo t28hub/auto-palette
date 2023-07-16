@@ -46,7 +46,7 @@ function App() {
     const imageData = context.getImageData(0, 0, image.width, image.height);
 
     console.time("palette");
-    const palette = Palette.fromImageData(imageData);
+    const palette = Palette.from(imageData.data, imageData.width, imageData.height);
     console.info({palette});
     console.timeEnd("palette");
 

@@ -3,8 +3,7 @@ use auto_palette::Palette;
 use image::{DynamicImage, ImageBuffer};
 use js_sys::Array;
 use wasm_bindgen::prelude::wasm_bindgen;
-use wasm_bindgen::{JsCast, JsValue};
-use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, ImageData};
+use wasm_bindgen::{Clamped, JsValue};
 
 /// Struct for wrapping Palette<f64> in wasm
 #[derive(Debug)]
@@ -13,40 +12,23 @@ pub struct PaletteWrapper(Palette<f64>);
 
 #[wasm_bindgen(js_class = Palette)]
 impl PaletteWrapper {
-    /// Extracts a palette from the given canvas element.
-    ///
-    /// # Arguments
-    /// * `canvas` - The canvas element to generate a palette from.
-    ///
-    /// # Returns
-    /// A palette generated from the given canvas element.
-    #[wasm_bindgen(js_name = fromCanvas)]
-    pub fn from_canvas(canvas: &HtmlCanvasElement) -> Result<PaletteWrapper, JsValue> {
-        let Ok(context) = canvas.get_context("2d").unwrap().unwrap().dyn_into::<CanvasRenderingContext2d>() else {
-            return Err(JsValue::from_str("Failed to get 2d context"));
-        };
-
-        let width = canvas.width() as f64;
-        let height = canvas.height() as f64;
-        let Ok(image_data) = context.get_image_data(0.0, 0.0, width, height) else {
-            return Err(JsValue::from_str("Failed to get image data"));
-        };
-        Self::from_image_data(&image_data)
-    }
-
     /// Extracts a palette from the given image data.
     ///
     /// # Arguments
-    /// * `image_data` - The image data to generate a palette from.
+    /// * `data` - The image data to extract a palette from.
+    /// * `width` - The width of the image.
+    /// * `height` - The height of the image.
     ///
     /// # Returns
-    /// A palette generated from the given image data.
-    #[wasm_bindgen(js_name = fromImageData)]
-    pub fn from_image_data(image_data: &ImageData) -> Result<PaletteWrapper, JsValue> {
-        let width = image_data.width();
-        let height = image_data.height();
-        let data = image_data.data().to_vec();
-        let buffer = ImageBuffer::from_vec(width, height, data).unwrap();
+    /// The extracted palette.
+    pub fn from(
+        data: Clamped<Vec<u8>>,
+        width: u32,
+        height: u32,
+    ) -> Result<PaletteWrapper, JsValue> {
+        let Some(buffer) = ImageBuffer::from_vec(width, height, data.to_vec()) else {
+            return Err(JsValue::from_str("Failed to convert data to image"));
+        };
         let palette = Palette::extract(&DynamicImage::ImageRgba8(buffer));
         Ok(PaletteWrapper(palette))
     }
@@ -93,5 +75,14 @@ mod tests {
         let wrapper = PaletteWrapper(palette);
         assert!(wrapper.is_empty());
         assert_eq!(wrapper.length(), 0);
+    }
+
+    #[test]
+    fn test_from() {
+        let data = vec![
+            255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+        ];
+        let wrapper = PaletteWrapper::from(Clamped(data), 2, 2);
+        assert!(wrapper.is_ok());
     }
 }
