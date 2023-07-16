@@ -13,8 +13,9 @@ impl SwatchWrapper {
     /// Returns the color of this swatch.
     ///
     /// # Returns
-    /// A reference of color of this swatch.
+    /// The color of this swatch.
     #[must_use]
+    #[wasm_bindgen(getter)]
     pub fn color(&self) -> ColorWrapper {
         ColorWrapper(self.0.color().clone())
     }
@@ -24,6 +25,7 @@ impl SwatchWrapper {
     /// # Returns
     /// The (x, y) position of this swatch.
     #[must_use]
+    #[wasm_bindgen(getter)]
     pub fn position(&self) -> Position {
         let (x, y) = self.0.position();
         Position::new(x, y)
@@ -34,6 +36,7 @@ impl SwatchWrapper {
     /// # Returns
     /// The population of this swatch.
     #[must_use]
+    #[wasm_bindgen(getter)]
     pub fn population(&self) -> usize {
         self.0.population()
     }
@@ -46,16 +49,14 @@ mod tests {
     use auto_palette::rgb::RGB;
     use wasm_bindgen_test::*;
 
-    #[wasm_bindgen_test]
+    #[test]
     fn test_swatch_wrapper() {
-        let color: Color<f64> = Color::from(&RGB::new(255, 0, 64));
+        let rgb = RGB::new(255, 0, 64);
+        let color: Color<f64> = Color::from(&rgb);
         let swatch = Swatch::new(color, (90, 120), 384);
-        let swatch_wrapper = SwatchWrapper(swatch);
-        assert_eq!(
-            swatch_wrapper.color(),
-            ColorWrapper(Color::from(&RGB::new(255, 0, 64)))
-        );
-        assert_eq!(swatch_wrapper.position(), Position::new(90, 120));
-        assert_eq!(swatch_wrapper.population(), 384);
+        let wrapper = SwatchWrapper(swatch);
+        assert_eq!(wrapper.color(), ColorWrapper(Color::from(&rgb)));
+        assert_eq!(wrapper.position(), Position::new(90, 120));
+        assert_eq!(wrapper.population(), 384);
     }
 }

@@ -20,7 +20,7 @@ impl Position {
     /// # Returns
     /// A `Position` instance.
     #[must_use]
-    #[wasm_bindgen(constructor)]
+    #[wasm_bindgen(skip_typescript)]
     pub fn new(x: u32, y: u32) -> Position {
         Self { x, y }
     }
@@ -49,9 +49,8 @@ impl Position {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wasm_bindgen_test::*;
 
-    #[wasm_bindgen_test]
+    #[test]
     fn test_position_wrapper() {
         let position = Position::new(90, 120);
         assert_eq!(position.x(), 90);
