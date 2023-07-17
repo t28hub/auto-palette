@@ -1,0 +1,23 @@
+[package]
+name = "auto-palette-cli"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+readme = "README.md"
+authors = ["Tatsuya Maki <t28oogle@gmail.com>"]
+description = "A CLI tool for automatically extracting color palettes from an image."
+repository = "https://github.com/t28hub/auto-palette"
+
+[[bin]]
+name = "auto-palette"
+path = "src/main.rs"
+
+[dependencies]
+auto-palette = { version = "0.1.0", path = "../auto-palette-core" }
+clap = { version = "4.3.12", features = ["derive"] }
+owo-colors = "3.5.0"
+
+[dependencies.image]
+version = "0.24.6"
+default-features = false
+features = ["jpeg", "png"]

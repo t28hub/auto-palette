@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from 'react'
 import './App.css'
-import init, {Palette, Swatch} from '../../wasm/pkg';
+import init, {Palette, Swatch} from '../../auto-palette-wasm/pkg';
 
 
 function App() {

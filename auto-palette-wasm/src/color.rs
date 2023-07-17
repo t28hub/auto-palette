@@ -1,7 +1,7 @@
 use auto_palette::color_struct::Color;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-/// Struct for wrapping Color<f64> in wasm
+/// Struct for wrapping Color<f64> in auto-palette-wasm
 #[derive(Debug, PartialEq)]
 #[wasm_bindgen(js_name = Color)]
 pub struct ColorWrapper(pub(crate) Color<f64>);

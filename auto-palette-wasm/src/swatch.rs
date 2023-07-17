@@ -3,7 +3,7 @@ use crate::ColorWrapper;
 use auto_palette::Swatch;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-/// Struct for wrapping Swatch<f64> in wasm
+/// Struct for wrapping Swatch<f64> in auto-palette-wasm
 #[derive(Debug)]
 #[wasm_bindgen(js_name = Swatch)]
 pub struct SwatchWrapper(pub(crate) Swatch<f64>);
