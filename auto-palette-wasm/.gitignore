@@ -1,3 +1,19 @@
+### Node
+node_modules/
+build/
+coverage/
+dist/
+dist-ssr/
+html/
+package/
+*.local
+
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+
 ### Rust
 debug/
 target/

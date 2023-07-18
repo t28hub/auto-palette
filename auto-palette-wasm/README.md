@@ -1,3 +1,4 @@
+# Auto Palette for WASM
 ```
-wasm-pack build --target web
+pnpm 
 ```
