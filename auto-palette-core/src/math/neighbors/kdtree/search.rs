@@ -47,7 +47,7 @@ where
             root: root.map(Box::new),
             points: Cow::Borrowed(points),
             metric,
-            _marker: PhantomData::default(),
+            _marker: PhantomData,
         }
     }
 

@@ -55,7 +55,7 @@ where
             l,
             a,
             b,
-            _marker: PhantomData::default(),
+            _marker: PhantomData,
         }
     }
 

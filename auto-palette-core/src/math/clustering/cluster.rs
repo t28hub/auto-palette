@@ -35,7 +35,7 @@ where
         Self {
             centroid: initial_centroid,
             membership: Vec::new(),
-            _marker: PhantomData::default(),
+            _marker: PhantomData,
         }
     }
 
@@ -107,7 +107,7 @@ where
         Self {
             centroid: P::zero(),
             membership: Vec::new(),
-            _marker: PhantomData::default(),
+            _marker: PhantomData,
         }
     }
 }

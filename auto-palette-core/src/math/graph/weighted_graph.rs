@@ -32,7 +32,7 @@ where
         Self {
             vertices,
             weight_fn,
-            _marker: PhantomData::default(),
+            _marker: PhantomData,
         }
     }
 }

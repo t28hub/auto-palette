@@ -42,7 +42,7 @@ where
             l: Self::clamp_l(l),
             a: Self::clamp_a(a),
             b: Self::clamp_b(b),
-            _marker: PhantomData::default(),
+            _marker: PhantomData,
         }
     }
 

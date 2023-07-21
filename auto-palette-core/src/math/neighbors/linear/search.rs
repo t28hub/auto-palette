@@ -42,7 +42,7 @@ where
         Self {
             points: Cow::Borrowed(points),
             metric,
-            _marker: PhantomData::default(),
+            _marker: PhantomData,
         }
     }
 }
@@ -138,7 +138,7 @@ mod tests {
         let linear = LinearSearch::new(&points, &DistanceMetric::SquaredEuclidean);
         assert_eq!(linear.points.as_ref(), &points);
         assert_eq!(linear.metric, &DistanceMetric::SquaredEuclidean);
-        assert_eq!(linear._marker, PhantomData::default());
+        assert_eq!(linear._marker, PhantomData);
     }
 
     #[test]

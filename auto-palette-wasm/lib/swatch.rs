@@ -5,10 +5,10 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 /// Struct for wrapping Swatch<f64> in auto-palette-wasm
 #[derive(Debug)]
-#[wasm_bindgen(js_name = Swatch)]
+#[wasm_bindgen]
 pub struct SwatchWrapper(pub(crate) Swatch<f64>);
 
-#[wasm_bindgen(js_class = Swatch)]
+#[wasm_bindgen]
 impl SwatchWrapper {
     /// Returns the color of this swatch.
     ///
@@ -28,7 +28,7 @@ impl SwatchWrapper {
     #[wasm_bindgen(getter)]
     pub fn position(&self) -> Position {
         let (x, y) = self.0.position();
-        Position::new(x, y)
+        Position(x, y)
     }
 
     /// Returns the population of this swatch.
@@ -55,7 +55,7 @@ mod tests {
         let swatch = Swatch::new(color, (90, 120), 384);
         let wrapper = SwatchWrapper(swatch);
         assert_eq!(wrapper.color(), ColorWrapper(Color::from(&rgb)));
-        assert_eq!(wrapper.position(), Position::new(90, 120));
+        assert_eq!(wrapper.position(), Position(90, 120));
         assert_eq!(wrapper.population(), 384);
     }
 }

@@ -7,32 +7,11 @@ use wasm_bindgen::{Clamped, JsValue};
 
 /// Struct for wrapping Palette<f64> in auto-palette-wasm
 #[derive(Debug)]
-#[wasm_bindgen(js_name = Palette)]
+#[wasm_bindgen]
 pub struct PaletteWrapper(Palette<f64>);
 
-#[wasm_bindgen(js_class = Palette)]
+#[wasm_bindgen]
 impl PaletteWrapper {
-    /// Extracts a palette from the given image data.
-    ///
-    /// # Arguments
-    /// * `data` - The image data to extract a palette from.
-    /// * `width` - The width of the image.
-    /// * `height` - The height of the image.
-    ///
-    /// # Returns
-    /// The extracted palette.
-    pub fn from(
-        data: Clamped<Vec<u8>>,
-        width: u32,
-        height: u32,
-    ) -> Result<PaletteWrapper, JsValue> {
-        let Some(buffer) = ImageBuffer::from_vec(width, height, data.to_vec()) else {
-            return Err(JsValue::from_str("Failed to convert data to image"));
-        };
-        let palette = Palette::extract(&DynamicImage::ImageRgba8(buffer));
-        Ok(PaletteWrapper(palette))
-    }
-
     /// Returns the number of swatches in this palette.
     ///
     /// # Returns
@@ -65,6 +44,28 @@ impl PaletteWrapper {
     }
 }
 
+/// Extracts a palette from the given image data.
+///
+/// # Arguments
+/// * `data` - The image data to extract a palette from.
+/// * `width` - The width of the image.
+/// * `height` - The height of the image.
+///
+/// # Returns
+/// An extracted palette.
+#[wasm_bindgen(js_name = extractPalette)]
+pub fn extract_palette(
+    data: Clamped<Vec<u8>>,
+    width: u32,
+    height: u32,
+) -> Result<PaletteWrapper, JsValue> {
+    let Some(buffer) = ImageBuffer::from_vec(width, height, data.to_vec()) else {
+        return Err(JsValue::from_str("Failed to convert data to image"));
+    };
+    let palette = Palette::extract(&DynamicImage::ImageRgba8(buffer));
+    Ok(PaletteWrapper(palette))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -78,11 +79,11 @@ mod tests {
     }
 
     #[test]
-    fn test_from() {
+    fn test_extract_palette() {
         let data = vec![
             255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
         ];
-        let wrapper = PaletteWrapper::from(Clamped(data), 2, 2);
+        let wrapper = extract_palette(Clamped(data), 2, 2);
         assert!(wrapper.is_ok());
     }
 }

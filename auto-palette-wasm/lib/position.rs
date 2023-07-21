@@ -1,48 +1,30 @@
 use wasm_bindgen::prelude::wasm_bindgen;
-#[allow(clippy::extra_unused_type_parameters)]
 
-/// Struct representing a position.
+/// Struct for wrapping (x, y) positions in auto-palette-wasm
 #[derive(Debug, PartialEq)]
 #[wasm_bindgen]
-pub struct Position {
-    x: u32,
-    y: u32,
-}
+pub struct Position(pub(crate) u32, pub(crate) u32);
 
 #[wasm_bindgen]
 impl Position {
-    /// Creates a new `Position` instance.
-    ///
-    /// # Arguments
-    /// * `x` - The x coordinate of the position.
-    /// * `y` - The y coordinate of the position.
+    /// Returns the x position.
     ///
     /// # Returns
-    /// A `Position` instance.
-    #[must_use]
-    #[wasm_bindgen(skip_typescript)]
-    pub fn new(x: u32, y: u32) -> Position {
-        Self { x, y }
-    }
-
-    /// Returns the x coordinate of this position.
-    ///
-    /// # Returns
-    /// The x coordinate of this position.
+    /// The x position.
     #[must_use]
     #[wasm_bindgen(getter)]
     pub fn x(&self) -> u32 {
-        self.x
+        self.0
     }
 
-    /// Returns the y coordinate of this position.
+    /// Returns the y position.
     ///
     /// # Returns
-    /// The y coordinate of this position.
+    /// The y position.
     #[must_use]
     #[wasm_bindgen(getter)]
     pub fn y(&self) -> u32 {
-        self.y
+        self.1
     }
 }
 
@@ -51,8 +33,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_position_wrapper() {
-        let position = Position::new(90, 120);
+    fn test_position() {
+        let position = Position(90, 120);
         assert_eq!(position.x(), 90);
         assert_eq!(position.y(), 120);
     }

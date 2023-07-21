@@ -3,10 +3,10 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 /// Struct for wrapping Color<f64> in auto-palette-wasm
 #[derive(Debug, PartialEq)]
-#[wasm_bindgen(js_name = Color)]
+#[wasm_bindgen]
 pub struct ColorWrapper(pub(crate) Color<f64>);
 
-#[wasm_bindgen(js_class = Color)]
+#[wasm_bindgen]
 impl ColorWrapper {
     /// Checks if this color is light.
     ///
