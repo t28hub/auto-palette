@@ -1,4 +1,4 @@
-import {ColorWrapper} from "../pkg";
+import { ColorWrapper } from '../pkg';
 
 /**
  * Class representing a color.
@@ -12,8 +12,7 @@ export class Color {
    *
    * @param wrapper - The ColorWrapper instance.
    */
-  constructor(private readonly wrapper: ColorWrapper) {
-  }
+  constructor(private readonly wrapper: ColorWrapper) {}
 
   /**
    * Returns the hex string representation of the color.

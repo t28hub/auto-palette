@@ -1,4 +1,5 @@
 # Auto Palette for WASM
+
 ```
-pnpm 
+pnpm
 ```

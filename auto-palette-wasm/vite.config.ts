@@ -1,6 +1,6 @@
-import {resolve} from 'path';
+import { resolve } from 'path';
 
-import {defineConfig} from 'vite';
+import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 import wasm from 'vite-plugin-wasm';
 

@@ -1,8 +1,8 @@
-import {SwatchWrapper} from "../pkg";
+import { SwatchWrapper } from '../pkg';
 
-import {Color} from "./color";
+import { Color } from './color';
 
-export type Position = { x: number, y: number };
+export type Position = { x: number; y: number };
 
 /**
  * Class representing a color swatch.
@@ -16,8 +16,7 @@ export class Swatch {
    *
    * @param wrapper - The SwatchWrapper instance.
    */
-  constructor(private readonly wrapper: SwatchWrapper) {
-  }
+  constructor(private readonly wrapper: SwatchWrapper) {}
 
   /**
    * Gets the color of the swatch.
@@ -30,8 +29,8 @@ export class Swatch {
    * Gets the position of the swatch.
    */
   get position(): Position {
-    const {x, y} = this.wrapper.position;
-    return {x, y};
+    const { x, y } = this.wrapper.position;
+    return { x, y };
   }
 
   /**

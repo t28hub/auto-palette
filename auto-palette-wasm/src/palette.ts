@@ -1,6 +1,6 @@
-import {extractPalette, PaletteWrapper, SwatchWrapper} from "../pkg";
+import { extractPalette, PaletteWrapper, SwatchWrapper } from '../pkg';
 
-import {isSwatchWrapper, Swatch} from "./swatch";
+import { isSwatchWrapper, Swatch } from './swatch';
 
 /**
  * Class representing a color palette.
@@ -15,8 +15,7 @@ export class Palette {
    * @param wrapper - The PaletteWrapper instance.
    * @private
    */
-  private constructor(private readonly wrapper: PaletteWrapper) {
-  }
+  private constructor(private readonly wrapper: PaletteWrapper) {}
 
   /**
    * Gets the number of swatches in the palette.
@@ -32,7 +31,10 @@ export class Palette {
    * @returns The swatches in the palette.
    */
   findSwatches(count: number): Swatch[] {
-    return this.wrapper.swatches(count).filter((wrapper) => isSwatchWrapper(wrapper)).map((wrapper: SwatchWrapper) => new Swatch(wrapper));
+    return this.wrapper
+      .swatches(count)
+      .filter((wrapper) => isSwatchWrapper(wrapper))
+      .map((wrapper: SwatchWrapper) => new Swatch(wrapper));
   }
 
   /**

@@ -1,8 +1,8 @@
 import init from '../pkg';
 
-export type {Color} from './color';
-export type {Swatch, Position} from './swatch';
-export type {Palette} from './palette';
+export type { Color } from './color';
+export type { Swatch, Position } from './swatch';
+export type { Palette } from './palette';
 
 /**
  * Initializes the AutoPalette WASM module.
