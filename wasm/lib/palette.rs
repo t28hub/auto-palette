@@ -5,7 +5,7 @@ use js_sys::Array;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{Clamped, JsValue};
 
-/// Struct for wrapping Palette<f64> in auto-palette-wasm
+/// Struct for wrapping Palette<f64> in wasm
 #[derive(Debug)]
 #[wasm_bindgen]
 pub struct PaletteWrapper(Palette<f64>);

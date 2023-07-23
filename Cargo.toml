@@ -1,6 +1,5 @@
 [workspace]
 members = [
-  "auto-palette-cli",
-  "auto-palette-core",
-  "auto-palette-wasm"
+  "core",
+  "wasm"
 ]

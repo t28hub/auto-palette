@@ -150,6 +150,6 @@ jobs:
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
-      - name: Build auto-palette-wasm package in release mode
-        run: cd auto-palette-wasm && wasm-pack build --release --target web
+      - name: Build wasm package in release mode
+        run: cd wasm && wasm-pack build --release --target web
 

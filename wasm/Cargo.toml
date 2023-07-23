@@ -14,7 +14,7 @@ name = "auto_palette"
 path = "lib/lib.rs"
 
 [dependencies]
-auto-palette = { version = "0.1.0", path = "../auto-palette-core" }
+auto-palette = { version = "0.1.0", path = "../core" }
 getrandom = { version = "0.2.3", features = ["js"] }
 image = "0.24.6"
 js-sys = "0.3.64"

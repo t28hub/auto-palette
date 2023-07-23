@@ -4,7 +4,7 @@ use crate::math::neighbors::search::NeighborSearch;
 use crate::math::number::Float;
 use crate::math::point::Point;
 
-/// Struct for calculating the auto-palette-core distance of points in a dataset using HDBSCAN algorithm.
+/// Struct for calculating the core distance of points in a dataset using HDBSCAN algorithm.
 ///
 /// # Type Parameters
 /// * `F` - The float type used for calculations (e.g., f32 or f64).
@@ -25,7 +25,7 @@ where
     /// # Arguments
     /// * `dataset` - The dataset to be clustered.
     /// * `min_samples` - The number of samples required to form a dense region.
-    /// * `distance` - The distance metric to use for calculating auto-palette-core distances.
+    /// * `distance` - The distance metric to use for calculating core distances.
     ///
     /// # Returns
     /// A new `CoreDistance` instance.
@@ -49,13 +49,13 @@ where
         Self { distances }
     }
 
-    /// Returns the auto-palette-core distance at the given index.
+    /// Returns the core distance at the given index.
     ///
     /// # Arguments
     /// * `index` - The index of the point in the dataset.
     ///
     /// # Returns
-    /// The auto-palette-core distance of the point at the given index.
+    /// The core distance of the point at the given index.
     ///
     /// # Panics
     /// Panics if the given index is out of bounds.
