@@ -1,0 +1,23 @@
+{
+  "name": "auto-palette",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A WASM library for automatically extracting color palettes from an image.",
+  "license": "MIT",
+  "keywords": [],
+  "homepage": "https://github.com/t28hub/auto-palette",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/t28hub/auto-palette.git"
+  },
+  "bugs": {
+    "url": "https://github.com/t28hub/auto-palette/issues"
+  },
+  "author": {
+    "name": "Tatsuya Maki",
+    "url": "https://github.com/t28hub"
+  },
+  "scripts": {
+  },
+  "packageManager": "pnpm@8.6.0"
+}

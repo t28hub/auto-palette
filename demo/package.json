@@ -1,7 +1,8 @@
 {
   "name": "auto-palette-demo",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "A Demo application for auto-palette",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "auto-palette-wasm": "workspace:^",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

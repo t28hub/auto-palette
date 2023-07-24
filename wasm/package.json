@@ -1,7 +1,7 @@
 {
   "name": "auto-palette-wasm",
-  "description": "A Wasm library for automatically extracting color palettes from an image",
   "version": "0.1.0",
+  "description": "A Wasm library for automatically extracting color palettes from an image",
   "license": "MIT",
   "main": "dist/index.umd.js",
   "module": "dist/index.es.js",

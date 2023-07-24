@@ -3,6 +3,9 @@ debug/
 target/
 Cargo.lock
 
+# Node
+node_modules/
+
 # IntelliJ IDEA
 .idea/
 .idea_modules/
