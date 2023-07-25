@@ -1,23 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
-import { AutoPalette, Swatch } from 'auto-palette-wasm';
+import { Swatch } from 'auto-palette-wasm';
+import { useAutoPalette } from './hooks/useAutoPalette.ts';
 
 function App() {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
-  const [autoPalette, setAutoPalette] = useState<AutoPalette | null>(null);
+  const [autoPalette] = useAutoPalette();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    AutoPalette.initialize().then((autoPalette) => {
-      console.info("AutoPalette initialized");
-      setAutoPalette(autoPalette);
-    }).catch((err) => {
-      console.error("Failed to initialize AutoPalette");
-      console.error(err);
-      setAutoPalette(null);
-    });
-  }, []);
 
   useEffect(() => {
     setImage(null);
