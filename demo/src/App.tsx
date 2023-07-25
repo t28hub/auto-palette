@@ -1,21 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
-import { initialize, Palette, Swatch } from 'auto-palette-wasm';
+import { AutoPalette, Swatch } from 'auto-palette-wasm';
 
 function App() {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
-  const [wasmInitialized, setWasmInitialized] = useState(false);
+  const [autoPalette, setAutoPalette] = useState<AutoPalette | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    initialize().then(() => {
+    AutoPalette.initialize().then((autoPalette) => {
       console.info("AutoPalette initialized");
-      setWasmInitialized(true);
+      setAutoPalette(autoPalette);
     }).catch((err) => {
       console.error("Failed to initialize AutoPalette");
       console.error(err);
-      setWasmInitialized(false);
+      setAutoPalette(null);
     });
   }, []);
 
@@ -29,25 +29,20 @@ function App() {
     image.onload = () => {
       setImage(image);
     };
-  }, [wasmInitialized]);
+  }, []);
 
   useEffect(() => {
-    if (!image || !wasmInitialized) {
+    if (!image || !autoPalette) {
       return;
     }
 
-    const context = canvasRef.current?.getContext("2d", {
-      willReadFrequently: true,
-    });
-    if (!context) {
-      return;
+    const context = canvasRef.current?.getContext("2d");
+    if (context) {
+      context.drawImage(image, 0, 0);
     }
-
-    context.drawImage(image, 0, 0, image.width, image.height);
-    const imageData = context.getImageData(0, 0, image.width, image.height);
 
     console.time("palette");
-    const palette = Palette.from(imageData);
+    const palette = autoPalette.extract(image);
     console.info({ palette });
     console.timeEnd("palette");
 
@@ -58,12 +53,12 @@ function App() {
       console.info(swatch.position.y);
       console.info(swatch.population);
     });
-  }, [image, wasmInitialized]);
+  }, [image, autoPalette]);
 
   return (
     <>
       <h1>Auto Palette Demo</h1>
-      <canvas ref={canvasRef} width={image?.width} height={image?.height} />
+      <canvas ref={canvasRef} width={image?.naturalWidth} height={image?.naturalHeight} />
     </>
   );
 }

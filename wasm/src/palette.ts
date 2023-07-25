@@ -1,4 +1,4 @@
-import { extractPalette, PaletteWrapper, SwatchWrapper } from '../pkg';
+import { PaletteWrapper, SwatchWrapper } from '../pkg';
 
 import { isSwatchWrapper, Swatch } from './swatch';
 
@@ -12,10 +12,10 @@ export class Palette {
   /**
    * Creates a new instance of Palette.
    *
+   * @internal
    * @param wrapper - The PaletteWrapper instance.
-   * @private
    */
-  private constructor(private readonly wrapper: PaletteWrapper) {}
+  constructor(private readonly wrapper: PaletteWrapper) {}
 
   /**
    * Gets the number of swatches in the palette.
@@ -35,16 +35,5 @@ export class Palette {
       .swatches(count)
       .filter((wrapper) => isSwatchWrapper(wrapper))
       .map((wrapper: SwatchWrapper) => new Swatch(wrapper));
-  }
-
-  /**
-   * Extracts a color palette from the given image data.
-   *
-   * @param source - The image data to extract the color palette from.
-   * @returns The extracted color palette.
-   */
-  static from(source: ImageData): Palette {
-    const instance = extractPalette(source.data, source.width, source.height);
-    return new Palette(instance);
   }
 }
