@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import "./App.css";
-import { Swatch } from 'auto-palette-wasm';
+import { useEffect, useRef, useState } from 'react';
+import './App.css';
+import { Swatch } from 'auto-palette';
 import { useAutoPalette } from './hooks/useAutoPalette.ts';
 
 function App() {
@@ -14,8 +14,8 @@ function App() {
 
     const image = new Image();
     image.src =
-      "https://images.unsplash.com/photo-1682188299490-1e6e9c98bac8?ixlib=rb-4.0.3&q=85&fm=jpg&crop=entropy&cs=srgb&dl=bob-brewer-aD5axmPDbdE-unsplash.jpg&w=640";
-    image.crossOrigin = "anonymous";
+      'https://images.unsplash.com/photo-1682188299490-1e6e9c98bac8?ixlib=rb-4.0.3&q=85&fm=jpg&crop=entropy&cs=srgb&dl=bob-brewer-aD5axmPDbdE-unsplash.jpg&w=640';
+    image.crossOrigin = 'anonymous';
     image.onload = () => {
       setImage(image);
     };
@@ -26,15 +26,15 @@ function App() {
       return;
     }
 
-    const context = canvasRef.current?.getContext("2d");
+    const context = canvasRef.current?.getContext('2d');
     if (context) {
       context.drawImage(image, 0, 0);
     }
 
-    console.time("palette");
+    console.time('palette');
     const palette = autoPalette.extract(image);
     console.info({ palette });
-    console.timeEnd("palette");
+    console.timeEnd('palette');
 
     const swatches = palette.findSwatches(5);
     swatches.forEach((swatch: Swatch) => {

@@ -18,9 +18,9 @@ statrs = "0.16.0"
 thiserror = "1.0.38"
 
 [dependencies.image]
-version = "0.24.6"
 default-features = false
 features = ["jpeg", "png"]
+version = "0.24.6"
 
 [dev-dependencies]
 criterion = { version = "0.5.0", features = ["html_reports"] }

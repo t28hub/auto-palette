@@ -1,23 +1,56 @@
 {
-  "name": "auto-palette",
+  "name": "auto-palette-monorepo",
+  "version": "0.0.0",
   "private": true,
-  "version": "0.1.0",
-  "description": "A WASM library for automatically extracting color palettes from an image.",
   "license": "MIT",
-  "keywords": [],
-  "homepage": "https://github.com/t28hub/auto-palette",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/t28hub/auto-palette.git"
-  },
-  "bugs": {
-    "url": "https://github.com/t28hub/auto-palette/issues"
-  },
   "author": {
     "name": "Tatsuya Maki",
     "url": "https://github.com/t28hub"
   },
   "scripts": {
+    "prepare": "husky install",
+    "preinstall": "npx only-allow pnpm",
+    "clean": "pnpm --stream -r run clean",
+    "build": "pnpm --stream -r run build",
+    "format": "pnpm run format:prettier && pnpm run format:toml && pnpm run format:rust",
+    "format:prettier": "prettier --write .",
+    "format:toml": "taplo fmt",
+    "format:rust": "cargo fmt --all",
+    "lint": "eslint --ext .js,.jsx,.ts,.tsx .",
+    "lint:fix": "eslint --ext .js,.jsx,.ts,.tsx ."
   },
-  "packageManager": "pnpm@8.6.0"
+  "devDependencies": {
+    "@taplo/cli": "^0.5.2",
+    "@typescript-eslint/eslint-plugin": "^6.2.0",
+    "@typescript-eslint/parser": "^6.2.0",
+    "eslint": "^8.45.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-simple-import-sort": "^10.0.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^13.2.3",
+    "prettier": "^3.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.6"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix --ext js,jsx,ts,tsx --",
+      "prettier --write"
+    ],
+    "*.{css,json,md,yaml,yml}": [
+      "prettier --write"
+    ],
+    "*.toml": [
+      "taplo fmt --"
+    ],
+    "*.rs": [
+      "cargo fmt --all --"
+    ]
+  },
+  "packageManager": "pnpm@8.6.0",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.6.0"
+  }
 }

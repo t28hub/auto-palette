@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths-ignore:
       - '*.md'
       - '*.txt'
@@ -134,7 +134,7 @@ jobs:
     timeout-minutes: 10
     strategy:
       matrix:
-        node-version: [ 18.x ]
+        node-version: [18.x]
     defaults:
       run:
         working-directory: ./wasm

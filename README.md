@@ -8,15 +8,17 @@
 `auto-palette` is a Rust library for automatically extracting color palettes from an image.
 
 ## Table of Contents
-* [Features](#features)
-* [Installation](#installation)
-* [Example](#example)
-  * [Basic Example](#basic-example)
-  * [Advanced Example](#advanced-example)
-* [Algorithms](#algorithms)
-* [License](#license)
+
+- [Features](#features)
+- [Installation](#installation)
+- [Example](#example)
+  - [Basic Example](#basic-example)
+  - [Advanced Example](#advanced-example)
+- [Algorithms](#algorithms)
+- [License](#license)
 
 ## Features
+
 - Extract color palettes from images
 - Support various clustering algorithms for palette extraction
 - Extract dominant colors
@@ -32,10 +34,12 @@ Add the following to your `Cargo.toml` file:
 ```
 
 ## Example
-* [Basic Example](#basic-example)
-* [Advanced Example](#advanced-example)
+
+- [Basic Example](#basic-example)
+- [Advanced Example](#advanced-example)
 
 ### Basic Example
+
 This example demonstrates how to use this library in a simple way.  
 It loads an image using the `image` crate, and extracts a color palette using `auto-palette` of 6 dominant colors.
 
@@ -52,12 +56,13 @@ pub fn main() {
   swatches.iter().for_each(|swatch| {
     println!("{:?}", swatch.color().to_hex_string()); // The color of the swatch
     println!("{:?}", swatch.position());    // The position of the swatch
-    println!("{:?}", swatch.population());  // The population of the swatch 
+    println!("{:?}", swatch.population());  // The population of the swatch
   });
 }
 ```
 
 ### Advanced Example
+
 In this more advanced example, we demonstrate how to customize the extraction algorithm and theme used by `auto_palette`.  
 We first define a custom theme that weights swatches based on their chroma and lightness.  
 Then, we extract a color palette using the `Gmeans` algorithm instead of the default one(DBSCAN).
@@ -88,20 +93,23 @@ pub fn main() {
   swatches.iter().for_each(|swatch| {
     println!("{:?}", swatch.color().to_hex_string()); // The color of the swatch
     println!("{:?}", swatch.position());    // The position of the swatch
-    println!("{:?}", swatch.population());  // The population of the swatch 
+    println!("{:?}", swatch.population());  // The population of the swatch
   });
 }
 ```
 
 ## Algorithms
+
 `auto-palette` supports multiple clustering algorithms for color palette extraction.
 Default algorithm is `DBSCAN`.
 Supported algorithms are as follows:
+
 - Gmeans(Gaussian-means)
 - DBSCAN(Density-Based Spatial Clustering of Applications with Noise)
 - HDBSCAN(Hierarchical Density-Based Spatial Clustering of Applications with Noise)
 
 To use a specific algorithm, pass it to the `extract_with_algorithm` method like this:
+
 ```rust
 let palette = Palette::extract_with_algorithm(&image, &Algorithm::Gmeans);
 let palette = Palette::extract_with_algorithm(&image, &Algorithm::DBSCAN);

@@ -1,5 +1,5 @@
 {
-  "name": "auto-palette-wasm",
+  "name": "auto-palette",
   "version": "0.1.0",
   "description": "A Wasm library for automatically extracting color palettes from an image",
   "license": "MIT",
@@ -31,46 +31,23 @@
     "url": "https://github.com/t28hub"
   },
   "scripts": {
-    "preinstall": "npx only-allow pnpm",
-    "prepare": "husky install",
     "clean": "rimraf dist",
     "dev": "pnpm run wasm:dev & vite",
-    "prebuild": "pnpm run clean",
     "build": "pnpm run wasm:web && vite build && tsc",
     "wasm:dev": "wasm-pack build --out-name index --target web --dev",
     "wasm:web": "wasm-pack build --out-name index --target web --release",
-    "format": "prettier --list-different --write .",
     "lint": "eslint --ext .ts ./src",
-    "lint:fix": "eslint --fixt --ext .ts ./src"
+    "lint:fix": "eslint --fix --ext .ts ./src"
   },
   "keywords": [],
   "devDependencies": {
     "@types/offscreencanvas": "^2019.7.0",
-    "@typescript-eslint/eslint-plugin": "^6.1.0",
-    "@typescript-eslint/parser": "^6.1.0",
     "eslint": "^8.45.0",
-    "eslint-config-prettier": "^8.8.0",
-    "eslint-plugin-import": "^2.27.5",
-    "eslint-plugin-simple-import-sort": "^10.0.0",
-    "husky": "^8.0.3",
-    "lint-staged": "^13.2.3",
-    "prettier": "^3.0.0",
     "rimraf": "^5.0.1",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.1.6",
     "vite": "^4.4.4",
     "vite-plugin-dts": "^3.3.1",
     "vite-plugin-wasm": "^3.2.2",
     "wasm-pack": "^0.12.1"
-  },
-  "lint-staged": {
-    "*.{js,ts}": [
-      "pnpm run lint:fix",
-      "pnpm run format"
-    ],
-    "*.{json,md,yaml,yml}": [
-      "pnpm run format"
-    ]
   },
   "packageManager": "pnpm@8.6.0"
 }

@@ -1,5 +1,2 @@
 [workspace]
-members = [
-  "core",
-  "wasm"
-]
+members = ["core", "wasm"]

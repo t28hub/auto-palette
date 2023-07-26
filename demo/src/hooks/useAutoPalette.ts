@@ -1,5 +1,5 @@
-import { AutoPalette, AutoPaletteOptions } from "auto-palette-wasm";
-import { useEffect, useRef, useState } from "react";
+import { AutoPalette, AutoPaletteOptions } from 'auto-palette';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Hook for using the AutoPalette.
@@ -21,7 +21,7 @@ export const useAutoPalette = (options?: AutoPaletteOptions) => {
         }
         setAutoPalette(autoPalette);
       })
-      .catch((_) => {
+      .catch(() => {
         if (!isMounted.current) {
           return;
         }

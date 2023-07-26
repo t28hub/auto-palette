@@ -1,20 +1,7 @@
 {
+  "extends": "../tsconfig.json",
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "ESNext",
-    "strict": true,
-    "lib": ["ES2020", "DOM"],
-    "esModuleInterop": true,
-    "isolatedModules": true,
-    "moduleResolution": "Node",
-    "resolveJsonModule": true,
-    "noEmit": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "useDefineForClassFields": true,
-    "skipLibCheck": true
+    "lib": ["ES2020", "DOM"]
   },
   "include": ["src"],
   "exclude": ["dist", "node_modules", "pkg"]
