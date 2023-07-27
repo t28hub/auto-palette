@@ -29,9 +29,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Install cargo-tarpaulin
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-tarpaulin
+        run: cargo install cargo-tarpaulin
 
       - name: Cache Cargo dependencies
         uses: actions/cache/save@v3
