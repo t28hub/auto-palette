@@ -1,6 +1,7 @@
 import { PaletteWrapper, SwatchWrapper } from '../pkg';
 
-import { isSwatchWrapper, Swatch } from './swatch';
+import { Swatch } from './swatch';
+import { isSwatchWrapper } from './guards';
 
 /**
  * Class representing a color palette.

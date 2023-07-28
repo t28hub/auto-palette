@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import './App.css';
-import { Swatch } from 'auto-palette';
-import { useAutoPalette } from './hooks/useAutoPalette.ts';
+import { WorkerWrapper } from './worker';
+import { LoadEvent } from './worker/message.ts';
+import { uuid } from './utils/uuid.ts';
 
 function App() {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
-  const [autoPalette] = useAutoPalette();
+  const worker = new WorkerWrapper();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -22,28 +23,39 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!image || !autoPalette) {
+    if (!image) {
       return;
     }
 
     const context = canvasRef.current?.getContext('2d');
-    if (context) {
-      context.drawImage(image, 0, 0);
+    if (!context) {
+      return;
     }
 
-    console.time('palette');
-    const palette = autoPalette.extract(image);
-    console.info({ palette });
-    console.timeEnd('palette');
+    context.drawImage(image, 0, 0);
 
-    const swatches = palette.findSwatches(5);
-    swatches.forEach((swatch: Swatch) => {
-      console.info(swatch.color.toString());
-      console.info(swatch.position.x);
-      console.info(swatch.position.y);
-      console.info(swatch.population);
-    });
-  }, [image, autoPalette]);
+    const imageData = context.getImageData(0, 0, image.naturalWidth, image.naturalHeight);
+    const event: LoadEvent = {
+      id: uuid(),
+      type: 'load',
+      payload: {
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+        buffer: imageData.data.buffer,
+        channels: 4,
+      },
+    };
+    console.time('palette');
+    worker
+      .postMessage(event, [imageData.data.buffer])
+      .then((result) => {
+        console.timeEnd('palette');
+        console.info(result);
+      })
+      .catch((error) => {
+        console.warn(error);
+      });
+  }, [image, worker]);
 
   return (
     <>

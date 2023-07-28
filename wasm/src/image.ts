@@ -1,3 +1,5 @@
+import { isUndefined } from './guards';
+
 /**
  * The source of an image.
  */
@@ -10,16 +12,24 @@ export type ImageSource = HTMLImageElement | HTMLCanvasElement | ImageData | Off
  * @returns The ImageData instance.
  */
 export function retrieveImageData(source: ImageSource): ImageData {
+  if (source instanceof ImageData) {
+    return source;
+  }
+
+  if (isUndefined(window)) {
+    throw new Error('Could not retrieve ImageData from source');
+  }
+
   if (source instanceof HTMLImageElement) {
     return fromImageElement(source);
   }
   if (source instanceof HTMLCanvasElement) {
     return fromCanvasElement(source);
   }
-  if (source instanceof OffscreenCanvas) {
+  if (!isUndefined(window.OffscreenCanvas) && source instanceof OffscreenCanvas) {
     return fromOffscreenCanvas(source);
   }
-  return source;
+  throw new Error('Could not retrieve ImageData from source');
 }
 
 function fromImageElement(image: HTMLImageElement): ImageData {

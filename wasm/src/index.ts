@@ -2,10 +2,10 @@ import init, { extractPalette, InitInput } from '../pkg';
 import { retrieveImageData, ImageSource } from './image';
 import { Palette } from './palette';
 
-export { Color } from './color';
-export { type ImageSource } from './image';
-export { Swatch, type Position } from './swatch';
-export { Palette } from './palette';
+export * from './color';
+export * from './image';
+export * from './swatch';
+export * from './palette';
 
 /**
  * Options for initializing the AutoPalette library.
