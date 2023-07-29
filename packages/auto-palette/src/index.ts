@@ -1,4 +1,5 @@
 import init, { extractPalette, InitInput } from '../pkg';
+
 import { retrieveImageData, ImageSource } from './image';
 import { Palette } from './palette';
 
@@ -12,7 +13,7 @@ export * from './palette';
  */
 export interface AutoPaletteOptions {
   /**
-   * The path to the wasm file.
+   * The path to the auto-palette file.
    */
   readonly wasm: InitInput;
 }
@@ -21,14 +22,6 @@ export interface AutoPaletteOptions {
  * Class representing the AutoPalette library.
  */
 export class AutoPalette {
-  /**
-   * Creates a new instance of AutoPalette.
-   *
-   * @private
-   * @see {@link AutoPalette.initialize}
-   */
-  private constructor() {}
-
   /**
    * Extracts a color palette from the given image.
    *

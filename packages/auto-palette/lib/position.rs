@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::wasm_bindgen;
 
-/// Struct for wrapping (x, y) positions in wasm
+/// Struct for wrapping (x, y) positions in auto-palette
 #[derive(Debug, PartialEq)]
 #[wasm_bindgen]
 pub struct Position(pub(crate) u32, pub(crate) u32);

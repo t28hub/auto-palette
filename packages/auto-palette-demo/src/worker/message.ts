@@ -1,9 +1,9 @@
-import { UUID } from '../utils/uuid.ts';
+import type { UUID } from '../utils/uuid.ts';
 
 /**
- * Type representing a load event.
+ * Interface representing a load event.
  */
-export type LoadEvent = {
+export interface LoadEvent {
   readonly id: UUID;
   readonly type: 'load';
   readonly payload: {
@@ -12,29 +12,29 @@ export type LoadEvent = {
     readonly buffer: ArrayBuffer;
     readonly channels: number;
   };
-};
+}
 
 /**
- * Type representing a complete event.
+ * Interface representing a complete event.
  */
-export type CompleteEvent = {
+export interface CompleteEvent {
   readonly id: UUID;
   readonly type: 'complete';
   readonly payload: {
     readonly colors: string[];
   };
-};
+}
 
 /**
- * Type representing an error event.
+ * Interface representing an error event.
  */
-export type ErrorEvent = {
+export interface ErrorEvent {
   readonly id: UUID;
   readonly type: 'error';
   readonly payload: {
     readonly message: string;
   };
-};
+}
 
 /**
  * Type representing an input event.

@@ -15,18 +15,10 @@
     "format": "pnpm run format:prettier && pnpm run format:toml && pnpm run format:rust",
     "format:prettier": "prettier --write .",
     "format:toml": "taplo fmt",
-    "format:rust": "cargo fmt --all",
-    "lint": "eslint --ext .js,.jsx,.ts,.tsx .",
-    "lint:fix": "eslint --ext .js,.jsx,.ts,.tsx ."
+    "format:rust": "cargo fmt --all"
   },
   "devDependencies": {
     "@taplo/cli": "^0.5.2",
-    "@typescript-eslint/eslint-plugin": "^6.2.0",
-    "@typescript-eslint/parser": "^6.2.0",
-    "eslint": "^8.45.0",
-    "eslint-config-prettier": "^8.8.0",
-    "eslint-plugin-import": "^2.27.5",
-    "eslint-plugin-simple-import-sort": "^10.0.0",
     "husky": "^8.0.3",
     "lint-staged": "^13.2.3",
     "prettier": "^3.0.0",

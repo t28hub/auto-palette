@@ -5,4 +5,5 @@ pkg/
 .DS_Store
 package.json
 pnpm-lock.yaml
+*.d.ts
 vite.config.ts

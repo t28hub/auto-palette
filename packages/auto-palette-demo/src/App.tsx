@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+
 import './App.css';
-import { WorkerWrapper } from './worker';
-import { LoadEvent } from './worker/message.ts';
 import { uuid } from './utils/uuid.ts';
+import { WorkerWrapper } from './worker';
+import type { LoadEvent } from './worker/message.ts';
 
 function App() {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
@@ -23,12 +24,12 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!image) {
+    if (image === null) {
       return;
     }
 
     const context = canvasRef.current?.getContext('2d');
-    if (!context) {
+    if (context == null) {
       return;
     }
 

@@ -1,2 +1,2 @@
 [workspace]
-members = ["core", "wasm"]
+members = ["core", "packages/auto-palette"]

@@ -135,7 +135,7 @@ jobs:
         node-version: [18.x]
     defaults:
       run:
-        working-directory: ./wasm
+        working-directory: ./packages/auto-palette
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -153,8 +153,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
-        with:
-          version: 8
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
@@ -162,7 +160,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
           registry-url: https://registry.npmjs.org/
           cache: 'pnpm'
-          cache-dependency-path: 'wasm/pnpm-lock.yaml'
+          cache-dependency-path: 'packages/auto-palette/pnpm-lock.yaml'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts

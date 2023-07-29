@@ -1,5 +1,6 @@
 import { AutoPalette } from 'auto-palette';
-import { CompleteEvent, ErrorEvent, InputEvent } from './message.ts';
+
+import type { CompleteEvent, ErrorEvent, InputEvent } from './message.ts';
 
 /**
  * Declare the property of the {@link WorkerGlobalScope} for TypeScript
@@ -40,12 +41,12 @@ self.addEventListener('message', (event: MessageEvent<InputEvent>) => {
             self.postMessage(error);
           }
         })
-        .catch((error) => {
+        .catch(() => {
           const event: ErrorEvent = {
             id,
             type: 'error',
             payload: {
-              message: error.message,
+              message: 'Failed to initialize AutoPalette.',
             },
           };
           self.postMessage(event);

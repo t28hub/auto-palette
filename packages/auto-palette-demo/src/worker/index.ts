@@ -1,21 +1,18 @@
-import { InputEvent, OutputEvent } from './message.ts';
+import type { UUID } from '../utils/uuid.ts';
+
+import type { InputEvent, OutputEvent } from './message.ts';
 import Worker from './worker.ts?worker&inline';
-import { UUID } from '../utils/uuid.ts';
 
 /**
- * Type representing a function that can be used to resolve a promise.
+ * Function type representing a function that can be used to resolve a promise.
  */
-export interface ResolutionFunction<T> {
-  (value: T | PromiseLike<T>): void;
-}
+export type ResolutionFunction<T> = (value: T | PromiseLike<T>) => void;
 
 /**
- * Type representing a function that can be used to reject a promise.
+ * Function type representing a function that can be used to reject a promise.
  */
-export interface RejectionFunction {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (reason?: any): void;
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type RejectionFunction = (reason?: any) => void;
 
 export class WorkerWrapper {
   private readonly callbacks: Map<UUID, [ResolutionFunction<OutputEvent>, RejectionFunction]>;
@@ -54,7 +51,7 @@ export class WorkerWrapper {
   private onMessage(message: MessageEvent<OutputEvent>): void {
     const { id, type } = message.data;
     const callback = this.callbacks.get(id);
-    if (!callback) {
+    if (callback == null) {
       return;
     }
 
