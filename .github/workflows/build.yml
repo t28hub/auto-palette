@@ -139,6 +139,9 @@ jobs:
       matrix:
         target: [web]
     timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: crates/auto-palette-wasm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -176,7 +179,7 @@ jobs:
     timeout-minutes: 10
     defaults:
       run:
-        working-directory: ./packages/auto-palette
+        working-directory: packages/auto-palette
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
