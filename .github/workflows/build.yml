@@ -139,9 +139,6 @@ jobs:
       matrix:
         target: [web]
     timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: ./crates/auto-palette-wasm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -167,7 +164,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: auto-palette-wasm
-          path: pkg
+          path: crates/auto-palette-wasm/pkg
 
   build-web:
     needs:
