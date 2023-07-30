@@ -1,8 +1,12 @@
 {
+  "baseUrl": "./",
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "lib": ["ES2020", "DOM"]
   },
   "include": ["src"],
-  "exclude": ["dist", "node_modules", "pkg"]
+  "exclude": ["dist", "node_modules"],
+  "paths": {
+    "@wasm": ["../../../crates/auto-palette-wasm/pkg"]
+  }
 }

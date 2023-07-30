@@ -1,2 +1,2 @@
 [workspace]
-members = ["core", "packages/auto-palette"]
+members = ["crates/*"]

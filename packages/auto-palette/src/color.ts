@@ -1,4 +1,4 @@
-import { ColorWrapper } from '../pkg';
+import { ColorWrapper } from './wasm';
 
 /**
  * Class representing a color.

@@ -1,7 +1,6 @@
-import init, { extractPalette, InitInput } from '../pkg';
-
 import { retrieveImageData, ImageSource } from './image';
 import { Palette } from './palette';
+import init, { extractPalette, InitInput } from './wasm';
 
 export * from './color';
 export * from './image';

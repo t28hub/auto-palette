@@ -1,4 +1,4 @@
-import { SwatchWrapper } from '../pkg';
+import { SwatchWrapper } from './wasm';
 
 /**
  * Check if the given value is undefined.

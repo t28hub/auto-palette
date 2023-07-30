@@ -1,6 +1,5 @@
-import { SwatchWrapper } from '../pkg';
-
 import { Color } from './color';
+import { SwatchWrapper } from './wasm';
 
 export type Position = { x: number; y: number };
 

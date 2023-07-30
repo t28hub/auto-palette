@@ -100,7 +100,7 @@ jobs:
           verbose: true
           fail_ci_if_error: true
 
-  build-core:
+  build:
     needs:
       - lint
       - test
@@ -124,18 +124,24 @@ jobs:
       - name: Build library in release mode
         run: cargo build --lib --release
 
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: auto-palette
+          path: target/release
+
   build-wasm:
     needs:
       - lint
       - test
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     strategy:
       matrix:
-        node-version: [18.x]
+        target: [web]
+    timeout-minutes: 10
     defaults:
       run:
-        working-directory: ./packages/auto-palette
+        working-directory: ./crates/auto-palette-wasm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -151,6 +157,33 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build the WASM package for ${{ matrix.target }}
+        run: wasm-pack build --release --target ${{ matrix.target }} --out-name wasm
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: auto-palette-wasm
+          path: pkg
+
+  build-web:
+    needs:
+      - build-wasm
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: ./packages/auto-palette
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
 
@@ -162,11 +195,14 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: 'packages/auto-palette/pnpm-lock.yaml'
 
+      - name: Download WASM artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: auto-palette-wasm
+          path: crates/auto-palette-wasm/pkg
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
-
-      - name: Build the WASM package
-        run: pnpm wasm:web
 
       - name: Check the lints
         run: pnpm lint

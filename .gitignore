@@ -1,6 +1,7 @@
 # Rust
 debug/
 target/
+pkg/
 Cargo.lock
 
 # Node
