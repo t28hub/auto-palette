@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { uuid } from './utils/uuid.ts';
 import { WorkerWrapper } from './worker';
@@ -6,23 +6,12 @@ import type { LoadEvent } from './worker/message.ts';
 
 function App() {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
-  const [width, setWidth] = useState<number>(0);
-  const [height, setHeight] = useState<number>(0);
-
-  const worker = new WorkerWrapper();
+  const [colors, setColors] = useState<string[]>([]);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  useLayoutEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (wrapper == null) {
-      return;
-    }
-
-    setWidth(wrapper.clientWidth);
-    setHeight(wrapper.clientHeight);
-  }, []);
+  const worker = new WorkerWrapper();
 
   useEffect(() => {
     setImage(null);
@@ -45,48 +34,81 @@ function App() {
       return;
     }
 
+    const wrapper = wrapperRef.current;
+    if (wrapper === null) {
+      return;
+    }
+
     const context = canvasRef.current?.getContext('2d');
     if (context == null) {
       return;
     }
 
+    const width = wrapper.clientWidth;
+    const height = wrapper.clientHeight;
+
     const hRatio = width / image.naturalWidth;
     const vRatio = height / image.naturalHeight;
     const ratio = Math.min(hRatio, vRatio);
 
-    const dw = Math.round(image.naturalWidth * ratio);
-    const dh = Math.round(image.naturalHeight * ratio);
-    const dx = Math.round((width - dw) / 2);
-    const dy = Math.round((height - dh) / 2);
-    context.drawImage(image, dx, dy, dw, dh);
+    const canvasWidth = Math.round(image.naturalWidth * ratio);
+    const canvasHeight = Math.round(image.naturalHeight * ratio);
+    if (canvasRef.current !== null) {
+      canvasRef.current.width = canvasWidth;
+      canvasRef.current.height = canvasHeight;
+    }
 
-    const imageData = context.getImageData(dx, dy, dw, dh);
+    context.drawImage(image, 0, 0, canvasWidth, canvasHeight);
+
+    const imageData = context.getImageData(0, 0, canvasWidth, canvasHeight);
     const event: LoadEvent = {
       id: uuid(),
       type: 'load',
       payload: {
-        width: dw,
-        height: dh,
+        width: canvasWidth,
+        height: canvasHeight,
         buffer: imageData.data.buffer,
         channels: 4,
       },
     };
+
     console.time('palette');
     worker
       .postMessage(event, [imageData.data.buffer])
       .then((result) => {
         console.timeEnd('palette');
-        console.info(result);
+        switch (result.type) {
+          case 'complete': {
+            setColors(result.payload.colors);
+            break;
+          }
+          case 'error': {
+            console.warn('Failed to extract colors from image');
+            break;
+          }
+        }
       })
       .catch((error) => {
         console.warn(error);
       });
-  }, [image, worker]);
+  }, [image, wrapperRef]);
 
   return (
-    <div className="flex flex-col justify-center items-center w-screen h-screen bg-slate-950">
-      <div ref={wrapperRef} className="flex-auto w-full h-full m-4 overscroll-none">
-        <canvas ref={canvasRef} width={width} height={height} />
+    <div className="flex flex-row justify-center items-center w-screen h-screen bg-slate-950">
+      <div ref={wrapperRef} className="flex flex-auto justify-center h-full p-4 overscroll-none">
+        <canvas ref={canvasRef} />
+      </div>
+      <div className="flex flex-col flex-none h-full w-48">
+        {colors.map((color: string) => {
+          const style = {
+            backgroundColor: color,
+          };
+          return (
+            <div key={color} className="flex flex-1 items-center justify-center p-4" style={style}>
+              {color.toUpperCase()}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
