@@ -1,15 +1,28 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import './App.css';
 import { uuid } from './utils/uuid.ts';
 import { WorkerWrapper } from './worker';
 import type { LoadEvent } from './worker/message.ts';
 
 function App() {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
+  const [width, setWidth] = useState<number>(0);
+  const [height, setHeight] = useState<number>(0);
+
   const worker = new WorkerWrapper();
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useLayoutEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (wrapper == null) {
+      return;
+    }
+
+    setWidth(wrapper.clientWidth);
+    setHeight(wrapper.clientHeight);
+  }, []);
 
   useEffect(() => {
     setImage(null);
@@ -20,6 +33,10 @@ function App() {
     image.crossOrigin = 'anonymous';
     image.onload = () => {
       setImage(image);
+    };
+
+    return () => {
+      worker.terminate();
     };
   }, []);
 
@@ -33,15 +50,23 @@ function App() {
       return;
     }
 
-    context.drawImage(image, 0, 0);
+    const hRatio = width / image.naturalWidth;
+    const vRatio = height / image.naturalHeight;
+    const ratio = Math.min(hRatio, vRatio);
 
-    const imageData = context.getImageData(0, 0, image.naturalWidth, image.naturalHeight);
+    const dw = Math.round(image.naturalWidth * ratio);
+    const dh = Math.round(image.naturalHeight * ratio);
+    const dx = Math.round((width - dw) / 2);
+    const dy = Math.round((height - dh) / 2);
+    context.drawImage(image, dx, dy, dw, dh);
+
+    const imageData = context.getImageData(dx, dy, dw, dh);
     const event: LoadEvent = {
       id: uuid(),
       type: 'load',
       payload: {
-        width: image.naturalWidth,
-        height: image.naturalHeight,
+        width: dw,
+        height: dh,
         buffer: imageData.data.buffer,
         channels: 4,
       },
@@ -59,10 +84,11 @@ function App() {
   }, [image, worker]);
 
   return (
-    <>
-      <h1>Auto Palette Demo</h1>
-      <canvas ref={canvasRef} width={image?.naturalWidth} height={image?.naturalHeight} />
-    </>
+    <div className="flex flex-col justify-center items-center w-screen h-screen bg-slate-950">
+      <div ref={wrapperRef} className="flex-auto w-full h-full m-4 overscroll-none">
+        <canvas ref={canvasRef} width={width} height={height} />
+      </div>
+    </div>
   );
 }
 
