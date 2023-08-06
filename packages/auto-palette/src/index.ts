@@ -4,8 +4,9 @@ import init, { extractPalette, InitInput } from './wasm';
 
 export * from './color';
 export * from './image';
-export * from './swatch';
 export * from './palette';
+export * from './swatch';
+export * from './types';
 
 /**
  * Options for initializing the AutoPalette library.

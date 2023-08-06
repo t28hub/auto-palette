@@ -1,7 +1,8 @@
-use crate::position::Position;
+use crate::json::PositionJson;
 use crate::ColorWrapper;
 use auto_palette::Swatch;
 use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::JsValue;
 
 /// Struct for wrapping Swatch<f64> in auto-palette
 #[derive(Debug)]
@@ -24,11 +25,11 @@ impl SwatchWrapper {
     ///
     /// # Returns
     /// The (x, y) position of this swatch.
-    #[must_use]
     #[wasm_bindgen(getter)]
-    pub fn position(&self) -> Position {
+    pub fn position(&self) -> Result<JsValue, JsValue> {
         let (x, y) = self.0.position();
-        Position(x, y)
+        let json = PositionJson { x, y };
+        Ok(serde_wasm_bindgen::to_value(&json)?)
     }
 
     /// Returns the population of this swatch.
@@ -55,7 +56,6 @@ mod tests {
         let swatch = Swatch::new(color, (90, 120), 384);
         let wrapper = SwatchWrapper(swatch);
         assert_eq!(wrapper.color(), ColorWrapper(Color::from(&rgb)));
-        assert_eq!(wrapper.position(), Position(90, 120));
         assert_eq!(wrapper.population(), 384);
     }
 }

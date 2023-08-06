@@ -1,5 +1,7 @@
+use crate::json::RGBJson;
 use auto_palette::color_struct::Color;
 use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::JsValue;
 
 /// Struct for wrapping Color<f64> in auto-palette
 #[derive(Debug, PartialEq)]
@@ -56,6 +58,28 @@ impl ColorWrapper {
     #[wasm_bindgen(getter)]
     pub fn hue(&self) -> f64 {
         self.0.hue()
+    }
+
+    #[wasm_bindgen(js_name = toRGB)]
+    pub fn to_rgb(&self) -> Result<JsValue, JsValue> {
+        let rgb = self.0.to_rgb();
+        let json = RGBJson {
+            r: rgb.r,
+            g: rgb.g,
+            b: rgb.b,
+        };
+        Ok(serde_wasm_bindgen::to_value(&json)?)
+    }
+
+    #[wasm_bindgen(js_name = toLab)]
+    pub fn to_lab(&self) -> Result<JsValue, JsValue> {
+        let lab = self.0.to_lab();
+        let json = crate::json::LabJson {
+            l: lab.l,
+            a: lab.a,
+            b: lab.b,
+        };
+        Ok(serde_wasm_bindgen::to_value(&json)?)
     }
 
     /// Returns the hex string representation of this color.

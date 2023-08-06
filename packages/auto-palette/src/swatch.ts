@@ -1,7 +1,7 @@
 import { Color } from './color';
+import { isPosition } from './guards';
+import { Position } from './types';
 import { SwatchWrapper } from './wasm';
-
-export type Position = { x: number; y: number };
 
 /**
  * Class representing a color swatch.
@@ -28,8 +28,11 @@ export class Swatch {
    * Gets the position of the swatch.
    */
   get position(): Position {
-    const { x, y } = this.wrapper.position;
-    return { x, y };
+    const position: unknown = this.wrapper.position;
+    if (!isPosition(position)) {
+      throw new Error(`Invalid position: ${JSON.stringify(position)}`);
+    }
+    return position;
   }
 
   /**

@@ -6,7 +6,7 @@ fn gmeans_benchmark(c: &mut Criterion) {
     c.bench_function("extract with Gmeans", |b| {
         b.iter(|| {
             let palette: Palette<f64> = Palette::extract_with_algorithm(&image, &Algorithm::GMeans);
-            assert_ne!(palette.is_empty());
+            assert_eq!(palette.is_empty(), false);
         })
     });
 }
@@ -16,7 +16,7 @@ fn dbscan_benchmark(c: &mut Criterion) {
     c.bench_function("extract with DBSCAN", |b| {
         b.iter(|| {
             let palette: Palette<f64> = Palette::extract_with_algorithm(&image, &Algorithm::DBSCAN);
-            assert_ne!(palette.is_empty());
+            assert_eq!(palette.is_empty(), false);
         })
     });
 }
