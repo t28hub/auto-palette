@@ -11,8 +11,9 @@ declare const self: DedicatedWorkerGlobalScope;
 
 const autoPalette: Promise<AutoPalette> = AutoPalette.initialize();
 
-self.addEventListener('message', (event: MessageEvent<InputEvent>) => {
+self.onmessage = (event: MessageEvent<InputEvent>) => {
   const { id, type, payload } = event.data;
+  console.info('Worker message error:', id, type, payload);
   switch (type) {
     case 'load': {
       const { width, height, buffer } = payload;
@@ -21,13 +22,15 @@ self.addEventListener('message', (event: MessageEvent<InputEvent>) => {
         .then((autoPalette) => {
           try {
             const palette = autoPalette.extract(imageData);
-            const colors = palette.findSwatches(6).map((swatch) => swatch.color.toString());
+            const colors = palette.findSwatches(6).map((swatch) => {
+              const { color, position } = swatch;
+              const isLight = color.isLight();
+              return { color: color.toString(), position, isLight };
+            });
             const event: CompleteEvent = {
               id,
               type: 'complete',
-              payload: {
-                colors,
-              },
+              payload: { colors },
             };
             self.postMessage(event);
           } catch (e) {
@@ -65,4 +68,4 @@ self.addEventListener('message', (event: MessageEvent<InputEvent>) => {
       break;
     }
   }
-});
+};

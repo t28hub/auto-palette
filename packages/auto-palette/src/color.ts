@@ -21,14 +21,18 @@ export class Color {
    *
    * @returns `true` if this color is dark, `false` otherwise.
    */
-  readonly isDark: boolean = this.wrapper.isDark();
+  isDark(): boolean {
+    return this.wrapper.isDark();
+  }
 
   /**
    * Checks whether this color is light.
    *
    * @returns `true` if this color is light, `false` otherwise.
    */
-  readonly isLight: boolean = this.wrapper.isLight();
+  isLight(): boolean {
+    return this.wrapper.isLight();
+  }
 
   /**
    * Returns the RGB representation of the color.

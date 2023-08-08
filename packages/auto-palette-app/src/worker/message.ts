@@ -1,3 +1,5 @@
+import { Position } from 'auto-palette';
+
 import type { UUID } from '../utils/uuid.ts';
 
 /**
@@ -21,7 +23,11 @@ export interface CompleteEvent {
   readonly id: UUID;
   readonly type: 'complete';
   readonly payload: {
-    readonly colors: string[];
+    readonly colors: {
+      readonly color: string;
+      readonly position: Position;
+      readonly isLight: boolean;
+    }[];
   };
 }
 

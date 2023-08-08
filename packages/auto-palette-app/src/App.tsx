@@ -1,17 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { uuid } from './utils/uuid.ts';
-import { WorkerWrapper } from './worker';
-import type { LoadEvent } from './worker/message.ts';
+import { usePalette } from './hooks/usePalette.ts';
 
 function App() {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [colors, setColors] = useState<string[]>([]);
+  const [imageData, setImageData] = useState<ImageData | null>(null);
+  const state = usePalette(imageData);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  const worker = new WorkerWrapper();
 
   useEffect(() => {
     setImage(null);
@@ -22,10 +20,6 @@ function App() {
     image.crossOrigin = 'anonymous';
     image.onload = () => {
       setImage(image);
-    };
-
-    return () => {
-      worker.terminate();
     };
   }, []);
 
@@ -61,37 +55,18 @@ function App() {
     context.drawImage(image, 0, 0, canvasWidth, canvasHeight);
 
     const imageData = context.getImageData(0, 0, canvasWidth, canvasHeight);
-    const event: LoadEvent = {
-      id: uuid(),
-      type: 'load',
-      payload: {
-        width: canvasWidth,
-        height: canvasHeight,
-        buffer: imageData.data.buffer,
-        channels: 4,
-      },
-    };
-
-    console.time('palette');
-    worker
-      .postMessage(event, [imageData.data.buffer])
-      .then((result) => {
-        console.timeEnd('palette');
-        switch (result.type) {
-          case 'complete': {
-            setColors(result.payload.colors);
-            break;
-          }
-          case 'error': {
-            console.warn('Failed to extract colors from image');
-            break;
-          }
-        }
-      })
-      .catch((error) => {
-        console.warn(error);
-      });
+    setImageData(imageData);
   }, [image, wrapperRef]);
+
+  useEffect(() => {
+    const { result, error } = state;
+    if (result === null) {
+      console.warn(error);
+      return;
+    }
+
+    setColors(result?.map((value) => value.color) || []);
+  }, [state]);
 
   return (
     <div className="flex flex-row justify-center items-center w-screen h-screen bg-slate-950">
