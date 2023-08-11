@@ -1,18 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useImageData, usePalette, Options as ImageDataOptions, Swatch } from './hooks';
+import FileInput from './components/FileInput.tsx';
+import { useImageData, useAutoPalette, Options as ImageDataOptions, Swatch } from './hooks';
 
 function App() {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
   const [swatches, setSwatches] = useState<Swatch[]>([]);
   const [options, setOptions] = useState<ImageDataOptions | null>(null);
   const imageData = useImageData(
     'https://images.unsplash.com/photo-1682188299490-1e6e9c98bac8?ixlib=rb-4.0.3&q=85&fm=jpg&crop=entropy&cs=srgb&dl=bob-brewer-aD5axmPDbdE-unsplash.jpg&w=640',
     options,
   );
-  const state = usePalette(imageData);
+  const state = useAutoPalette(imageData);
 
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const onFileSelect = useCallback((file: File | File[]) => {
+    console.log(file);
+  }, []);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -35,9 +39,18 @@ function App() {
   }, [state]);
 
   return (
-    <div className="flex flex-row justify-center items-center w-screen h-screen bg-slate-950">
+    <div className="flex flex-row justify-center items-center w-screen h-screen bg-white">
       <div ref={wrapperRef} className="flex flex-auto justify-center h-full p-4 overscroll-none">
-        <canvas ref={canvasRef} />
+        <FileInput
+          name="image-file"
+          types={['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/tiff']}
+          required={true}
+          multiple={false}
+          onSelect={onFileSelect}
+        >
+          <div>aaaa</div>
+          {/*<canvas ref={canvasRef} />*/}
+        </FileInput>
       </div>
       <div className="flex flex-col flex-none h-full w-48">
         {swatches.map(({ color, isLight }) => {

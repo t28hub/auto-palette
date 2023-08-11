@@ -16,7 +16,7 @@ export type State = {
   readonly error?: string;
 };
 
-export function usePalette(imageData: ImageData | null): State {
+export function useAutoPalette(imageData: ImageData | null): State {
   const [state, setState] = useState<State>({});
   const workerRef = useRef<Worker>();
 
