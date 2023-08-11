@@ -5,12 +5,14 @@ import { uuid } from '../utils/uuid.ts';
 import { InputEvent, OutputEvent } from '../worker/message.ts';
 import PaletteWorker from '../worker/worker?worker';
 
+export type Swatch = {
+  readonly color: string;
+  readonly position: Position;
+  readonly isLight: boolean;
+};
+
 export type State = {
-  readonly result?: {
-    readonly color: string;
-    readonly position: Position;
-    readonly isLight: boolean;
-  }[];
+  readonly result?: Swatch[];
   readonly error?: string;
 };
 
@@ -50,6 +52,12 @@ export function usePalette(imageData: ImageData | null): State {
 
   useEffect(() => {
     if (imageData == null) {
+      setState({});
+      return;
+    }
+
+    if (imageData.data.length === 0) {
+      setState({});
       return;
     }
 
