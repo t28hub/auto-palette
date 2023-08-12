@@ -13,6 +13,7 @@ import {
 type Props = {
   readonly name?: string;
   readonly types?: string[];
+  readonly className?: string;
   readonly children?: ReactElement | ReactElement[];
   readonly disabled?: boolean;
   readonly multiple?: boolean;
@@ -45,7 +46,7 @@ export class FileInputSizeError extends FileInputError {
 }
 
 function FileInput(props: Props): ReactElement {
-  const { name, types, children, disabled, multiple, required, onSelect, onError } = props;
+  const { name, types, className, children, disabled, multiple, required, onSelect, onError } = props;
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [fileList, setFileList] = useState<FileList | null>(null);
@@ -139,7 +140,9 @@ function FileInput(props: Props): ReactElement {
 
   return (
     <label
-      className="flex justify-center items-center w-full h-full bg-gray-50 cursor-pointer rounded border-2 border-dashed"
+      className={`flex flex-row justify-center items-center w-full h-full bg-gray-50 cursor-pointer rounded border-2 border-dashed ${
+        className || ''
+      }`}
       htmlFor={name}
       onClick={onLabelClick}
       onDragOver={(e) => e.preventDefault()}
