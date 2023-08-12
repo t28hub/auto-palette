@@ -66,7 +66,7 @@ export class ImageDataError extends Error {
  *
  * @param source - The URL or `File` object to load the image data from.
  * @param options - The options to use when resizing the image.
- *
+ * @returns The return type of the `useImageData` hook.
  */
 export function useImageData(source?: string | File, options?: Options): ReturnType {
   const canvasRef = useRef<HTMLCanvasElement>();

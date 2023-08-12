@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import FileInput from './components/FileInput.tsx';
-import { useImageData, useAutoPalette, Options as ImageDataOptions, Swatch } from './hooks';
+import { useImageData, useAutoPalette, Options as ImageDataOptions } from './hooks';
 
 const DEFAULT_OPTIONS: ImageDataOptions = {
   width: 256,
@@ -11,12 +11,10 @@ const DEFAULT_OPTIONS: ImageDataOptions = {
 
 function App() {
   const wrapperRef = useRef<HTMLDivElement>(null);
-
   const [imageFile, setImageFile] = useState<File>();
-  const [swatches, setSwatches] = useState<Swatch[]>([]);
 
   const { imageURL, imageData } = useImageData(imageFile, DEFAULT_OPTIONS);
-  const state = useAutoPalette(imageData || undefined);
+  const { swatches } = useAutoPalette(imageData || undefined);
 
   const onFileSelect = useCallback((file: File | File[]) => {
     if (Array.isArray(file)) {
@@ -25,14 +23,6 @@ function App() {
       setImageFile(file);
     }
   }, []);
-
-  useEffect(() => {
-    const { result, error } = state;
-    if (error) {
-      console.warn(error);
-    }
-    setSwatches(result || []);
-  }, [state]);
 
   return (
     <div className="flex flex-row justify-center items-center w-screen h-screen bg-white">
@@ -53,18 +43,19 @@ function App() {
         </FileInput>
       </div>
       <div className="flex flex-col flex-none h-full w-48">
-        {swatches.map(({ color, isLight }) => {
-          const style = {
-            backgroundColor: color,
-          };
-          return (
-            <div key={color} className="flex flex-1 items-center justify-center p-4" style={style}>
-              <span className={`text-opacity-90 ${isLight ? 'text-slate-800' : 'text-slate-100'}`}>
-                {color.toUpperCase()}
-              </span>
-            </div>
-          );
-        })}
+        {swatches &&
+          swatches.map(({ color, isLight }) => {
+            const style = {
+              backgroundColor: color,
+            };
+            return (
+              <div key={color} className="flex flex-1 items-center justify-center p-4" style={style}>
+                <span className={`text-opacity-90 ${isLight ? 'text-slate-800' : 'text-slate-100'}`}>
+                  {color.toUpperCase()}
+                </span>
+              </div>
+            );
+          })}
       </div>
     </div>
   );
