@@ -1,40 +1,30 @@
-import { Position } from 'auto-palette';
-
-import type { UUID } from '../utils/uuid.ts';
+import { Color, ImageObject } from '../types.ts';
+import type { UUID } from '../utils';
 
 /**
- * Interface representing a load event.
+ * Interface representing a load message.
  */
-export interface LoadEvent {
+export interface LoadMessage {
   readonly id: UUID;
   readonly type: 'load';
-  readonly payload: {
-    readonly width: number;
-    readonly height: number;
-    readonly buffer: ArrayBuffer;
-    readonly channels: number;
-  };
+  readonly payload: ImageObject;
 }
 
 /**
- * Interface representing a complete event.
+ * Interface representing a complete message.
  */
-export interface CompleteEvent {
+export interface SuccessMessage {
   readonly id: UUID;
-  readonly type: 'complete';
+  readonly type: 'success';
   readonly payload: {
-    readonly colors: {
-      readonly color: string;
-      readonly position: Position;
-      readonly isLight: boolean;
-    }[];
+    readonly colors: Color[];
   };
 }
 
 /**
- * Interface representing an error event.
+ * Interface representing an error message.
  */
-export interface ErrorEvent {
+export interface ErrorMessage {
   readonly id: UUID;
   readonly type: 'error';
   readonly payload: {
@@ -43,11 +33,11 @@ export interface ErrorEvent {
 }
 
 /**
- * Type representing an input event.
+ * Type representing a request message.
  */
-export type InputEvent = LoadEvent;
+export type RequestMessage = LoadMessage;
 
 /**
- * Type representing an output event.
+ * Type representing a response message.
  */
-export type OutputEvent = CompleteEvent | ErrorEvent;
+export type ResponseMessage = SuccessMessage | ErrorMessage;

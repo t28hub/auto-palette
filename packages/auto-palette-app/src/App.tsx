@@ -14,7 +14,7 @@ function App() {
   const [imageFile, setImageFile] = useState<File>();
 
   const { imageURL, imageData } = useImageData(imageFile, DEFAULT_OPTIONS);
-  const { swatches } = useAutoPalette(imageData || undefined);
+  const { colors } = useAutoPalette(imageData || undefined);
 
   const onFileSelect = useCallback((file: File | File[]) => {
     if (Array.isArray(file)) {
@@ -39,19 +39,18 @@ function App() {
             {imageURL && <img className="h-full p-2 rounded object-cover" alt="Image preview" src={imageURL} />}
             {!imageURL && <span>Select or drop an image file</span>}
           </>
-          {/*</div>*/}
         </FileInput>
       </div>
       <div className="flex flex-col flex-none h-full w-48">
-        {swatches &&
-          swatches.map(({ color, isLight }) => {
+        {colors &&
+          colors.map(({ hex, isLight }) => {
             const style = {
-              backgroundColor: color,
+              backgroundColor: hex,
             };
             return (
-              <div key={color} className="flex flex-1 items-center justify-center p-4" style={style}>
+              <div key={hex} className="flex flex-1 items-center justify-center p-4" style={style}>
                 <span className={`text-opacity-90 ${isLight ? 'text-slate-800' : 'text-slate-100'}`}>
-                  {color.toUpperCase()}
+                  {hex.toUpperCase()}
                 </span>
               </div>
             );
