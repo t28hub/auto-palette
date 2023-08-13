@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import FileInput from './components/FileInput.tsx';
+import { FileInput, Swatch } from './components';
 import { useImageData, useAutoPalette, Options as ImageDataOptions } from './hooks';
 
 const DEFAULT_OPTIONS: ImageDataOptions = {
@@ -11,7 +11,9 @@ const DEFAULT_OPTIONS: ImageDataOptions = {
 
 function App() {
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   const [imageFile, setImageFile] = useState<File>();
+  const [scale, setScale] = useState<number>(1);
 
   const { imageURL, imageData } = useImageData(imageFile, DEFAULT_OPTIONS);
   const { colors } = useAutoPalette(imageData || undefined);
@@ -23,6 +25,22 @@ function App() {
       setImageFile(file);
     }
   }, []);
+
+  useEffect(() => {
+    const image = imageRef.current;
+    if (image === null) {
+      return;
+    }
+
+    if (!imageData) {
+      return;
+    }
+
+    const { width, height } = imageData;
+    const scale = Math.min(width / image.clientWidth, height / image.clientHeight);
+    console.info({ width, height, scale, image });
+    setScale(scale);
+  }, [imageRef.current, imageData]);
 
   return (
     <div className="flex flex-row justify-center items-center w-screen h-screen bg-white">
@@ -36,21 +54,31 @@ function App() {
           onError={(error) => console.warn(error)}
         >
           <>
-            {imageURL && <img className="h-full p-2 rounded object-cover" alt="Image preview" src={imageURL} />}
+            {imageURL && (
+              <img ref={imageRef} className="h-full p-2 rounded object-scale-down" alt="Image preview" src={imageURL} />
+            )}
             {!imageURL && <span>Select or drop an image file</span>}
+            {colors &&
+              colors.map((color) => {
+                const position = {
+                  x: color.position.x / scale,
+                  y: color.position.y / scale,
+                };
+                return <Swatch key={color.hex} color={color.hex} position={position} />;
+              })}
           </>
         </FileInput>
       </div>
       <div className="flex flex-col flex-none h-full w-48">
         {colors &&
-          colors.map(({ hex, isLight }) => {
+          colors.map(({ hex: color, isLight }) => {
             const style = {
-              backgroundColor: hex,
+              backgroundColor: color,
             };
             return (
-              <div key={hex} className="flex flex-1 items-center justify-center p-4" style={style}>
+              <div key={color} className="flex flex-1 items-center justify-center p-4" style={style}>
                 <span className={`text-opacity-90 ${isLight ? 'text-slate-800' : 'text-slate-100'}`}>
-                  {hex.toUpperCase()}
+                  {color.toUpperCase()}
                 </span>
               </div>
             );

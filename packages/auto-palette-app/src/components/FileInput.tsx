@@ -10,6 +10,9 @@ import {
   useState,
 } from 'react';
 
+/**
+ * Component properties.
+ */
 type Props = {
   readonly name?: string;
   readonly types?: string[];
@@ -45,6 +48,13 @@ export class FileInputSizeError extends FileInputError {
   }
 }
 
+/**
+ * File input component.
+ *
+ * @constructor
+ * @param props - Component properties
+ * @return {ReactElement}
+ */
 function FileInput(props: Props): ReactElement {
   const { name, types, className, children, disabled, multiple, required, onSelect, onError } = props;
   const inputRef = useRef<HTMLInputElement>(null);
