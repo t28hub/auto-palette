@@ -1,4 +1,5 @@
+import CanvasImage from './CanvasImage.tsx';
 import FileInput from './FileInput.tsx';
 import Swatch from './Swatch.tsx';
 
-export { FileInput, Swatch };
+export { CanvasImage, FileInput, Swatch };

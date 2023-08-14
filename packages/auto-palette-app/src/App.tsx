@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { FileInput, Swatch } from './components';
+import { FileInput, CanvasImage, Swatch } from './components';
 import { useImageData, useAutoPalette, Options as ImageDataOptions } from './hooks';
 
 const DEFAULT_OPTIONS: ImageDataOptions = {
@@ -47,6 +47,7 @@ function App() {
       <div ref={wrapperRef} className="flex justify-center items-center w-full h-full p-4 overscroll-none">
         <FileInput
           name="image-file"
+          className="p-4"
           types={['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/tiff']}
           required={true}
           multiple={false}
@@ -54,9 +55,7 @@ function App() {
           onError={(error) => console.warn(error)}
         >
           <>
-            {imageURL && (
-              <img ref={imageRef} className="h-full p-2 rounded object-scale-down" alt="Image preview" src={imageURL} />
-            )}
+            {imageURL && <CanvasImage src={imageURL} width={960} height={360} />}
             {!imageURL && <span>Select or drop an image file</span>}
             {colors &&
               colors.map((color) => {

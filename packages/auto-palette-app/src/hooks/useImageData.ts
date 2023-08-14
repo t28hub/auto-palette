@@ -14,15 +14,15 @@ export type Options = {
   /**
    * The width to resize the image to.
    */
-  readonly width: number;
+  readonly width?: number;
   /**
    * The height to resize the image to.
    */
-  readonly height: number;
+  readonly height?: number;
   /**
    * The type of scaling to use when resizing the image.
    */
-  readonly scaleType: ScaleType;
+  readonly scaleType?: ScaleType;
 };
 
 /**
@@ -150,7 +150,7 @@ export function useImageData(source?: string | File, options?: Options): ReturnT
       return;
     }
 
-    if (options) {
+    if (options && options.width && options.height) {
       canvas.width = options.width;
       canvas.height = options.height;
     } else {
