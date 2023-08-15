@@ -94,7 +94,7 @@ function CanvasImage(props: Props): ReactElement {
     context.fillRect(0, 0, canvas.width, canvas.height);
   }, [imageDataError]);
 
-  return <canvas className={className} ref={canvasRef} width={width} height={height} />;
+  return <canvas className={className || ''} ref={canvasRef} width={width} height={height} />;
 }
 
 export default CanvasImage;

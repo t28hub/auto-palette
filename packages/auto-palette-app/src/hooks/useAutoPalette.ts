@@ -40,8 +40,8 @@ export function useAutoPalette(imageData?: ImageData): ReturnType {
   }, []);
 
   useEffect(() => {
+    setColors(null);
     if (imageData == null) {
-      setColors(null);
       return;
     }
 

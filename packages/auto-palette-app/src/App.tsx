@@ -1,19 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
-import { FileInput, CanvasImage, Swatch } from './components';
+import { FileInput, PreviewImage } from './components';
 import { useImageData, useAutoPalette, Options as ImageDataOptions } from './hooks';
 
 const DEFAULT_OPTIONS: ImageDataOptions = {
-  width: 256,
-  height: 256,
+  // width: 256,
+  // height: 256,
   scaleType: 'fit',
 };
 
 function App() {
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
   const [imageFile, setImageFile] = useState<File>();
-  const [scale, setScale] = useState<number>(1);
 
   const { imageURL, imageData } = useImageData(imageFile, DEFAULT_OPTIONS);
   const { colors } = useAutoPalette(imageData || undefined);
@@ -25,22 +23,6 @@ function App() {
       setImageFile(file);
     }
   }, []);
-
-  useEffect(() => {
-    const image = imageRef.current;
-    if (image === null) {
-      return;
-    }
-
-    if (!imageData) {
-      return;
-    }
-
-    const { width, height } = imageData;
-    const scale = Math.min(width / image.clientWidth, height / image.clientHeight);
-    console.info({ width, height, scale, image });
-    setScale(scale);
-  }, [imageRef.current, imageData]);
 
   return (
     <div className="flex flex-row justify-center items-center w-screen h-screen bg-white">
@@ -55,16 +37,8 @@ function App() {
           onError={(error) => console.warn(error)}
         >
           <>
-            {imageURL && <CanvasImage src={imageURL} width={960} height={360} />}
+            {imageURL && <PreviewImage src={imageURL} colors={colors || undefined} />}
             {!imageURL && <span>Select or drop an image file</span>}
-            {colors &&
-              colors.map((color) => {
-                const position = {
-                  x: color.position.x / scale,
-                  y: color.position.y / scale,
-                };
-                return <Swatch key={color.hex} color={color.hex} position={position} />;
-              })}
           </>
         </FileInput>
       </div>

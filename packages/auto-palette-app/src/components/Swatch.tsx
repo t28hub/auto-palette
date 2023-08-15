@@ -1,4 +1,3 @@
-import { Position } from 'auto-palette';
 import { ReactElement } from 'react';
 
 /**
@@ -7,8 +6,9 @@ import { ReactElement } from 'react';
 type Props = {
   readonly className?: string;
   readonly color: string;
-  readonly position: Position;
   readonly size?: number;
+  readonly x?: number;
+  readonly y?: number;
 };
 
 /**
@@ -29,7 +29,7 @@ const DEFAULT_SIZE = 32;
  * @return {ReactElement}
  */
 function Swatch(props: Props): ReactElement {
-  const { className, color, position, size } = props;
+  const { className, color, size, x = 0, y = 0 } = props;
 
   const validColor = /^#[0-9a-f]{6}$/i.test(color) ? color : DEFAULT_COLOR;
   const validSize = size && size > 0 ? size : DEFAULT_SIZE;
@@ -38,13 +38,15 @@ function Swatch(props: Props): ReactElement {
     backgroundColor: validColor,
     width: validSize,
     height: validSize,
-    left: position.x,
-    top: position.y,
+    left: x,
+    top: y,
   };
 
   return (
     <div
-      className={`flex justify-center items-center absolute z-10 translate-x-1/2 translate-y-1/2 cursor-pointer drop-shadow-md rounded-full border-white border-solid border-4 border-opacity-90 ${className}`}
+      className={`flex justify-center items-center absolute z-10 translate-x-1/2 translate-y-1/2 cursor-pointer drop-shadow-md rounded-full border-white border-solid border-4 border-opacity-90 ${
+        className || ''
+      }`}
       style={style}
     ></div>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { isString } from '../utils/guards.ts';
+import { isString } from '../utils';
 
 /**
  * The type of scaling to use when resizing the image.
