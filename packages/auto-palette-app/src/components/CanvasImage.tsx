@@ -1,6 +1,6 @@
 import { ReactElement, RefAttributes, useEffect, useRef, useState } from 'react';
 
-import { useImageData, Options as ImageDataOptions } from '../hooks';
+import { useImageData, ImageDataOptions } from '../hooks';
 
 /**
  * Component properties for CanvasImage.

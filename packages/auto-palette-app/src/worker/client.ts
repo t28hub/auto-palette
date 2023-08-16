@@ -1,3 +1,5 @@
+import { ExtractionMethod } from 'auto-palette';
+
 import { Color } from '../types.ts';
 import { uuid, UUID } from '../utils';
 
@@ -5,14 +7,29 @@ import { WorkerError } from './error.ts';
 import { LoadMessage, ResponseMessage } from './message.ts';
 
 /**
+ * The options for the `useAutoPalette` hook.
+ */
+export type Options = {
+  /**
+   * The method to use for color extraction.
+   */
+  readonly method?: ExtractionMethod;
+
+  /**
+   * The number of colors to extract.
+   */
+  readonly colorCount?: number;
+};
+
+/**
  * Type alias for a resolution function for a promise.
  */
-export type ResolutionFunction = (colors: Color[]) => void;
+type ResolutionFunction = (colors: Color[]) => void;
 
 /**
  * Type alias for a rejection function for a promise.
  */
-export type RejectionFunction = (error: WorkerError) => void;
+type RejectionFunction = (error: WorkerError) => void;
 
 /**
  * The default number of channels in an image.
@@ -42,9 +59,10 @@ export class WorkerClient {
    * Extracts the color palette from the given image data.
    *
    * @param imageData - The image data to extract the color palette from.
+   * @param options - The options for the color extraction.
    * @returns A promise that resolves when the color palette has been extracted.
    */
-  extract(imageData: ImageData): Promise<Color[]> {
+  extract(imageData: ImageData, options?: Options): Promise<Color[]> {
     const { width, height, data } = imageData;
     if (width === 0 || height === 0) {
       return Promise.reject(new WorkerError(`Image dimensions are invalid: ${width}x${height}`));
@@ -53,6 +71,9 @@ export class WorkerClient {
     if (data.length !== width * height * DEFAULT_CHANNELS) {
       return Promise.reject(new WorkerError(`Image data length is invalid: ${data.length}`));
     }
+
+    const method = options?.method ?? 'gmeans';
+    const colorCount = options?.colorCount ?? 5;
 
     const id = uuid();
     const promise = new Promise<Color[]>((resolve, reject) => {
@@ -70,6 +91,8 @@ export class WorkerClient {
         height,
         buffer: clonedData.buffer,
         channels: DEFAULT_CHANNELS,
+        method,
+        colorCount,
       },
     };
     this.worker.postMessage(message, [clonedData.buffer]);

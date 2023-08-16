@@ -1,3 +1,5 @@
+import { ExtractionMethod } from 'auto-palette';
+
 import { Color, ImageObject } from '../types.ts';
 import type { UUID } from '../utils';
 
@@ -7,7 +9,10 @@ import type { UUID } from '../utils';
 export interface LoadMessage {
   readonly id: UUID;
   readonly type: 'load';
-  readonly payload: ImageObject;
+  readonly payload: ImageObject & {
+    readonly method: ExtractionMethod;
+    readonly colorCount: number;
+  };
 }
 
 /**

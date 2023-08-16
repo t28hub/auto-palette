@@ -36,15 +36,15 @@ export class WorkerServer {
     const imageData = new ImageData(new Uint8ClampedArray(payload.buffer), payload.width, payload.height);
     try {
       const instance = await this.dependency;
-      const palette = instance.extract(imageData);
-      this.sendSuccessMessage(id, palette);
+      const palette = instance.extract(imageData, payload.method);
+      this.sendSuccessMessage(id, palette, payload.colorCount);
     } catch (e) {
       this.sendErrorMessage(id, e);
     }
   }
 
-  private sendSuccessMessage(id: UUID, palette: Palette) {
-    const colors = palette.findSwatches(6).map((swatch): Color => {
+  private sendSuccessMessage(id: UUID, palette: Palette, colorCount: number) {
+    const colors = palette.findSwatches(colorCount).map((swatch): Color => {
       const { color, position } = swatch;
       const isLight = color.isLight();
       return { hex: color.toString(), position, isLight };

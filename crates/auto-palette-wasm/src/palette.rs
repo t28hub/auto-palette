@@ -1,6 +1,6 @@
-use crate::SwatchWrapper;
+use crate::{Algorithm, SwatchWrapper};
 use auto_palette::Palette;
-use image::{DynamicImage, ImageBuffer};
+use image::ImageBuffer;
 use js_sys::Array;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{Clamped, JsValue};
@@ -44,12 +44,26 @@ impl PaletteWrapper {
     }
 }
 
+impl From<Palette<f64>> for PaletteWrapper {
+    /// Wraps the given `Palette` in a `PaletteWrapper`.
+    ///
+    /// # Arguments
+    /// * `palette` - The palette to wrap.
+    ///
+    /// # Returns
+    /// The wrapped palette.
+    fn from(palette: Palette<f64>) -> Self {
+        Self(palette)
+    }
+}
+
 /// Extracts a palette from the given image data.
 ///
 /// # Arguments
 /// * `data` - The image data to extract a palette from.
 /// * `width` - The width of the image.
 /// * `height` - The height of the image.
+/// * `algorithm` - The algorithm to use for extracting the palette.
 ///
 /// # Returns
 /// An extracted palette.
@@ -58,12 +72,12 @@ pub fn extract_palette(
     data: Clamped<Vec<u8>>,
     width: u32,
     height: u32,
+    algorithm: Algorithm,
 ) -> Result<PaletteWrapper, JsValue> {
     let Some(buffer) = ImageBuffer::from_vec(width, height, data.to_vec()) else {
         return Err(JsValue::from_str("Failed to convert data to image"));
     };
-    let palette = Palette::extract(&DynamicImage::ImageRgba8(buffer));
-    Ok(PaletteWrapper(palette))
+    Ok(algorithm.apply(buffer))
 }
 
 #[cfg(test)]
@@ -83,7 +97,7 @@ mod tests {
         let data = vec![
             255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
         ];
-        let wrapper = extract_palette(Clamped(data), 2, 2);
+        let wrapper = extract_palette(Clamped(data), 2, 2, Algorithm::DBSCAN);
         assert!(wrapper.is_ok());
     }
 }

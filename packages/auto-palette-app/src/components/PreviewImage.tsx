@@ -1,6 +1,6 @@
 import { ReactElement, useEffect, useRef, useState } from 'react';
 
-import { Options as ImageDataOptions, useImageData, useResizeObserver } from '../hooks';
+import { ImageDataOptions, useImageData, useResizeObserver } from '../hooks';
 import { Color } from '../types.ts';
 
 import { Swatch } from './index.ts';

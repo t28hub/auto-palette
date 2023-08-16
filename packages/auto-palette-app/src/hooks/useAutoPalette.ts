@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 
 import { Color } from '../types.ts';
 import { createClient, WorkerError } from '../worker';
-import { WorkerClient } from '../worker/client.ts';
+import { Options, WorkerClient } from '../worker/client.ts';
+
+export { type Options } from '../worker/client.ts';
 
 /**
  * The return type of the `useAutoPalette` hook.
@@ -23,9 +25,10 @@ export type ReturnType = {
  * Hook that generates a color palette from an image data.
  *
  * @param imageData - The image data to generate the color palette from.
+ * @param options - The options for generating the color palette.
  * @returns The return type of the `useAutoPalette` hook.
  */
-export function useAutoPalette(imageData?: ImageData): ReturnType {
+export function useAutoPalette(imageData?: ImageData, options?: Options): ReturnType {
   const workerRef = useRef<WorkerClient | null>(null);
   const [colors, setColors] = useState<Color[] | null>(null);
   const [error, setError] = useState<WorkerError | null>(null);
@@ -52,7 +55,7 @@ export function useAutoPalette(imageData?: ImageData): ReturnType {
     }
 
     worker
-      .extract(imageData)
+      .extract(imageData, options)
       .then((colors) => {
         setColors(colors);
         setError(null);
@@ -61,7 +64,7 @@ export function useAutoPalette(imageData?: ImageData): ReturnType {
         setColors(null);
         setError(error);
       });
-  }, [imageData]);
+  }, [imageData, options]);
 
   return { colors, error };
 }
