@@ -1,3 +1,4 @@
+import { ExtractionMethod } from 'auto-palette';
 import { ChangeEvent, useCallback, useRef, useState } from 'react';
 
 import { FileInput, PreviewImage } from './components';
@@ -63,6 +64,17 @@ function App() {
     });
   }, []);
 
+  const onAlgorithmChange = useCallback((event: ChangeEvent<HTMLSelectElement>) => {
+    const algorithm = event.target.value as ExtractionMethod;
+    setAutoPaletteOptions((options) => {
+      if (options.method === algorithm) {
+        return options;
+      }
+      console.info(`Algorithm changed to ${algorithm}`);
+      return { ...options, method: algorithm };
+    });
+  }, []);
+
   return (
     <div className="flex flex-col justify-center items-center w-screen h-screen bg-white">
       <div ref={wrapperRef} className="flex justify-center items-center w-full h-full p-4 overscroll-none">
@@ -83,7 +95,7 @@ function App() {
       </div>
       <div className="flex flex-row w-full h-24 p-4">
         <label className="flex flex-row">
-          <span className="p-4 text-opacity-80">Colors</span>
+          <span className="p-4 text-opacity-80">Colors:</span>
           <input
             className="p-4 bg-transparent border-none decoration-transparent text-right outline-0"
             type="number"
@@ -108,6 +120,18 @@ function App() {
           >
             -
           </span>
+        </label>
+        <label className="grid items-center px-4 py-2">
+          <span className="leading-none text-opacity-80">Algorithm:</span>
+          <div className="flex flex-row items-center justify-center w-full h-8 px-2 py-1 bg-gray-100 rounded">
+            <select
+              className="bg-transparent rounded border-none decoration-transparent appearance-none focus:outline-0"
+              onChange={onAlgorithmChange}
+            >
+              <option value="dbscan">DBSCAN</option>
+              <option value="gmeans">G-Means</option>
+            </select>
+          </div>
         </label>
       </div>
       <div className="flex flex-row w-full h-36 p-4">
