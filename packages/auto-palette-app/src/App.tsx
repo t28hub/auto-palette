@@ -87,7 +87,7 @@ function App() {
               +
             </button>
             <input
-              className="w-12 bg-transparent border-b border-dashed decoration-transparent leading-tight text-gray-50 text-center outline-0"
+              className="w-12 bg-transparent border-b border-dashed decoration-transparent leading-normal text-gray-50 text-center outline-0"
               type="number"
               inputMode="numeric"
               pattern="[0-9]*"
