@@ -150,7 +150,7 @@ function FileInput(props: Props): ReactElement {
 
   return (
     <label
-      className={`flex flex-row justify-center items-center w-full h-full bg-gray-50 cursor-pointer rounded border-2 border-dashed ${
+      className={`flex flex-row justify-center items-center w-full h-full cursor-pointer rounded border-2 border-dashed ${
         className || ''
       }`}
       htmlFor={name}

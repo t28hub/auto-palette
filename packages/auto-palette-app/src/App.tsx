@@ -1,4 +1,3 @@
-import { ExtractionMethod } from 'auto-palette';
 import { ChangeEvent, useCallback, useRef, useState } from 'react';
 
 import { FileInput, PreviewImage } from './components';
@@ -46,7 +45,7 @@ function App() {
     }));
   }, []);
 
-  const onPlusClick = useCallback(() => {
+  const onIncrement = useCallback(() => {
     setAutoPaletteOptions((options) => {
       if (options.colorCount >= 32) {
         return options;
@@ -55,7 +54,7 @@ function App() {
     });
   }, []);
 
-  const onMinusClick = useCallback(() => {
+  const onDecrement = useCallback(() => {
     setAutoPaletteOptions((options) => {
       if (options.colorCount <= 2) {
         return options;
@@ -64,20 +63,10 @@ function App() {
     });
   }, []);
 
-  const onAlgorithmChange = useCallback((event: ChangeEvent<HTMLSelectElement>) => {
-    const algorithm = event.target.value as ExtractionMethod;
-    setAutoPaletteOptions((options) => {
-      if (options.method === algorithm) {
-        return options;
-      }
-      console.info(`Algorithm changed to ${algorithm}`);
-      return { ...options, method: algorithm };
-    });
-  }, []);
-
   return (
-    <div className="flex flex-col justify-center items-center w-screen h-screen bg-white">
-      <div ref={wrapperRef} className="flex justify-center items-center w-full h-full p-4 overscroll-none">
+    <div className="w-screen h-screen absolute top-0 left-0 overflow-hidden overscroll-none">
+      <div ref={wrapperRef} className="w-full h-full p-4">
+        <>{imageURL && <PreviewImage className="-z-10" src={imageURL} colors={colors || undefined} />}</>
         <FileInput
           name="image-file"
           className="p-4"
@@ -87,67 +76,51 @@ function App() {
           onSelect={onFileSelect}
           onError={(error) => console.warn(error)}
         >
-          <>
-            {imageURL && <PreviewImage src={imageURL} colors={colors || undefined} />}
-            {!imageURL && <span>Select or drop an image file</span>}
-          </>
+          <>{!imageURL && <span>Select or drop an image file</span>}</>
         </FileInput>
-      </div>
-      <div className="flex flex-row w-full h-24 p-4">
-        <label className="flex flex-row">
-          <span className="p-4 text-opacity-80">Colors:</span>
-          <input
-            className="p-4 bg-transparent border-none decoration-transparent text-right outline-0"
-            type="number"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            min="2"
-            max="32"
-            step="1"
-            required={true}
-            value={autoPaletteOptions.colorCount}
-            onChange={onInputChange}
-          />
-          <span
-            className="w-12 p-4 leading-tight text-center rounded opacity-80 border border-solid font-semibold cursor-pointer select-none"
-            onClick={onPlusClick}
-          >
-            +
-          </span>
-          <span
-            className="w-12 p-4 leading-tight text-center rounded opaciy-80 border border-solid font-semibold cursor-pointer select-none"
-            onClick={onMinusClick}
-          >
-            -
-          </span>
-        </label>
-        <label className="grid items-center px-4 py-2">
-          <span className="leading-none text-opacity-80">Algorithm:</span>
-          <div className="flex flex-row items-center justify-center w-full h-8 px-2 py-1 bg-gray-100 rounded">
-            <select
-              className="bg-transparent rounded border-none decoration-transparent appearance-none focus:outline-0"
-              onChange={onAlgorithmChange}
+        <div className="fixed inset-x-0 bottom-4 flex items-center justify-center z-50">
+          <label className="flex flex-row justify-center items-center flex-wrap gap-4 p-1 border-none rounded bg-slate-950 opacity-90 shadow-xl">
+            <button
+              className="w-12 h-12 text-center rounded border-none text-gray-50 font-semibold cursor-pointer select-none hover:opacity-60 transition-opacity"
+              onClick={onIncrement}
             >
-              <option value="dbscan">DBSCAN</option>
-              <option value="gmeans">G-Means</option>
-            </select>
-          </div>
-        </label>
-      </div>
-      <div className="flex flex-row w-full h-36 p-4">
-        {colors &&
-          colors.map(({ hex: color, isLight }) => {
-            const style = {
-              backgroundColor: color,
-            };
-            return (
-              <div key={color} className="flex flex-1 items-center justify-center p-4" style={style}>
-                <span className={`text-opacity-90 ${isLight ? 'text-slate-800' : 'text-slate-100'}`}>
-                  {color.toUpperCase()}
-                </span>
-              </div>
-            );
-          })}
+              +
+            </button>
+            <input
+              className="w-12 bg-transparent border-b border-dashed decoration-transparent leading-tight text-gray-50 text-center outline-0"
+              type="number"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              min="2"
+              max="32"
+              step="1"
+              required={true}
+              value={autoPaletteOptions.colorCount}
+              onChange={onInputChange}
+            />
+            <button
+              className="w-12 h-12 text-center rounded border-none text-gray-50 font-semibold cursor-pointer select-none hover:opacity-60 transition-opacity"
+              onClick={onDecrement}
+            >
+              -
+            </button>
+          </label>
+        </div>
+        <div className="fixed inset-y-0 right-4 flex flex-col w-36 h-full p-4 z-50">
+          {colors &&
+            colors.map(({ hex: color, isLight }) => {
+              const style = {
+                backgroundColor: color,
+              };
+              return (
+                <div key={color} className="flex flex-1 items-center justify-center p-4" style={style}>
+                  <span className={`text-opacity-90 ${isLight ? 'text-slate-800' : 'text-slate-100'}`}>
+                    {color.toUpperCase()}
+                  </span>
+                </div>
+              );
+            })}
+        </div>
       </div>
     </div>
   );
