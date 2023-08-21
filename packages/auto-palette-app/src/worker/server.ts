@@ -1,9 +1,9 @@
-import { AutoPalette, Palette } from 'auto-palette';
+import { AutoPalette, ExtractionMethod, Palette } from 'auto-palette';
 
 import { Color } from '../types.ts';
 import { isUndefined, UUID } from '../utils';
 
-import type { ErrorMessage, RequestMessage, SuccessMessage } from './message.ts';
+import type { RequestMessage, ResponseMessage } from './message.ts';
 
 /**
  * Declare the property of the {@link WorkerGlobalScope} for TypeScript
@@ -17,6 +17,8 @@ declare const self: DedicatedWorkerGlobalScope;
  * @internal
  */
 export class WorkerServer {
+  private readonly aborted: Set<UUID>;
+
   /**
    * Creates a new `WorkerServer` instance.
    *
@@ -24,23 +26,46 @@ export class WorkerServer {
    */
   constructor(private readonly dependency: Promise<AutoPalette>) {
     self.onmessage = this.onMessage.bind(this);
+    this.aborted = new Set();
   }
 
   private async onMessage(message: MessageEvent<RequestMessage>) {
-    const { id, type, payload } = message.data;
-    if (type !== 'load') {
-      this.sendErrorMessage(id, `Unknown message type: ${type}`);
-      return;
+    const { id, type } = message.data;
+    switch (type) {
+      case 'abort': {
+        this.abort(id);
+        break;
+      }
+      case 'extract': {
+        const { payload } = message.data;
+        const imageData = new ImageData(new Uint8ClampedArray(payload.buffer), payload.width, payload.height);
+        await this.extract(id, imageData, payload.method, payload.colorCount);
+        break;
+      }
+      default: {
+        this.sendErrorMessage(id, `Unknown message type: ${type}`);
+        break;
+      }
     }
+  }
 
-    const imageData = new ImageData(new Uint8ClampedArray(payload.buffer), payload.width, payload.height);
+  private async extract(id: UUID, imageData: ImageData, method: ExtractionMethod, colorCount: number) {
     try {
       const instance = await this.dependency;
-      const palette = instance.extract(imageData, payload.method);
-      this.sendSuccessMessage(id, palette, payload.colorCount);
+      if (this.aborted.has(id)) {
+        return;
+      }
+      const palette = instance.extract(imageData, method);
+      this.sendSuccessMessage(id, palette, colorCount);
     } catch (e) {
       this.sendErrorMessage(id, e);
+    } finally {
+      this.aborted.delete(id);
     }
+  }
+
+  private abort(id: UUID) {
+    this.aborted.add(id);
   }
 
   private sendSuccessMessage(id: UUID, palette: Palette, colorCount: number) {
@@ -50,12 +75,11 @@ export class WorkerServer {
       return { hex: color.toString(), position, isLight };
     });
 
-    const message: SuccessMessage = {
+    this.sendMessage({
       id,
       type: 'success',
       payload: { colors },
-    };
-    self.postMessage(message);
+    });
   }
 
   private sendErrorMessage(id: UUID, error: unknown) {
@@ -66,11 +90,17 @@ export class WorkerServer {
       payload = { message: String(error) };
     }
 
-    const message: ErrorMessage = {
+    this.sendMessage({
       id,
       type: 'error',
       payload,
-    };
+    });
+  }
+
+  private sendMessage(message: ResponseMessage) {
+    if (this.aborted.has(message.id)) {
+      return;
+    }
     self.postMessage(message);
   }
 }

@@ -4,15 +4,23 @@ import { Color, ImageObject } from '../types.ts';
 import type { UUID } from '../utils';
 
 /**
- * Interface representing a load message.
+ * Interface representing an extract message.
  */
-export interface LoadMessage {
+export interface ExtractMessage {
   readonly id: UUID;
-  readonly type: 'load';
+  readonly type: 'extract';
   readonly payload: ImageObject & {
     readonly method: ExtractionMethod;
     readonly colorCount: number;
   };
+}
+
+/**
+ * Interface representing an abort message.
+ */
+export interface AbortMessage {
+  readonly id: UUID;
+  readonly type: 'abort';
 }
 
 /**
@@ -40,7 +48,7 @@ export interface ErrorMessage {
 /**
  * Type representing a request message.
  */
-export type RequestMessage = LoadMessage;
+export type RequestMessage = AbortMessage | ExtractMessage;
 
 /**
  * Type representing a response message.

@@ -3,15 +3,14 @@ import { ChangeEvent, useCallback, useRef, useState } from 'react';
 import { FileInput, PreviewImage } from './components';
 import { useImageData, useAutoPalette, AutoPaletteOptions, ImageDataOptions } from './hooks';
 
-const DEFAULT_OPTIONS: ImageDataOptions = {
-  // width: 256,
-  // height: 256,
+const DEFAULT_IMAGE_DATA_OPTIONS: ImageDataOptions = {
   scaleType: 'fit',
 };
 
 const DEFAULT_AUTO_PALETTE_OPTIONS: Required<AutoPaletteOptions> = {
   method: 'dbscan',
   colorCount: 5,
+  signal: new AbortSignal(),
 };
 
 function App() {
@@ -20,7 +19,7 @@ function App() {
   const [autoPaletteOptions, setAutoPaletteOptions] =
     useState<Required<AutoPaletteOptions>>(DEFAULT_AUTO_PALETTE_OPTIONS);
 
-  const { imageURL, imageData } = useImageData(imageFile, DEFAULT_OPTIONS);
+  const { imageURL, imageData } = useImageData(imageFile, DEFAULT_IMAGE_DATA_OPTIONS);
   const { colors } = useAutoPalette(imageData || undefined, autoPaletteOptions);
 
   const onFileSelect = useCallback((file: File | File[]) => {
@@ -34,7 +33,6 @@ function App() {
   const onInputChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const element = event.target;
     const value = parseInt(element.value, 10);
-    console.log(value);
     if (value < 2 || value > 32) {
       return;
     }
@@ -106,15 +104,17 @@ function App() {
             </button>
           </label>
         </div>
-        <div className="fixed inset-y-0 right-4 flex flex-col w-36 h-full p-4 z-50">
+        <div className="fixed inset-y-0 right-4 flex flex-col h-full p-4 z-50 drop-shadow-xl">
           {colors &&
             colors.map(({ hex: color, isLight }) => {
               const style = {
                 backgroundColor: color,
               };
               return (
-                <div key={color} className="flex flex-1 items-center justify-center p-4" style={style}>
-                  <span className={`text-opacity-90 ${isLight ? 'text-slate-800' : 'text-slate-100'}`}>
+                <div key={color} className="flex items-center justify-center flex-1 w-24" style={style}>
+                  <span
+                    className={`leading-tight font-bold select-none ${isLight ? 'text-slate-900' : 'text-slate-50'}`}
+                  >
                     {color.toUpperCase()}
                   </span>
                 </div>

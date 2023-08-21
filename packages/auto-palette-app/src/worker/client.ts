@@ -3,8 +3,8 @@ import { ExtractionMethod } from 'auto-palette';
 import { Color } from '../types.ts';
 import { uuid, UUID } from '../utils';
 
-import { WorkerError } from './error.ts';
-import { LoadMessage, ResponseMessage } from './message.ts';
+import { AbortError, WorkerError } from './error.ts';
+import { AbortMessage, ExtractMessage, ResponseMessage } from './message.ts';
 
 /**
  * The options for the `useAutoPalette` hook.
@@ -19,6 +19,11 @@ export type Options = {
    * The number of colors to extract.
    */
   readonly colorCount?: number;
+
+  /**
+   * The signal to use for cancellation.
+   */
+  readonly signal?: AbortSignal;
 };
 
 /**
@@ -35,6 +40,14 @@ type RejectionFunction = (error: WorkerError) => void;
  * The default number of channels in an image.
  */
 const DEFAULT_CHANNELS = 4;
+
+/**
+ * The default options for the extraction.
+ */
+const DEFAULT_OPTIONS: Required<Pick<Options, 'method' | 'colorCount'>> = {
+  method: 'gmeans',
+  colorCount: 5,
+};
 
 /**
  * Class representing a worker client.
@@ -72,20 +85,42 @@ export class WorkerClient {
       return Promise.reject(new WorkerError(`Image data length is invalid: ${data.length}`));
     }
 
-    const method = options?.method ?? 'gmeans';
-    const colorCount = options?.colorCount ?? 5;
-
     const id = uuid();
     const promise = new Promise<Color[]>((resolve, reject) => {
       const callback = [resolve, reject] as [ResolutionFunction, RejectionFunction];
       this.callbacks.set(id, callback);
     });
 
+    const onAbort = () => {
+      this.sendAbortMessage(id);
+      const callback = this.callbacks.get(id);
+      if (callback) {
+        this.callbacks.delete(id);
+        const [, reject] = callback;
+        reject(new AbortError(`The operation(${id}) was aborted `));
+      }
+      options?.signal?.removeEventListener('abort', onAbort);
+    };
+
+    options?.signal?.addEventListener('abort', onAbort, { once: true });
+
+    this.sendExtractMessage(id, imageData, options);
+    return promise;
+  }
+
+  terminate() {
+    this.worker.terminate();
+    this.callbacks.clear();
+  }
+
+  private sendExtractMessage(id: UUID, imageData: ImageData, options?: Options) {
     // Clone the data buffer to avoid transferring the same buffer multiple times.
+    const { width, height, data } = imageData;
+    const { method, colorCount } = { ...DEFAULT_OPTIONS, ...options };
     const clonedData = new Uint8ClampedArray(data);
-    const message: LoadMessage = {
+    const message: ExtractMessage = {
       id,
-      type: 'load',
+      type: 'extract',
       payload: {
         width,
         height,
@@ -96,12 +131,14 @@ export class WorkerClient {
       },
     };
     this.worker.postMessage(message, [clonedData.buffer]);
-    return promise;
   }
 
-  terminate() {
-    this.worker.terminate();
-    this.callbacks.clear();
+  private sendAbortMessage(id: UUID) {
+    const message: AbortMessage = {
+      id,
+      type: 'abort',
+    };
+    this.worker.postMessage(message);
   }
 
   private onMessage(message: MessageEvent<ResponseMessage>) {
