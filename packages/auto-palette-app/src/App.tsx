@@ -1,6 +1,6 @@
 import { ChangeEvent, useCallback, useRef, useState } from 'react';
 
-import { FileInput, Footer, PreviewImage } from './components';
+import { FileInput, Footer, Header, PreviewImage } from './components';
 import { useImageData, useAutoPalette, AutoPaletteOptions, ImageDataOptions } from './hooks';
 
 const DEFAULT_IMAGE_DATA_OPTIONS: ImageDataOptions = {
@@ -62,7 +62,8 @@ function App() {
 
   return (
     <div className="flex flex-col w-screen h-screen absolute top-0 left-0 overflow-hidden overscroll-none">
-      <div ref={wrapperRef} className="w-full h-full p-4">
+      <Header className="flex-none bg-slate-950 opacity-90" />
+      <div ref={wrapperRef} className="flex-1 w-full h-full p-4">
         <>{imageURL && <PreviewImage className="-z-10" src={imageURL} colors={colors || undefined} />}</>
         <FileInput
           name="image-file"
@@ -121,7 +122,7 @@ function App() {
             })}
         </div>
       </div>
-      <Footer className="bg-slate-950 opacity-40" />
+      <Footer className="flex-none bg-slate-950 opacity-90" />
     </div>
   );
 }
