@@ -1,23 +1,22 @@
 import { ChangeEvent, useCallback, useRef, useState } from 'react';
 
-import { FileInput, PreviewImage } from './components';
+import { FileInput, Footer, PreviewImage } from './components';
 import { useImageData, useAutoPalette, AutoPaletteOptions, ImageDataOptions } from './hooks';
 
 const DEFAULT_IMAGE_DATA_OPTIONS: ImageDataOptions = {
   scaleType: 'fit',
 };
 
-const DEFAULT_AUTO_PALETTE_OPTIONS: Required<AutoPaletteOptions> = {
+const DEFAULT_AUTO_PALETTE_OPTIONS: Required<Omit<AutoPaletteOptions, 'signal'>> = {
   method: 'dbscan',
   colorCount: 5,
-  signal: new AbortSignal(),
 };
 
 function App() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [imageFile, setImageFile] = useState<File>();
   const [autoPaletteOptions, setAutoPaletteOptions] =
-    useState<Required<AutoPaletteOptions>>(DEFAULT_AUTO_PALETTE_OPTIONS);
+    useState<Required<Omit<AutoPaletteOptions, 'signal'>>>(DEFAULT_AUTO_PALETTE_OPTIONS);
 
   const { imageURL, imageData } = useImageData(imageFile, DEFAULT_IMAGE_DATA_OPTIONS);
   const { colors } = useAutoPalette(imageData || undefined, autoPaletteOptions);
@@ -62,7 +61,7 @@ function App() {
   }, []);
 
   return (
-    <div className="w-screen h-screen absolute top-0 left-0 overflow-hidden overscroll-none">
+    <div className="flex flex-col w-screen h-screen absolute top-0 left-0 overflow-hidden overscroll-none">
       <div ref={wrapperRef} className="w-full h-full p-4">
         <>{imageURL && <PreviewImage className="-z-10" src={imageURL} colors={colors || undefined} />}</>
         <FileInput
@@ -122,6 +121,7 @@ function App() {
             })}
         </div>
       </div>
+      <Footer className="bg-slate-950 opacity-40" />
     </div>
   );
 }
