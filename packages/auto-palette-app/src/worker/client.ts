@@ -46,7 +46,7 @@ const DEFAULT_CHANNELS = 4;
  */
 const DEFAULT_OPTIONS: Required<Pick<Options, 'method' | 'colorCount'>> = {
   method: 'gmeans',
-  colorCount: 5,
+  colorCount: 32,
 };
 
 /**

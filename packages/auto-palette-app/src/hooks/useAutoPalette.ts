@@ -13,12 +13,12 @@ export type ReturnType = {
   /**
    * The generated colors from the image data.
    */
-  readonly colors: Color[] | null;
+  readonly colors?: Color[];
 
   /**
    * The error that occurred while generating the swatches.
    */
-  readonly error: WorkerError | null;
+  readonly error?: WorkerError;
 };
 
 /**
@@ -30,8 +30,8 @@ export type ReturnType = {
  */
 export function useAutoPalette(imageData?: ImageData, options?: Options): ReturnType {
   const workerRef = useRef<WorkerClient | null>(null);
-  const [colors, setColors] = useState<Color[] | null>(null);
-  const [error, setError] = useState<WorkerError | null>(null);
+  const [colors, setColors] = useState<Color[]>();
+  const [error, setError] = useState<WorkerError>();
 
   useEffect(() => {
     workerRef.current = createClient();
@@ -43,7 +43,7 @@ export function useAutoPalette(imageData?: ImageData, options?: Options): Return
   }, []);
 
   useEffect(() => {
-    setColors(null);
+    setColors(undefined);
     if (imageData == null) {
       return;
     }
@@ -58,10 +58,10 @@ export function useAutoPalette(imageData?: ImageData, options?: Options): Return
       .extract(imageData, options)
       .then((colors) => {
         setColors(colors);
-        setError(null);
+        setError(undefined);
       })
       .catch((error: WorkerError) => {
-        setColors(null);
+        setColors(undefined);
         setError(error);
       });
   }, [imageData, options]);

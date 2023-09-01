@@ -4,5 +4,6 @@ import Footer from './Footer.tsx';
 import Header from './Header.tsx';
 import PreviewImage from './PreviewImage.tsx';
 import Swatch from './Swatch.tsx';
+import Toolbox from './Toolbox.tsx';
 
-export { CanvasImage, FileInput, Footer, Header, PreviewImage, Swatch };
+export { CanvasImage, FileInput, Footer, Header, PreviewImage, Swatch, Toolbox };
