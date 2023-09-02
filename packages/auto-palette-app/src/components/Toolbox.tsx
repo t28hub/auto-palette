@@ -3,12 +3,12 @@ import { ReactElement } from 'react';
 import { Color } from '../types.ts';
 
 /**
- * Component properties.
+ * Component properties for Toolbox.
  */
-type Props = {
+interface Props {
   readonly className?: string;
   readonly colors?: Color[];
-};
+}
 
 /**
  * Toolbox component.

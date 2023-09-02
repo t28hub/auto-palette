@@ -11,9 +11,9 @@ import {
 } from 'react';
 
 /**
- * Component properties.
+ * Component properties for FileInput.
  */
-type Props = {
+interface Props {
   readonly name?: string;
   readonly types?: string[];
   readonly className?: string;
@@ -25,7 +25,7 @@ type Props = {
   readonly maxSize?: number;
   readonly onSelect?: (file: File | File[]) => void;
   readonly onError?: (error: Error) => void;
-};
+}
 
 export class FileInputError extends Error {
   constructor(message: string) {
@@ -150,7 +150,7 @@ function FileInput(props: Props): ReactElement {
 
   return (
     <label
-      className={`flex flex-row justify-center items-center w-full h-full cursor-pointer rounded border-2 border-dashed ${
+      className={`flex flex-row justify-center items-center cursor-pointer rounded border border-dashed border-gray-400 ${
         className || ''
       }`}
       htmlFor={name}

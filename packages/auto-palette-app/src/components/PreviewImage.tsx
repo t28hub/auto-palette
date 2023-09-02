@@ -6,13 +6,13 @@ import { Color } from '../types.ts';
 import { Swatch } from './index.ts';
 
 /**
- * Component properties.
+ * Component properties for PreviewImage.
  */
-type Props = {
+interface Props {
   readonly className?: string;
   readonly src: string;
   readonly colors?: Color[];
-};
+}
 
 type Size = {
   readonly width: number;

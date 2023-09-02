@@ -13,10 +13,12 @@
     "lint:fix": "eslint --ext .ts,.tsx --fix src"
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^1.9.5",
     "auto-palette": "workspace:^",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-icons": "^4.10.1"
+    "react-icons": "^4.10.1",
+    "react-redux": "^8.1.2"
   },
   "devDependencies": {
     "@auto-palette/eslint-config": "workspace:^",

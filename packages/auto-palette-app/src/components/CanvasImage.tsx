@@ -5,14 +5,14 @@ import { useImageData, ImageDataOptions } from '../hooks';
 /**
  * Component properties for CanvasImage.
  */
-type Props = {
+interface Props extends RefAttributes<ReactElement> {
   readonly className?: string;
   readonly src: string;
   readonly width?: number;
   readonly height?: number;
   readonly onLoad?: () => void;
   readonly onError?: (error: Error) => void;
-} & RefAttributes<ReactElement>;
+}
 
 /**
  * Default component properties for useImageData.

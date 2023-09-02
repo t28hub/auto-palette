@@ -1,11 +1,11 @@
 import { ReactElement } from 'react';
 
 /**
- * Component properties.
+ * Component properties for Footer.
  */
-type Props = {
+interface Props {
   readonly className?: string;
-};
+}
 
 /**
  * Footer component.

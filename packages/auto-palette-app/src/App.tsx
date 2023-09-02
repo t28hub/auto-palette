@@ -1,18 +1,19 @@
 import { ReactElement } from 'react';
 
-import { FileInput, Footer, Header } from './components';
+import { CanvasImage, Footer, Header, Sidebar } from './components';
+import { useAppSelector } from './hooks';
 
 function App(): ReactElement {
+  const imageUrl = useAppSelector((state) => state.image.url);
+
   return (
-    <div className="flex flex-col w-full h-screen overflow-hidden">
+    <div className="flex flex-col w-full min-h-screen overflow-hidden">
       <Header className="flex-shrink-0 bg-gray-900" />
       <main className="flex-1 flex flex-row relative">
-        <div className="flex-shrink-0 flex items-stretch justify-center w-60 h-full absolute top-0 left-0 z-10">
-          <div className="flex-1 p-4">
-            <FileInput />
-          </div>
+        <Sidebar className="flex-shrink-0 absolute top-0 left-0 z-10 m-4" />
+        <div className="flex-1 flex items-center justify-center p-4 bg-gray-100">
+          <CanvasImage src={imageUrl} />
         </div>
-        <div className="flex-1 flex items-center justify-center p-4 bg-gray-100"></div>
         <div className="flex-shrink-0 w-60 h-full absolute top-0 right-0 overflow-x-hidden overflow-y-auto z-10">
           <ul className="p-4">
             <li className="p-4 border-b">Item 1</li>
