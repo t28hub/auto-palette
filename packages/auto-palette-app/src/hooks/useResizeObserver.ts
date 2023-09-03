@@ -36,8 +36,6 @@ export function useResizeObserver<T extends Element>(
       return;
     }
 
-    console.log('element', element);
-
     const resizeObserver = new ResizeObserver((entries) => {
       entries.forEach((entry) => callback(entry));
     });

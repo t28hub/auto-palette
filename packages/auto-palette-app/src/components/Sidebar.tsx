@@ -1,7 +1,7 @@
 import { ReactElement, useCallback } from 'react';
 
 import { useAppDispatch } from '../hooks';
-import { setImageUrl } from '../store/image.ts';
+import { setImageUrl } from '../store';
 
 import { FileInput } from './';
 

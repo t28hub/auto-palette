@@ -1,8 +1,23 @@
-import { ReactElement } from 'react';
+import { ReactElement, useEffect } from 'react';
 
 import { Footer, Header, ImageViewer, Sidebar } from './components';
+import { useAppDispatch, useAppSelector, useImageData } from './hooks';
+import { extractPalette } from './store';
 
 function App(): ReactElement {
+  const dispatch = useAppDispatch();
+  const imageUrl = useAppSelector((state) => state.image.url);
+  const { imageData } = useImageData(imageUrl);
+
+  useEffect(() => {
+    if (!imageData) {
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    dispatch(extractPalette({ imageData }));
+  }, [imageUrl]);
+
   return (
     <div className="flex flex-col w-full min-h-screen overflow-hidden">
       <Header className="flex-shrink-0 bg-gray-900" />

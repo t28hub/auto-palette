@@ -1,6 +1,10 @@
 import { configureStore } from '@reduxjs/toolkit';
 
 import imageReducer from './image.ts';
+import paletteReducer from './palette.ts';
+
+export { setImageUrl } from './image.ts';
+export { extractPalette } from './palette.ts';
 
 /**
  * The store of the application.
@@ -8,6 +12,7 @@ import imageReducer from './image.ts';
 export const store = configureStore({
   reducer: {
     image: imageReducer,
+    palette: paletteReducer,
   },
 });
 
