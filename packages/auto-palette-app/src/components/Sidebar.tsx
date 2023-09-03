@@ -1,8 +1,9 @@
 import { ReactElement, useCallback } from 'react';
 
-import { FileInput } from './';
 import { useAppDispatch } from '../hooks';
 import { setImageUrl } from '../store/image.ts';
+
+import { FileInput } from './';
 
 /**
  * Component properties for Sidebar.
@@ -33,7 +34,11 @@ function Sidebar(props: Props): ReactElement {
   }, []);
 
   return (
-    <div className={`flex flex-col items-stretch justify-center w-60 rounded shadow-2xl ${className || ''}`}>
+    <div
+      className={`flex flex-col items-stretch justify-center w-60 rounded bg-gray-100/80 backdrop-blur shadow-2xl ${
+        className || ''
+      }`}
+    >
       <div className="flex-shrink-0 flex items-center w-full h-12 px-4 border-b border-gray-400">
         <h2 className="text-lg text-gray-900 font-semibold select-none">Image</h2>
       </div>

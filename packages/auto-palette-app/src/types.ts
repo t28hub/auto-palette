@@ -39,3 +39,17 @@ export interface Color {
    */
   readonly position: Position;
 }
+
+/**
+ * Interface representing a size of an element.
+ */
+export interface Size {
+  /**
+   * The width of the element.
+   */
+  readonly width: number;
+  /**
+   * The height of the element.
+   */
+  readonly height: number;
+}
