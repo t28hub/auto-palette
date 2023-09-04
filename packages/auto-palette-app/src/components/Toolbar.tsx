@@ -1,7 +1,7 @@
 import { ReactElement } from 'react';
 
 import { useAppSelector } from '../hooks';
-import { paletteSelector } from '../store/palette.ts';
+import { paletteSelector } from '../store';
 
 /**
  * Component properties for Toolbar.

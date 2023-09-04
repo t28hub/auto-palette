@@ -2,12 +2,12 @@ import { ReactElement, useEffect } from 'react';
 
 import { Footer, Header, ImageViewer, Sidebar, Toolbar } from './components';
 import { useAppDispatch, useAppSelector, useImageData } from './hooks';
-import { extractPalette } from './store';
+import { extractPalette, imageSelector } from './store';
 
 function App(): ReactElement {
   const dispatch = useAppDispatch();
-  const imageUrl = useAppSelector((state) => state.image.url);
-  const { imageData } = useImageData(imageUrl);
+  const imageState = useAppSelector(imageSelector);
+  const { imageData } = useImageData(imageState.url);
 
   useEffect(() => {
     if (!imageData) {

@@ -6,6 +6,9 @@ import paletteReducer from './palette.ts';
 export { setImageUrl } from './image.ts';
 export { extractPalette } from './palette.ts';
 
+export const imageSelector = (state: RootState) => state.image;
+export const paletteSelector = (state: RootState) => state.palette;
+
 /**
  * The store of the application.
  */

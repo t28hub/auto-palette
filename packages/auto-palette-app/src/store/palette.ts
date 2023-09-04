@@ -4,8 +4,6 @@ import { Color } from '../types.ts';
 import { createClient } from '../worker';
 import { Options } from '../worker/client.ts';
 
-import { RootState } from './index.ts';
-
 /**
  * Interface for the arguments of the `extractPalette` async thunk.
  */
@@ -76,7 +74,5 @@ const paletteSlice = createSlice({
     });
   },
 });
-
-export const paletteSelector = (state: RootState) => state.palette;
 
 export default paletteSlice.reducer;
