@@ -5,6 +5,6 @@ import Header from './Header.tsx';
 import ImageViewer from './ImageViewer.tsx';
 import Sidebar from './Sidebar.tsx';
 import Swatch from './Swatch.tsx';
-import Toolbox from './Toolbox.tsx';
+import Toolbar from './Toolbar.tsx';
 
-export { CanvasImage, FileInput, Footer, Header, ImageViewer, Sidebar, Swatch, Toolbox };
+export { CanvasImage, FileInput, Footer, Header, ImageViewer, Sidebar, Swatch, Toolbar };

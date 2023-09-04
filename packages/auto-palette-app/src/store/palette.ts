@@ -4,15 +4,23 @@ import { Color } from '../types.ts';
 import { createClient } from '../worker';
 import { Options } from '../worker/client.ts';
 
+import { RootState } from './index.ts';
+
+/**
+ * Interface for the arguments of the `extractPalette` async thunk.
+ */
 interface Args {
-  imageData: ImageData;
-  options?: Options;
+  readonly imageData: ImageData;
+  readonly options?: Options;
 }
 
+/**
+ * Interface for the palette state.
+ */
 interface PaletteState {
-  status: 'idle' | 'loading';
-  result: Color[];
-  error: Error | null;
+  readonly status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  readonly result: Color[];
+  readonly error: Error | null;
 }
 
 const initialState: PaletteState = {
@@ -21,6 +29,7 @@ const initialState: PaletteState = {
   error: null,
 };
 
+// The shared worker instance.
 const worker = createClient();
 
 /**
@@ -39,7 +48,7 @@ export const extractPalette = createAsyncThunk<Color[], Args>(
         };
       });
     } catch (error) {
-      return thunkApi.rejectWithValue(error);
+      return thunkApi.rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
     }
   },
 );
@@ -51,26 +60,23 @@ const paletteSlice = createSlice({
   extraReducers: (builder) => {
     builder.addCase(extractPalette.pending, (state) => {
       state.status = 'loading';
-      state.result = [];
       state.error = null;
     });
 
     builder.addCase(extractPalette.fulfilled, (state, action) => {
-      state.status = 'idle';
-      state.result = action.payload;
+      state.status = 'succeeded';
+      state.result = [...action.payload];
       state.error = null;
     });
 
     builder.addCase(extractPalette.rejected, (state, action) => {
-      state.status = 'idle';
+      state.status = 'failed';
       state.result = [];
-      if (action.payload instanceof Error) {
-        state.error = action.payload;
-      } else {
-        state.error = new Error('Unknown error');
-      }
+      state.error = action.payload instanceof Error ? action.payload : new Error('Unknown error');
     });
   },
 });
+
+export const paletteSelector = (state: RootState) => state.palette;
 
 export default paletteSlice.reducer;

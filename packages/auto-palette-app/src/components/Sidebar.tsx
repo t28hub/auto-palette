@@ -39,7 +39,7 @@ function Sidebar(props: Props): ReactElement {
         className || ''
       }`}
     >
-      <div className="flex-shrink-0 flex items-center w-full h-12 px-4 border-b border-gray-400">
+      <div className="flex-shrink-0 flex items-center w-full px-4 py-2 border-b border-gray-400">
         <h2 className="text-lg text-gray-900 font-semibold select-none">Image</h2>
       </div>
       <div className="flex-1 p-4">
