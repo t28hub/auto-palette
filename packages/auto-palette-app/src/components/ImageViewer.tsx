@@ -2,6 +2,7 @@ import { ReactElement, useCallback, useEffect, useRef, useState } from 'react';
 
 import { ImageDataOptions, useAppSelector, useImageData, useResizeObserver } from '../hooks';
 import { Size } from '../types.ts';
+import { Swatch } from './index.ts';
 
 /**
  * Component properties for ImageViewer.
@@ -31,9 +32,10 @@ function ImageViewer(props: Props): ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState<Size>(defaultSize);
 
-  const imageUrl = useAppSelector((state) => state.image.url);
+  const imageState = useAppSelector((state) => state.image);
+  const paletteState = useAppSelector((state) => state.palette);
 
-  const { imageData } = useImageData(imageUrl, DEFAULT_OPTIONS);
+  const { imageData } = useImageData(imageState.url, DEFAULT_OPTIONS);
 
   const onResize = useCallback((entry: ResizeObserverEntry): void => {
     const { width, height } = entry.target.getBoundingClientRect();
@@ -69,8 +71,15 @@ function ImageViewer(props: Props): ReactElement {
   }, [imageData, size]);
 
   return (
-    <div ref={wrapperRef} className={`flex justify-center items-center relative ${className || ''}`}>
-      <canvas ref={canvasRef} className="flex-shrink-0 drop-shadow" />
+    <div ref={wrapperRef} className={`flex justify-center items-center ${className || ''}`}>
+      <div className="flex-shrink-0 relative drop-shadow">
+        <canvas ref={canvasRef} />
+
+        {paletteState.status === 'succeeded' &&
+          paletteState.result.map(({ hex: color, position }) => {
+            return <Swatch key={color} color={color} size={32} x={position.x} y={position.y} />;
+          })}
+      </div>
     </div>
   );
 }

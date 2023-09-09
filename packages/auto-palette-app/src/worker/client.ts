@@ -45,8 +45,8 @@ const DEFAULT_CHANNELS = 4;
  * The default options for the extraction.
  */
 const DEFAULT_OPTIONS: Required<Pick<Options, 'method' | 'colorCount'>> = {
-  method: 'gmeans',
-  colorCount: 32,
+  method: 'dbscan',
+  colorCount: 8,
 };
 
 /**
