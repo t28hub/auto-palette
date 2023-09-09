@@ -23,7 +23,7 @@ function Toolbar(props: Props): ReactElement {
 
   return (
     <div
-      className={`flex flex-col items-stretch justify-center w-60 max-h-[80%] overflow-x-hidden overflow-y-auto rounded bg-gray-100/80 backdrop-blur shadow-2xl ${
+      className={`flex flex-col items-stretch justify-center max-h-[80%] overflow-x-hidden overflow-y-auto rounded bg-gray-100/80 backdrop-blur shadow-2xl ${
         className || ''
       }`}
     >

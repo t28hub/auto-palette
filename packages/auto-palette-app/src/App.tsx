@@ -23,8 +23,8 @@ function App(): ReactElement {
       <Header className="flex-shrink-0 bg-gray-900" />
       <main className="flex-1 flex flex-row relative">
         <ImageViewer className="flex-1" />
-        <Sidebar className="flex-shrink-0 absolute top-0 left-0 z-10 m-4" />
-        <Toolbar className="flex-shrink-0 absolute top-0 right-0 z-10 m-4" />
+        <Sidebar className="flex-shrink-0 w-60 absolute top-0 left-0 z-10 m-4" />
+        <Toolbar className="flex-shrink-0 w-60 absolute top-0 right-0 z-10 m-4" />
       </main>
       <Footer className="flex-shrink-0 bg-gray-900" />
     </div>

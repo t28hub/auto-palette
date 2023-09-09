@@ -2,6 +2,7 @@ import { ReactElement, useCallback, useEffect, useRef, useState } from 'react';
 
 import { ImageDataOptions, useAppSelector, useImageData, useResizeObserver } from '../hooks';
 import { Size } from '../types.ts';
+
 import { Swatch } from './index.ts';
 
 /**

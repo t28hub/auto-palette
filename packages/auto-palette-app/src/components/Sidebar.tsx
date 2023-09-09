@@ -1,9 +1,10 @@
-import { ReactElement, useCallback } from 'react';
+import clsx from 'clsx';
+import { FormEvent, ReactElement, useCallback, useState } from 'react';
 
 import { useAppDispatch } from '../hooks';
 import { setImageUrl } from '../store';
 
-import { FileInput } from './';
+import { FileInput, FormLabel, TextInput } from './';
 
 /**
  * Component properties for Sidebar.
@@ -22,6 +23,7 @@ interface Props {
 function Sidebar(props: Props): ReactElement {
   const { className } = props;
   const dispatch = useAppDispatch();
+  const [url, setUrl] = useState<string>('');
 
   const onFileSelect = useCallback((file: File | File[]): void => {
     const selected = Array.isArray(file) ? file[0] : file;
@@ -33,18 +35,41 @@ function Sidebar(props: Props): ReactElement {
     console.warn(error);
   }, []);
 
+  const onUrlChange = useCallback((value: string): void => {
+    console.info(`URL changed: ${value}`);
+    setUrl(value);
+  }, []);
+
+  const onUrlSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>): void => {
+      event.preventDefault();
+      console.info(`Loading image from URL: ${url}`);
+      dispatch(setImageUrl({ url }));
+    },
+    [url],
+  );
+
   return (
     <div
-      className={`flex flex-col items-stretch justify-center w-60 rounded bg-gray-100/80 backdrop-blur shadow-2xl ${
-        className || ''
-      }`}
+      className={clsx(
+        'flex',
+        'flex-col',
+        'items-stretch',
+        'justify-center',
+        'rounded',
+        'bg-gray-100/80',
+        'backdrop-blur',
+        'shadow-2xl',
+        className,
+      )}
     >
       <div className="flex-shrink-0 flex items-center w-full px-4 py-2 border-b border-gray-400">
         <h2 className="text-lg text-gray-900 font-semibold select-none">Image</h2>
       </div>
-      <div className="flex-1 p-4">
+      <div className="flex-1 flex flex-col p-4 border-b border-gray-200">
+        <FormLabel className="flex-shrink-0 py-2">Image File:</FormLabel>
         <FileInput
-          className="w-full h-72"
+          className="w-full h-48"
           types={['image/jpeg', 'image/png']}
           multiple={false}
           required={true}
@@ -54,6 +79,10 @@ function Sidebar(props: Props): ReactElement {
           onError={onFileSelectError}
         />
       </div>
+      <form className="flex-shrink-0 flex flex-col w-full p-4" onSubmit={onUrlSubmit}>
+        <FormLabel className="flex-shrink-0 py-2">Image URL:</FormLabel>
+        <TextInput className="w-full" type="url" placeholder="Enter an image URL" onChange={onUrlChange} />
+      </form>
     </div>
   );
 }
