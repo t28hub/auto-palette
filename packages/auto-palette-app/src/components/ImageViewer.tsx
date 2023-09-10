@@ -15,7 +15,7 @@ interface Props {
   readonly imageData?: ImageData;
 }
 
-const defaultSize: Size = { width: 0, height: 0 };
+const initialContainerSize: Size = { width: 0, height: 0 };
 
 const blurHashOptions: BlurHashOptions = {
   componentX: 6,
@@ -29,33 +29,18 @@ const blurHashOptions: BlurHashOptions = {
  * @param props - Component properties
  * @return {ReactElement}
  */
-function ImageViewer(props: Props): ReactElement {
-  const { className, imageData } = props;
+function ImageViewer({ className = '', imageData }: Props): ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [size, setSize] = useState<Size>(defaultSize);
-  const [scale, setScale] = useState<number>(1.0);
+  const [containerSize, setContainerSize] = useState<Size>(initialContainerSize);
+  const [imageScale, setImageScale] = useState<number>(1.0);
   const paletteState = useAppSelector((state) => state.palette);
   const { hash } = useBlurHash(imageData, blurHashOptions);
 
   const onResize = useCallback((entry: ResizeObserverEntry): void => {
     const { width, height } = entry.target.getBoundingClientRect();
-    setSize({ width, height });
+    setContainerSize({ width, height });
   }, []);
   const { ref: wrapperRef } = useResizeObserver<HTMLDivElement>(onResize);
-
-  useEffect(() => {
-    if (!imageData) {
-      setScale(1.0);
-      return;
-    }
-
-    const scale = Math.min(size.width / imageData.width, size.height / imageData.height);
-    if (scale >= 1.0) {
-      setScale(1.0);
-    } else {
-      setScale(scale);
-    }
-  }, [imageData, size]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -64,11 +49,20 @@ function ImageViewer(props: Props): ReactElement {
     }
 
     if (!imageData) {
+      setImageScale(1.0);
       return;
     }
 
-    canvas.width = imageData.width * scale;
-    canvas.height = imageData.height * scale;
+    const scale = Math.min(containerSize.width / imageData.width, containerSize.height / imageData.height);
+    if (scale >= 1.0) {
+      canvas.width = imageData.width;
+      canvas.height = imageData.height;
+      setImageScale(1.0);
+    } else {
+      canvas.width = imageData.width * scale;
+      canvas.height = imageData.height * scale;
+      setImageScale(scale);
+    }
 
     createImageBitmap(imageData)
       .then((bitmap) => {
@@ -82,7 +76,7 @@ function ImageViewer(props: Props): ReactElement {
       .catch((error) => {
         console.warn(error);
       });
-  }, [imageData, scale]);
+  }, [imageData, containerSize]);
 
   return (
     <div ref={wrapperRef} className={clsx('flex', 'justify-center', 'items-center', className)}>
@@ -90,8 +84,8 @@ function ImageViewer(props: Props): ReactElement {
         <BlurhashCanvas
           className={clsx('flex-shrink-0', 'absolute', 'top-0', 'left-0', '-z-10', 'opacity-60')}
           hash={hash}
-          width={size.width}
-          height={size.height}
+          width={containerSize.width}
+          height={containerSize.height}
         />
       )}
       <div className="flex-shrink-0 relative shadow-2xl">
@@ -99,8 +93,8 @@ function ImageViewer(props: Props): ReactElement {
 
         {paletteState.status === 'succeeded' &&
           paletteState.result.map(({ hex: color, position }) => {
-            const x = Math.ceil(position.x * scale);
-            const y = Math.ceil(position.y * scale);
+            const x = Math.ceil(position.x * imageScale);
+            const y = Math.ceil(position.y * imageScale);
             return <Swatch key={color} color={color} size={32} x={x} y={y} />;
           })}
       </div>
