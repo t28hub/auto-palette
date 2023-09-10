@@ -94,7 +94,7 @@ function ImageViewer(props: Props): ReactElement {
           height={size.height}
         />
       )}
-      <div className="flex-shrink-0 relative drop-shadow">
+      <div className="flex-shrink-0 relative shadow-2xl">
         <canvas ref={canvasRef} />
 
         {paletteState.status === 'succeeded' &&

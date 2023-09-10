@@ -1,3 +1,4 @@
+import clsx from 'clsx';
 import { ReactElement } from 'react';
 
 import { useAppSelector } from '../hooks';
@@ -22,12 +23,23 @@ function Toolbar(props: Props): ReactElement {
   const palette = useAppSelector(paletteSelector);
 
   return (
-    <div
-      className={`flex flex-col items-stretch justify-center max-h-[80%] overflow-x-hidden overflow-y-auto rounded bg-gray-100/80 backdrop-blur shadow-2xl ${
-        className || ''
-      }`}
+    <section
+      className={clsx(
+        'flex',
+        'flex-col',
+        'items-stretch',
+        'justify-center',
+        'max-h-[80%]',
+        'overflow-x-hidden',
+        'overflow-y-auto',
+        'rounded',
+        'bg-gray-100/50',
+        'backdrop-blur-xl',
+        'shadow-2xl',
+        className,
+      )}
     >
-      <div className="flex-shrink-0 flex items-center justify-start w-full px-4 py-2 border-b border-gray-400">
+      <div className="flex-shrink-0 flex items-center justify-start w-full px-4 py-2 border-b border-gray-400/80">
         <h2 className="text-lg text-gray-900 font-semibold select-none">Color Palette</h2>
       </div>
       <div className="flex-1 p-4 overflow-y-auto">
@@ -55,8 +67,7 @@ function Toolbar(props: Props): ReactElement {
           </ul>
         )}
       </div>
-      <div className="flex-shrink-0 flex items-center justify-start w-full px-4 py-2 border-t border-gray-400"></div>
-    </div>
+    </section>
   );
 }
 

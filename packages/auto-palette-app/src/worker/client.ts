@@ -46,7 +46,7 @@ const DEFAULT_CHANNELS = 4;
  */
 const DEFAULT_OPTIONS: Required<Pick<Options, 'method' | 'colorCount'>> = {
   method: 'dbscan',
-  colorCount: 8,
+  colorCount: 6,
 };
 
 /**

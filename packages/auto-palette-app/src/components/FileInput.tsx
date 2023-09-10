@@ -1,3 +1,4 @@
+import clsx from 'clsx';
 import {
   ChangeEvent,
   DragEvent,
@@ -150,9 +151,18 @@ function FileInput(props: Props): ReactElement {
 
   return (
     <label
-      className={`flex flex-row justify-center items-center cursor-pointer rounded border border-dashed border-gray-400 ${
-        className || ''
-      }`}
+      className={clsx(
+        'flex',
+        'flex-row',
+        'justify-center',
+        'items-center',
+        'cursor-pointer',
+        'rounded',
+        'border',
+        'border-dashed',
+        'border-gray-400/80',
+        className,
+      )}
       htmlFor={name}
       onClick={onLabelClick}
       onDragOver={(e) => e.preventDefault()}

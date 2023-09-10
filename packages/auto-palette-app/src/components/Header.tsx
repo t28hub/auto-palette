@@ -1,3 +1,4 @@
+import clsx from 'clsx';
 import { ReactElement } from 'react';
 import { FaGithub } from 'react-icons/fa';
 
@@ -19,7 +20,7 @@ function Header(props: Props): ReactElement {
   const { className } = props;
 
   return (
-    <header className={`flex justify-center w-full h-14 ${className || ''}`}>
+    <header className={clsx('flex', 'justify-center', 'w-full', 'h-14', className)}>
       <div className="flex flex-row justify-start items-center w-full max-w-3xl h-full gap-4">
         <h1 className="flex-shrink-0 text-lg text-slate-50 font-semibold select-none">Auto Palette</h1>
         <nav className="flex-1 flex flex-row justify-end">

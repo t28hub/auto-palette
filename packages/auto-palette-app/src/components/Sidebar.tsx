@@ -50,24 +50,24 @@ function Sidebar(props: Props): ReactElement {
   );
 
   return (
-    <div
+    <section
       className={clsx(
         'flex',
         'flex-col',
         'items-stretch',
         'justify-center',
         'rounded',
-        'bg-gray-100/80',
-        'backdrop-blur',
+        'bg-gray-100/50',
+        'backdrop-blur-xl',
         'shadow-2xl',
         className,
       )}
     >
-      <div className="flex-shrink-0 flex items-center w-full px-4 py-2 border-b border-gray-400">
+      <div className="flex-shrink-0 flex items-center w-full px-4 py-2 border-b border-gray-400/80">
         <h2 className="text-lg text-gray-900 font-semibold select-none">Image</h2>
       </div>
-      <div className="flex-1 flex flex-col p-4 border-b border-gray-200">
-        <FormLabel className="flex-shrink-0 py-2">Image File:</FormLabel>
+      <div className="flex-1 flex flex-col p-4 pt-2 border-b border-gray-400/80">
+        <FormLabel className="flex-shrink-0 pb-2">Image File:</FormLabel>
         <FileInput
           className="w-full h-48"
           types={['image/jpeg', 'image/png']}
@@ -80,10 +80,10 @@ function Sidebar(props: Props): ReactElement {
         />
       </div>
       <form className="flex-shrink-0 flex flex-col w-full p-4" onSubmit={onUrlSubmit}>
-        <FormLabel className="flex-shrink-0 py-2">Image URL:</FormLabel>
-        <TextInput className="w-full" type="url" placeholder="Enter an image URL" onChange={onUrlChange} />
+        <FormLabel className="flex-shrink-0 pb-2">Image URL:</FormLabel>
+        <TextInput className="w-full opacity-80" type="url" placeholder="Enter an image URL" onChange={onUrlChange} />
       </form>
-    </div>
+    </section>
   );
 }
 

@@ -1,3 +1,4 @@
+import clsx from 'clsx';
 import { ReactElement } from 'react';
 
 /**
@@ -19,7 +20,7 @@ function Footer(props: Props): ReactElement {
   const year = new Date().getFullYear();
 
   return (
-    <footer className={`flex justify-center items-center w-full h-14 p-4 ${className || ''}`}>
+    <footer className={clsx('flex', 'justify-center', 'items-center', 'w-full', 'h-14', 'p-4', className)}>
       <span className="text-sm text-slate-50 font-normal">&copy; {year} Tatsuya Maki. All Rights Reserved.</span>
     </footer>
   );

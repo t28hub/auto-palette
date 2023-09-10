@@ -1,4 +1,3 @@
-import CanvasImage from './CanvasImage.tsx';
 import FileInput from './FileInput.tsx';
 import Footer from './Footer.tsx';
 import FormLabel from './FormLabel.tsx';
@@ -9,4 +8,4 @@ import Swatch from './Swatch.tsx';
 import TextInput from './TextInput.tsx';
 import Toolbar from './Toolbar.tsx';
 
-export { CanvasImage, FileInput, Footer, FormLabel, Header, ImageViewer, Sidebar, Swatch, TextInput, Toolbar };
+export { FileInput, Footer, FormLabel, Header, ImageViewer, Sidebar, Swatch, TextInput, Toolbar };
