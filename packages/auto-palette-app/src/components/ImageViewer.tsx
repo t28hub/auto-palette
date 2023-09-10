@@ -1,7 +1,8 @@
 import clsx from 'clsx';
 import { ReactElement, useCallback, useEffect, useRef, useState } from 'react';
+import { BlurhashCanvas } from 'react-blurhash';
 
-import { useAppSelector, useResizeObserver } from '../hooks';
+import { BlurHashOptions, useAppSelector, useBlurHash, useResizeObserver } from '../hooks';
 import { Size } from '../types.ts';
 
 import { Swatch } from './index.ts';
@@ -16,6 +17,11 @@ interface Props {
 
 const defaultSize: Size = { width: 0, height: 0 };
 
+const blurHashOptions: BlurHashOptions = {
+  componentX: 6,
+  componentY: 4,
+};
+
 /**
  * Image preview component.
  *
@@ -29,6 +35,7 @@ function ImageViewer(props: Props): ReactElement {
   const [size, setSize] = useState<Size>(defaultSize);
   const [scale, setScale] = useState<number>(1.0);
   const paletteState = useAppSelector((state) => state.palette);
+  const { hash } = useBlurHash(imageData, blurHashOptions);
 
   const onResize = useCallback((entry: ResizeObserverEntry): void => {
     const { width, height } = entry.target.getBoundingClientRect();
@@ -79,6 +86,14 @@ function ImageViewer(props: Props): ReactElement {
 
   return (
     <div ref={wrapperRef} className={clsx('flex', 'justify-center', 'items-center', className)}>
+      {hash && (
+        <BlurhashCanvas
+          className={clsx('flex-shrink-0', 'absolute', 'top-0', 'left-0', '-z-10', 'opacity-60')}
+          hash={hash}
+          width={size.width}
+          height={size.height}
+        />
+      )}
       <div className="flex-shrink-0 relative drop-shadow">
         <canvas ref={canvasRef} />
 
