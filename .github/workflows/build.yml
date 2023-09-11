@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
@@ -51,7 +51,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Restore cached Cargo dependencies
         uses: actions/cache/restore@v3
@@ -76,7 +76,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Restore cached Cargo dependencies
         uses: actions/cache/restore@v3
@@ -108,7 +108,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Restore cached Cargo dependencies
         uses: actions/cache/restore@v3
@@ -144,7 +144,7 @@ jobs:
         working-directory: crates/auto-palette-wasm
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Restore cached Cargo dependencies
         uses: actions/cache/restore@v3
@@ -182,7 +182,7 @@ jobs:
         working-directory: packages/auto-palette
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
