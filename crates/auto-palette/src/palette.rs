@@ -37,7 +37,7 @@ use std::collections::{BinaryHeap, HashMap};
 ///     println!("{:?}", swatch.population());
 /// });
 /// ```
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Palette<F: Float> {
     swatches: Vec<Swatch<F>>,
 }
