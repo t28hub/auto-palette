@@ -90,7 +90,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Run tests
-        run: cargo tarpaulin --ignore-tests --out Xml --output-dir target/tarpaulin
+        run: cargo tarpaulin --ignore-tests --out xml --output-dir target/tarpaulin
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
