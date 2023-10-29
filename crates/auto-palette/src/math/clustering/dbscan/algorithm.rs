@@ -139,9 +139,7 @@ where
         for (index, label) in labels.into_iter().enumerate() {
             match label {
                 Label::Assigned(cluster_id) => {
-                    let cluster = cluster_map
-                        .entry(cluster_id)
-                        .or_insert_with(Cluster::default);
+                    let cluster = cluster_map.entry(cluster_id).or_default();
                     cluster.insert(index, &points[index]);
                 }
                 Label::Outlier => {

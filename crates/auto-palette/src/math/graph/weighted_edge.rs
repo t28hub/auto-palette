@@ -38,7 +38,7 @@ where
     F: Float,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.weight.partial_cmp(&other.weight)
+        Some(self.cmp(other))
     }
 }
 
@@ -47,7 +47,9 @@ where
     F: Float,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap_or(Ordering::Equal)
+        self.weight
+            .partial_cmp(&other.weight)
+            .unwrap_or(Ordering::Equal)
     }
 }
 
