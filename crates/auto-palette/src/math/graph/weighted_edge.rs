@@ -29,15 +29,6 @@ where
     pub fn new(u: usize, v: usize, weight: F) -> Self {
         Self { u, v, weight }
     }
-
-    /// Return the weight of this edge.
-    ///
-    /// # Returns
-    /// The weight of this edge.
-    #[must_use]
-    pub fn weight(&self) -> F {
-        self.weight
-    }
 }
 
 impl<F> Eq for WeightedEdge<F> where F: Float {}
@@ -84,7 +75,7 @@ mod tests {
         let edge = WeightedEdge::new(0, 1, 5.0);
         assert_eq!(edge.u(), 0);
         assert_eq!(edge.v(), 1);
-        assert_eq!(edge.weight(), 5.0);
+        assert_eq!(edge.weight, 5.0);
     }
 
     #[test]

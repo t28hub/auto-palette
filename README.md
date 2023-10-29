@@ -106,14 +106,12 @@ Supported algorithms are as follows:
 
 - Gmeans(Gaussian-means)
 - DBSCAN(Density-Based Spatial Clustering of Applications with Noise)
-- HDBSCAN(Hierarchical Density-Based Spatial Clustering of Applications with Noise)
 
 To use a specific algorithm, pass it to the `extract_with_algorithm` method like this:
 
 ```rust
 let palette = Palette::extract_with_algorithm(&image, &Algorithm::Gmeans);
 let palette = Palette::extract_with_algorithm(&image, &Algorithm::DBSCAN);
-let palette = Palette::extract_with_algorithm(&image, &Algorithm::HDBSCAN);
 ```
 
 ## License

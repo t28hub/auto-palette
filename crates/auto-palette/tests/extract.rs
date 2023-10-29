@@ -49,16 +49,6 @@ fn extract_with_dbscan() {
     assert_eq!(swatches.len(), 5);
 }
 
-/// This test is ignored because it takes a long time to run
-#[test]
-#[ignore]
-fn extract_with_hdbscan() {
-    let image = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();
-    let palette: Palette<f64> = Palette::extract_with_algorithm(&image, &Algorithm::HDBSCAN);
-    let swatches = palette.swatches(5);
-    assert_eq!(swatches.len(), 5);
-}
-
 #[test]
 fn swatches_with_theme() {
     let image = image::open("./tests/images/aLMeYMZEJvk.png").unwrap();

@@ -2,7 +2,6 @@ use crate::math::clustering::algorithm::ClusteringAlgorithm;
 use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::dbscan::algorithm::DBSCAN;
 use crate::math::clustering::gmeans::algorithm::Gmeans;
-use crate::math::clustering::hdbscan::algorithm::HDBSCAN;
 use crate::math::distance::DistanceMetric;
 use crate::math::number::Float;
 use crate::math::point::Point;
@@ -16,7 +15,6 @@ use crate::math::point::Point;
 /// let image = image::open("./path/to/image.png").unwrap();
 /// let palette = Palette::extract_with_algorithm(&image, &Algorithm::GMeans);
 /// let palette = Palette::extract_with_algorithm(&image, &Algorithm::DBSCAN);
-/// let palette = Palette::extract_with_algorithm(&image, &Algorithm::HDBSCAN);
 /// ```
 #[derive(Debug)]
 pub enum Algorithm {
@@ -24,8 +22,6 @@ pub enum Algorithm {
     GMeans,
     /// DBSCAN clustering algorithm.
     DBSCAN,
-    /// HDBSCAN clustering algorithm.
-    HDBSCAN,
 }
 
 impl Algorithm {
@@ -48,7 +44,6 @@ impl Algorithm {
         match self {
             Algorithm::GMeans => cluster_with_gmeans(points),
             Algorithm::DBSCAN => cluster_with_dbscan(points),
-            Algorithm::HDBSCAN => cluster_with_hdbscan(points),
         }
     }
 }
@@ -83,18 +78,6 @@ where
         &DistanceMetric::SquaredEuclidean,
     );
     let (clusters, _) = dbscan.fit(points);
-    clusters
-}
-
-#[must_use]
-fn cluster_with_hdbscan<F, P>(points: &[P]) -> Vec<Cluster<F, P>>
-where
-    F: Float,
-    P: Point<F>,
-{
-    let min_samples = (points.len() / 4096).max(25);
-    let hdbscan = HDBSCAN::new(min_samples, min_samples, &DistanceMetric::SquaredEuclidean);
-    let (clusters, _) = hdbscan.fit(points);
     clusters
 }
 
@@ -168,16 +151,6 @@ mod tests {
         let actual = Algorithm::DBSCAN.apply(&points);
 
         let clustering = DBSCAN::new(16, 0.0025, &DistanceMetric::SquaredEuclidean);
-        let expected = clustering.fit(&points);
-        assert_eq!(actual, expected.0);
-    }
-
-    #[test]
-    fn test_hdbscan_algorithm() {
-        let points = sample_points();
-        let actual = Algorithm::HDBSCAN.apply(&points);
-
-        let clustering = HDBSCAN::new(16, 16, &DistanceMetric::SquaredEuclidean);
         let expected = clustering.fit(&points);
         assert_eq!(actual, expected.0);
     }
