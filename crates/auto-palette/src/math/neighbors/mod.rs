@@ -1,4 +1,3 @@
-pub mod balltree;
 pub mod kdtree;
 pub mod linear;
 pub mod neighbor;
