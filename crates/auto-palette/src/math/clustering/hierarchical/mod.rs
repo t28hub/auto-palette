@@ -1,2 +1,4 @@
 pub mod algorithm;
-mod linkage;
+pub mod dendrogram;
+pub mod linkage;
+pub mod node;
