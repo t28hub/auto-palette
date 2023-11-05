@@ -1,10 +1,11 @@
 use crate::math::clustering::hierarchical::dendrogram::Dendrogram;
 use crate::math::clustering::hierarchical::linkage::{Linkage, SingleLinkage};
 use crate::math::clustering::hierarchical::node::Node;
+use crate::math::clustering::hierarchical::priority::Priority;
 use crate::math::distance::DistanceMetric;
 use crate::math::point::Point;
 use crate::number::Float;
-use std::cmp::{Ordering, Reverse};
+use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashSet};
 
 pub struct HierarchicalClustering;
@@ -32,43 +33,45 @@ impl<'a> HierarchicalClustering {
         F: Float,
         P: Point<F>,
     {
-        let mut dendrogram = Dendrogram::new(
-            points
-                .iter()
-                .enumerate()
-                .map(|(i, _)| Node::new(i, None, None, F::zero()))
-                .collect(),
-        );
+        let n_points = points.len();
+        let mut dendrogram = Dendrogram::new(n_points * 2 - 1);
+        points.iter().enumerate().for_each(|(i, _)| {
+            let node = Node::new(i, None, None, F::zero());
+            dendrogram.push(node);
+        });
+
         let mut heap = BinaryHeap::new();
-        for i in 0..dendrogram.size() {
-            for j in (i + 1)..dendrogram.size() {
-                let pair = NodePair::new(i, j, linkage.distance(i, j));
-                heap.push(Reverse(pair));
+        for i in 0..dendrogram.len() {
+            for j in (i + 1)..dendrogram.len() {
+                let distance = linkage.distance(i, j);
+                let priority = Priority::new(NodePair::new(i, j, distance), distance);
+                heap.push(Reverse(priority));
             }
         }
 
         let mut inactive_nodes = HashSet::new();
-        while let Some(Reverse(pair)) = heap.pop() {
-            let index1 = pair.label1;
-            let index2 = pair.label2;
-            if inactive_nodes.contains(&index1) || inactive_nodes.contains(&index2) {
+        while let Some(Reverse(Priority(pair, _))) = heap.pop() {
+            let label1 = pair.label1;
+            let label2 = pair.label2;
+            if inactive_nodes.contains(&label1) || inactive_nodes.contains(&label2) {
                 continue;
             }
 
-            let index = linkage.merge(index1, index2);
-            inactive_nodes.insert(index1);
-            inactive_nodes.insert(index2);
+            let label = linkage.merge(label1, label2);
+            inactive_nodes.insert(label1);
+            inactive_nodes.insert(label2);
 
-            let merged_node = Node::new(index, Some(index1), Some(index2), pair.distance);
-            dendrogram.add(merged_node);
+            let merged_node = Node::new(label, Some(label1), Some(label2), pair.distance);
+            dendrogram.push(merged_node);
 
-            for i in 0..index {
+            for i in 0..label {
                 if inactive_nodes.contains(&i) {
                     continue;
                 }
 
-                let pair = NodePair::new(i, index, linkage.distance(i, index));
-                heap.push(Reverse(pair));
+                let distance = linkage.distance(i, label);
+                let priority = Priority::new(NodePair::new(i, label, distance), distance);
+                heap.push(Reverse(priority));
             }
         }
         dendrogram
@@ -96,37 +99,6 @@ where
     }
 }
 
-impl<F> PartialOrd for NodePair<F>
-where
-    F: Float,
-{
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl<F> Ord for NodePair<F>
-where
-    F: Float,
-{
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.distance
-            .partial_cmp(&other.distance)
-            .unwrap_or(Ordering::Equal)
-    }
-}
-
-impl<F> PartialEq for NodePair<F>
-where
-    F: Float,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.distance == other.distance
-    }
-}
-
-impl<F> Eq for NodePair<F> where F: Float {}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -144,7 +116,7 @@ mod tests {
         ];
         let clustering = HierarchicalClustering;
         let dendrogram = clustering.fit(&points);
-        assert_eq!(dendrogram.size(), 9);
+        assert_eq!(dendrogram.len(), 9);
 
         let nodes = dendrogram.nodes();
         assert_eq!(nodes[0], Node::new(0, None, None, 0.0));
@@ -156,5 +128,10 @@ mod tests {
         assert_eq!(nodes[6], Node::new(6, Some(1), Some(4), 1.0));
         assert_eq!(nodes[7], Node::new(7, Some(2), Some(5), 1.0));
         assert_eq!(nodes[8], Node::new(8, Some(6), Some(7), 7.0));
+
+        let nodes = dendrogram.partition(2);
+        assert_eq!(nodes.len(), 2);
+        assert_eq!(nodes[0], Node::new(6, Some(1), Some(4), 1.0));
+        assert_eq!(nodes[1], Node::new(7, Some(2), Some(5), 1.0));
     }
 }

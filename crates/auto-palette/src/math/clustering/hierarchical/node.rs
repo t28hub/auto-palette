@@ -1,6 +1,6 @@
 use crate::number::Float;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Node<F>
 where
     F: Float,
