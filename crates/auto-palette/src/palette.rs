@@ -6,9 +6,10 @@ use crate::image::ImageData;
 use crate::math::clustering::algorithm::ClusteringAlgorithm;
 use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::dbscan::algorithm::DBSCAN;
+use crate::math::clustering::hierarchical::algorithm::HierarchicalClustering;
+use crate::math::clustering::hierarchical::dendrogram::Dendrogram;
+use crate::math::clustering::hierarchical::node::Node;
 use crate::math::distance::DistanceMetric;
-use crate::math::graph::edge::Edge;
-use crate::math::graph::weighted_edge::WeightedEdge;
 use crate::math::number::Float;
 use crate::math::point::{Point3, Point5};
 use crate::swatch::Swatch;
@@ -16,7 +17,6 @@ use crate::{Algorithm, Theme};
 use image::{ColorType, DynamicImage};
 use num_traits::Zero;
 use std::cmp::{Ordering, Reverse};
-use std::collections::{BinaryHeap, HashMap};
 
 /// Struct representing a color palette.
 ///
@@ -141,7 +141,7 @@ where
             return Vec::new();
         }
 
-        let mut results = self.find_swatches(n, |swatch| F::from_usize(swatch.population()));
+        let mut results = self.find_swatches(n, &|swatch| F::from_usize(swatch.population()));
         results.sort_by_key(|swatch| Reverse(swatch.population()));
         results
     }
@@ -160,10 +160,7 @@ where
             return Vec::new();
         }
 
-        let mut results = self.find_swatches(n, |swatch| {
-            let fraction = theme.weight(swatch);
-            fraction.value()
-        });
+        let mut results = self.find_swatches(n, &|swatch| theme.weight(swatch).value());
         results.sort_by(|swatch1, swatch2| {
             let weight1 = theme.weight(swatch1).value();
             let weight2 = theme.weight(swatch2).value();
@@ -176,67 +173,51 @@ where
     }
 
     #[must_use]
-    fn find_swatches<SF>(&self, n: usize, score_fn: SF) -> Vec<Swatch<F>>
+    fn find_swatches<SF>(&self, n: usize, score_fn: &SF) -> Vec<Swatch<F>>
     where
         SF: Fn(&Swatch<F>) -> F,
     {
-        let mut candidates = HashMap::<usize, Swatch<F>>::new();
-        let mut heap = BinaryHeap::new();
-        for (i, swatch_i) in self.swatches.iter().enumerate() {
-            candidates.insert(i, swatch_i.clone());
-            for (j, swatch_j) in self.swatches.iter().skip(i + 1).enumerate() {
-                if i == j {
-                    continue;
-                }
+        let algorithm = HierarchicalClustering;
+        let dendrogram: Dendrogram<F> = algorithm.fit(
+            &self.swatches,
+            &|swatch1: &Swatch<F>, swatch2: &Swatch<F>| swatch1.distance(&swatch2),
+        );
+        let nodes = dendrogram.nodes();
+        let clusters = dendrogram.partition(n);
+        clusters
+            .iter()
+            .map(|node| self.find_swatch(nodes, node.label, score_fn))
+            .collect()
+    }
 
-                let distance = swatch_i.distance(swatch_j);
-                heap.push(Reverse(WeightedEdge::new(i, j, distance)));
+    #[must_use]
+    fn find_swatch<SF>(&self, nodes: &[Node<F>], root: usize, score_fn: &SF) -> Swatch<F>
+    where
+        SF: Fn(&Swatch<F>) -> F,
+    {
+        let root_node = &nodes[root];
+        match (root_node.node1, root_node.node2) {
+            (Some(node1), Some(node2)) => {
+                let swatch1 = self.find_swatch(nodes, node1, score_fn);
+                let swatch2 = self.find_swatch(nodes, node2, score_fn);
+
+                let score1 = score_fn(&swatch1);
+                let score2 = score_fn(&swatch2);
+                let fraction = score2 / (score1 + score2);
+
+                let color = swatch1.color().mix(swatch2.color(), fraction);
+                let position = if fraction <= F::from_f64(0.5) {
+                    swatch1.position()
+                } else {
+                    swatch2.position()
+                };
+                let population = swatch1.population() + swatch2.population();
+                Swatch::new(color, position, population)
             }
+            (Some(node1), None) => self.find_swatch(nodes, node1, score_fn),
+            (None, Some(node2)) => self.find_swatch(nodes, node2, score_fn),
+            (None, None) => self.swatches[root].clone(),
         }
-
-        let mut next_label = self.swatches.len();
-        while candidates.len() > n {
-            let Some(Reverse(edge)) = heap.pop() else {
-                break;
-            };
-
-            let Some(swatch1) = candidates.get(&edge.u()) else {
-                continue;
-            };
-            let Some(swatch2) = candidates.get(&edge.v()) else {
-                continue;
-            };
-
-            let score1 = score_fn(swatch1);
-            let score2 = score_fn(swatch2);
-            if score1.is_zero() || score2.is_zero() {
-                continue;
-            }
-
-            let population = swatch1.population() + swatch2.population();
-            let best_swatch = if score1 >= score2 {
-                Swatch::new(swatch1.color().clone(), swatch1.position(), population)
-            } else {
-                Swatch::new(swatch2.color().clone(), swatch2.position(), population)
-            };
-
-            candidates.iter().for_each(|(label, swatch)| {
-                if label == &edge.u() || label == &edge.v() {
-                    return;
-                }
-
-                let distance1 = swatch.distance(swatch1);
-                let distance2 = swatch.distance(swatch2);
-                let distance = (distance1 * score1 + distance2 * score2) / (score1 + score2);
-                heap.push(Reverse(WeightedEdge::new(*label, next_label, distance)));
-            });
-
-            candidates.remove(&edge.u());
-            candidates.remove(&edge.v());
-            candidates.insert(next_label, best_swatch);
-            next_label += 1;
-        }
-        candidates.into_values().collect()
     }
 }
 
