@@ -2,8 +2,6 @@ use crate::math::clustering::hierarchical::dendrogram::Dendrogram;
 use crate::math::clustering::hierarchical::linkage::{Linkage, SingleLinkage};
 use crate::math::clustering::hierarchical::node::Node;
 use crate::math::clustering::hierarchical::priority::Priority;
-use crate::math::distance::DistanceMetric;
-use crate::math::point::Point;
 use crate::number::Float;
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashSet};
@@ -12,30 +10,26 @@ pub struct HierarchicalClustering;
 
 impl<'a> HierarchicalClustering {
     #[must_use]
-    pub fn fit<F, P>(&self, points: &'a [P]) -> Dendrogram<F>
+    pub fn fit<F, T, DF>(&self, dataset: &'a [T], distance_fn: &'a DF) -> Dendrogram<F>
     where
         F: Float,
-        P: Point<F>,
+        DF: Fn(&T, &T) -> F,
     {
-        self.fit_with_linkage(
-            points,
-            &mut SingleLinkage::new(points, &DistanceMetric::Euclidean),
-        )
+        self.fit_with_linkage(dataset, &mut SingleLinkage::new(dataset, distance_fn))
     }
 
     #[must_use]
-    pub fn fit_with_linkage<F, P>(
+    pub fn fit_with_linkage<F, T>(
         &self,
-        points: &'a [P],
+        dataset: &'a [T],
         linkage: &mut impl Linkage<F>,
     ) -> Dendrogram<F>
     where
         F: Float,
-        P: Point<F>,
     {
-        let n_points = points.len();
+        let n_points = dataset.len();
         let mut dendrogram = Dendrogram::new(n_points * 2 - 1);
-        points.iter().enumerate().for_each(|(i, _)| {
+        dataset.iter().enumerate().for_each(|(i, _)| {
             let node = Node::new(i, None, None, F::zero());
             dendrogram.push(node);
         });
@@ -103,6 +97,7 @@ where
 mod tests {
     use super::*;
     use crate::math::clustering::hierarchical::node::Node;
+    use crate::math::distance::DistanceMetric;
     use crate::math::point::Point2;
 
     #[test]
@@ -115,7 +110,9 @@ mod tests {
             Point2(11.0, 0.0),
         ];
         let clustering = HierarchicalClustering;
-        let dendrogram = clustering.fit(&points);
+        let dendrogram = clustering.fit(&points, &|p1: &Point2<f64>, p2: &Point2<f64>| {
+            DistanceMetric::Euclidean.measure(p1, p2)
+        });
         assert_eq!(dendrogram.len(), 9);
 
         let nodes = dendrogram.nodes();

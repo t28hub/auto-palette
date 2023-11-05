@@ -1,5 +1,4 @@
 use crate::math::distance::DistanceMetric;
-use crate::math::point::Point;
 use crate::number::Float;
 
 /// Trait representing a linkage.
@@ -53,24 +52,24 @@ where
     /// Creates a new `DistanceMatrix` instance.
     ///
     /// # Arguments
-    /// * `points` - The points to use for calculating distances.
-    /// * `metric` - The distance metric to use.
+    /// * `elements` - The elements to use for calculating distances.
+    /// * `distance_fn` - The distance function to use.
     ///
     /// # Returns
     /// A new `DistanceMatrix` instance.
     #[must_use]
-    pub fn new<'a, P>(points: &'a [P], metric: &'a DistanceMetric) -> Self
+    pub fn new<'a, T, DF>(elements: &'a [T], distance_fn: &'a DF) -> Self
     where
-        P: Point<F>,
+        DF: Fn(&T, &T) -> F,
     {
-        let n_points = points.len();
-        let size = n_points * 2 - 1;
+        let n_elements = elements.len();
+        let size = n_elements * 2 - 1;
         let capacity = size * (size + 1) / 2;
         let mut distances = vec![F::max_value(); capacity];
-        for i in 0..n_points {
-            for j in (i + 1)..n_points {
+        for i in 0..n_elements {
+            for j in (i + 1)..n_elements {
                 let index = capacity - (size + 1 - i) * (size - i) / 2 + j - i;
-                let distance = metric.measure(&points[i], &points[j]);
+                let distance = distance_fn(&elements[i], &elements[j]);
                 distances[index] = distance;
             }
         }
@@ -142,12 +141,12 @@ where
     F: Float,
 {
     #[must_use]
-    pub fn new<'a, P>(points: &'a [P], metric: &'a DistanceMetric) -> Self
+    pub fn new<'a, T, DF>(points: &'a [T], distance_fn: &'a DF) -> Self
     where
-        P: Point<F>,
+        DF: Fn(&T, &T) -> F,
     {
         Self {
-            matrix: DistanceMatrix::new(points, metric),
+            matrix: DistanceMatrix::new(points, distance_fn),
             next_index: points.len(),
         }
     }
@@ -200,19 +199,19 @@ where
     /// * `P` - The type of points.
     ///
     /// # Arguments
-    /// * `points` - The points to use for calculating distances.
-    /// * `metric` - The distance metric to use.
-    ///
+    /// * `elements` - The elements to use for calculating distances.
+    /// * `distance_fn` - The distance function to use.
+    //
     /// # Returns
     /// A new `CompleteLinkage` instance.
     #[must_use]
-    pub fn new<'a, P>(points: &'a [P], metric: &'a DistanceMetric) -> Self
+    pub fn new<'a, T, DF>(elements: &'a [T], distance_fn: &'a DF) -> Self
     where
-        P: Point<F>,
+        DF: Fn(&T, &T) -> F,
     {
         Self {
-            matrix: DistanceMatrix::new(points, metric),
-            next_index: points.len(),
+            matrix: DistanceMatrix::new(elements, distance_fn),
+            next_index: elements.len(),
         }
     }
 }
@@ -260,7 +259,10 @@ mod tests {
             Point2(0.0, 1.0),
             Point2(1.0, 1.0),
         ];
-        let mut linkage = SingleLinkage::new(&points, &DistanceMetric::SquaredEuclidean);
+
+        let mut linkage = SingleLinkage::new(&points, &|p1: &Point2<f64>, p2: &Point2<f64>| {
+            DistanceMetric::SquaredEuclidean.measure(p1, p2)
+        });
         assert_eq!(linkage.distance(0, 1), 1.0);
         assert_eq!(linkage.distance(0, 2), 1.0);
         assert_eq!(linkage.distance(0, 3), 2.0);
@@ -286,7 +288,10 @@ mod tests {
             Point2(0.0, 1.0),
             Point2(1.0, 1.0),
         ];
-        let mut linkage = CompleteLinkage::new(&points, &DistanceMetric::SquaredEuclidean);
+
+        let mut linkage = CompleteLinkage::new(&points, &|p1: &Point2<f64>, p2: &Point2<f64>| {
+            DistanceMetric::SquaredEuclidean.measure(p1, p2)
+        });
         assert_eq!(linkage.distance(0, 1), 1.0);
         assert_eq!(linkage.distance(0, 2), 1.0);
         assert_eq!(linkage.distance(0, 3), 2.0);
