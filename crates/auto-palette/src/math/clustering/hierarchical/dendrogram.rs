@@ -34,12 +34,18 @@ where
     }
 
     /// Returns the number of nodes in this dendrogram.
+    ///
+    /// # Returns
+    /// The number of nodes in this dendrogram.
     #[must_use]
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
 
     /// Returns a reference to the nodes of this dendrogram.
+    ///
+    /// # Returns
+    /// A reference to the nodes of this dendrogram.
     #[must_use]
     pub fn nodes(&self) -> &[Node<F>] {
         &self.nodes
@@ -49,6 +55,7 @@ where
     ///
     /// # Arguments
     /// * `node` - The node to push.
+    #[inline]
     pub fn push(&mut self, node: Node<F>) {
         assert!(self.len() < self.nodes.capacity());
         self.nodes.push(node);
@@ -106,6 +113,31 @@ mod tests {
     fn test_new() {
         let dendrogram = Dendrogram::<f32>::new(5);
         assert_eq!(dendrogram.len(), 0);
+        assert_eq!(dendrogram.nodes(), &[]);
+    }
+
+    #[test]
+    fn test_push() {
+        let mut dendrogram = Dendrogram::new(3);
+        dendrogram.push(Node::new(0, None, None, 0.0));
+        dendrogram.push(Node::new(1, None, None, 0.0));
+        dendrogram.push(Node::new(2, Some(0), Some(1), 3.0));
+
+        assert_eq!(dendrogram.len(), 3);
+
+        let nodes = dendrogram.nodes();
+        assert_eq!(nodes[0], Node::new(0, None, None, 0.0));
+        assert_eq!(nodes[1], Node::new(1, None, None, 0.0));
+        assert_eq!(nodes[2], Node::new(2, Some(0), Some(1), 3.0));
+    }
+
+    #[test]
+    #[should_panic(expected = "assertion failed: self.len() < self.nodes.capacity()")]
+    fn test_push_panic() {
+        let mut dendrogram = Dendrogram::new(2);
+        dendrogram.push(Node::new(0, None, None, 0.0));
+        dendrogram.push(Node::new(1, None, None, 0.0));
+        dendrogram.push(Node::new(2, Some(0), Some(1), 3.0));
     }
 
     #[test]

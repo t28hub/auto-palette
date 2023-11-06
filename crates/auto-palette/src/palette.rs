@@ -182,7 +182,7 @@ where
             &self.swatches,
             &|swatch1: &Swatch<F>, swatch2: &Swatch<F>| swatch1.distance(swatch2),
         );
-        let algorithm = HierarchicalClustering;
+        let algorithm = HierarchicalClustering::new();
         let dendrogram: Dendrogram<F> = algorithm.fit_with_linkage(&self.swatches, &mut linkage);
         let nodes = dendrogram.nodes();
         dendrogram
