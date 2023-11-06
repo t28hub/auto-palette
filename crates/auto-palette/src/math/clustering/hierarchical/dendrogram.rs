@@ -1,5 +1,5 @@
+use crate::math::clustering::cmp::Priority;
 use crate::math::clustering::hierarchical::node::Node;
-use crate::math::clustering::hierarchical::priority::Priority;
 use crate::number::Float;
 use std::collections::BinaryHeap;
 

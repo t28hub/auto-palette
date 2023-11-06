@@ -1,6 +1,6 @@
 use crate::math::clustering::algorithm::ClusteringAlgorithm;
 use crate::math::clustering::cluster::Cluster;
-use crate::math::clustering::gmeans::cmp::SizeOrdered;
+use crate::math::clustering::cmp::Priority;
 use crate::math::distance::DistanceMetric;
 use crate::math::neighbors::kdtree::search::KDTreeSearch;
 use crate::math::neighbors::search::NeighborSearch;
@@ -149,26 +149,30 @@ where
             return clusters;
         }
 
-        let mut heap = BinaryHeap::from_iter(clusters.into_iter().map(SizeOrdered));
+        let mut heap = BinaryHeap::from_iter(clusters.into_iter().map(|cluster| {
+            let priority = cluster.size();
+            Priority::new(cluster, priority)
+        }));
         let mut clusters = Vec::with_capacity(self.max_k);
         while clusters.len() < self.max_k {
             let Some(largest) = heap.pop() else {
                 break;
             };
 
-            if largest.size() < self.min_cluster_size || largest.size() <= 1 {
+            let largest_size = largest.1;
+            if largest_size < self.min_cluster_size || largest_size <= 1 {
                 break;
             }
 
-            let largest_cluster = &largest.0;
-            let (cluster1, cluster2) = self.split(largest_cluster, points);
+            let largest_cluster = largest.0;
+            let (cluster1, cluster2) = self.split(&largest_cluster, points);
             let centroid1 = cluster1.centroid();
             let centroid2 = cluster2.centroid();
 
             // Anderson Darling test
             let v = centroid1.sub(centroid2);
             let vp = v.dot(&v);
-            let mut x = Vec::with_capacity(largest.size());
+            let mut x = Vec::with_capacity(largest_size);
             for &index in largest_cluster.membership().iter() {
                 let point = &points[index];
                 x.push(point.dot(&v) / vp);
@@ -181,8 +185,11 @@ where
                 clusters.push(cluster1);
                 clusters.push(cluster2);
             } else {
-                heap.push(SizeOrdered(cluster1));
-                heap.push(SizeOrdered(cluster2));
+                let priority1 = cluster1.size();
+                heap.push(Priority::new(cluster1, priority1));
+
+                let priority2 = cluster2.size();
+                heap.push(Priority::new(cluster2, priority2));
             }
         }
         clusters

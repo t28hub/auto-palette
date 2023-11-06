@@ -1,7 +1,7 @@
+use crate::math::clustering::cmp::Priority;
 use crate::math::clustering::hierarchical::dendrogram::Dendrogram;
 use crate::math::clustering::hierarchical::linkage::{Linkage, SingleLinkage};
 use crate::math::clustering::hierarchical::node::Node;
-use crate::math::clustering::hierarchical::priority::Priority;
 use crate::number::Float;
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashSet};
