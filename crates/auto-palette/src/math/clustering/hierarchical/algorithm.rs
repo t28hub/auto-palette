@@ -9,6 +9,7 @@ use std::collections::{BinaryHeap, HashSet};
 pub struct HierarchicalClustering;
 
 impl<'a> HierarchicalClustering {
+    #[allow(unused)]
     #[must_use]
     pub fn fit<F, T, DF>(&self, dataset: &'a [T], distance_fn: &'a DF) -> Dendrogram<F>
     where

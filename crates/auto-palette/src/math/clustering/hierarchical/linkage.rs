@@ -1,5 +1,5 @@
-use crate::math::distance::DistanceMetric;
 use crate::number::Float;
+use std::collections::HashSet;
 
 /// Trait representing a linkage.
 ///
@@ -77,15 +77,6 @@ where
         Self { distances, size }
     }
 
-    /// Returns the size of this distance matrix.
-    ///
-    /// # Returns
-    /// The size of this distance matrix.
-    #[must_use]
-    pub fn size(&self) -> usize {
-        self.size
-    }
-
     /// Returns the distance between the points with the given indices.
     ///
     /// # Arguments
@@ -94,6 +85,7 @@ where
     ///
     /// # Returns
     /// The distance between the points with the given indices.
+    #[inline]
     #[must_use]
     fn get(&self, i: usize, j: usize) -> F {
         let index = self.index(i, j);
@@ -105,6 +97,7 @@ where
     /// # Arguments
     /// * `i` - The index of the 1st point.
     /// * `j` - The index of the 2nd point.
+    #[inline]
     fn set(&mut self, i: usize, j: usize, value: F) {
         let index = self.index(i, j);
         self.distances[index] = value;
@@ -118,6 +111,7 @@ where
     ///
     /// # Returns
     /// The index of the distance between the points with the given indices.
+    #[inline]
     #[must_use]
     fn index(&self, i: usize, j: usize) -> usize {
         let min_index = i.min(j);
@@ -133,6 +127,7 @@ where
     F: Float,
 {
     matrix: DistanceMatrix<F>,
+    inactive: HashSet<usize>,
     next_index: usize,
 }
 
@@ -147,6 +142,7 @@ where
     {
         Self {
             matrix: DistanceMatrix::new(points, distance_fn),
+            inactive: HashSet::new(),
             next_index: points.len(),
         }
     }
@@ -156,11 +152,16 @@ impl<F> Linkage<F> for SingleLinkage<F>
 where
     F: Float,
 {
+    #[inline]
     #[must_use]
     fn distance(&self, i: usize, j: usize) -> F {
+        if self.inactive.contains(&i) || self.inactive.contains(&j) {
+            return F::max_value();
+        }
         self.matrix.get(i, j)
     }
 
+    #[inline]
     #[must_use]
     fn merge(&mut self, i: usize, j: usize) -> usize {
         assert!(i < j, "i must be less than j: {} < {}", i, j);
@@ -171,6 +172,9 @@ where
             let distance2 = self.distance(j, k);
             self.matrix.set(k, label, distance1.min(distance2));
         }
+
+        self.inactive.insert(i);
+        self.inactive.insert(j);
         self.next_index += 1;
         label
     }
@@ -186,6 +190,7 @@ where
     F: Float,
 {
     matrix: DistanceMatrix<F>,
+    inactive: HashSet<usize>,
     next_index: usize,
 }
 
@@ -211,6 +216,7 @@ where
     {
         Self {
             matrix: DistanceMatrix::new(elements, distance_fn),
+            inactive: HashSet::new(),
             next_index: elements.len(),
         }
     }
@@ -220,11 +226,16 @@ impl<F> Linkage<F> for CompleteLinkage<F>
 where
     F: Float,
 {
+    #[inline]
     #[must_use]
     fn distance(&self, i: usize, j: usize) -> F {
+        if self.inactive.contains(&i) || self.inactive.contains(&j) {
+            return F::max_value();
+        }
         self.matrix.get(i, j)
     }
 
+    #[inline]
     #[must_use]
     fn merge(&mut self, i: usize, j: usize) -> usize {
         assert!(i < j, "i must be less than j: {} < {}", i, j);
@@ -241,6 +252,9 @@ where
                 self.matrix.set(k, label, distance1.max(distance2));
             }
         }
+
+        self.inactive.insert(i);
+        self.inactive.insert(j);
         self.next_index += 1;
         label
     }
@@ -249,6 +263,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::math::distance::DistanceMetric;
     use crate::math::point::Point2;
 
     #[test]
@@ -273,8 +288,8 @@ mod tests {
         assert_eq!(linkage.distance(0, 5), f64::MAX);
 
         assert_eq!(linkage.merge(0, 1), 4);
-        assert_eq!(linkage.distance(0, 4), 1.0);
-        assert_eq!(linkage.distance(1, 4), 1.0);
+        assert_eq!(linkage.distance(0, 4), f64::MAX);
+        assert_eq!(linkage.distance(1, 4), f64::MAX);
         assert_eq!(linkage.distance(2, 4), 1.0);
         assert_eq!(linkage.distance(3, 4), 1.0);
         assert_eq!(linkage.distance(4, 5), f64::MAX);
@@ -302,8 +317,8 @@ mod tests {
         assert_eq!(linkage.distance(0, 5), f64::MAX);
 
         assert_eq!(linkage.merge(0, 1), 4);
-        assert_eq!(linkage.distance(0, 4), 1.0);
-        assert_eq!(linkage.distance(1, 4), 1.0);
+        assert_eq!(linkage.distance(0, 4), f64::MAX);
+        assert_eq!(linkage.distance(1, 4), f64::MAX);
         assert_eq!(linkage.distance(2, 4), 2.0);
         assert_eq!(linkage.distance(3, 4), 2.0);
         assert_eq!(linkage.distance(4, 5), f64::MAX);

@@ -8,6 +8,7 @@ use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::dbscan::algorithm::DBSCAN;
 use crate::math::clustering::hierarchical::algorithm::HierarchicalClustering;
 use crate::math::clustering::hierarchical::dendrogram::Dendrogram;
+use crate::math::clustering::hierarchical::linkage::CompleteLinkage;
 use crate::math::clustering::hierarchical::node::Node;
 use crate::math::distance::DistanceMetric;
 use crate::math::number::Float;
@@ -177,14 +178,15 @@ where
     where
         SF: Fn(&Swatch<F>) -> F,
     {
-        let algorithm = HierarchicalClustering;
-        let dendrogram: Dendrogram<F> = algorithm.fit(
+        let mut linkage = CompleteLinkage::new(
             &self.swatches,
-            &|swatch1: &Swatch<F>, swatch2: &Swatch<F>| swatch1.distance(&swatch2),
+            &|swatch1: &Swatch<F>, swatch2: &Swatch<F>| swatch1.distance(swatch2),
         );
+        let algorithm = HierarchicalClustering;
+        let dendrogram: Dendrogram<F> = algorithm.fit_with_linkage(&self.swatches, &mut linkage);
         let nodes = dendrogram.nodes();
-        let clusters = dendrogram.partition(n);
-        clusters
+        dendrogram
+            .partition(n)
             .iter()
             .map(|node| self.find_swatch(nodes, node.label, score_fn))
             .collect()

@@ -39,12 +39,6 @@ where
         self.nodes.len()
     }
 
-    /// Checks whether this dendrogram is empty.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.nodes.is_empty()
-    }
-
     /// Returns a reference to the nodes of this dendrogram.
     #[must_use]
     pub fn nodes(&self) -> &[Node<F>] {
@@ -112,7 +106,6 @@ mod tests {
     fn test_new() {
         let dendrogram = Dendrogram::<f32>::new(5);
         assert_eq!(dendrogram.len(), 0);
-        assert_eq!(dendrogram.is_empty(), true);
     }
 
     #[test]
