@@ -96,51 +96,89 @@ impl ColorWrapper {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::json::LabJson;
+    use auto_palette::lab::Lab;
     use auto_palette::rgb::RGB;
+    use auto_palette::white_point::D65;
+    use wasm_bindgen_test::wasm_bindgen_test;
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_color_wrapper() {
         let color: Color<f64> = Color::from(&RGB::new(255, 0, 64));
         let wrapper = ColorWrapper(color.clone());
         assert_eq!(wrapper.0, color);
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_is_light() {
         let color: Color<f64> = Color::from(&RGB::new(255, 0, 64));
         let wrapper = ColorWrapper(color.clone());
         assert_eq!(wrapper.is_light(), color.is_light());
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_is_dark() {
         let color: Color<f64> = Color::from(&RGB::new(255, 0, 64));
         let wrapper = ColorWrapper(color.clone());
         assert_eq!(wrapper.is_dark(), color.is_dark());
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_lightness() {
         let color: Color<f64> = Color::from(&RGB::new(255, 0, 64));
         let wrapper = ColorWrapper(color.clone());
         assert_eq!(wrapper.lightness(), color.lightness());
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_chroma() {
         let color: Color<f64> = Color::from(&RGB::new(255, 0, 64));
         let wrapper = ColorWrapper(color.clone());
         assert_eq!(wrapper.chroma(), color.chroma());
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_hue() {
         let color: Color<f64> = Color::from(&RGB::new(255, 0, 64));
         let wrapper = ColorWrapper(color.clone());
         assert_eq!(wrapper.hue(), color.hue());
     }
 
-    #[test]
+    #[wasm_bindgen_test]
+    fn test_to_rgb() {
+        let color: Color<f64> = Color::from(&RGB::new(255, 0, 64));
+        let wrapper = ColorWrapper(color);
+        let rgb: RGBJson = serde_wasm_bindgen::from_value(wrapper.to_rgb().unwrap()).unwrap();
+        assert_eq!(
+            rgb,
+            RGBJson {
+                r: 255,
+                g: 0,
+                b: 64
+            }
+        );
+    }
+
+    #[wasm_bindgen_test]
+    fn test_to_lab() {
+        let color: Color<f64> = Color::from(&Lab::<_, D65>::new(
+            53.24079414140596,
+            93.530808985697,
+            40.899171645982,
+        ));
+        let wrapper = ColorWrapper(color);
+        let lab: LabJson = serde_wasm_bindgen::from_value(wrapper.to_lab().unwrap()).unwrap();
+        assert_eq!(
+            lab,
+            LabJson {
+                l: 53.24079414140596,
+                a: 93.530808985697,
+                b: 40.899171645982
+            }
+        );
+    }
+
+    #[wasm_bindgen_test]
     fn test_to_hex_string() {
         let color: Color<f64> = Color::from(&RGB::new(255, 0, 64));
         let wrapper = ColorWrapper(color.clone());

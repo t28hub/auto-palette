@@ -6,7 +6,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{Clamped, JsValue};
 
 /// Struct for wrapping Palette<f64> in auto-palette
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 #[wasm_bindgen]
 pub struct PaletteWrapper(Palette<f64>);
 
@@ -74,17 +74,20 @@ pub fn extract_palette(
     height: u32,
     algorithm: Algorithm,
 ) -> Result<PaletteWrapper, JsValue> {
-    let Some(buffer) = ImageBuffer::from_vec(width, height, data.to_vec()) else {
-        return Err(JsValue::from_str("Failed to convert data to image"));
-    };
-    Ok(algorithm.apply(buffer))
+    ImageBuffer::from_vec(width, height, data.to_vec())
+        .map(|buffer| Ok(algorithm.apply(buffer)))
+        .unwrap_or(Err(JsValue::from_str("Failed to convert data to image")))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use auto_palette::color_struct::Color;
+    use auto_palette::rgb::RGB;
+    use auto_palette::Swatch;
+    use wasm_bindgen_test::wasm_bindgen_test;
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_palette_wrapper() {
         let palette = Palette::default();
         let wrapper = PaletteWrapper(palette);
@@ -92,7 +95,21 @@ mod tests {
         assert_eq!(wrapper.length(), 0);
     }
 
-    #[test]
+    #[wasm_bindgen_test]
+    fn test_swatches() {
+        let palette = Palette::new(vec![
+            Swatch::new(Color::from(&RGB::new(38, 129, 230)), (40, 123), 17529),
+            Swatch::new(Color::from(&RGB::new(18, 99, 2)), (225, 137), 1678),
+            Swatch::new(Color::from(&RGB::new(205, 225, 246)), (168, 164), 863),
+            Swatch::new(Color::from(&RGB::new(244, 192, 1)), (96, 91), 473),
+            Swatch::new(Color::from(&RGB::new(90, 42, 7)), (139, 74), 338),
+        ]);
+        let wrapper = PaletteWrapper(palette);
+        let swatches = wrapper.swatches(3);
+        assert_eq!(swatches.length(), 3);
+    }
+
+    #[wasm_bindgen_test]
     fn test_extract_palette() {
         let data = vec![
             255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,

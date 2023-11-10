@@ -29,7 +29,7 @@ impl SwatchWrapper {
     pub fn position(&self) -> Result<JsValue, JsValue> {
         let (x, y) = self.0.position();
         let json = PositionJson { x, y };
-        Ok(serde_wasm_bindgen::to_value(&json)?)
+        serde_wasm_bindgen::to_value(&json).map_err(|e| e.into())
     }
 
     /// Returns the population of this swatch.
@@ -48,14 +48,19 @@ mod tests {
     use super::*;
     use auto_palette::color_struct::Color;
     use auto_palette::rgb::RGB;
+    use serde_wasm_bindgen::from_value;
+    use wasm_bindgen_test::wasm_bindgen_test;
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_swatch_wrapper() {
         let rgb = RGB::new(255, 0, 64);
         let color: Color<f64> = Color::from(&rgb);
         let swatch = Swatch::new(color, (90, 120), 384);
         let wrapper = SwatchWrapper(swatch);
+
         assert_eq!(wrapper.color(), ColorWrapper(Color::from(&rgb)));
+        let position: PositionJson = from_value(wrapper.position().unwrap()).unwrap();
+        assert_eq!(position, PositionJson { x: 90, y: 120 });
         assert_eq!(wrapper.population(), 384);
     }
 }
