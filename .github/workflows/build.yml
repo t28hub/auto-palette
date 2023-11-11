@@ -15,83 +15,63 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  setup:
+  format:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
+      - name: Install toolchain
+        uses: moonrepo/setup-rust@v1
         with:
-          toolchain: stable
-          components: rustfmt, clippy
-
-      - name: Install cargo-tarpaulin
-        run: cargo install cargo-tarpaulin
-
-      - name: Cache Cargo dependencies
-        uses: actions/cache/save@v3
-        with:
-          path: |
-            ~/.cargo/bin
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Check all packages
-        run: cargo check --workspace
+          components: rustfmt
+          bins: taplo-cli
+      - name: Check .rs files
+        run: cargo fmt --all -- --check
+      - name: Check .toml files
+        run: taplo check
 
   lint:
-    needs: setup
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Restore cached Cargo dependencies
-        uses: actions/cache/restore@v3
+      - name: Install toolchain
+        uses: moonrepo/setup-rust@v1
         with:
-          path: |
-            ~/.cargo/bin
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Check the formatting
-        run: cargo fmt --all -- --check
-
-      - name: Check the lints
+          components: clippy
+      - name: Run clippy
         run: cargo clippy -- -D warnings
 
-  test:
-    needs: setup
+  check:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Restore cached Cargo dependencies
-        uses: actions/cache/restore@v3
+      - name: Install toolchain
+        uses: moonrepo/setup-rust@v1
         with:
-          path: |
-            ~/.cargo/bin
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          channel: nightly
+          bins: cargo-audit
+      - name: Install udeps
+        run: cargo install cargo-udeps --locked
+      - name: Check for unused dependencies
+        run: cargo +nightly udeps
+      - name: Check for vulnerabilities
+        run: cargo audit
 
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin
       - name: Run tests
         run: cargo tarpaulin --ignore-tests --out xml --output-dir target/tarpaulin
-
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
         with:
@@ -101,6 +81,7 @@ jobs:
           fail_ci_if_error: true
 
   build:
+    name: Build library
     needs:
       - lint
       - test
@@ -109,21 +90,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Restore cached Cargo dependencies
-        uses: actions/cache/restore@v3
-        with:
-          path: |
-            ~/.cargo/bin
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
       - name: Build library in release mode
         run: cargo build --lib --release
-
       - name: Upload release artifact
         uses: actions/upload-artifact@v3
         with:
@@ -145,24 +113,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Restore cached Cargo dependencies
-        uses: actions/cache/restore@v3
-        with:
-          path: |
-            ~/.cargo/bin
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-
       - name: Build the WASM package for ${{ matrix.target }}
         run: wasm-pack build --release --target ${{ matrix.target }} --out-name wasm
-
       - name: Upload WASM artifact
         uses: actions/upload-artifact@v3
         with:
@@ -183,10 +137,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
-
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
@@ -194,18 +146,14 @@ jobs:
           registry-url: https://registry.npmjs.org/
           cache: 'pnpm'
           cache-dependency-path: 'packages/auto-palette/pnpm-lock.yaml'
-
       - name: Download WASM artifact
         uses: actions/download-artifact@v3
         with:
           name: auto-palette-wasm
           path: crates/auto-palette-wasm/pkg
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
-
       - name: Check the lints
         run: pnpm lint
-
       - name: Build the JS package
         run: pnpm build
