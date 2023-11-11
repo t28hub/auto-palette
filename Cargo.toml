@@ -1,3 +1,12 @@
 [workspace]
+members  = ["crates/*"]
 resolver = "2"
-members = ["crates/*"]
+
+[workspace.package]
+authors    = ["Tatsuya Maki"]
+categories = ["multimedia::images", "graphics", "wasm"]
+edition    = "2021"
+homepage   = "https://github.com/t28hub/auto-palette"
+keywords   = ["color", "image", "wasm"]
+license    = "MIT"
+repository = "https://github.com/t28hub/auto-palette"

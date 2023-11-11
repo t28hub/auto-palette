@@ -1,26 +1,28 @@
 [package]
-name = "auto-palette-wasm"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
-readme = "README.md"
-authors = ["Tatsuya Maki <t28oogle@gmail.com>"]
-description = "A Wasm library for automatically extracting color palettes from an image."
-repository = "https://github.com/t28hub/auto-palette"
+name                 = "auto-palette-wasm"
+version              = "0.1.0"
+description          = "A Wasm library for automatically extracting color palettes from an image."
+readme               = "README.md"
+authors.workspace    = true
+edition.workspace    = true
+homepage.workspace   = true
+keywords.workspace   = true
+license.workspace    = true
+repository.workspace = true
 
 [lib]
 crate-type = ["cdylib"]
-name = "auto_palette"
+name       = "auto_palette"
 
 [dependencies]
-auto-palette = { version = "0.1.0", path = "../auto-palette" }
-getrandom = { version = "0.2.3", features = ["js"] }
-image = "0.24.6"
-js-sys = "0.3.64"
-serde = { version = "1.0.182", features = ["derive"] }
+auto-palette       = { version = "0.1.0", path = "../auto-palette" }
+getrandom          = { version = "0.2.3", features = ["js"] }
+image              = "0.24.6"
+js-sys             = "0.3.64"
+serde              = { version = "1.0.182", features = ["derive"] }
 serde-wasm-bindgen = "0.6.0"
-wasm-bindgen = "0.2.88"
-web-sys = "0.3.64"
+wasm-bindgen       = "0.2.88"
+web-sys            = "0.3.64"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.38"
