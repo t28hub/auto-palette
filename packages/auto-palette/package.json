@@ -39,7 +39,6 @@
   },
   "keywords": [],
   "devDependencies": {
-    "@auto-palette/eslint-config": "workspace:^",
     "@types/offscreencanvas": "^2019.7.0",
     "eslint": "^8.45.0",
     "eslint-config-standard-with-typescript": "^37.0.0",

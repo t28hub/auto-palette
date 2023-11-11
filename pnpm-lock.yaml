@@ -29,9 +29,6 @@ importers:
 
   packages/auto-palette:
     devDependencies:
-      '@auto-palette/eslint-config':
-        specifier: workspace:^
-        version: link:../eslint-config
       '@types/offscreencanvas':
         specifier: ^2019.7.0
         version: 2019.7.0
@@ -46,10 +43,10 @@ importers:
         version: 5.0.1
       vite:
         specifier: ^4.4.4
-        version: 4.4.4(@types/node@20.4.5)
+        version: 4.4.4
       vite-plugin-dts:
         specifier: ^3.3.1
-        version: 3.3.1(@types/node@20.4.5)(typescript@5.1.6)(vite@4.4.4)
+        version: 3.3.1(typescript@5.1.6)(vite@4.4.4)
       vite-plugin-wasm:
         specifier: ^3.2.2
         version: 3.2.2(vite@4.4.4)
@@ -511,24 +508,24 @@ packages:
       '@jridgewell/sourcemap-codec': 1.4.15
     dev: true
 
-  /@microsoft/api-extractor-model@7.27.5(@types/node@20.4.5):
+  /@microsoft/api-extractor-model@7.27.5:
     resolution: {integrity: sha512-9/tBzYMJitR+o+zkPr1lQh2+e8ClcaTF6eZo7vZGDqRt2O5XmXWPbYJZmxyM3wb5at6lfJNEeGZrQXLjsQ0Nbw==}
     dependencies:
       '@microsoft/tsdoc': 0.14.2
       '@microsoft/tsdoc-config': 0.16.2
-      '@rushstack/node-core-library': 3.59.6(@types/node@20.4.5)
+      '@rushstack/node-core-library': 3.59.6
     transitivePeerDependencies:
       - '@types/node'
     dev: true
 
-  /@microsoft/api-extractor@7.36.3(@types/node@20.4.5):
+  /@microsoft/api-extractor@7.36.3:
     resolution: {integrity: sha512-u0H6362AQq+r55X8drHx4npgkrCfJnMzRRHfQo8PMNKB8TcBnrTLfXhXWi+xnTM6CzlU/netEN8c4bq581Rnrg==}
     hasBin: true
     dependencies:
-      '@microsoft/api-extractor-model': 7.27.5(@types/node@20.4.5)
+      '@microsoft/api-extractor-model': 7.27.5
       '@microsoft/tsdoc': 0.14.2
       '@microsoft/tsdoc-config': 0.16.2
-      '@rushstack/node-core-library': 3.59.6(@types/node@20.4.5)
+      '@rushstack/node-core-library': 3.59.6
       '@rushstack/rig-package': 0.4.0
       '@rushstack/ts-command-line': 4.15.1
       colors: 1.2.5
@@ -612,7 +609,7 @@ packages:
       picomatch: 2.3.1
     dev: true
 
-  /@rushstack/node-core-library@3.59.6(@types/node@20.4.5):
+  /@rushstack/node-core-library@3.59.6:
     resolution: {integrity: sha512-bMYJwNFfWXRNUuHnsE9wMlW/mOB4jIwSUkRKtu02CwZhQdmzMsUbxE0s1xOLwTpNIwlzfW/YT7OnOHgDffLgYg==}
     peerDependencies:
       '@types/node': '*'
@@ -620,7 +617,6 @@ packages:
       '@types/node':
         optional: true
     dependencies:
-      '@types/node': 20.4.5
       colors: 1.2.5
       fs-extra: 7.0.1
       import-lazy: 4.0.0
@@ -3517,7 +3513,7 @@ packages:
     engines: {node: '>= 0.10'}
     dev: true
 
-  /vite-plugin-dts@3.3.1(@types/node@20.4.5)(typescript@5.1.6)(vite@4.4.4):
+  /vite-plugin-dts@3.3.1(typescript@5.1.6)(vite@4.4.4):
     resolution: {integrity: sha512-RFebFGg6GWKkZqRQ5n6ls8giSiygKMBriJTFp8N+CRbYgI4lMXBxXEx0z2bthfeQv/xB53Wmhn/LNOOqb9OQHQ==}
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
@@ -3527,13 +3523,13 @@ packages:
       vite:
         optional: true
     dependencies:
-      '@microsoft/api-extractor': 7.36.3(@types/node@20.4.5)
+      '@microsoft/api-extractor': 7.36.3
       '@rollup/pluginutils': 5.0.2
       '@vue/language-core': 1.8.6(typescript@5.1.6)
       debug: 4.3.4
       kolorist: 1.8.0
       typescript: 5.1.6
-      vite: 4.4.4(@types/node@20.4.5)
+      vite: 4.4.4
       vue-tsc: 1.8.6(typescript@5.1.6)
     transitivePeerDependencies:
       - '@types/node'
@@ -3546,7 +3542,42 @@ packages:
     peerDependencies:
       vite: ^2 || ^3 || ^4
     dependencies:
-      vite: 4.4.4(@types/node@20.4.5)
+      vite: 4.4.4
+    dev: true
+
+  /vite@4.4.4:
+    resolution: {integrity: sha512-4mvsTxjkveWrKDJI70QmelfVqTm+ihFAb6+xf4sjEU2TmUCTlVX87tmg/QooPEMQb/lM9qGHT99ebqPziEd3wg==}
+    engines: {node: ^14.18.0 || >=16.0.0}
+    hasBin: true
+    peerDependencies:
+      '@types/node': '>= 14'
+      less: '*'
+      lightningcss: ^1.21.0
+      sass: '*'
+      stylus: '*'
+      sugarss: '*'
+      terser: ^5.4.0
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+      less:
+        optional: true
+      lightningcss:
+        optional: true
+      sass:
+        optional: true
+      stylus:
+        optional: true
+      sugarss:
+        optional: true
+      terser:
+        optional: true
+    dependencies:
+      esbuild: 0.18.16
+      postcss: 8.4.27
+      rollup: 3.26.3
+    optionalDependencies:
+      fsevents: 2.3.2
     dev: true
 
   /vite@4.4.4(@types/node@20.4.5):
