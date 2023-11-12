@@ -68,17 +68,21 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Install cargo-tarpaulin
-        run: cargo install cargo-tarpaulin
+      - name: Install toolchain
+        uses: moonrepo/setup-rust@v1
+        with:
+          bins: cargo-nextest, cargo-llvm-cov
+          components: llvm-tools-preview
       - name: Run tests
-        run: cargo tarpaulin --ignore-tests --out xml --output-dir target/tarpaulin
+        run: cargo llvm-cov nextest --lcov --output-path target/lcov.info
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./target/tarpaulin/cobertura.xml
+          files: ./target/lcov.info
           verbose: true
-          fail_ci_if_error: true
+          fail_ci_if_error: false
+        continue-on-error: true
 
   build:
     name: Build library
