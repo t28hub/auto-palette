@@ -49,6 +49,9 @@ where
 {
     /// Create a new `Palette` instance.
     ///
+    /// # Arguments
+    /// * `swatches` - The swatches in this palette.
+    ///
     /// # Returns
     /// A new `Palette` instance.
     #[must_use]
@@ -103,12 +106,11 @@ where
         // According to the Digital Color Imaging Handbook, a ∆E ≤ 2.3 is perceived as identical by human perception.
         let dbscan = DBSCAN::new(1, F::from_f64(2.3), &DistanceMetric::Euclidean);
         let (swatch_clusters, _) = dbscan.fit(&colors);
-        let mut swatches: Vec<_> = swatch_clusters
+        let swatches = swatch_clusters
             .iter()
             .filter_map(|cluster| color_cluster_to_swatch(cluster, &candidates))
             .collect();
-        swatches.sort_by_key(|swatch| Reverse(swatch.population()));
-        Self::new(swatches)
+        Self { swatches }
     }
 
     /// Returns the number of swatches in this palette.

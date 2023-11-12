@@ -54,11 +54,10 @@ where
     F: Float,
     P: Point<F>,
 {
-    let min_cluster_size = (points.len() / 4096).max(25);
     let gmeans = Gmeans::new(
-        25,
-        10,
-        min_cluster_size,
+        32, // 2^5
+        8,
+        16, // 4x4 grid
         F::from_f64(1e-3),
         &DistanceMetric::SquaredEuclidean,
     );
@@ -71,10 +70,9 @@ where
     F: Float,
     P: Point<F>,
 {
-    let min_samples = (points.len() / 4096).max(25);
     let dbscan = DBSCAN::new(
-        min_samples,
-        F::from_f64(0.0025),
+        16,                  // 4x4 grid
+        F::from_f64(0.0016), // 0.04^2
         &DistanceMetric::SquaredEuclidean,
     );
     let (clusters, _) = dbscan.fit(points);
@@ -140,7 +138,7 @@ mod tests {
         let points = sample_points();
         let actual = Algorithm::GMeans.apply(&points);
 
-        let clustering = Gmeans::new(25, 10, 16, 0.001, &DistanceMetric::SquaredEuclidean);
+        let clustering = Gmeans::new(32, 8, 16, 0.001, &DistanceMetric::SquaredEuclidean);
         let expected = clustering.fit(&points);
         assert_eq!(actual, expected);
     }
@@ -150,7 +148,7 @@ mod tests {
         let points = sample_points();
         let actual = Algorithm::DBSCAN.apply(&points);
 
-        let clustering = DBSCAN::new(16, 0.0025, &DistanceMetric::SquaredEuclidean);
+        let clustering = DBSCAN::new(16, 0.0016, &DistanceMetric::SquaredEuclidean);
         let expected = clustering.fit(&points);
         assert_eq!(actual, expected.0);
     }
