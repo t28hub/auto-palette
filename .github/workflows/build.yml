@@ -151,7 +151,7 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: 'packages/auto-palette/pnpm-lock.yaml'
       - name: Download WASM artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: auto-palette-wasm
           path: crates/auto-palette-wasm/pkg
