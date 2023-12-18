@@ -97,7 +97,7 @@ jobs:
       - name: Build library in release mode
         run: cargo build --lib --release
       - name: Upload release artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: auto-palette
           path: target/release
@@ -122,7 +122,7 @@ jobs:
       - name: Build the WASM package for ${{ matrix.target }}
         run: wasm-pack build --release --target ${{ matrix.target }} --out-name wasm
       - name: Upload WASM artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: auto-palette-wasm
           path: crates/auto-palette-wasm/pkg
