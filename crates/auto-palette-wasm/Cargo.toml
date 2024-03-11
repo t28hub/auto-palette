@@ -17,7 +17,7 @@ name       = "auto_palette"
 [dependencies]
 auto-palette       = { version = "0.1.0", path = "../auto-palette" }
 getrandom          = { version = "0.2.11", features = ["js"] }
-image              = "0.24.7"
+image              = "0.25.0"
 js-sys             = "0.3.65"
 serde              = { version = "1.0.192", features = ["derive"] }
 serde-wasm-bindgen = "0.6.1"
