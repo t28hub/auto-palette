@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '*.md'
+      - '*.txt'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '*.md'
+      - '*.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt,
+
+      - name: Check .rs files
+        run: cargo fmt --all -- --check
+
+      - name: Lint with clippy
+        run: cargo clippy -- -D warnings
+
+      - name: Audit dependencies
+        run: cargo install cargo-audit && cargo audit
+
+      - name: Build library in release mode
+        run: cargo build --lib --release
+
+      - name: Run tests in release mode
+        run: cargo test --lib --release
