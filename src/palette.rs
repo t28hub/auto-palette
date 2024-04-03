@@ -1,5 +1,6 @@
 use crate::image::ImageData;
 use crate::math::clustering::kmeans::Kmeans;
+use crate::math::clustering::strategy::InitializationStrategy;
 use crate::math::metrics::DistanceMetric;
 use crate::math::point::Point3D;
 use crate::Swatch;
@@ -38,8 +39,11 @@ impl Palette {
             16,
             10,
             1e-3,
-            rand::thread_rng(),
             DistanceMetric::SquaredEuclidean,
+            InitializationStrategy::KmeansPlusPlus(
+                rand::thread_rng(),
+                DistanceMetric::SquaredEuclidean,
+            ),
         )
         .expect("Failed to create the K-means algorithm.");
         let clusters = clustering.fit(&points);

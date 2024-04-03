@@ -1,8 +1,8 @@
 use crate::math::clustering::cluster::Cluster;
+use crate::math::clustering::strategy::InitializationStrategy;
 use crate::math::metrics::DistanceMetric;
 use crate::math::point::Point;
 use rand::Rng;
-use rand_distr::{Distribution, WeightedAliasIndex};
 
 /// Kmeans represents the K-means clustering algorithm.
 ///
@@ -13,8 +13,8 @@ pub struct Kmeans<R: Rng + Clone> {
     k: usize,
     max_iter: usize,
     tolerance: f32,
-    rng: R,
     metric: DistanceMetric,
+    strategy: InitializationStrategy<R>,
 }
 
 impl<R: Rng + Clone> Kmeans<R> {
@@ -24,8 +24,8 @@ impl<R: Rng + Clone> Kmeans<R> {
     /// * `k` - The number of clusters.
     /// * `max_iter` - The maximum number of iterations.
     /// * `tolerance` - The tolerance for convergence conditions.
-    /// * `rng` - The random number generator.
     /// * `metric` - The distance metric to use.
+    /// * `strategy` - The initialization strategy to use.
     ///
     /// # Returns
     /// A new `Kmeans` instance.
@@ -37,8 +37,8 @@ impl<R: Rng + Clone> Kmeans<R> {
         k: usize,
         max_iter: usize,
         tolerance: f32,
-        rng: R,
         metric: DistanceMetric,
+        strategy: InitializationStrategy<R>,
     ) -> Result<Self, &'static str> {
         if k == 0 {
             return Err("The number of clusters must be greater than zero.");
@@ -53,8 +53,8 @@ impl<R: Rng + Clone> Kmeans<R> {
             k,
             max_iter,
             tolerance,
-            rng,
             metric,
+            strategy,
         })
     }
 
@@ -85,27 +85,7 @@ impl<R: Rng + Clone> Kmeans<R> {
                 .collect();
         }
 
-        let mut rng = self.rng.clone();
-        let index = rng.gen_range(0..points.len());
-
-        // Initialize the centroids.
-        let mut centroids = Vec::with_capacity(self.k);
-        centroids.push(points[index]);
-
-        for _ in 1..self.k {
-            let mut distances = vec![f32::INFINITY; points.len()];
-            for (i, point) in points.iter().enumerate() {
-                for centroid in &centroids {
-                    let distance = self.metric.measure(point, centroid);
-                    distances[i] = distances[i].min(distance);
-                }
-            }
-
-            let weighted_index = WeightedAliasIndex::new(distances).unwrap();
-            let index = weighted_index.sample(&mut rng);
-            centroids.push(points[index]);
-        }
-
+        let mut centroids = self.strategy.initialize(points, self.k).unwrap();
         let mut clusters = vec![Cluster::new(); self.k];
         for _ in 0..self.max_iter {
             for cluster in &mut clusters {
@@ -148,8 +128,9 @@ mod tests {
     #[test]
     fn test_new_kmeans() {
         // Act
-        let kmeans =
-            Kmeans::new(3, 10, 1e-3, rand::thread_rng(), DistanceMetric::Euclidean).unwrap();
+        let metric = DistanceMetric::Euclidean;
+        let strategy = InitializationStrategy::Random(rand::thread_rng());
+        let kmeans = Kmeans::new(3, 10, 1e-3, metric, strategy).unwrap();
 
         // Assert
         assert_eq!(kmeans.k, 3);
