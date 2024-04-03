@@ -15,7 +15,7 @@ pub struct ImageData {
 }
 
 impl ImageData {
-    /// Creates a new ImageData with the given width, height, and pixels.
+    /// Creates a new `ImageData` instance with the given width, height, and pixels.
     ///
     /// # Arguments
     /// * `width` - The width of the image data.
@@ -23,7 +23,7 @@ impl ImageData {
     /// * `pixels` - The raw data of the image data. The data should be in RGBA format.
     ///
     /// # Returns
-    /// A new ImageData.
+    /// A new `ImageData` instance.
     ///
     /// # Errors
     /// Returns an error if the pixels are empty or the length of the pixels is not a multiple of the width and height.
@@ -152,11 +152,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_data_new() {
+    fn test_new_image_data() {
+        // Act
         let pixels = vec![
             0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255,
         ];
         let image_data = ImageData::new(2, 2, pixels.clone()).unwrap();
+
+        // Assert
         assert_eq!(image_data.width(), 2);
         assert_eq!(image_data.height(), 2);
         assert_eq!(image_data.pixels(), &pixels);
@@ -164,20 +167,29 @@ mod tests {
 
     #[test]
     fn test_new_with_empty_pixels() {
+        // Act
         let image_data = ImageData::new(2, 2, vec![]);
+
+        // Assert
         assert!(image_data.is_err());
     }
 
     #[test]
     fn test_new_with_invalid_parameters() {
+        // Act
         let image_data = ImageData::new(2, 2, vec![0, 0, 0, 255, 255, 255, 255]);
+
+        // Assert
         assert!(image_data.is_err());
     }
 
     #[test]
     fn test_open() {
+        // Act
         let image_data =
             ImageData::open("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
+
+        // Assert
         assert_eq!(image_data.width(), 640);
         assert_eq!(image_data.height(), 962);
         assert_eq!(image_data.pixels().len(), 640 * 962 * 4);
@@ -185,7 +197,10 @@ mod tests {
 
     #[test]
     fn test_open_with_rgba_image() {
+        // Act
         let image_data = ImageData::open("./tests/assets/flag_np.png").unwrap();
+
+        // Assert
         assert_eq!(image_data.width(), 394);
         assert_eq!(image_data.height(), 480);
         assert_eq!(image_data.pixels().len(), 394 * 480 * 4);
@@ -193,13 +208,19 @@ mod tests {
 
     #[test]
     fn test_open_with_invalid_path() {
+        // Act
         let image_data = ImageData::open("./tests/assets/invalid.jpg");
+
+        // Assert
         assert!(image_data.is_err());
     }
 
     #[test]
     fn test_open_with_invalid_file() {
+        // Act
         let image_data = ImageData::open("../../tests/assets/empty.txt");
+
+        // Assert
         assert!(image_data.is_err());
     }
 }
