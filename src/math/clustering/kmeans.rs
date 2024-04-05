@@ -1,6 +1,8 @@
 use crate::math::clustering::cluster::Cluster;
 use crate::math::clustering::strategy::InitializationStrategy;
 use crate::math::metrics::DistanceMetric;
+use crate::math::neighbors::linear::LinearSearch;
+use crate::math::neighbors::search::NeighborSearch;
 use crate::math::point::Point;
 use rand::Rng;
 
@@ -88,36 +90,45 @@ impl<R: Rng + Clone> Kmeans<R> {
         let mut centroids = self.strategy.initialize(points, self.k).unwrap();
         let mut clusters = vec![Cluster::new(); self.k];
         for _ in 0..self.max_iter {
-            for cluster in &mut clusters {
-                cluster.clear();
-            }
-
-            for (index, point) in points.iter().enumerate() {
-                let mut min_distance = f32::INFINITY;
-                let mut cluster_id = 0;
-                for (i, centroid) in centroids.iter().enumerate() {
-                    let distance = self.metric.measure(point, centroid);
-                    if distance < min_distance {
-                        min_distance = distance;
-                        cluster_id = i;
-                    }
-                }
-                clusters[cluster_id].add_point(index, point);
-            }
-
-            let mut max_shift = 0.0_f32;
-            let new_centroids = clusters.iter().map(|cluster| *cluster.centroid()).collect();
-            for (old, new) in centroids.iter().zip(&new_centroids) {
-                let distance = self.metric.measure(old, new);
-                max_shift = max_shift.max(distance);
-            }
-
-            if max_shift < self.tolerance {
+            let converged = self.iterate(points, &mut centroids, &mut clusters);
+            if converged {
                 break;
             }
-            centroids = new_centroids;
         }
         clusters
+    }
+
+    #[must_use]
+    fn iterate<const N: usize>(
+        &self,
+        points: &[Point<N>],
+        centroids: &mut [Point<N>],
+        clusters: &mut [Cluster<N>],
+    ) -> bool {
+        for cluster in clusters.iter_mut() {
+            cluster.clear();
+        }
+
+        let centroid_search = LinearSearch::build(centroids, self.metric.clone());
+        for (index, point) in points.iter().enumerate() {
+            let Some(nearest) = centroid_search.search_nearest(point) else {
+                continue;
+            };
+            clusters[nearest.index].add_point(index, point);
+        }
+
+        let mut converged = true;
+        let new_centroids: Vec<Point<N>> =
+            clusters.iter().map(|cluster| *cluster.centroid()).collect();
+        for (old, new) in centroids.iter().zip(&new_centroids) {
+            let distance = self.metric.measure(old, new);
+            if distance > self.tolerance {
+                converged = false;
+                break;
+            }
+        }
+        centroids.copy_from_slice(&new_centroids);
+        converged
     }
 }
 
@@ -137,5 +148,58 @@ mod tests {
         assert_eq!(kmeans.max_iter, 10);
         assert_eq!(kmeans.tolerance, 1e-3);
         assert_eq!(kmeans.metric, DistanceMetric::Euclidean);
+    }
+
+    #[test]
+    fn test_fit() {
+        // Arrange
+        let metric = DistanceMetric::Euclidean;
+        let strategy = InitializationStrategy::Random(rand::thread_rng());
+        let kmeans = Kmeans::new(3, 10, 1e-3, metric, strategy).unwrap();
+
+        // Act
+        let points = [
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0],
+            [1.0, 0.0, 0.0],
+            [2.0, 2.0, 2.0],
+            [2.0, 1.0, 2.0],
+            [4.0, 4.0, 4.0],
+            [4.0, 4.0, 5.0],
+            [3.0, 4.0, 5.0],
+        ];
+        let clusters = kmeans.fit(&points);
+
+        // Assert
+        assert_eq!(clusters.len(), 3);
+    }
+
+    #[test]
+    fn test_fit_empty() {
+        // Arrange
+        let metric = DistanceMetric::Euclidean;
+        let strategy = InitializationStrategy::Random(rand::thread_rng());
+        let kmeans = Kmeans::new(3, 10, 1e-3, metric, strategy).unwrap();
+
+        // Act
+        let clusters = kmeans.fit::<3>(&[]);
+
+        // Assert
+        assert_eq!(clusters.len(), 0);
+    }
+
+    #[test]
+    fn test_fit_single_cluster() {
+        // Arrange
+        let metric = DistanceMetric::Euclidean;
+        let strategy = InitializationStrategy::Random(rand::thread_rng());
+        let kmeans = Kmeans::new(3, 10, 1e-3, metric, strategy).unwrap();
+
+        // Act
+        let points = [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0]];
+        let clusters = kmeans.fit(&points);
+
+        // Assert
+        assert_eq!(clusters.len(), 3);
     }
 }
