@@ -1,13 +1,23 @@
-/// The D65 white point is the standard illuminant used in sRGB.
-///
-/// [Standard illuminant - Wikipedia](https://en.wikipedia.org/wiki/Standard_illuminant#Illuminant_series_D)
-const D65_X: f32 = 0.950_470;
-const D65_Y: f32 = 1.000_000;
-const D65_Z: f32 = 1.088_83;
+use crate::color::white_points::WhitePoint;
 
+/// Converts the CIE 1931 XYZ color space to the CIE L*a*b* color space.
+///
+/// # Type Parameters
+/// * `WP` - The white point.
+///
+/// # Arguments
+/// * `x` - The X component of the XYZ color.
+/// * `y` - The Y component of the XYZ color.
+/// * `z` - The Z component of the XYZ color.
+///
+/// # Returns
+/// The L*a*b* color space representation of the XYZ color. The tuple contains the L, a, and b components.
 #[inline]
 #[must_use]
-pub fn from_xyz(x: f32, y: f32, z: f32) -> (f32, f32, f32) {
+pub fn from_xyz<WP>(x: f32, y: f32, z: f32) -> (f32, f32, f32)
+where
+    WP: WhitePoint,
+{
     let epsilon = (6.0 / 29.0_f32).powi(3);
     let kappa = 841.0 / 108.0; // ((29.0 / 6.0) ^ 2) / 3.0
     let delta = 4.0 / 29.0;
@@ -20,9 +30,9 @@ pub fn from_xyz(x: f32, y: f32, z: f32) -> (f32, f32, f32) {
         }
     };
 
-    let fx = f(x / D65_X);
-    let fy = f(y / D65_Y);
-    let fz = f(z / D65_Z);
+    let fx = f(x / WP::x());
+    let fy = f(y / WP::y());
+    let fz = f(z / WP::z());
 
     (
         116.0 * fy - 16.0, // L
@@ -31,9 +41,24 @@ pub fn from_xyz(x: f32, y: f32, z: f32) -> (f32, f32, f32) {
     )
 }
 
+/// Converts the CIE L*a*b* color space to the CIE 1931 XYZ color space.
+///
+/// # Type Parameters
+/// * `WP` - The white point.
+///
+/// # Arguments
+/// * `l` - The L component of the L*a*b* color.
+/// * `a` - The a component of the L*a*b* color.
+/// * `b` - The b component of the L*a*b* color.
+///
+/// # Returns
+/// The XYZ color space representation of the L*a*b* color. The tuple contains the X, Y, and Z components.
 #[inline]
 #[must_use]
-pub fn to_xyz(l: f32, a: f32, b: f32) -> (f32, f32, f32) {
+pub fn to_xyz<WP>(l: f32, a: f32, b: f32) -> (f32, f32, f32)
+where
+    WP: WhitePoint,
+{
     let epsilon = 6.0 / 29.0;
     let kappa = 108.0 / 841.0; // 3.0 * ((6.0 / 29.0) ^ 2)
     let delta = 4.0 / 29.0;
@@ -52,14 +77,15 @@ pub fn to_xyz(l: f32, a: f32, b: f32) -> (f32, f32, f32) {
     let fz = f(l2 - b / 200.0);
 
     (
-        D65_X * fx, // X
-        D65_Y * fy, // Y
-        D65_Z * fz, // Z
+        WP::x() * fx, // X
+        WP::y() * fy, // Y
+        WP::z() * fz, // Z
     )
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::color::white_points::D65;
     use rstest::rstest;
 
     #[rstest]
@@ -73,7 +99,7 @@ mod tests {
     #[case::yellow((0.7700, 0.9278, 0.1385), (97.1382, - 21.5551, 94.4825))]
     fn test_from_xyz(#[case] xyz: (f32, f32, f32), #[case] lab: (f32, f32, f32)) {
         // Act
-        let (l, a, b) = super::from_xyz(xyz.0, xyz.1, xyz.2);
+        let (l, a, b) = super::from_xyz::<D65>(xyz.0, xyz.1, xyz.2);
 
         // Assert
         assert!((l - lab.0).abs() < 1e-3);
@@ -92,7 +118,7 @@ mod tests {
     #[case::yellow((97.1382, - 21.5551, 94.4825), (0.7700, 0.9278, 0.1385))]
     fn test_to_xyz(#[case] lab: (f32, f32, f32), #[case] xyz: (f32, f32, f32)) {
         // Act
-        let (x, y, z) = super::to_xyz(lab.0, lab.1, lab.2);
+        let (x, y, z) = super::to_xyz::<D65>(lab.0, lab.1, lab.2);
 
         // Assert
         assert!((x - xyz.0).abs() < 1e-3);

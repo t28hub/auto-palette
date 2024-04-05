@@ -45,4 +45,4 @@ jobs:
         run: cargo build --lib --release
 
       - name: Run tests in release mode
-        run: cargo test --lib --release
+        run: cargo test --release

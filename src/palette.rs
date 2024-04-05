@@ -1,4 +1,5 @@
 use crate::color::lab::{from_xyz, to_xyz};
+use crate::color::white_points::D65;
 use crate::color::xyz::{from_rgb, to_rgb};
 use crate::errors::PaletteError;
 use crate::image::ImageData;
@@ -79,7 +80,7 @@ impl Palette {
                     None
                 } else {
                     let (x, y, z) = from_rgb(pixel[0], pixel[1], pixel[2]);
-                    let (l, a, b) = from_xyz(x, y, z);
+                    let (l, a, b) = from_xyz::<D65>(x, y, z);
                     Some([l, a, b])
                 }
             })
@@ -97,7 +98,7 @@ impl Palette {
             .iter()
             .map(|cluster| {
                 let centroid = cluster.centroid();
-                let (x, y, z) = to_xyz(centroid[0], centroid[1], centroid[2]);
+                let (x, y, z) = to_xyz::<D65>(centroid[0], centroid[1], centroid[2]);
                 let rgb = to_rgb(x, y, z);
                 Swatch::new(rgb, cluster.len())
             })
