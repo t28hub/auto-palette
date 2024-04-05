@@ -1,5 +1,5 @@
 use crate::color::lab::{from_xyz, to_xyz};
-use crate::color::white_points::D65;
+use crate::color::white_point::D65;
 use crate::color::xyz::{from_rgb, to_rgb};
 use crate::errors::PaletteError;
 use crate::image::ImageData;

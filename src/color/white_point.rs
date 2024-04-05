@@ -27,6 +27,10 @@ pub trait WhitePoint: Debug + Default + PartialEq {
     fn z() -> f32;
 }
 
+/// Struct representing CIE standard illuminant D65.
+///
+/// # References
+/// * [Illuminant D65](https://en.wikipedia.org/wiki/Illuminant_D65)
 #[derive(Debug, Default, PartialEq)]
 pub struct D65;
 
@@ -44,5 +48,17 @@ impl WhitePoint for D65 {
     #[inline]
     fn z() -> f32 {
         1.088_83
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_d65() {
+        assert_eq!(D65::x(), 0.950_470);
+        assert_eq!(D65::y(), 1.0);
+        assert_eq!(D65::z(), 1.088_83);
     }
 }

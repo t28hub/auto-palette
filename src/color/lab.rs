@@ -1,4 +1,4 @@
-use crate::color::white_points::WhitePoint;
+use crate::color::white_point::WhitePoint;
 
 /// Converts the CIE 1931 XYZ color space to the CIE L*a*b* color space.
 ///
@@ -85,7 +85,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::color::white_points::D65;
+    use crate::color::white_point::D65;
     use rstest::rstest;
 
     #[rstest]
