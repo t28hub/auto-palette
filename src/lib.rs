@@ -1,4 +1,5 @@
 mod color;
+mod errors;
 pub mod image;
 mod math;
 mod palette;

@@ -1,5 +1,5 @@
 mod data;
-mod error;
+mod errors;
 
 pub use data::ImageData;
-pub use error::ImageError;
+pub use errors::ImageError;

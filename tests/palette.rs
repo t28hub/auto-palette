@@ -13,7 +13,7 @@ where
     // Act
     let image_data = ImageData::open(path).unwrap();
     let palette = Palette::extract(&image_data).unwrap();
-    let swatches = palette.swatches(n);
+    let swatches = palette.find_swatches(n);
 
     // Assert
     swatches.iter().for_each(|swatch| {
@@ -33,7 +33,7 @@ fn test_extract_jpg() {
     let image_data =
         ImageData::open("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
     let palette = Palette::extract(&image_data).unwrap();
-    let swatches = palette.swatches(6);
+    let swatches = palette.find_swatches(6);
 
     // Assert
     swatches.iter().for_each(|swatch| {

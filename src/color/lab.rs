@@ -3,7 +3,7 @@
 /// [Standard illuminant - Wikipedia](https://en.wikipedia.org/wiki/Standard_illuminant#Illuminant_series_D)
 const D65_X: f32 = 0.950_470;
 const D65_Y: f32 = 1.000_000;
-const D65_Z: f32 = 1.088_830;
+const D65_Z: f32 = 1.088_83;
 
 #[inline]
 #[must_use]

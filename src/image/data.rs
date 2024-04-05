@@ -3,7 +3,7 @@ use std::path::Path;
 use image::ImageError::{IoError, Unsupported};
 use image::{DynamicImage, RgbImage, RgbaImage};
 
-use crate::image::error::ImageError;
+use crate::image::errors::ImageError;
 use crate::image::ImageError::InvalidParameter;
 
 /// ImageData represents the raw data of an image.
@@ -26,7 +26,7 @@ impl ImageData {
     /// A new `ImageData` instance.
     ///
     /// # Errors
-    /// Returns an error if the pixels are empty or the length of the pixels is not a multiple of the width and height.
+    /// Returns an error if the length of the pixels is not a multiple of the width and height.
     ///
     /// # Examples
     /// ```
@@ -38,7 +38,7 @@ impl ImageData {
     /// assert_eq!(image_data.pixels(), &[0, 0, 0, 255, 255, 255, 255, 255]);
     /// ```
     pub fn new(width: u32, height: u32, pixels: Vec<u8>) -> Result<Self, ImageError> {
-        if pixels.is_empty() || pixels.len() % (width * height * 4) as usize != 0 {
+        if pixels.len() != ((width * height * 4) as usize) {
             return Err(InvalidParameter);
         }
         Ok(Self {
@@ -163,15 +163,6 @@ mod tests {
         assert_eq!(image_data.width(), 2);
         assert_eq!(image_data.height(), 2);
         assert_eq!(image_data.pixels(), &pixels);
-    }
-
-    #[test]
-    fn test_new_with_empty_pixels() {
-        // Act
-        let image_data = ImageData::new(2, 2, vec![]);
-
-        // Assert
-        assert!(image_data.is_err());
     }
 
     #[test]
