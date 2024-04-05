@@ -8,7 +8,7 @@
 /// assert_eq!(swatch.color(), &(255, 0, 64));
 /// assert_eq!(swatch.population(), 384);
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Swatch {
     color: (u8, u8, u8),
     population: usize,

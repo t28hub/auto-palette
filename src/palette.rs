@@ -1,3 +1,5 @@
+use crate::color::lab::{from_xyz, to_xyz};
+use crate::color::xyz::{from_rgb, to_rgb};
 use crate::image::ImageData;
 use crate::math::clustering::kmeans::Kmeans;
 use crate::math::clustering::strategy::InitializationStrategy;
@@ -23,14 +25,13 @@ impl Palette {
             .pixels()
             .chunks(4)
             .filter_map(|pixel| {
-                let r = pixel[0];
-                let g = pixel[1];
-                let b = pixel[2];
-                let a = pixel[3];
-                if a == 0 {
+                // Ignore transparent pixels.
+                if pixel[3] == 0 {
                     None
                 } else {
-                    Some([r as f32, g as f32, b as f32])
+                    let (x, y, z) = from_rgb(pixel[0], pixel[1], pixel[2]);
+                    let (l, a, b) = from_xyz(x, y, z);
+                    Some([l, a, b])
                 }
             })
             .collect();
@@ -51,14 +52,15 @@ impl Palette {
             .iter()
             .map(|cluster| {
                 let centroid = cluster.centroid();
-                let color = (centroid[0] as u8, centroid[1] as u8, centroid[2] as u8);
-                Swatch::new(color, cluster.len())
+                let (x, y, z) = to_xyz(centroid[0], centroid[1], centroid[2]);
+                let rgb = to_rgb(x, y, z);
+                Swatch::new(rgb, cluster.len())
             })
             .collect();
         Ok(Self { swatches })
     }
 
     pub fn swatches(&self, count: usize) -> Vec<Swatch> {
-        self.swatches.iter().take(count).cloned().collect()
+        self.swatches.iter().take(count).copied().collect()
     }
 }
