@@ -30,8 +30,7 @@ where
 #[test]
 fn test_extract_jpg() {
     // Act
-    let image_data =
-        ImageData::open("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
+    let image_data = ImageData::open("./tests/assets/flag_uk.png").unwrap();
     let palette = Palette::extract(&image_data).unwrap();
     let swatches = palette.find_swatches(6);
 

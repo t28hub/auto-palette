@@ -1,12 +1,13 @@
-use crate::math::clustering::cluster::Cluster;
-use crate::math::clustering::strategy::InitializationStrategy;
+use crate::math::clustering::kmeans::InitializationStrategy;
+use crate::math::clustering::Cluster;
+use crate::math::clustering::ClusteringAlgorithm;
 use crate::math::metrics::DistanceMetric;
 use crate::math::neighbors::linear::LinearSearch;
 use crate::math::neighbors::search::NeighborSearch;
 use crate::math::point::Point;
 use rand::Rng;
 
-/// Kmeans represents the K-means clustering algorithm.
+/// A k-means clustering algorithm.
 ///
 /// # Type Parameters
 /// * `R` - The random number generator.
@@ -60,44 +61,6 @@ impl<R: Rng + Clone> Kmeans<R> {
         })
     }
 
-    /// Fits the K-means algorithm to the given points.
-    ///
-    /// # Type Parameters
-    /// * `N` - The number of dimensions.
-    ///
-    /// # Arguments
-    /// * `points` - The points to cluster.
-    ///
-    /// # Returns
-    /// The clusters of the points.
-    pub fn fit<const N: usize>(&self, points: &[Point<N>]) -> Vec<Cluster<N>> {
-        if points.is_empty() {
-            return Vec::new();
-        }
-
-        if self.k >= points.len() {
-            return points
-                .iter()
-                .enumerate()
-                .map(|(index, point)| {
-                    let mut cluster = Cluster::new();
-                    cluster.add_point(index, point);
-                    cluster
-                })
-                .collect();
-        }
-
-        let mut centroids = self.strategy.initialize(points, self.k).unwrap();
-        let mut clusters = vec![Cluster::new(); self.k];
-        for _ in 0..self.max_iter {
-            let converged = self.iterate(points, &mut centroids, &mut clusters);
-            if converged {
-                break;
-            }
-        }
-        clusters
-    }
-
     #[must_use]
     fn iterate<const N: usize>(
         &self,
@@ -114,7 +77,7 @@ impl<R: Rng + Clone> Kmeans<R> {
             let Some(nearest) = centroid_search.search_nearest(point) else {
                 continue;
             };
-            clusters[nearest.index].add_point(index, point);
+            clusters[nearest.index].add_member(index, point);
         }
 
         let mut converged = true;
@@ -129,6 +92,40 @@ impl<R: Rng + Clone> Kmeans<R> {
         }
         centroids.copy_from_slice(&new_centroids);
         converged
+    }
+}
+
+impl<R> ClusteringAlgorithm for Kmeans<R>
+where
+    R: Rng + Clone,
+{
+    #[must_use]
+    fn fit<const N: usize>(&self, points: &[Point<N>]) -> Vec<Cluster<N>> {
+        if points.is_empty() {
+            return Vec::new();
+        }
+
+        if self.k >= points.len() {
+            return points
+                .iter()
+                .enumerate()
+                .map(|(index, point)| {
+                    let mut cluster = Cluster::new();
+                    cluster.add_member(index, point);
+                    cluster
+                })
+                .collect();
+        }
+
+        let mut centroids = self.strategy.initialize(points, self.k).unwrap();
+        let mut clusters = vec![Cluster::new(); self.k];
+        for _ in 0..self.max_iter {
+            let converged = self.iterate(points, &mut centroids, &mut clusters);
+            if converged {
+                break;
+            }
+        }
+        clusters
     }
 }
 

@@ -55,6 +55,19 @@ impl<const N: usize> NeighborSearch<N> for LinearSearch<'_, N> {
         }
         Some(nearest)
     }
+
+    #[must_use]
+    fn search_radius(&self, query: &Point<N>, radius: f32) -> Vec<Neighbor> {
+        let mut neighbors = Vec::new();
+        for (index, point) in self.points.iter().enumerate() {
+            let distance = self.metric.measure(query, point);
+            if distance <= radius {
+                let neighbor = Neighbor::new(index, distance);
+                neighbors.push(neighbor);
+            }
+        }
+        neighbors
+    }
 }
 
 #[cfg(test)]

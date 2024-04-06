@@ -8,7 +8,7 @@ use std::collections::HashSet;
 #[derive(Debug, Clone)]
 pub struct Cluster<const N: usize> {
     centroid: Point<N>,
-    membership: HashSet<usize>,
+    members: HashSet<usize>,
 }
 
 impl<const N: usize> Cluster<N> {
@@ -20,7 +20,7 @@ impl<const N: usize> Cluster<N> {
     pub fn new() -> Self {
         Self {
             centroid: [0.0; N],
-            membership: HashSet::new(),
+            members: HashSet::new(),
         }
     }
 
@@ -39,10 +39,10 @@ impl<const N: usize> Cluster<N> {
     /// The number of points in this cluster.
     #[must_use]
     pub fn len(&self) -> usize {
-        self.membership.len()
+        self.members.len()
     }
 
-    /// Adds a point to this cluster and updates the centroid.
+    /// Adds a member point to this cluster.
     ///
     /// # Arguments
     /// * `index` - The index of the point.
@@ -50,12 +50,12 @@ impl<const N: usize> Cluster<N> {
     ///
     /// # Returns
     /// `true` if the point is added; `false` otherwise.
-    pub fn add_point(&mut self, index: usize, point: &Point<N>) -> bool {
-        if !self.membership.insert(index) {
+    pub fn add_member(&mut self, index: usize, point: &Point<N>) -> bool {
+        if !self.members.insert(index) {
             return false;
         }
 
-        let size = self.membership.len() as f32;
+        let size = self.members.len() as f32;
         for (i, value) in point.iter().enumerate() {
             self.centroid[i] *= size - 1.0;
             self.centroid[i] += value;
@@ -67,7 +67,7 @@ impl<const N: usize> Cluster<N> {
     /// Clears this cluster and resets the centroid.
     pub fn clear(&mut self) {
         self.centroid = [0.0; N];
-        self.membership.clear();
+        self.members.clear();
     }
 }
 
@@ -86,27 +86,27 @@ mod tests {
     }
 
     #[test]
-    fn test_add_point() {
+    fn test_add_member() {
         // Arrange
         let mut cluster = Cluster::<2>::new();
 
         // Act & Assert
         let point = [1.0, 2.0];
-        assert!(cluster.add_point(0, &point));
+        assert!(cluster.add_member(0, &point));
         assert_eq!(cluster.centroid(), &[1.0, 2.0]);
         assert_eq!(cluster.len(), 1);
 
         let point = [2.0, 4.0];
-        assert!(cluster.add_point(1, &point));
+        assert!(cluster.add_member(1, &point));
         assert_eq!(cluster.centroid(), &[1.5, 3.0]);
         assert_eq!(cluster.len(), 2);
 
         let point = [3.0, 6.0];
-        assert!(cluster.add_point(2, &point));
+        assert!(cluster.add_member(2, &point));
         assert_eq!(cluster.centroid(), &[2.0, 4.0]);
         assert_eq!(cluster.len(), 3);
 
-        assert!(!cluster.add_point(2, &point));
+        assert!(!cluster.add_member(2, &point));
         assert_eq!(cluster.centroid(), &[2.0, 4.0]);
         assert_eq!(cluster.len(), 3);
     }
@@ -116,7 +116,7 @@ mod tests {
         // Arrange
         let mut cluster = Cluster::<2>::new();
         let point = [1.0, 2.0];
-        assert!(cluster.add_point(0, &point));
+        assert!(cluster.add_member(0, &point));
         assert_eq!(cluster.centroid(), &[1.0, 2.0]);
         assert_eq!(cluster.len(), 1);
 

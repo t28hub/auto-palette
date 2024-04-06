@@ -24,4 +24,14 @@ pub trait NeighborSearch<const N: usize> {
     /// # Returns
     /// The nearest neighbor.
     fn search_nearest(&self, query: &Point<N>) -> Option<Neighbor>;
+
+    /// Searches for the neighbors within a given radius of a point.
+    ///
+    /// # Arguments
+    /// * `query` - The query point to search for neighbors.
+    /// * `radius` - The radius within which to search for neighbors.
+    ///
+    /// # Returns
+    /// The neighbors within the given radius.
+    fn search_radius(&self, query: &Point<N>, radius: f32) -> Vec<Neighbor>;
 }

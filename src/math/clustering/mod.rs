@@ -1,3 +1,7 @@
-pub mod cluster;
+mod algorithm;
+mod cluster;
+pub mod dbscan;
 pub mod kmeans;
-pub mod strategy;
+
+pub use algorithm::ClusteringAlgorithm;
+pub use cluster::Cluster;

@@ -1,4 +1,7 @@
 pub mod clustering;
-pub mod metrics;
+mod metrics;
 mod neighbors;
-pub mod point;
+mod point;
+
+pub use metrics::DistanceMetric;
+pub use point::{Point, Point3D};

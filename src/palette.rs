@@ -3,11 +3,11 @@ use crate::color::white_point::D65;
 use crate::color::xyz::{from_rgb, to_rgb};
 use crate::errors::PaletteError;
 use crate::image::ImageData;
-use crate::math::clustering::kmeans::Kmeans;
-use crate::math::clustering::strategy::InitializationStrategy;
-use crate::math::metrics::DistanceMetric;
-use crate::math::point::Point3D;
+use crate::math::clustering::dbscan::DBSCAN;
+use crate::math::clustering::ClusteringAlgorithm;
+use crate::math::{DistanceMetric, Point3D};
 use crate::Swatch;
+use std::cmp::Reverse;
 
 /// Palette struct that contains a list of swatches.
 #[derive(Debug)]
@@ -86,15 +86,11 @@ impl Palette {
             })
             .collect();
 
-        let strategy = InitializationStrategy::KmeansPlusPlus(
-            rand::thread_rng(),
-            DistanceMetric::SquaredEuclidean,
-        );
-        let clustering = Kmeans::new(16, 10, 1e-3, DistanceMetric::SquaredEuclidean, strategy)
+        let clustering = DBSCAN::new(16, 2.5, DistanceMetric::Euclidean)
             .map_err(PaletteError::ExtractionError)?;
 
         let clusters = clustering.fit(&points);
-        let swatches = clusters
+        let mut swatches: Vec<_> = clusters
             .iter()
             .map(|cluster| {
                 let centroid = cluster.centroid();
@@ -103,6 +99,7 @@ impl Palette {
                 Swatch::new(rgb, cluster.len())
             })
             .collect();
+        swatches.sort_by_key(|swatch| Reverse(swatch.population()));
         Ok(Self { swatches })
     }
 }
