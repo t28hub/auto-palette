@@ -5,4 +5,6 @@ pub enum PaletteError {
     EmptyImageData,
     /// Palette extraction error.
     ExtractionError(&'static str),
+    /// Invalid algorithm error.
+    InvalidAlgorithm,
 }

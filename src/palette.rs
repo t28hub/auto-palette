@@ -1,11 +1,8 @@
-use crate::color::lab::{from_xyz, to_xyz};
-use crate::color::white_point::D65;
-use crate::color::xyz::{from_rgb, to_rgb};
+use crate::algorithm::Algorithm;
+use crate::color::{from_rgb, from_xyz, to_rgb, to_xyz, D65};
 use crate::errors::PaletteError;
 use crate::image::ImageData;
-use crate::math::clustering::dbscan::DBSCAN;
-use crate::math::clustering::ClusteringAlgorithm;
-use crate::math::{DistanceMetric, Point3D};
+use crate::math::Point3D;
 use crate::Swatch;
 use std::cmp::Reverse;
 
@@ -58,14 +55,29 @@ impl Palette {
         self.swatches.iter().take(n).copied().collect()
     }
 
-    /// Extracts the palette from the image data.
+    /// Extracts the palette from the image data. The default clustering algorithm is DBSCAN.
     ///
     /// # Arguments
-    /// * `image_data` - The image data.
+    /// * `image_data` - The image data to extract the palette from.
     ///
     /// # Returns
     /// The extracted palette.
     pub fn extract(image_data: &ImageData) -> Result<Self, PaletteError> {
+        Self::extract_with_algorithm(image_data, Algorithm::DBSCAN)
+    }
+
+    /// Extracts the palette from the image data with the given algorithm.
+    ///
+    /// # Arguments
+    /// * `image_data` - The image data to extract the palette from.
+    /// * `algorithm` - The clustering algorithm to use.
+    ///
+    /// # Returns
+    /// The extracted palette.
+    pub fn extract_with_algorithm(
+        image_data: &ImageData,
+        algorithm: Algorithm,
+    ) -> Result<Self, PaletteError> {
         let pixels = image_data.pixels();
         if pixels.is_empty() {
             return Err(PaletteError::EmptyImageData);
@@ -86,10 +98,7 @@ impl Palette {
             })
             .collect();
 
-        let clustering = DBSCAN::new(16, 2.5, DistanceMetric::Euclidean)
-            .map_err(PaletteError::ExtractionError)?;
-
-        let clusters = clustering.fit(&points);
+        let clusters = algorithm.cluster(&points);
         let mut swatches: Vec<_> = clusters
             .iter()
             .map(|cluster| {
@@ -138,7 +147,7 @@ mod tests {
     #[test]
     fn test_extract() {
         // Arrange
-        let image_data = ImageData::open("./tests/assets/flag_uk.png").unwrap();
+        let image_data = ImageData::load("./tests/assets/flag_uk.png").unwrap();
 
         // Act
         let palette = Palette::extract(&image_data).unwrap();
@@ -146,5 +155,31 @@ mod tests {
         // Assert
         assert!(!palette.is_empty());
         assert!(palette.len() >= 3);
+    }
+
+    #[test]
+    fn test_extract_with_algorithm() {
+        // Arrange
+        let image_data = ImageData::load("./tests/assets/flag_uk.png").unwrap();
+
+        // Act
+        let palette = Palette::extract_with_algorithm(&image_data, Algorithm::KMeans).unwrap();
+
+        // Assert
+        assert!(!palette.is_empty());
+        assert!(palette.len() >= 3);
+    }
+
+    #[test]
+    fn test_extract_empty_image_data() {
+        // Arrange
+        let image_data = ImageData::new(0, 0, vec![]).unwrap();
+
+        // Act
+        let result = Palette::extract(&image_data);
+
+        // Assert
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), PaletteError::EmptyImageData);
     }
 }

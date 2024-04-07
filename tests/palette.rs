@@ -1,5 +1,4 @@
-use auto_palette::image::ImageData;
-use auto_palette::Palette;
+use auto_palette::{ImageData, Palette};
 use rstest::rstest;
 use std::path::Path;
 
@@ -11,7 +10,7 @@ where
     P: AsRef<Path>,
 {
     // Act
-    let image_data = ImageData::open(path).unwrap();
+    let image_data = ImageData::load(path).unwrap();
     let palette = Palette::extract(&image_data).unwrap();
     let swatches = palette.find_swatches(n);
 
@@ -30,7 +29,7 @@ where
 #[test]
 fn test_extract_jpg() {
     // Act
-    let image_data = ImageData::open("./tests/assets/flag_uk.png").unwrap();
+    let image_data = ImageData::load("./tests/assets/flag_uk.png").unwrap();
     let palette = Palette::extract(&image_data).unwrap();
     let swatches = palette.find_swatches(6);
 

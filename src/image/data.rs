@@ -30,7 +30,7 @@ impl ImageData {
     ///
     /// # Examples
     /// ```
-    /// use auto_palette::image::ImageData;
+    /// use auto_palette::ImageData;
     ///
     /// let image_data = ImageData::new(1, 2, vec![0, 0, 0, 255, 255, 255, 255, 255]).unwrap();
     /// assert_eq!(image_data.width(), 1);
@@ -48,7 +48,7 @@ impl ImageData {
         })
     }
 
-    /// Opens an image file and returns the image data.
+    /// Loads an image data from the given path.
     ///
     /// # Arguments
     /// * `path` - The path to the image file.
@@ -61,14 +61,14 @@ impl ImageData {
     ///
     /// # Examples
     /// ```
-    /// use auto_palette::image::ImageData;
+    /// use auto_palette::ImageData;
     ///
-    /// let image_data = ImageData::open("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();    ///
+    /// let image_data = ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();    ///
     /// assert_eq!(image_data.width(), 640);
     /// assert_eq!(image_data.height(), 962);
     /// assert_eq!(image_data.pixels().len(), 2462720);
     /// ```
-    pub fn open<P>(path: P) -> Result<Self, ImageError>
+    pub fn load<P>(path: P) -> Result<Self, ImageError>
     where
         P: AsRef<Path>,
     {
@@ -175,10 +175,10 @@ mod tests {
     }
 
     #[test]
-    fn test_open() {
+    fn test_load() {
         // Act
         let image_data =
-            ImageData::open("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
+            ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
 
         // Assert
         assert_eq!(image_data.width(), 640);
@@ -187,9 +187,9 @@ mod tests {
     }
 
     #[test]
-    fn test_open_with_rgba_image() {
+    fn test_load_with_rgba_image() {
         // Act
-        let image_data = ImageData::open("./tests/assets/flag_np.png").unwrap();
+        let image_data = ImageData::load("./tests/assets/flag_np.png").unwrap();
 
         // Assert
         assert_eq!(image_data.width(), 394);
@@ -198,18 +198,18 @@ mod tests {
     }
 
     #[test]
-    fn test_open_with_invalid_path() {
+    fn test_load_with_invalid_path() {
         // Act
-        let image_data = ImageData::open("./tests/assets/invalid.jpg");
+        let image_data = ImageData::load("./tests/assets/invalid.jpg");
 
         // Assert
         assert!(image_data.is_err());
     }
 
     #[test]
-    fn test_open_with_invalid_file() {
+    fn test_load_with_invalid_file() {
         // Act
-        let image_data = ImageData::open("../../tests/assets/empty.txt");
+        let image_data = ImageData::load("../../tests/assets/empty.txt");
 
         // Assert
         assert!(image_data.is_err());

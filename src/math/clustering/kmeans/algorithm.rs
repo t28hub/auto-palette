@@ -12,7 +12,7 @@ use rand::Rng;
 /// # Type Parameters
 /// * `R` - The random number generator.
 #[derive(Debug)]
-pub struct Kmeans<R: Rng + Clone> {
+pub struct KMeans<R: Rng + Clone> {
     k: usize,
     max_iter: usize,
     tolerance: f32,
@@ -20,7 +20,7 @@ pub struct Kmeans<R: Rng + Clone> {
     strategy: InitializationStrategy<R>,
 }
 
-impl<R: Rng + Clone> Kmeans<R> {
+impl<R: Rng + Clone> KMeans<R> {
     /// Creates a new `Kmeans` instance.
     ///
     /// # Arguments
@@ -95,7 +95,7 @@ impl<R: Rng + Clone> Kmeans<R> {
     }
 }
 
-impl<R> ClusteringAlgorithm for Kmeans<R>
+impl<R> ClusteringAlgorithm for KMeans<R>
 where
     R: Rng + Clone,
 {
@@ -138,7 +138,7 @@ mod tests {
         // Act
         let metric = DistanceMetric::Euclidean;
         let strategy = InitializationStrategy::Random(rand::thread_rng());
-        let kmeans = Kmeans::new(3, 10, 1e-3, metric, strategy).unwrap();
+        let kmeans = KMeans::new(3, 10, 1e-3, metric, strategy).unwrap();
 
         // Assert
         assert_eq!(kmeans.k, 3);
@@ -152,7 +152,7 @@ mod tests {
         // Arrange
         let metric = DistanceMetric::Euclidean;
         let strategy = InitializationStrategy::Random(rand::thread_rng());
-        let kmeans = Kmeans::new(3, 10, 1e-3, metric, strategy).unwrap();
+        let kmeans = KMeans::new(3, 10, 1e-3, metric, strategy).unwrap();
 
         // Act
         let points = [
@@ -176,7 +176,7 @@ mod tests {
         // Arrange
         let metric = DistanceMetric::Euclidean;
         let strategy = InitializationStrategy::Random(rand::thread_rng());
-        let kmeans = Kmeans::new(3, 10, 1e-3, metric, strategy).unwrap();
+        let kmeans = KMeans::new(3, 10, 1e-3, metric, strategy).unwrap();
 
         // Act
         let clusters = kmeans.fit::<3>(&[]);
@@ -190,7 +190,7 @@ mod tests {
         // Arrange
         let metric = DistanceMetric::Euclidean;
         let strategy = InitializationStrategy::Random(rand::thread_rng());
-        let kmeans = Kmeans::new(3, 10, 1e-3, metric, strategy).unwrap();
+        let kmeans = KMeans::new(3, 10, 1e-3, metric, strategy).unwrap();
 
         // Act
         let points = [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0]];
