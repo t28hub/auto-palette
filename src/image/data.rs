@@ -63,10 +63,10 @@ impl ImageData {
     /// ```
     /// use auto_palette::ImageData;
     ///
-    /// let image_data = ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();    ///
-    /// assert_eq!(image_data.width(), 640);
-    /// assert_eq!(image_data.height(), 962);
-    /// assert_eq!(image_data.pixels().len(), 2462720);
+    /// let image_data = ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
+    /// assert_eq!(image_data.width(), 480);
+    /// assert_eq!(image_data.height(), 722);
+    /// assert_eq!(image_data.pixels().len(), 1_386_240);
     /// ```
     pub fn load<P>(path: P) -> Result<Self, ImageError>
     where
