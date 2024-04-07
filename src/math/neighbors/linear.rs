@@ -73,10 +73,9 @@ impl<const N: usize> NeighborSearch<N> for LinearSearch<'_, N> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::point::Point3D;
 
     #[must_use]
-    fn sample_points() -> Vec<Point3D> {
+    fn sample_points() -> Vec<[f32; 3]> {
         vec![
             [1.0, 2.0, 3.0], // 0
             [5.0, 1.0, 2.0], // 1

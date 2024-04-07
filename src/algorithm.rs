@@ -38,7 +38,7 @@ impl Algorithm {
                 clustering.fit(points)
             }
             Self::DBSCAN => {
-                let clustering = DBSCAN::new(16, 2.5, DistanceMetric::Euclidean).unwrap();
+                let clustering = DBSCAN::new(16, 16e-4, DistanceMetric::SquaredEuclidean).unwrap();
                 clustering.fit(points)
             }
         }

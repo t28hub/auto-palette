@@ -181,9 +181,9 @@ mod tests {
             ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
 
         // Assert
-        assert_eq!(image_data.width(), 640);
-        assert_eq!(image_data.height(), 962);
-        assert_eq!(image_data.pixels().len(), 640 * 962 * 4);
+        assert_eq!(image_data.width(), 480);
+        assert_eq!(image_data.height(), 722);
+        assert_eq!(image_data.pixels().len(), 480 * 722 * 4);
     }
 
     #[test]

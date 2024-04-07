@@ -1,5 +1,29 @@
 use crate::color::white_point::WhitePoint;
 
+/// CIE L*a*b* color space.
+#[derive(Debug)]
+pub struct Lab;
+
+impl Lab {
+    /// Minimum value of the L component.
+    pub const MIN_L: f32 = 0.0;
+
+    /// Maximum value of the L component.
+    pub const MAX_L: f32 = 100.0;
+
+    /// Minimum value of the a component.
+    pub const MIN_A: f32 = -128.0;
+
+    /// Maximum value of the a component.
+    pub const MAX_A: f32 = 127.0;
+
+    /// Minimum value of the b component.
+    pub const MIN_B: f32 = -128.0;
+
+    /// Maximum value of the b component.
+    pub const MAX_B: f32 = 127.0;
+}
+
 /// Converts the CIE 1931 XYZ color space to the CIE L*a*b* color space.
 ///
 /// # Type Parameters

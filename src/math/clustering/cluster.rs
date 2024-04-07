@@ -7,8 +7,8 @@ use std::collections::HashSet;
 /// * `N` - The number of dimensions.
 #[derive(Debug, Clone)]
 pub struct Cluster<const N: usize> {
-    centroid: Point<N>,
     members: HashSet<usize>,
+    centroid: Point<N>,
 }
 
 impl<const N: usize> Cluster<N> {
@@ -19,18 +19,9 @@ impl<const N: usize> Cluster<N> {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            centroid: [0.0; N],
             members: HashSet::new(),
+            centroid: [0.0; N],
         }
-    }
-
-    /// Returns the centroid of this cluster.
-    ///
-    /// # Returns
-    /// The centroid of this cluster.
-    #[must_use]
-    pub fn centroid(&self) -> &Point<N> {
-        &self.centroid
     }
 
     /// Returns the number of points in this cluster.
@@ -40,6 +31,32 @@ impl<const N: usize> Cluster<N> {
     #[must_use]
     pub fn len(&self) -> usize {
         self.members.len()
+    }
+
+    /// Returns whether this cluster is empty.
+    ///
+    /// # Returns
+    /// `true` if this cluster is empty; `false` otherwise.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.members.is_empty()
+    }
+
+    /// Returns an iterator over the members of this cluster.
+    ///
+    /// # Returns
+    /// An iterator over the members of this cluster.
+    pub fn members(&self) -> impl Iterator<Item = &usize> {
+        self.members.iter()
+    }
+
+    /// Returns the centroid of this cluster.
+    ///
+    /// # Returns
+    /// The centroid of this cluster.
+    #[must_use]
+    pub fn centroid(&self) -> &Point<N> {
+        &self.centroid
     }
 
     /// Adds a member point to this cluster.
@@ -57,9 +74,8 @@ impl<const N: usize> Cluster<N> {
 
         let size = self.members.len() as f32;
         for (i, value) in point.iter().enumerate() {
-            self.centroid[i] *= size - 1.0;
-            self.centroid[i] += value;
-            self.centroid[i] /= size;
+            self.centroid[i] *= (size - 1.0) / size;
+            self.centroid[i] += value / size;
         }
         true
     }
@@ -81,8 +97,10 @@ mod tests {
         let cluster = Cluster::<2>::new();
 
         // Assert
-        assert_eq!(cluster.centroid(), &[0.0, 0.0]);
+        assert!(cluster.is_empty());
         assert_eq!(cluster.len(), 0);
+        assert_eq!(cluster.members().copied().collect::<Vec<_>>(), vec![]);
+        assert_eq!(cluster.centroid(), &[0.0, 0.0]);
     }
 
     #[test]
@@ -93,38 +111,67 @@ mod tests {
         // Act & Assert
         let point = [1.0, 2.0];
         assert!(cluster.add_member(0, &point));
-        assert_eq!(cluster.centroid(), &[1.0, 2.0]);
+        assert!(!cluster.is_empty());
         assert_eq!(cluster.len(), 1);
+        assert_eq!(
+            cluster.members().copied().collect::<HashSet<_>>(),
+            HashSet::from([0])
+        );
+        assert_eq!(cluster.centroid(), &[1.0, 2.0]);
 
         let point = [2.0, 4.0];
         assert!(cluster.add_member(1, &point));
-        assert_eq!(cluster.centroid(), &[1.5, 3.0]);
         assert_eq!(cluster.len(), 2);
+        assert_eq!(
+            cluster.members().copied().collect::<HashSet<_>>(),
+            HashSet::from([0, 1])
+        );
+        assert_eq!(cluster.centroid(), &[1.5, 3.0]);
 
         let point = [3.0, 6.0];
         assert!(cluster.add_member(2, &point));
-        assert_eq!(cluster.centroid(), &[2.0, 4.0]);
         assert_eq!(cluster.len(), 3);
+        assert_eq!(
+            cluster.members().copied().collect::<HashSet<_>>(),
+            HashSet::from([0, 1, 2])
+        );
+        assert_eq!(cluster.centroid(), &[2.0, 4.0]);
 
         assert!(!cluster.add_member(2, &point));
-        assert_eq!(cluster.centroid(), &[2.0, 4.0]);
         assert_eq!(cluster.len(), 3);
+        assert_eq!(
+            cluster.members().copied().collect::<HashSet<_>>(),
+            HashSet::from([0, 1, 2])
+        );
+        assert_eq!(cluster.centroid(), &[2.0, 4.0]);
     }
 
     #[test]
     fn test_clear() {
         // Arrange
         let mut cluster = Cluster::<2>::new();
-        let point = [1.0, 2.0];
-        assert!(cluster.add_member(0, &point));
-        assert_eq!(cluster.centroid(), &[1.0, 2.0]);
-        assert_eq!(cluster.len(), 1);
+        cluster.add_member(0, &[1.0, 2.0]);
+        cluster.add_member(1, &[2.0, 4.0]);
+        cluster.add_member(2, &[3.0, 6.0]);
+
+        assert!(!cluster.is_empty());
+        assert_eq!(cluster.len(), 3);
+        assert_eq!(
+            cluster.members().copied().collect::<HashSet<_>>(),
+            HashSet::from([0, 1, 2])
+        );
+        assert_eq!(cluster.centroid(), &[2.0, 4.0]);
 
         // Act
         cluster.clear();
 
         // Assert
-        assert_eq!(cluster.centroid(), &[0.0, 0.0]);
+        assert!(cluster.is_empty());
         assert_eq!(cluster.len(), 0);
+        assert_eq!(
+            cluster.members().copied().collect::<HashSet<_>>(),
+            HashSet::new()
+        );
+        assert_eq!(cluster.centroid(), &[0.0, 0.0]);
     }
 }
