@@ -115,7 +115,7 @@ impl<'a, const N: usize> KDTreeSearch<'a, N> {
     fn build_node(
         points: &[Point<N>],
         leaf_size: usize,
-        indices: &mut Vec<usize>,
+        indices: &mut [usize],
         depth: usize,
     ) -> Option<Node> {
         if indices.is_empty() {
