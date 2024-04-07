@@ -102,7 +102,7 @@ impl<'a, const N: usize> KDTreeSearch<'a, N> {
     /// A new `KDTreeSearch` instance.
     pub fn build(points: &'a [Point<N>], metric: DistanceMetric, leaf_size: usize) -> Self {
         let mut indices: Vec<usize> = (0..points.len()).collect();
-        let root = Self::build_node(points, leaf_size, &mut indices, 0);
+        let root = Self::split_node(points, leaf_size, &mut indices, 0);
         Self {
             root: root.map(Box::new),
             points,
@@ -112,7 +112,7 @@ impl<'a, const N: usize> KDTreeSearch<'a, N> {
 
     #[inline]
     #[must_use]
-    fn build_node(
+    fn split_node(
         points: &[Point<N>],
         leaf_size: usize,
         indices: &mut [usize],
@@ -135,19 +135,30 @@ impl<'a, const N: usize> KDTreeSearch<'a, N> {
         });
 
         let median = indices.len() / 2;
-        let left = Self::build_node(
+        let left = Self::split_node(
             points,
             leaf_size,
             &mut indices[..median].to_vec(),
             depth + 1,
         );
-        let right = Self::build_node(
+        let right = Self::split_node(
             points,
             leaf_size,
             &mut indices[median + 1..].to_vec(),
             depth + 1,
         );
         Some(Node::new_node(axis, indices[median], left, right))
+    }
+
+    fn search_leaf<F>(&self, node: &Node, query: &Point<N>, action: &mut F)
+    where
+        F: FnMut(usize, f32),
+    {
+        for &index in &node.indices {
+            let point = &self.points[index];
+            let distance = self.metric.measure(point, query);
+            action(index, distance);
+        }
     }
 
     #[inline]
@@ -162,39 +173,31 @@ impl<'a, const N: usize> KDTreeSearch<'a, N> {
             return;
         };
 
-        if node.is_leaf() {
-            for &index in &node.indices {
-                let point = &self.points[index];
-                let distance = self.metric.measure(point, query);
-                if neighbors.len() < k {
-                    neighbors.push(Neighbor::new(index, distance));
-                } else if distance
-                    < neighbors
-                        .peek()
-                        .map(|neighbor| neighbor.distance)
-                        .unwrap_or(f32::INFINITY)
-                {
-                    neighbors.pop();
-                    neighbors.push(Neighbor::new(index, distance));
-                }
+        let mut update_neighbors = |index, distance| {
+            if neighbors.len() < k {
+                neighbors.push(Neighbor::new(index, distance));
+            } else if distance
+                < neighbors
+                    .peek()
+                    .map(|neighbor| neighbor.distance)
+                    .unwrap_or(f32::INFINITY)
+            {
+                neighbors.pop();
+                neighbors.push(Neighbor::new(index, distance));
             }
+        };
+
+        if node.is_leaf() {
+            self.search_leaf(node, query, &mut |index, distance| {
+                update_neighbors(index, distance);
+            });
             return;
         }
 
         let index = node.index();
         let point = &self.points[index];
         let distance = self.metric.measure(point, query);
-        if neighbors.len() < k {
-            neighbors.push(Neighbor::new(index, distance));
-        } else if distance
-            < neighbors
-                .peek()
-                .map(|neighbor| neighbor.distance)
-                .unwrap_or(f32::INFINITY)
-        {
-            neighbors.pop();
-            neighbors.push(Neighbor::new(index, distance));
-        }
+        update_neighbors(index, distance);
 
         let axis = node.axis;
         let (near, far) = if query[axis] < point[axis] {
@@ -222,14 +225,12 @@ impl<'a, const N: usize> KDTreeSearch<'a, N> {
         };
 
         if node.is_leaf() {
-            for &index in &node.indices {
-                let point = &self.points[index];
-                let distance = self.metric.measure(point, query);
+            self.search_leaf(node, query, &mut |index, distance| {
                 if distance < nearest.distance {
                     nearest.index = index;
                     nearest.distance = distance;
                 }
-            }
+            });
             return;
         }
 
@@ -267,13 +268,11 @@ impl<'a, const N: usize> KDTreeSearch<'a, N> {
         };
 
         if node.is_leaf() {
-            for &index in &node.indices {
-                let point = &self.points[index];
-                let distance = self.metric.measure(point, query);
+            self.search_leaf(node, query, &mut |index, distance| {
                 if distance <= radius {
                     neighbors.push(Neighbor::new(index, distance));
                 }
-            }
+            });
             return;
         }
 
