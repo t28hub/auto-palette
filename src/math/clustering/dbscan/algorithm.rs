@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use crate::math::clustering::{Cluster, ClusteringAlgorithm};
-use crate::math::neighbors::linear::LinearSearch;
+use crate::math::neighbors::kdtree::KDTreeSearch;
 use crate::math::neighbors::neighbor::Neighbor;
 use crate::math::neighbors::search::NeighborSearch;
 use crate::math::{DistanceMetric, Point};
@@ -108,7 +108,7 @@ impl ClusteringAlgorithm for DBSCAN {
         let mut label = 0;
         let mut labels = vec![UNCLASSIFIED; points.len()];
         let mut clusters = Vec::new();
-        let neighbor_search = LinearSearch::build(points, self.metric.clone());
+        let neighbor_search = KDTreeSearch::build(points, self.metric.clone(), 16);
         for (index, point) in points.iter().enumerate() {
             if labels[index] != UNCLASSIFIED {
                 continue;

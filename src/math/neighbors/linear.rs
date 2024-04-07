@@ -95,7 +95,7 @@ mod tests {
     }
 
     #[test]
-    fn test_linear_search() {
+    fn test_build() {
         // Act
         let points = sample_points();
         let search = LinearSearch::build(&points, DistanceMetric::Euclidean);
