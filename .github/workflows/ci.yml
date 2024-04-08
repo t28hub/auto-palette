@@ -49,14 +49,11 @@ jobs:
         with:
           tool: cargo-nextest, cargo-llvm-cov
 
-      - name: Run tests in release mode
-        run: cargo nextest run --release --lib
-
-      - name: Test all features
-        run: cargo llvm-cov --lcov --output-path target/lcov.info nextest run --all-features --release
+      - name: Run unit tests with coverage
+        run: cargo llvm-cov nextest --tests --release --lcov --output-path lcov.info
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./target/lcov.info
+          files: lcov.info

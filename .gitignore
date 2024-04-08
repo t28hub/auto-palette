@@ -21,3 +21,4 @@ Cargo.lock
 *.njsproj
 *.sln
 *.sw?
+lcov.info
