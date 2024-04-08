@@ -21,7 +21,6 @@ env:
 
 jobs:
   style:
-    name: Style check
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -43,7 +42,6 @@ jobs:
         run: taplo check
 
   check:
-    name: Lint and audit
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -65,7 +63,6 @@ jobs:
         run: cargo audit
 
   build:
-    name: Build library
     needs:
       - style
       - check
@@ -82,7 +79,7 @@ jobs:
         run: cargo build --lib --release
 
   test:
-    name: "Test on ${{ matrix.os }}"
+    name: "test on ${{ matrix.os }}"
     needs: build
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
@@ -101,7 +98,11 @@ jobs:
         with:
           tool: cargo-nextest, cargo-llvm-cov
 
+      - name: Run unit tests
+        run: cargo nextest run --tests --release
+
       - name: Run unit tests with coverage
+        if: matrix.os == 'ubuntu-latest'
         run: cargo llvm-cov nextest --tests --release --lcov --output-path lcov.info
 
       - name: Upload coverage reports to Codecov
