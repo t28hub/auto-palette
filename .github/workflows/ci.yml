@@ -47,7 +47,16 @@ jobs:
       - name: Install cargo-nextest
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-nextest
+          tool: cargo-nextest, cargo-llvm-cov
 
       - name: Run tests in release mode
-        run: cargo nextest run --release --tests
+        run: cargo nextest run --release --lib
+
+      - name: Test all features
+        run: cargo llvm-cov --lcov --output-path target/lcov.info nextest run --all-features --release
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4.0.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./target/lcov.info
