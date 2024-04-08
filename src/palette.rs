@@ -4,8 +4,7 @@ use crate::algorithm::Algorithm;
 use crate::color::{from_rgb, from_xyz, to_rgb, to_xyz, Lab, D65};
 use crate::errors::PaletteError;
 use crate::image::ImageData;
-use crate::math::clustering::dbscan::DBSCAN;
-use crate::math::clustering::ClusteringAlgorithm;
+use crate::math::clustering::{ClusteringAlgorithm, DBSCAN};
 use crate::math::{DistanceMetric, Normalizable, Point5D};
 use crate::Swatch;
 

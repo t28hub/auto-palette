@@ -2,7 +2,7 @@ use std::path::Path;
 
 use rstest::rstest;
 
-use auto_palette::{ImageData, Palette};
+use auto_palette::{Algorithm, ImageData, Palette};
 
 #[rstest]
 #[case::np("./tests/assets/flag_np.png", 3)]
@@ -22,12 +22,14 @@ where
 }
 
 #[test]
-fn test_extract_jpg() {
-    // Act
+fn test_extract_with_kmeans() {
+    // Arrange
     let image_data =
         ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
-    let palette = Palette::extract(&image_data).unwrap();
-    let swatches = palette.find_swatches(6);
+
+    // Act
+    let palette = Palette::extract_with_algorithm(&image_data, Algorithm::KMeans).unwrap();
+    let swatches = palette.find_swatches(8);
 
     // Assert
     swatches.iter().for_each(|swatch| {
@@ -39,5 +41,51 @@ fn test_extract_jpg() {
             r, g, b, x, y, population
         );
     });
-    assert_eq!(swatches.len(), 6);
+    assert_eq!(swatches.len(), 8);
+}
+
+#[test]
+fn test_extract_with_dbscan() {
+    // Arrange
+    let image_data =
+        ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
+
+    // Act
+    let palette = Palette::extract(&image_data).unwrap();
+    let swatches = palette.find_swatches(8);
+
+    // Assert
+    swatches.iter().for_each(|swatch| {
+        let (r, g, b) = swatch.color();
+        let (x, y) = swatch.position();
+        let population = swatch.population();
+        println!(
+            "#{:02X}{:02X}{:02X} - ({}, {}) - {}",
+            r, g, b, x, y, population
+        );
+    });
+    assert_eq!(swatches.len(), 8);
+}
+
+#[test]
+fn test_extract_with_dbscanpp() {
+    // Arrange
+    let image_data =
+        ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
+
+    // Act
+    let palette = Palette::extract_with_algorithm(&image_data, Algorithm::DBSCANpp).unwrap();
+    let swatches = palette.find_swatches(8);
+
+    // Assert
+    swatches.iter().for_each(|swatch| {
+        let (r, g, b) = swatch.color();
+        let (x, y) = swatch.position();
+        let population = swatch.population();
+        println!(
+            "#{:02X}{:02X}{:02X} - ({}, {}) - {}",
+            r, g, b, x, y, population
+        );
+    });
+    assert_eq!(swatches.len(), 8);
 }

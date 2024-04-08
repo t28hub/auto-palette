@@ -1,6 +1,5 @@
-use crate::math::clustering::kmeans::InitializationStrategy;
-use crate::math::clustering::Cluster;
-use crate::math::clustering::ClusteringAlgorithm;
+use crate::math::clustering::kmeans::strategy::InitializationStrategy;
+use crate::math::clustering::{Cluster, ClusteringAlgorithm};
 use crate::math::metrics::DistanceMetric;
 use crate::math::neighbors::linear::LinearSearch;
 use crate::math::neighbors::search::NeighborSearch;

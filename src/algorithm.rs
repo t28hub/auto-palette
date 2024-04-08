@@ -1,8 +1,7 @@
 use crate::errors::PaletteError;
-use crate::math::clustering::dbscan::DBSCAN;
-use crate::math::clustering::kmeans::InitializationStrategy::KmeansPlusPlus;
-use crate::math::clustering::kmeans::KMeans;
-use crate::math::clustering::{Cluster, ClusteringAlgorithm};
+use crate::math::clustering::{
+    Cluster, ClusteringAlgorithm, DBSCANpp, InitializationStrategy, KMeans, DBSCAN,
+};
 use crate::math::{DistanceMetric, Point};
 use rand::thread_rng;
 use std::str::FromStr;
@@ -13,8 +12,10 @@ use std::str::FromStr;
 pub enum Algorithm {
     /// K-means clustering algorithm.
     KMeans,
-    /// Density-based spatial clustering of applications with noise (DBSCAN) algorithm.
+    /// DBSCAN clustering algorithm.
     DBSCAN,
+    /// DBSCAN++ clustering algorithm.
+    DBSCANpp,
 }
 
 impl Algorithm {
@@ -32,13 +33,21 @@ impl Algorithm {
     pub(crate) fn cluster<const N: usize>(&self, points: &[Point<N>]) -> Vec<Cluster<N>> {
         match self {
             Self::KMeans => {
-                let strategy = KmeansPlusPlus(thread_rng(), DistanceMetric::SquaredEuclidean);
+                let strategy = InitializationStrategy::KmeansPlusPlus(
+                    thread_rng(),
+                    DistanceMetric::SquaredEuclidean,
+                );
                 let clustering =
                     KMeans::new(16, 100, 1e-3, DistanceMetric::SquaredEuclidean, strategy).unwrap();
                 clustering.fit(points)
             }
             Self::DBSCAN => {
                 let clustering = DBSCAN::new(16, 16e-4, DistanceMetric::SquaredEuclidean).unwrap();
+                clustering.fit(points)
+            }
+            Self::DBSCANpp => {
+                let clustering =
+                    DBSCANpp::new(0.1, 16, 16e-4, DistanceMetric::SquaredEuclidean).unwrap();
                 clustering.fit(points)
             }
         }
@@ -52,6 +61,7 @@ impl FromStr for Algorithm {
         match s {
             "kmeans" => Ok(Self::KMeans),
             "dbscan" => Ok(Self::DBSCAN),
+            "dbscan++" => Ok(Self::DBSCANpp),
             _ => Err(PaletteError::InvalidAlgorithm),
         }
     }
@@ -65,6 +75,10 @@ mod tests {
     fn test_algorithm_from_str() {
         assert_eq!(Algorithm::from_str("kmeans").unwrap(), Algorithm::KMeans);
         assert_eq!(Algorithm::from_str("dbscan").unwrap(), Algorithm::DBSCAN);
+        assert_eq!(
+            Algorithm::from_str("dbscan++").unwrap(),
+            Algorithm::DBSCANpp
+        );
         assert_eq!(
             Algorithm::from_str("foo").unwrap_err(),
             PaletteError::InvalidAlgorithm

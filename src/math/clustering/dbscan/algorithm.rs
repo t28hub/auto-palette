@@ -10,7 +10,7 @@ const OUTLIER: i32 = -1;
 const MARKED: i32 = -2;
 const UNCLASSIFIED: i32 = -3;
 
-/// A density-based spatial clustering of applications with noise (DBSCAN) algorithm.
+/// DBSCAN clustering algorithm.
 #[derive(Debug)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct DBSCAN {
