@@ -5,9 +5,7 @@ use crate::color::{from_rgb, from_xyz, to_rgb, to_xyz, Lab, D65};
 use crate::errors::PaletteError;
 use crate::image::ImageData;
 use crate::math::clustering::{ClusteringAlgorithm, DBSCAN};
-use crate::math::sampling::fps::FarthestPointSampling;
-use crate::math::sampling::strategy::SamplingStrategy;
-use crate::math::{DistanceMetric, Normalizable, Point5D};
+use crate::math::{DistanceMetric, Normalizable, Point5D, SamplingStrategy};
 use crate::Swatch;
 
 /// Palette struct that contains a list of swatches.
@@ -56,19 +54,24 @@ impl Palette {
     /// The swatches in the palette.
     #[must_use]
     pub fn find_swatches(&self, n: usize) -> Vec<Swatch> {
-        let colors: Vec<_> = self
-            .swatches
-            .iter()
-            .map(|swatch| {
-                let (r, g, b) = swatch.color();
-                let (x, y, z) = from_rgb(r, g, b);
-                let (l, a, b) = from_xyz::<D65>(x, y, z);
-                [l, a, b]
-            })
-            .collect();
+        let mut colors = Vec::with_capacity(self.swatches.len());
+        let mut weights = Vec::with_capacity(self.swatches.len());
+        for swatch in &self.swatches {
+            let (r, g, b) = swatch.color();
+            let (x, y, z) = from_rgb(r, g, b);
+            let (l, a, b) = from_xyz::<D65>(x, y, z);
+            colors.push([l, a, b]);
 
-        let sampling_strategy = FarthestPointSampling::new(DistanceMetric::Euclidean);
-        let sampled = sampling_strategy.sample(&colors, n);
+            let chroma = (a.powi(2) + b.powi(2)).sqrt();
+            if chroma < 60.0 {
+                weights.push(0.0);
+            } else {
+                weights.push(chroma / 180.0);
+            }
+        }
+        let sampling =
+            SamplingStrategy::WeightedFarthestPointSampling(DistanceMetric::Euclidean, weights);
+        let sampled = sampling.sample(&colors, n);
         sampled.iter().map(|&index| self.swatches[index]).collect()
     }
 

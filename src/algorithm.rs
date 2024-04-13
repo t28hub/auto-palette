@@ -38,7 +38,7 @@ impl Algorithm {
                     DistanceMetric::SquaredEuclidean,
                 );
                 let clustering =
-                    KMeans::new(16, 100, 1e-3, DistanceMetric::SquaredEuclidean, strategy).unwrap();
+                    KMeans::new(32, 100, 1e-3, DistanceMetric::SquaredEuclidean, strategy).unwrap();
                 clustering.fit(points)
             }
             Self::DBSCAN => {
