@@ -1,0 +1,15 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 90%
+        threshold: 1%
+        base: auto
+    patch:
+      default:
+        target: 75%
+        threshold: 5%
+        base: auto
+
+codecov:
+  require_ci_to_pass: true
