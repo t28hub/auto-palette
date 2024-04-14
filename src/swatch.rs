@@ -1,17 +1,21 @@
+use crate::color::Color;
+
 /// Swatch represents a color swatch with its position and population.
 ///
 /// # Examples
 /// ```
-/// use auto_palette::Swatch;
+/// use std::str::FromStr;
+/// use auto_palette::{Color, RGB, Swatch};
 ///
-/// let swatch = Swatch::new((255, 0, 64), (5, 10), 384);
-/// assert_eq!(swatch.color(), (255, 0, 64));
+/// let color = Color::from_str("#ff0040").unwrap();
+/// let swatch = Swatch::new(color, (5, 10), 384);
+/// assert_eq!(swatch.color().to_rgb(), RGB::new(255, 0, 64));
 /// assert_eq!(swatch.position(), (5, 10));
 /// assert_eq!(swatch.population(), 384);
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Swatch {
-    color: (u8, u8, u8),
+    color: Color,
     position: (u32, u32),
     population: usize,
 }
@@ -26,7 +30,7 @@ impl Swatch {
     ///
     /// # Returns
     /// A new `Swatch` instance.
-    pub fn new(color: (u8, u8, u8), position: (u32, u32), population: usize) -> Self {
+    pub fn new(color: Color, position: (u32, u32), population: usize) -> Self {
         Self {
             color,
             position,
@@ -39,8 +43,8 @@ impl Swatch {
     /// # Returns
     /// The color of this swatch.
     #[must_use]
-    pub fn color(&self) -> (u8, u8, u8) {
-        self.color
+    pub fn color(&self) -> &Color {
+        &self.color
     }
 
     /// Returns the position of this swatch.
@@ -69,10 +73,11 @@ mod tests {
     #[test]
     fn test_new_swatch() {
         // Act
-        let swatch = Swatch::new((255, 0, 64), (5, 10), 384);
+        let color = Color::new(80.0, 0.0, 0.0);
+        let swatch = Swatch::new(color.clone(), (5, 10), 384);
 
         // Assert
-        assert_eq!(swatch.color(), (255, 0, 64));
+        assert_eq!(swatch.color(), &color);
         assert_eq!(swatch.position(), (5, 10));
         assert_eq!(swatch.population(), 384);
     }

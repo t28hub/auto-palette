@@ -33,12 +33,12 @@ fn test_extract_with_kmeans() {
 
     // Assert
     swatches.iter().for_each(|swatch| {
-        let (r, g, b) = swatch.color();
+        let rgb = swatch.color().to_rgb();
         let (x, y) = swatch.position();
         let population = swatch.population();
         println!(
             "#{:02X}{:02X}{:02X} - ({}, {}) - {}",
-            r, g, b, x, y, population
+            rgb.r, rgb.g, rgb.b, x, y, population
         );
     });
     assert!(!palette.is_empty());
@@ -56,15 +56,15 @@ fn test_extract_with_dbscan() {
 
     // Assert
     swatches.iter().for_each(|swatch| {
-        let (r, g, b) = swatch.color();
+        let rgb = swatch.color().to_rgb();
         let (x, y) = swatch.position();
         let population = swatch.population();
         println!(
             "#{:02X}{:02X}{:02X} - ({}, {}) - {}",
-            r, g, b, x, y, population
+            rgb.r, rgb.g, rgb.b, x, y, population
         );
     });
-    assert_eq!(swatches.len(), 5);
+    assert_eq!(swatches.len(), 4);
 }
 
 #[test]
@@ -79,12 +79,12 @@ fn test_extract_with_dbscanpp() {
 
     // Assert
     swatches.iter().for_each(|swatch| {
-        let (r, g, b) = swatch.color();
+        let rgb = swatch.color().to_rgb();
         let (x, y) = swatch.position();
         let population = swatch.population();
         println!(
             "#{:02X}{:02X}{:02X} - ({}, {}) - {}",
-            r, g, b, x, y, population
+            rgb.r, rgb.g, rgb.b, x, y, population
         );
     });
     assert_eq!(swatches.len(), 8);

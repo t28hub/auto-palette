@@ -1,12 +1,12 @@
 use std::cmp::Reverse;
 
 use crate::algorithm::Algorithm;
-use crate::color::{from_rgb, from_xyz, to_rgb, to_xyz, Lab, D65};
+use crate::color::{rgb_to_xyz, xyz_to_lab, Lab, D65};
 use crate::errors::PaletteError;
 use crate::image::ImageData;
 use crate::math::clustering::{ClusteringAlgorithm, DBSCAN};
 use crate::math::{DistanceMetric, Normalizable, Point5D, SamplingStrategy};
-use crate::Swatch;
+use crate::{Color, Swatch};
 
 /// Palette struct that contains a list of swatches.
 #[derive(Debug)]
@@ -57,12 +57,10 @@ impl Palette {
         let mut colors = Vec::with_capacity(self.swatches.len());
         let mut weights = Vec::with_capacity(self.swatches.len());
         for swatch in &self.swatches {
-            let (r, g, b) = swatch.color();
-            let (x, y, z) = from_rgb(r, g, b);
-            let (l, a, b) = from_xyz::<D65>(x, y, z);
-            colors.push([l, a, b]);
+            let color = swatch.color();
+            colors.push([color.l, color.a, color.b]);
 
-            let chroma = (a.powi(2) + b.powi(2)).sqrt();
+            let chroma = color.chroma();
             if chroma < 60.0 {
                 weights.push(0.0);
             } else {
@@ -155,9 +153,11 @@ impl Palette {
                 let l = best_color[0].denormalize(Lab::MIN_L, Lab::MAX_L);
                 let a = best_color[1].denormalize(Lab::MIN_A, Lab::MAX_A);
                 let b = best_color[2].denormalize(Lab::MIN_B, Lab::MAX_B);
-                let (x, y, z) = to_xyz::<D65>(l, a, b);
-                let (r, g, b) = to_rgb(x, y, z);
-                acc.push(Swatch::new((r, g, b), best_position, total_population));
+                acc.push(Swatch::new(
+                    Color::new(l, a, b),
+                    best_position,
+                    total_population,
+                ));
                 acc
             });
         swatches.sort_by_key(|swatch| Reverse(swatch.population()));
@@ -178,8 +178,8 @@ fn convert_to_pixels(image_data: &ImageData) -> Vec<Point5D> {
             if pixel[3] == 0 {
                 None
             } else {
-                let (x, y, z) = from_rgb(pixel[0], pixel[1], pixel[2]);
-                let (l, a, b) = from_xyz::<D65>(x, y, z);
+                let (x, y, z) = rgb_to_xyz(pixel[0], pixel[1], pixel[2]);
+                let (l, a, b) = xyz_to_lab::<D65>(x, y, z);
                 let x = index % width;
                 let y = index / width;
                 Some([
@@ -196,15 +196,17 @@ fn convert_to_pixels(image_data: &ImageData) -> Vec<Point5D> {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
 
     #[test]
     fn test_new_palette() {
         // Act
         let swatches = vec![
-            Swatch::new((255, 255, 255), (5, 10), 256),
-            Swatch::new((200, 16, 46), (15, 20), 128),
-            Swatch::new((1, 33, 105), (30, 30), 64),
+            Swatch::new(Color::from_str("#FFFFFF").unwrap(), (5, 10), 256),
+            Swatch::new(Color::from_str("#C8102E").unwrap(), (15, 20), 128),
+            Swatch::new(Color::from_str("#012169").unwrap(), (30, 30), 64),
         ];
         let palette = Palette::new(swatches.clone());
 
