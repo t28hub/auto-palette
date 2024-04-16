@@ -2,19 +2,27 @@ use crate::math::metrics::DistanceMetric;
 use crate::math::neighbors::neighbor::Neighbor;
 use crate::math::neighbors::search::NeighborSearch;
 use crate::math::point::Point;
+use crate::math::FloatNumber;
 use std::collections::BinaryHeap;
 
 /// Linear search algorithm for finding nearest neighbors.
 ///
 /// # Type Parameters
+/// * `T` - The floating point type.
 /// * `N` - The dimension of the points.
 #[derive(Debug)]
-pub struct LinearSearch<'a, const N: usize> {
-    points: &'a [Point<N>],
+pub struct LinearSearch<'a, T, const N: usize>
+where
+    T: FloatNumber,
+{
+    points: &'a [Point<T, N>],
     metric: DistanceMetric,
 }
 
-impl<'a, const N: usize> LinearSearch<'a, N> {
+impl<'a, T, const N: usize> LinearSearch<'a, T, N>
+where
+    T: FloatNumber,
+{
     /// Builds a new linear search algorithm.
     ///
     /// # Arguments
@@ -23,14 +31,17 @@ impl<'a, const N: usize> LinearSearch<'a, N> {
     ///
     /// # Returns
     /// A new linear search algorithm.
-    pub fn build(points: &'a [Point<N>], metric: DistanceMetric) -> Self {
+    pub fn build(points: &'a [Point<T, N>], metric: DistanceMetric) -> Self {
         Self { points, metric }
     }
 }
 
-impl<const N: usize> NeighborSearch<N> for LinearSearch<'_, N> {
+impl<T, const N: usize> NeighborSearch<T, N> for LinearSearch<'_, T, N>
+where
+    T: FloatNumber,
+{
     #[must_use]
-    fn search(&self, query: &Point<N>, k: usize) -> Vec<Neighbor> {
+    fn search(&self, query: &Point<T, N>, k: usize) -> Vec<Neighbor<T>> {
         let mut neighbors = BinaryHeap::with_capacity(k);
         for (index, point) in self.points.iter().enumerate() {
             let distance = self.metric.measure(query, point);
@@ -44,8 +55,8 @@ impl<const N: usize> NeighborSearch<N> for LinearSearch<'_, N> {
     }
 
     #[must_use]
-    fn search_nearest(&self, query: &Point<N>) -> Option<Neighbor> {
-        let mut nearest = Neighbor::new(0, f32::INFINITY);
+    fn search_nearest(&self, query: &Point<T, N>) -> Option<Neighbor<T>> {
+        let mut nearest = Neighbor::new(0, T::infinity());
         for (index, other) in self.points.iter().enumerate() {
             let distance = self.metric.measure(query, other);
             if distance < nearest.distance {
@@ -57,7 +68,7 @@ impl<const N: usize> NeighborSearch<N> for LinearSearch<'_, N> {
     }
 
     #[must_use]
-    fn search_radius(&self, query: &Point<N>, radius: f32) -> Vec<Neighbor> {
+    fn search_radius(&self, query: &Point<T, N>, radius: T) -> Vec<Neighbor<T>> {
         let mut neighbors = Vec::new();
         for (index, point) in self.points.iter().enumerate() {
             let distance = self.metric.measure(query, point);

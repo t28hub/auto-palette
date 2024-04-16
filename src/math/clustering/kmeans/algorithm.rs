@@ -4,22 +4,33 @@ use crate::math::metrics::DistanceMetric;
 use crate::math::neighbors::linear::LinearSearch;
 use crate::math::neighbors::search::NeighborSearch;
 use crate::math::point::Point;
+use crate::math::FloatNumber;
 use rand::Rng;
 
 /// A k-means clustering algorithm.
 ///
 /// # Type Parameters
+/// * `T` - The floating point type.
+/// * `N` - The number of dimensions.
 /// * `R` - The random number generator.
 #[derive(Debug)]
-pub struct KMeans<R: Rng + Clone> {
+pub struct KMeans<T, const N: usize, R>
+where
+    T: FloatNumber,
+    R: Rng + Clone,
+{
     k: usize,
     max_iter: usize,
-    tolerance: f32,
+    tolerance: T,
     metric: DistanceMetric,
     strategy: InitializationStrategy<R>,
 }
 
-impl<R: Rng + Clone> KMeans<R> {
+impl<T, const N: usize, R> KMeans<T, N, R>
+where
+    T: FloatNumber,
+    R: Rng + Clone,
+{
     /// Creates a new `Kmeans` instance.
     ///
     /// # Arguments
@@ -38,7 +49,7 @@ impl<R: Rng + Clone> KMeans<R> {
     pub fn new(
         k: usize,
         max_iter: usize,
-        tolerance: f32,
+        tolerance: T,
         metric: DistanceMetric,
         strategy: InitializationStrategy<R>,
     ) -> Result<Self, &'static str> {
@@ -48,7 +59,7 @@ impl<R: Rng + Clone> KMeans<R> {
         if max_iter == 0 {
             return Err("The maximum number of iterations must be greater than zero.");
         }
-        if tolerance <= 0.0 {
+        if tolerance <= T::zero() {
             return Err("The tolerance must be greater than zero.");
         }
         Ok(Self {
@@ -61,11 +72,11 @@ impl<R: Rng + Clone> KMeans<R> {
     }
 
     #[must_use]
-    fn iterate<const N: usize>(
+    fn iterate(
         &self,
-        points: &[Point<N>],
-        centroids: &mut [Point<N>],
-        clusters: &mut [Cluster<N>],
+        points: &[Point<T, N>],
+        centroids: &mut [Point<T, N>],
+        clusters: &mut [Cluster<T, N>],
     ) -> bool {
         for cluster in clusters.iter_mut() {
             cluster.clear();
@@ -80,7 +91,7 @@ impl<R: Rng + Clone> KMeans<R> {
         }
 
         let mut converged = true;
-        let new_centroids: Vec<Point<N>> =
+        let new_centroids: Vec<Point<T, N>> =
             clusters.iter().map(|cluster| *cluster.centroid()).collect();
         for (old, new) in centroids.iter().zip(&new_centroids) {
             let distance = self.metric.measure(old, new);
@@ -94,12 +105,13 @@ impl<R: Rng + Clone> KMeans<R> {
     }
 }
 
-impl<R> ClusteringAlgorithm for KMeans<R>
+impl<T, const N: usize, R> ClusteringAlgorithm<T, N> for KMeans<T, N, R>
 where
+    T: FloatNumber,
     R: Rng + Clone,
 {
     #[must_use]
-    fn fit<const N: usize>(&self, points: &[Point<N>]) -> Vec<Cluster<N>> {
+    fn fit(&self, points: &[Point<T, N>]) -> Vec<Cluster<T, N>> {
         if points.is_empty() {
             return Vec::new();
         }
@@ -131,13 +143,14 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand::rngs::ThreadRng;
 
     #[test]
     fn test_new_kmeans() {
         // Act
         let metric = DistanceMetric::Euclidean;
         let strategy = InitializationStrategy::Random(rand::thread_rng());
-        let kmeans = KMeans::new(3, 10, 1e-3, metric, strategy).unwrap();
+        let kmeans: KMeans<f32, 3, ThreadRng> = KMeans::new(3, 10, 1e-3, metric, strategy).unwrap();
 
         // Assert
         assert_eq!(kmeans.k, 3);
@@ -151,7 +164,7 @@ mod tests {
         // Arrange
         let metric = DistanceMetric::Euclidean;
         let strategy = InitializationStrategy::Random(rand::thread_rng());
-        let kmeans = KMeans::new(3, 10, 1e-3, metric, strategy).unwrap();
+        let kmeans: KMeans<f32, 3, ThreadRng> = KMeans::new(3, 10, 1e-3, metric, strategy).unwrap();
 
         // Act
         let points = [
@@ -175,10 +188,10 @@ mod tests {
         // Arrange
         let metric = DistanceMetric::Euclidean;
         let strategy = InitializationStrategy::Random(rand::thread_rng());
-        let kmeans = KMeans::new(3, 10, 1e-3, metric, strategy).unwrap();
+        let kmeans: KMeans<f32, 3, ThreadRng> = KMeans::new(3, 10, 1e-3, metric, strategy).unwrap();
 
         // Act
-        let clusters = kmeans.fit::<3>(&[]);
+        let clusters = kmeans.fit(&[]);
 
         // Assert
         assert_eq!(clusters.len(), 0);

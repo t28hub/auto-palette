@@ -1,11 +1,16 @@
 use crate::math::neighbors::neighbor::Neighbor;
 use crate::math::point::Point;
+use crate::math::FloatNumber;
 
 /// Trait for neighbor search algorithms.
 ///
 /// # Type Parameters
+/// * `T` - The floating point type.
 /// * `N` - The dimension of the points.
-pub trait NeighborSearch<const N: usize> {
+pub trait NeighborSearch<T, const N: usize>
+where
+    T: FloatNumber,
+{
     /// Searches for the k nearest neighbors of a point.
     ///
     /// # Arguments
@@ -14,7 +19,7 @@ pub trait NeighborSearch<const N: usize> {
     ///
     /// # Returns
     /// The k nearest neighbors.
-    fn search(&self, query: &Point<N>, k: usize) -> Vec<Neighbor>;
+    fn search(&self, query: &Point<T, N>, k: usize) -> Vec<Neighbor<T>>;
 
     /// Searches for the nearest neighbor of a point.
     ///
@@ -23,7 +28,7 @@ pub trait NeighborSearch<const N: usize> {
     ///
     /// # Returns
     /// The nearest neighbor.
-    fn search_nearest(&self, query: &Point<N>) -> Option<Neighbor>;
+    fn search_nearest(&self, query: &Point<T, N>) -> Option<Neighbor<T>>;
 
     /// Searches for the neighbors within a given radius of a point.
     ///
@@ -33,5 +38,5 @@ pub trait NeighborSearch<const N: usize> {
     ///
     /// # Returns
     /// The neighbors within the given radius.
-    fn search_radius(&self, query: &Point<N>, radius: f32) -> Vec<Neighbor>;
+    fn search_radius(&self, query: &Point<T, N>, radius: T) -> Vec<Neighbor<T>>;
 }

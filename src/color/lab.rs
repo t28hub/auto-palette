@@ -1,64 +1,142 @@
 use crate::color::white_point::WhitePoint;
 use crate::color::D65;
+use crate::math::FloatNumber;
 use crate::XYZ;
+use num_traits::clamp;
 use std::fmt::Display;
 
 /// Color represented in the CIE L*a*b* color space.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
 ///
 /// # Fields
 /// * `l` - The L component.
 /// * `a` - The a component.
 /// * `b` - The b component.
 #[derive(Debug, Clone, Default, PartialEq)]
-pub struct Lab {
-    pub l: f32,
-    pub a: f32,
-    pub b: f32,
+pub struct Lab<T>
+where
+    T: FloatNumber,
+{
+    pub l: T,
+    pub a: T,
+    pub b: T,
 }
 
-impl Lab {
-    /// Minimum value of the L component.
-    pub(crate) const MIN_L: f32 = 0.0;
-
-    /// Maximum value of the L component.
-    pub(crate) const MAX_L: f32 = 100.0;
-
-    /// Minimum value of the a component.
-    pub(crate) const MIN_A: f32 = -128.0;
-
-    /// Maximum value of the a component.
-    pub(crate) const MAX_A: f32 = 127.0;
-
-    /// Minimum value of the b component.
-    pub(crate) const MIN_B: f32 = -128.0;
-
-    /// Maximum value of the b component.
-    pub(crate) const MAX_B: f32 = 127.0;
-
+impl<T> Lab<T>
+where
+    T: FloatNumber,
+{
     /// Creates a new `Lab` instance.
     ///
     /// # Arguments
     /// * `l` - The L component.
     /// * `a` - The a component.
     /// * `b` - The b component.
-    pub fn new(l: f32, a: f32, b: f32) -> Self {
+    #[must_use]
+    pub fn new(l: T, a: T, b: T) -> Self {
         Self {
-            l: l.clamp(Self::MIN_L, Self::MAX_L),
-            a: a.clamp(Self::MIN_A, Self::MAX_A),
-            b: b.clamp(Self::MIN_B, Self::MAX_B),
+            l: clamp(l, Lab::min_l(), Lab::max_l()),
+            a: clamp(a, Lab::min_a(), Lab::max_a()),
+            b: clamp(b, Lab::min_b(), Lab::max_b()),
         }
+    }
+
+    /// Returns the minimum value of the L component.
+    ///
+    /// # Type Parameters
+    /// * `T` - The floating point type.
+    ///
+    /// # Returns
+    /// The minimum value of the L component.
+    #[inline]
+    #[must_use]
+    pub(crate) fn min_l() -> T {
+        T::zero()
+    }
+
+    /// Returns the maximum value of the L component.
+    ///
+    /// # Type Parameters
+    /// * `T` - The floating point type.
+    ///
+    /// # Returns
+    /// The maximum value of the L component.
+    #[inline]
+    #[must_use]
+    pub(crate) fn max_l() -> T {
+        T::from_f32(100.0)
+    }
+
+    /// Returns the minimum value of the a component.
+    ///
+    /// # Type Parameters
+    /// * `T` - The floating point type.
+    ///
+    /// # Returns
+    /// The minimum value of the a component.
+    #[inline]
+    #[must_use]
+    pub(crate) fn min_a() -> T {
+        T::from_f32(-128.0)
+    }
+
+    /// Returns the maximum value of the a component.
+    ///
+    /// # Type Parameters
+    /// * `T` - The floating point type.
+    ///
+    /// # Returns
+    /// The maximum value of the a component.
+    #[inline]
+    #[must_use]
+    pub(crate) fn max_a() -> T {
+        T::from_f32(127.0)
+    }
+
+    /// Returns the minimum value of the b component.
+    ///
+    /// # Type Parameters
+    /// * `T` - The floating point type.
+    ///
+    /// # Returns
+    /// The minimum value of the b component.
+    #[inline]
+    #[must_use]
+    pub(crate) fn min_b() -> T {
+        T::from_f32(-128.0)
+    }
+
+    /// Returns the maximum value of the b component.
+    ///
+    /// # Type Parameters
+    /// * `T` - The floating point type.
+    ///
+    /// # Returns
+    /// The maximum value of the b component.
+    #[inline]
+    #[must_use]
+    pub(crate) fn max_b() -> T {
+        T::from_f32(127.0)
     }
 }
 
-impl Display for Lab {
+impl<T> Display for Lab<T>
+where
+    T: FloatNumber,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Lab({}, {}, {})", self.l, self.a, self.b)
     }
 }
 
-impl From<&XYZ> for Lab {
-    fn from(xyz: &XYZ) -> Self {
-        let (l, a, b) = xyz_to_lab::<D65>(xyz.x, xyz.y, xyz.z);
+impl<T> From<&XYZ<T>> for Lab<T>
+where
+    T: FloatNumber,
+{
+    fn from(xyz: &XYZ<T>) -> Self {
+        let (l, a, b) = xyz_to_lab::<T, D65>(xyz.x, xyz.y, xyz.z);
         Lab::new(l, a, b)
     }
 }
@@ -66,6 +144,7 @@ impl From<&XYZ> for Lab {
 /// Converts the CIE XYZ color space to the CIE L*a*b* color space.
 ///
 /// # Type Parameters
+/// * `T` - The floating point type.
 /// * `WP` - The white point.
 ///
 /// # Arguments
@@ -77,15 +156,16 @@ impl From<&XYZ> for Lab {
 /// The L*a*b* color space representation of the XYZ color. The tuple contains the L, a, and b components.
 #[inline]
 #[must_use]
-pub fn xyz_to_lab<WP>(x: f32, y: f32, z: f32) -> (f32, f32, f32)
+pub fn xyz_to_lab<T, WP>(x: T, y: T, z: T) -> (T, T, T)
 where
+    T: FloatNumber,
     WP: WhitePoint,
 {
-    let epsilon = (6.0 / 29.0_f32).powi(3);
-    let kappa = 841.0 / 108.0; // ((29.0 / 6.0) ^ 2) / 3.0
-    let delta = 4.0 / 29.0;
+    let epsilon = T::from_f64(6.0 / 29.0).powi(3);
+    let kappa = T::from_f64(841.0 / 108.0); // ((29.0 / 6.0) ^ 2) / 3.0
+    let delta = T::from_f64(4.0 / 29.0);
 
-    let f = |t: f32| -> f32 {
+    let f = |t: T| -> T {
         if t > epsilon {
             t.cbrt()
         } else {
@@ -97,13 +177,13 @@ where
     let fy = f(y / WP::y());
     let fz = f(z / WP::z());
 
-    let l = 116.0 * fy - 16.0;
-    let a = 500.0 * (fx - fy);
-    let b = 200.0 * (fy - fz);
+    let l = T::from_f32(116.0) * fy - T::from_f32(16.0);
+    let a = T::from_f32(500.0) * (fx - fy);
+    let b = T::from_f32(200.0) * (fy - fz);
     (
-        l.clamp(Lab::MIN_L, Lab::MAX_L),
-        a.clamp(Lab::MIN_A, Lab::MAX_A),
-        b.clamp(Lab::MIN_B, Lab::MAX_B),
+        clamp(l, Lab::min_l(), Lab::max_l()),
+        clamp(a, Lab::min_a(), Lab::max_a()),
+        clamp(b, Lab::min_b(), Lab::max_b()),
     )
 }
 
@@ -135,8 +215,8 @@ mod tests {
     #[test]
     fn test_from_xyz() {
         // Act
-        let xyz = XYZ::new(0.3576, 0.7152, 0.1192);
-        let lab = Lab::from(&xyz);
+        let xyz: XYZ<f64> = XYZ::new(0.3576, 0.7152, 0.1192);
+        let lab: Lab<f64> = Lab::from(&xyz);
 
         // Assert
         assert!((lab.l - 87.7376).abs() < 1e-3);
@@ -155,7 +235,7 @@ mod tests {
     #[case::yellow((0.7700, 0.9278, 0.1385), (97.1382, - 21.5551, 94.4825))]
     fn test_xyz_to_lab(#[case] xyz: (f32, f32, f32), #[case] lab: (f32, f32, f32)) {
         // Act
-        let (l, a, b) = xyz_to_lab::<D65>(xyz.0, xyz.1, xyz.2);
+        let (l, a, b) = xyz_to_lab::<f32, D65>(xyz.0, xyz.1, xyz.2);
 
         // Assert
         assert!((l - lab.0).abs() < 1e-3);

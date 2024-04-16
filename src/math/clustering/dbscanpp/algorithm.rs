@@ -2,7 +2,7 @@ use crate::math::clustering::{Cluster, ClusteringAlgorithm};
 use crate::math::neighbors::kdtree::KDTreeSearch;
 use crate::math::neighbors::neighbor::Neighbor;
 use crate::math::neighbors::search::NeighborSearch;
-use crate::math::{DistanceMetric, Point};
+use crate::math::{DistanceMetric, FloatNumber, Point};
 use std::collections::{HashMap, VecDeque};
 
 const OUTLIER: i32 = -1;
@@ -10,15 +10,24 @@ const MARKED: i32 = -2;
 const UNCLASSIFIED: i32 = -3;
 
 /// DBSCAN++ clustering algorithm.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
 #[derive(Debug)]
-pub struct DBSCANpp {
-    probability: f32,
+pub struct DBSCANpp<T>
+where
+    T: FloatNumber,
+{
+    probability: T,
     min_points: usize,
-    epsilon: f32,
+    epsilon: T,
     metric: DistanceMetric,
 }
 
-impl DBSCANpp {
+impl<T> DBSCANpp<T>
+where
+    T: FloatNumber,
+{
     /// Creates a new `DBSCANpp` instance.
     ///
     /// # Arguments
@@ -30,18 +39,18 @@ impl DBSCANpp {
     /// # Returns
     /// A new `DBSCANpp` instance.
     pub fn new(
-        probability: f32,
+        probability: T,
         min_points: usize,
-        epsilon: f32,
+        epsilon: T,
         metric: DistanceMetric,
     ) -> Result<Self, &'static str> {
-        if !(0.0..=1.0).contains(&probability) {
+        if !(T::zero()..=T::one()).contains(&probability) {
             return Err("The probability must be in the range [0, 1].");
         }
         if min_points == 0 {
             return Err("The minimum number of points must be greater than zero.");
         }
-        if epsilon <= 0.0 {
+        if epsilon <= T::zero() {
             return Err("The epsilon must be greater than zero.");
         }
         Ok(Self {
@@ -53,15 +62,15 @@ impl DBSCANpp {
     }
 
     #[must_use]
-    fn find_core_points<NS, const N: usize>(
+    fn find_core_points<const N: usize, NS>(
         &self,
-        points: &[Point<N>],
+        points: &[Point<T, N>],
         points_search: &NS,
-    ) -> Vec<Point<N>>
+    ) -> Vec<Point<T, N>>
     where
-        NS: NeighborSearch<N>,
+        NS: NeighborSearch<T, N>,
     {
-        let step = (1.0 / self.probability).round() as usize;
+        let step = (T::one() / self.probability).round().to_usize_unsafe();
         points
             .iter()
             .step_by(step)
@@ -79,8 +88,8 @@ impl DBSCANpp {
     #[must_use]
     fn label_core_points<const N: usize>(
         &self,
-        core_points: &[Point<N>],
-        core_points_search: &KDTreeSearch<N>,
+        core_points: &[Point<T, N>],
+        core_points_search: &KDTreeSearch<T, N>,
     ) -> Vec<i32> {
         let mut label = 0;
         let mut labels = vec![UNCLASSIFIED; core_points.len()];
@@ -115,15 +124,15 @@ impl DBSCANpp {
     }
 
     #[inline]
-    fn expand_cluster<NS, const N: usize>(
+    fn expand_cluster<const N: usize, NS>(
         &self,
         label: i32,
         labels: &mut [i32],
-        points: &[Point<N>],
-        neighbors: Vec<Neighbor>,
+        points: &[Point<T, N>],
+        neighbors: Vec<Neighbor<T>>,
         neighbor_search: &NS,
     ) where
-        NS: NeighborSearch<N>,
+        NS: NeighborSearch<T, N>,
     {
         let mut queue = VecDeque::from(neighbors);
         while let Some(neighbor) = queue.pop_front() {
@@ -159,14 +168,14 @@ impl DBSCANpp {
     }
 
     #[must_use]
-    fn assign_clusters<NS, const N: usize>(
+    fn assign_clusters<const N: usize, NS>(
         &self,
-        points: &[Point<N>],
+        points: &[Point<T, N>],
         core_labels: &[i32],
         core_points_search: &NS,
-    ) -> Vec<Cluster<N>>
+    ) -> Vec<Cluster<T, N>>
     where
-        NS: NeighborSearch<N>,
+        NS: NeighborSearch<T, N>,
     {
         let mut clusters = HashMap::new();
         for (index, point) in points.iter().enumerate() {
@@ -190,9 +199,12 @@ impl DBSCANpp {
     }
 }
 
-impl ClusteringAlgorithm for DBSCANpp {
+impl<T, const N: usize> ClusteringAlgorithm<T, N> for DBSCANpp<T>
+where
+    T: FloatNumber,
+{
     #[must_use]
-    fn fit<const N: usize>(&self, points: &[Point<N>]) -> Vec<Cluster<N>> {
+    fn fit(&self, points: &[Point<T, N>]) -> Vec<Cluster<T, N>> {
         if points.is_empty() {
             return Vec::new();
         }

@@ -5,16 +5,25 @@ use crate::color::{rgb_to_xyz, xyz_to_lab, Lab, D65};
 use crate::errors::PaletteError;
 use crate::image::ImageData;
 use crate::math::clustering::{ClusteringAlgorithm, DBSCAN};
-use crate::math::{DistanceMetric, Normalizable, Point5D, SamplingStrategy};
+use crate::math::{denormalize, normalize, DistanceMetric, FloatNumber, Point, SamplingStrategy};
 use crate::{Color, Swatch};
 
-/// Palette struct that contains a list of swatches.
+/// Palette struct representing a collection of swatches.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
 #[derive(Debug)]
-pub struct Palette {
-    swatches: Vec<Swatch>,
+pub struct Palette<T>
+where
+    T: FloatNumber,
+{
+    swatches: Vec<Swatch<T>>,
 }
 
-impl Palette {
+impl<T> Palette<T>
+where
+    T: FloatNumber,
+{
     /// Creates a new `Palette` instance.
     ///
     /// # Arguments
@@ -23,7 +32,7 @@ impl Palette {
     /// # Returns
     /// A new `Palette` instance.
     #[must_use]
-    pub fn new(swatches: Vec<Swatch>) -> Self {
+    pub fn new(swatches: Vec<Swatch<T>>) -> Self {
         Self { swatches }
     }
 
@@ -53,7 +62,7 @@ impl Palette {
     /// # Returns
     /// The swatches in the palette.
     #[must_use]
-    pub fn find_swatches(&self, n: usize) -> Vec<Swatch> {
+    pub fn find_swatches(&self, n: usize) -> Vec<Swatch<T>> {
         let mut colors = Vec::with_capacity(self.swatches.len());
         let mut weights = Vec::with_capacity(self.swatches.len());
         for swatch in &self.swatches {
@@ -61,13 +70,13 @@ impl Palette {
             colors.push([color.l, color.a, color.b]);
 
             let chroma = color.chroma();
-            if chroma < 60.0 {
-                weights.push(0.0);
+            if chroma < T::from_f32(60.0) {
+                weights.push(T::zero());
             } else {
-                weights.push(chroma / 180.0);
+                weights.push(chroma / T::from_f32(180.0));
             }
         }
-        let sampling =
+        let sampling: SamplingStrategy<T> =
             SamplingStrategy::WeightedFarthestPointSampling(DistanceMetric::Euclidean, weights);
         let sampled = sampling.sample(&colors, n);
         sampled.iter().map(|&index| self.swatches[index]).collect()
@@ -102,25 +111,28 @@ impl Palette {
         }
 
         let points = convert_to_pixels(image_data);
-        let pixel_clusters = algorithm.cluster(&points);
-        let colors: Vec<_> = pixel_clusters
+        let pixel_clusters = algorithm.cluster::<T, 5>(&points);
+        let colors: Vec<Point<T, 3>> = pixel_clusters
             .iter()
             .map(|cluster| {
                 let centroid = cluster.centroid();
                 [
-                    centroid[0].denormalize(Lab::MIN_L, Lab::MAX_L),
-                    centroid[1].denormalize(Lab::MIN_A, Lab::MAX_A),
-                    centroid[2].denormalize(Lab::MIN_B, Lab::MAX_B),
+                    denormalize(centroid[0], Lab::min_l(), Lab::max_l()),
+                    denormalize(centroid[1], Lab::min_a(), Lab::max_a()),
+                    denormalize(centroid[2], Lab::min_b(), Lab::max_b()),
                 ]
             })
             .collect();
 
-        let algorithm = DBSCAN::new(1, 2.5, DistanceMetric::Euclidean).unwrap();
+        let width_f = T::from_u32(image_data.width());
+        let height_f = T::from_u32(image_data.height());
+
+        let algorithm = DBSCAN::new(1, T::from_f32(2.5), DistanceMetric::Euclidean).unwrap();
         let color_clusters = algorithm.fit(&colors);
         let mut swatches = color_clusters
             .iter()
             .fold(Vec::new(), |mut acc, color_cluster| {
-                let mut best_color = [0.0, 0.0, 0.0];
+                let mut best_color = [T::zero(); 3];
                 let mut best_position = (0, 0);
                 let mut best_population = 0;
                 let mut total_population = 0;
@@ -133,26 +145,26 @@ impl Palette {
                         continue;
                     }
 
-                    let fraction =
-                        pixel_cluster.len() as f32 / (pixel_cluster.len() + best_population) as f32;
+                    let fraction = T::from_usize(pixel_cluster.len())
+                        / T::from_usize(pixel_cluster.len() + best_population);
                     let centroid = pixel_cluster.centroid();
                     best_color[0] += fraction * (centroid[0] - best_color[0]);
                     best_color[1] += fraction * (centroid[1] - best_color[1]);
                     best_color[2] += fraction * (centroid[2] - best_color[2]);
 
-                    if fraction >= 0.5 {
+                    if fraction >= T::from_f32(0.5) {
                         best_position.0 =
-                            centroid[3].denormalize(0.0, image_data.width() as f32) as u32;
+                            denormalize(centroid[3], T::zero(), width_f).to_u32_unsafe();
                         best_position.1 =
-                            centroid[4].denormalize(0.0, image_data.height() as f32) as u32;
+                            denormalize(centroid[4], T::zero(), height_f).to_u32_unsafe();
                         best_population = pixel_cluster.len();
                     }
                     total_population += pixel_cluster.len();
                 }
 
-                let l = best_color[0].denormalize(Lab::MIN_L, Lab::MAX_L);
-                let a = best_color[1].denormalize(Lab::MIN_A, Lab::MAX_A);
-                let b = best_color[2].denormalize(Lab::MIN_B, Lab::MAX_B);
+                let l = denormalize(best_color[0], Lab::min_l(), Lab::max_l());
+                let a = denormalize(best_color[1], Lab::min_a(), Lab::max_a());
+                let b = denormalize(best_color[2], Lab::min_b(), Lab::max_b());
                 acc.push(Swatch::new(
                     Color::new(l, a, b),
                     best_position,
@@ -166,9 +178,14 @@ impl Palette {
 }
 
 #[must_use]
-fn convert_to_pixels(image_data: &ImageData) -> Vec<Point5D> {
+fn convert_to_pixels<T>(image_data: &ImageData) -> Vec<Point<T, 5>>
+where
+    T: FloatNumber,
+{
     let width = image_data.width() as usize;
     let height = image_data.height() as usize;
+    let width_f = T::from_usize(width);
+    let height_f = T::from_usize(height);
     image_data
         .pixels()
         .chunks(4)
@@ -178,16 +195,16 @@ fn convert_to_pixels(image_data: &ImageData) -> Vec<Point5D> {
             if pixel[3] == 0 {
                 None
             } else {
-                let (x, y, z) = rgb_to_xyz(pixel[0], pixel[1], pixel[2]);
-                let (l, a, b) = xyz_to_lab::<D65>(x, y, z);
-                let x = index % width;
-                let y = index / width;
+                let (x, y, z) = rgb_to_xyz::<T>(pixel[0], pixel[1], pixel[2]);
+                let (l, a, b) = xyz_to_lab::<T, D65>(x, y, z);
+                let x = T::from_usize(index % width);
+                let y = T::from_usize(index / width);
                 Some([
-                    l.normalize(Lab::MIN_L, Lab::MAX_L),
-                    a.normalize(Lab::MIN_A, Lab::MAX_A),
-                    b.normalize(Lab::MIN_B, Lab::MAX_B),
-                    (x as f32).normalize(0.0, width as f32),
-                    (y as f32).normalize(0.0, height as f32),
+                    normalize(l, Lab::min_l(), Lab::max_l()),
+                    normalize(a, Lab::min_a(), Lab::max_a()),
+                    normalize(b, Lab::min_b(), Lab::max_b()),
+                    normalize(x, T::zero(), width_f),
+                    normalize(y, T::zero(), height_f),
                 ])
             }
         })
@@ -204,9 +221,9 @@ mod tests {
     fn test_new_palette() {
         // Act
         let swatches = vec![
-            Swatch::new(Color::from_str("#FFFFFF").unwrap(), (5, 10), 256),
-            Swatch::new(Color::from_str("#C8102E").unwrap(), (15, 20), 128),
-            Swatch::new(Color::from_str("#012169").unwrap(), (30, 30), 64),
+            Swatch::<f32>::new(Color::from_str("#FFFFFF").unwrap(), (5, 10), 256),
+            Swatch::<f32>::new(Color::from_str("#C8102E").unwrap(), (15, 20), 128),
+            Swatch::<f32>::new(Color::from_str("#012169").unwrap(), (30, 30), 64),
         ];
         let palette = Palette::new(swatches.clone());
 
@@ -220,7 +237,7 @@ mod tests {
     fn test_new_palette_empty() {
         // Act
         let swatches = vec![];
-        let palette = Palette::new(swatches.clone());
+        let palette: Palette<f32> = Palette::new(swatches.clone());
 
         // Assert
         assert!(palette.is_empty());
@@ -233,7 +250,7 @@ mod tests {
         let image_data = ImageData::load("./tests/assets/flag_uk.png").unwrap();
 
         // Act
-        let palette = Palette::extract(&image_data).unwrap();
+        let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
 
         // Assert
         assert!(!palette.is_empty());
@@ -247,7 +264,8 @@ mod tests {
             ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
 
         // Act
-        let palette = Palette::extract_with_algorithm(&image_data, Algorithm::KMeans).unwrap();
+        let palette: Palette<f32> =
+            Palette::extract_with_algorithm(&image_data, Algorithm::KMeans).unwrap();
 
         // Assert
         assert!(!palette.is_empty());
@@ -260,7 +278,7 @@ mod tests {
         let image_data = ImageData::new(0, 0, vec![]).unwrap();
 
         // Act
-        let result = Palette::extract(&image_data);
+        let result = Palette::<f32>::extract(&image_data);
 
         // Assert
         assert!(result.is_err());

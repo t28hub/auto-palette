@@ -1,17 +1,25 @@
 use crate::math::point::Point;
+use crate::math::FloatNumber;
 use std::collections::HashSet;
 
 /// Cluster represents a cluster of points.
 ///
 /// # Type Parameters
+/// * `T` - The floating point type.
 /// * `N` - The number of dimensions.
 #[derive(Debug, Clone)]
-pub struct Cluster<const N: usize> {
+pub struct Cluster<T, const N: usize>
+where
+    T: FloatNumber,
+{
     members: HashSet<usize>,
-    centroid: Point<N>,
+    centroid: Point<T, N>,
 }
 
-impl<const N: usize> Cluster<N> {
+impl<T, const N: usize> Cluster<T, N>
+where
+    T: FloatNumber,
+{
     /// Creates a new `Cluster` instance.
     ///
     /// # Returns
@@ -20,7 +28,7 @@ impl<const N: usize> Cluster<N> {
     pub fn new() -> Self {
         Self {
             members: HashSet::new(),
-            centroid: [0.0; N],
+            centroid: [T::zero(); N],
         }
     }
 
@@ -55,7 +63,7 @@ impl<const N: usize> Cluster<N> {
     /// # Returns
     /// The centroid of this cluster.
     #[must_use]
-    pub fn centroid(&self) -> &Point<N> {
+    pub fn centroid(&self) -> &Point<T, N> {
         &self.centroid
     }
 
@@ -67,14 +75,14 @@ impl<const N: usize> Cluster<N> {
     ///
     /// # Returns
     /// `true` if the point is added; `false` otherwise.
-    pub fn add_member(&mut self, index: usize, point: &Point<N>) -> bool {
+    pub fn add_member(&mut self, index: usize, point: &Point<T, N>) -> bool {
         if !self.members.insert(index) {
             return false;
         }
 
-        let size = self.members.len() as f32;
-        for (i, value) in point.iter().enumerate() {
-            self.centroid[i] *= (size - 1.0) / size;
+        let size = T::from_usize(self.members.len());
+        for (i, &value) in point.iter().enumerate() {
+            self.centroid[i] *= (size - T::one()) / size;
             self.centroid[i] += value / size;
         }
         true
@@ -82,7 +90,7 @@ impl<const N: usize> Cluster<N> {
 
     /// Clears this cluster and resets the centroid.
     pub fn clear(&mut self) {
-        self.centroid = [0.0; N];
+        self.centroid = [T::zero(); N];
         self.members.clear();
     }
 }
@@ -94,7 +102,7 @@ mod tests {
     #[test]
     fn test_new_cluster() {
         // Act
-        let cluster = Cluster::<2>::new();
+        let cluster: Cluster<f32, 2> = Cluster::new();
 
         // Assert
         assert!(cluster.is_empty());
@@ -106,7 +114,7 @@ mod tests {
     #[test]
     fn test_add_member() {
         // Arrange
-        let mut cluster = Cluster::<2>::new();
+        let mut cluster: Cluster<f32, 2> = Cluster::new();
 
         // Act & Assert
         let point = [1.0, 2.0];
@@ -149,7 +157,7 @@ mod tests {
     #[test]
     fn test_clear() {
         // Arrange
-        let mut cluster = Cluster::<2>::new();
+        let mut cluster: Cluster<f32, 2> = Cluster::new();
         cluster.add_member(0, &[1.0, 2.0]);
         cluster.add_member(1, &[2.0, 4.0]);
         cluster.add_member(2, &[3.0, 6.0]);

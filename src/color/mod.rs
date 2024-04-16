@@ -3,6 +3,7 @@ mod rgb;
 mod white_point;
 mod xyz;
 
+use crate::math::FloatNumber;
 pub use lab::{xyz_to_lab, Lab};
 pub use rgb::RGB;
 use std::fmt;
@@ -12,6 +13,9 @@ pub use white_point::D65;
 pub use xyz::{rgb_to_xyz, XYZ};
 
 /// Struct representing a color.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
 ///
 /// # Examples
 /// ```
@@ -25,13 +29,19 @@ pub use xyz::{rgb_to_xyz, XYZ};
 /// assert_eq!(color.hue(), 282.6622);
 ///```
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Color {
-    pub(super) l: f32,
-    pub(super) a: f32,
-    pub(super) b: f32,
+pub struct Color<T>
+where
+    T: FloatNumber,
+{
+    pub(super) l: T,
+    pub(super) a: T,
+    pub(super) b: T,
 }
 
-impl Color {
+impl<T> Color<T>
+where
+    T: FloatNumber,
+{
     /// Creates a new `Color` instance.
     ///
     /// # Arguments
@@ -42,7 +52,7 @@ impl Color {
     /// # Returns
     /// A new `Color` instance.
     #[must_use]
-    pub(crate) fn new(l: f32, a: f32, b: f32) -> Self {
+    pub(crate) fn new(l: T, a: T, b: T) -> Self {
         Self { l, a, b }
     }
 
@@ -52,7 +62,7 @@ impl Color {
     /// `true` if the color is light, otherwise `false`.
     #[must_use]
     pub fn is_light(&self) -> bool {
-        self.l > 50.0
+        self.l > T::from_f32(50.0)
     }
 
     /// Returns whether this color is dark.
@@ -69,7 +79,7 @@ impl Color {
     /// # Returns
     /// The lightness of this color.
     #[must_use]
-    pub fn lightness(&self) -> f32 {
+    pub fn lightness(&self) -> T {
         self.l
     }
 
@@ -78,7 +88,7 @@ impl Color {
     /// # Returns
     /// The chroma of this color.
     #[must_use]
-    pub fn chroma(&self) -> f32 {
+    pub fn chroma(&self) -> T {
         (self.a.powi(2) + self.b.powi(2)).sqrt()
     }
 
@@ -87,10 +97,10 @@ impl Color {
     /// # Returns
     /// The hue of this color.
     #[must_use]
-    pub fn hue(&self) -> f32 {
+    pub fn hue(&self) -> T {
         let mut hue = self.b.atan2(self.a).to_degrees();
-        if hue < 0.0 {
-            hue += 360.0;
+        if hue < T::zero() {
+            hue += T::from_f32(360.0);
         }
         hue
     }
@@ -102,7 +112,7 @@ impl Color {
     ///
     /// # Returns
     /// The difference between this color and the other color.
-    pub fn difference(&self, other: &Self) -> f32 {
+    pub fn difference(&self, other: &Self) -> T {
         let delta_l = self.l - other.l;
         let delta_a = self.a - other.a;
         let delta_b = self.b - other.b;
@@ -116,23 +126,29 @@ impl Color {
     }
 
     #[must_use]
-    pub fn to_xyz(&self) -> XYZ {
+    pub fn to_xyz(&self) -> XYZ<T> {
         XYZ::from(&self.to_lab())
     }
 
     #[must_use]
-    pub fn to_lab(&self) -> Lab {
+    pub fn to_lab(&self) -> Lab<T> {
         Lab::new(self.l, self.a, self.b)
     }
 }
 
-impl Display for Color {
+impl<T> Display for Color<T>
+where
+    T: FloatNumber,
+{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "Color(l: {}, a: {}, b: {})", self.l, self.a, self.b)
     }
 }
 
-impl FromStr for Color {
+impl<T> FromStr for Color<T>
+where
+    T: FloatNumber,
+{
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -144,8 +160,8 @@ impl FromStr for Color {
         let g = u8::from_str_radix(&s[3..5], 16).unwrap();
         let b = u8::from_str_radix(&s[5..7], 16).unwrap();
 
-        let (x, y, z) = rgb_to_xyz(r, g, b);
-        let (l, a, b) = xyz_to_lab::<D65>(x, y, z);
+        let (x, y, z) = rgb_to_xyz::<T>(r, g, b);
+        let (l, a, b) = xyz_to_lab::<T, D65>(x, y, z);
         Ok(Self::new(l, a, b))
     }
 }
@@ -215,10 +231,10 @@ mod tests {
     #[test]
     fn test_to_xyz() {
         // Arrange
-        let color = Color::new(91.1120, -48.0806, -14.1521);
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
 
         // Act
-        let xyz = color.to_xyz();
+        let xyz: XYZ<f32> = color.to_xyz();
 
         // Assert
         assert!((xyz.x - 0.5380).abs() < 1e-3);

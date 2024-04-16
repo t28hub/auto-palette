@@ -1,14 +1,20 @@
 use crate::math::metrics::DistanceMetric;
 use crate::math::point::Point;
-use rand::distributions::Distribution;
+use crate::math::FloatNumber;
 use rand::prelude::ThreadRng;
 use rand::Rng;
-use rand_distr::WeightedAliasIndex;
+use rand_distr::{Distribution, WeightedAliasIndex};
 use std::collections::HashSet;
 
 /// The initialization strategy for the KMeans algorithm.
+///
+/// # Type Parameters
+/// * `R` - The random number generator.
 #[derive(Debug, Clone, PartialEq)]
-pub enum InitializationStrategy<R: Rng + Clone> {
+pub enum InitializationStrategy<R>
+where
+    R: Rng + Clone,
+{
     /// The random initialization strategy.
     Random(R),
     /// The KMeans++ initialization strategy.
@@ -22,10 +28,14 @@ impl Default for InitializationStrategy<ThreadRng> {
     }
 }
 
-impl<R: Rng + Clone> InitializationStrategy<R> {
+impl<R> InitializationStrategy<R>
+where
+    R: Rng + Clone,
+{
     /// Initializes the centroids for the KMeans algorithm.
     ///
     /// # Type Parameters
+    /// * `T` - The floating point type.
     /// * `N` - The number of dimensions.
     ///
     /// # Arguments
@@ -34,11 +44,14 @@ impl<R: Rng + Clone> InitializationStrategy<R> {
     ///
     /// # Returns
     /// The initialized centroids.
-    pub fn initialize<const N: usize>(
+    pub fn initialize<T, const N: usize>(
         &self,
-        points: &[Point<N>],
+        points: &[Point<T, N>],
         k: usize,
-    ) -> Result<Vec<Point<N>>, &'static str> {
+    ) -> Result<Vec<Point<T, N>>, &'static str>
+    where
+        T: FloatNumber,
+    {
         if k == 0 {
             return Err("The number of centroids must be greater than zero.");
         }
@@ -60,7 +73,11 @@ impl<R: Rng + Clone> InitializationStrategy<R> {
 
 /// The initialization strategy trait for the KMeans algorithm.
 #[must_use]
-fn random<const N: usize, R: Rng>(mut rng: R, points: &[Point<N>], k: usize) -> Vec<Point<N>> {
+fn random<T, const N: usize, R>(mut rng: R, points: &[Point<T, N>], k: usize) -> Vec<Point<T, N>>
+where
+    T: FloatNumber,
+    R: Rng,
+{
     let mut selected = HashSet::with_capacity(k);
     let mut centroids = Vec::with_capacity(k);
     while centroids.len() < k {
@@ -75,12 +92,16 @@ fn random<const N: usize, R: Rng>(mut rng: R, points: &[Point<N>], k: usize) -> 
 
 /// The KMeans++ initialization strategy.
 #[must_use]
-fn kmeans_plus_plus<const N: usize, R: Rng>(
+fn kmeans_plus_plus<T, const N: usize, R>(
     mut rng: R,
     metric: &DistanceMetric,
-    points: &[Point<N>],
+    points: &[Point<T, N>],
     k: usize,
-) -> Vec<Point<N>> {
+) -> Vec<Point<T, N>>
+where
+    T: FloatNumber,
+    R: Rng,
+{
     let mut selected = HashSet::with_capacity(k);
     let mut centroids = Vec::with_capacity(k);
 
@@ -92,7 +113,7 @@ fn kmeans_plus_plus<const N: usize, R: Rng>(
         let mut distances = Vec::with_capacity(points.len());
         for (i, point) in points.iter().enumerate() {
             let distance = if selected.contains(&i) {
-                0.0
+                T::zero()
             } else {
                 centroids
                     .iter()
@@ -116,7 +137,7 @@ mod tests {
     use super::*;
 
     #[must_use]
-    fn points() -> Vec<Point<2>> {
+    fn points() -> Vec<Point<f32, 2>> {
         vec![
             [0.0, 0.0],
             [1.0, 1.0],

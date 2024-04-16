@@ -1,9 +1,12 @@
-use crate::math::{DistanceMetric, Point};
+use crate::math::{DistanceMetric, FloatNumber, Point};
 use std::collections::HashSet;
 
 /// Strategy for sampling points from a set of points.
 #[derive(Debug)]
-pub enum SamplingStrategy {
+pub enum SamplingStrategy<T>
+where
+    T: FloatNumber,
+{
     /// Farthest point sampling strategy.
     /// The distance between two points is measured using the given distance metric.
     ///
@@ -17,10 +20,13 @@ pub enum SamplingStrategy {
     /// # Arguments
     /// * `DistanceMetric` - The distance metric used to measure the distance between points.
     /// * `Vec<f32>` - The weights of the points.
-    WeightedFarthestPointSampling(DistanceMetric, Vec<f32>),
+    WeightedFarthestPointSampling(DistanceMetric, Vec<T>),
 }
 
-impl SamplingStrategy {
+impl<T> SamplingStrategy<T>
+where
+    T: FloatNumber,
+{
     /// Samples points from the given set of points.
     ///
     /// # Type Parameters
@@ -32,7 +38,7 @@ impl SamplingStrategy {
     ///
     /// # Returns
     /// The indices of the sampled points.
-    pub fn sample<const N: usize>(&self, points: &[Point<N>], n: usize) -> HashSet<usize> {
+    pub fn sample<const N: usize>(&self, points: &[Point<T, N>], n: usize) -> HashSet<usize> {
         match self {
             SamplingStrategy::FarthestPointSampling(metric) => {
                 sample_with_distance_fn(points, n, |_, point1, point2| {
@@ -54,13 +60,14 @@ impl SamplingStrategy {
 }
 
 #[must_use]
-fn sample_with_distance_fn<F, const N: usize>(
-    points: &[Point<N>],
+fn sample_with_distance_fn<T, const N: usize, F>(
+    points: &[Point<T, N>],
     n: usize,
     distance_fn: F,
 ) -> HashSet<usize>
 where
-    F: Fn(usize, &Point<N>, &Point<N>) -> f32,
+    T: FloatNumber,
+    F: Fn(usize, &Point<T, N>, &Point<T, N>) -> T,
 {
     if n == 0 || points.is_empty() {
         return HashSet::new();
@@ -74,7 +81,7 @@ where
     let initial_index = 0;
     selected.insert(initial_index);
 
-    let mut distances = vec![f32::INFINITY; points.len()];
+    let mut distances = vec![T::infinity(); points.len()];
     let initial_point = &points[initial_index];
     update_distances(
         points,
@@ -104,9 +111,12 @@ where
 
 #[inline]
 #[must_use]
-fn find_farthest_index(distances: &[f32], selected: &HashSet<usize>) -> usize {
+fn find_farthest_index<T>(distances: &[T], selected: &HashSet<usize>) -> usize
+where
+    T: FloatNumber,
+{
     let mut farthest_index = 0;
-    let mut farthest_distance = 0.0;
+    let mut farthest_distance = T::zero();
     for (index, &distance) in distances.iter().enumerate() {
         if selected.contains(&index) {
             continue;
@@ -121,18 +131,19 @@ fn find_farthest_index(distances: &[f32], selected: &HashSet<usize>) -> usize {
 }
 
 #[inline]
-fn update_distances<const N: usize, F>(
-    points: &[Point<N>],
-    distances: &mut [f32],
+fn update_distances<T, const N: usize, F>(
+    points: &[Point<T, N>],
+    distances: &mut [T],
     selected: &HashSet<usize>,
-    farthest_point: &Point<N>,
+    farthest_point: &Point<T, N>,
     distance_fn: &F,
 ) where
-    F: Fn(usize, &Point<N>, &Point<N>) -> f32,
+    T: FloatNumber,
+    F: Fn(usize, &Point<T, N>, &Point<T, N>) -> T,
 {
     for (index, point) in points.iter().enumerate() {
         if selected.contains(&index) {
-            distances[index] = 0.0;
+            distances[index] = T::zero();
             continue;
         }
 
@@ -147,7 +158,7 @@ mod tests {
     use rstest::rstest;
 
     #[must_use]
-    fn sample_points() -> Vec<Point<2>> {
+    fn sample_points() -> Vec<Point<f32, 2>> {
         vec![
             [0.0, 0.0], // 0
             [0.1, 0.1], // 1
@@ -162,7 +173,7 @@ mod tests {
     }
 
     #[must_use]
-    fn empty_points() -> Vec<Point<2>> {
+    fn empty_points() -> Vec<Point<f32, 2>> {
         vec![]
     }
 

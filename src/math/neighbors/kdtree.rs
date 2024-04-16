@@ -1,6 +1,6 @@
 use crate::math::neighbors::neighbor::Neighbor;
 use crate::math::neighbors::search::NeighborSearch;
-use crate::math::{DistanceMetric, Point};
+use crate::math::{DistanceMetric, FloatNumber, Point};
 use std::collections::BinaryHeap;
 
 /// Node of a k-d tree.
@@ -79,18 +79,25 @@ impl Node {
 /// k-d tree search algorithm.
 ///
 /// # Type Parameters
+/// * `T` - The floating point type.
 /// * `N` - The dimension of the points.
 #[derive(Debug)]
-pub struct KDTreeSearch<'a, const N: usize> {
+pub struct KDTreeSearch<'a, T, const N: usize>
+where
+    T: FloatNumber,
+{
     /// The root node of the tree.
     root: Option<Box<Node>>,
     /// The points in the tree.
-    points: &'a [Point<N>],
+    points: &'a [Point<T, N>],
     /// The distance metric.
     metric: DistanceMetric,
 }
 
-impl<'a, const N: usize> KDTreeSearch<'a, N> {
+impl<'a, T, const N: usize> KDTreeSearch<'a, T, N>
+where
+    T: 'a + FloatNumber,
+{
     /// Builds a new `KDTreeSearch` instance.
     ///
     /// # Arguments
@@ -100,7 +107,7 @@ impl<'a, const N: usize> KDTreeSearch<'a, N> {
     ///
     /// # Returns
     /// A new `KDTreeSearch` instance.
-    pub fn build(points: &'a [Point<N>], metric: DistanceMetric, leaf_size: usize) -> Self {
+    pub fn build(points: &'a [Point<T, N>], metric: DistanceMetric, leaf_size: usize) -> Self {
         let mut indices: Vec<usize> = (0..points.len()).collect();
         let root = Self::split_node(points, leaf_size, &mut indices, 0);
         Self {
@@ -113,7 +120,7 @@ impl<'a, const N: usize> KDTreeSearch<'a, N> {
     #[inline]
     #[must_use]
     fn split_node(
-        points: &[Point<N>],
+        points: &[Point<T, N>],
         leaf_size: usize,
         indices: &mut [usize],
         depth: usize,
@@ -150,9 +157,9 @@ impl<'a, const N: usize> KDTreeSearch<'a, N> {
         Some(Node::new_node(axis, indices[median], left, right))
     }
 
-    fn search_leaf<F>(&self, node: &Node, query: &Point<N>, action: &mut F)
+    fn search_leaf<F>(&self, node: &Node, query: &Point<T, N>, action: &mut F)
     where
-        F: FnMut(usize, f32),
+        F: FnMut(usize, T),
     {
         for &index in &node.indices {
             let point = &self.points[index];
@@ -165,9 +172,9 @@ impl<'a, const N: usize> KDTreeSearch<'a, N> {
     fn search_recursive(
         &self,
         root: &Option<Box<Node>>,
-        query: &Point<N>,
+        query: &Point<T, N>,
         k: usize,
-        neighbors: &mut BinaryHeap<Neighbor>,
+        neighbors: &mut BinaryHeap<Neighbor<T>>,
     ) {
         let Some(ref node) = root else {
             return;
@@ -180,7 +187,7 @@ impl<'a, const N: usize> KDTreeSearch<'a, N> {
                 < neighbors
                     .peek()
                     .map(|neighbor| neighbor.distance)
-                    .unwrap_or(f32::INFINITY)
+                    .unwrap_or(T::infinity())
             {
                 neighbors.pop();
                 neighbors.push(Neighbor::new(index, distance));
@@ -217,8 +224,8 @@ impl<'a, const N: usize> KDTreeSearch<'a, N> {
     fn search_nearest_recursive(
         &self,
         root: &Option<Box<Node>>,
-        query: &Point<N>,
-        nearest: &mut Neighbor,
+        query: &Point<T, N>,
+        nearest: &mut Neighbor<T>,
     ) {
         let Some(ref node) = root else {
             return;
@@ -259,9 +266,9 @@ impl<'a, const N: usize> KDTreeSearch<'a, N> {
     fn search_radius_recursive(
         &self,
         root: &Option<Box<Node>>,
-        query: &Point<N>,
-        radius: f32,
-        neighbors: &mut Vec<Neighbor>,
+        query: &Point<T, N>,
+        radius: T,
+        neighbors: &mut Vec<Neighbor<T>>,
     ) {
         let Some(ref node) = root else {
             return;
@@ -297,9 +304,12 @@ impl<'a, const N: usize> KDTreeSearch<'a, N> {
     }
 }
 
-impl<'a, const N: usize> NeighborSearch<N> for KDTreeSearch<'a, N> {
+impl<'a, T, const N: usize> NeighborSearch<T, N> for KDTreeSearch<'a, T, N>
+where
+    T: FloatNumber,
+{
     #[must_use]
-    fn search(&self, query: &Point<N>, k: usize) -> Vec<Neighbor> {
+    fn search(&self, query: &Point<T, N>, k: usize) -> Vec<Neighbor<T>> {
         if k == 0 {
             return Vec::new();
         }
@@ -310,10 +320,10 @@ impl<'a, const N: usize> NeighborSearch<N> for KDTreeSearch<'a, N> {
     }
 
     #[must_use]
-    fn search_nearest(&self, query: &Point<N>) -> Option<Neighbor> {
-        let mut nearest = Neighbor::new(0, f32::INFINITY);
+    fn search_nearest(&self, query: &Point<T, N>) -> Option<Neighbor<T>> {
+        let mut nearest = Neighbor::new(0, T::infinity());
         self.search_nearest_recursive(&self.root, query, &mut nearest);
-        if nearest.distance == f32::INFINITY {
+        if nearest.distance.is_infinite() {
             None
         } else {
             Some(nearest)
@@ -321,8 +331,8 @@ impl<'a, const N: usize> NeighborSearch<N> for KDTreeSearch<'a, N> {
     }
 
     #[must_use]
-    fn search_radius(&self, query: &Point<N>, radius: f32) -> Vec<Neighbor> {
-        if radius < 0.0 {
+    fn search_radius(&self, query: &Point<T, N>, radius: T) -> Vec<Neighbor<T>> {
+        if radius < T::zero() {
             return Vec::new();
         }
 
@@ -337,7 +347,7 @@ mod tests {
     use super::*;
 
     #[must_use]
-    fn sample_points() -> Vec<Point<3>> {
+    fn sample_points() -> Vec<Point<f32, 3>> {
         vec![
             [1.0, 2.0, 3.0], // 0
             [5.0, 1.0, 2.0], // 1
@@ -358,7 +368,7 @@ mod tests {
     }
 
     #[must_use]
-    fn empty_points() -> Vec<Point<3>> {
+    fn empty_points() -> Vec<Point<f32, 3>> {
         Vec::new()
     }
 
@@ -378,7 +388,8 @@ mod tests {
     fn test_build_empty() {
         // Act
         let points = empty_points();
-        let search: KDTreeSearch<3> = KDTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
+        let search: KDTreeSearch<f32, 3> =
+            KDTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
 
         // Assert
         assert!(search.root.is_none());

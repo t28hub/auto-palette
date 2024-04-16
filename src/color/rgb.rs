@@ -1,4 +1,5 @@
 use crate::color::xyz::XYZ;
+use crate::math::FloatNumber;
 use std::{fmt, fmt::Display};
 
 /// Color represented in the RGB color space.
@@ -28,6 +29,19 @@ impl RGB {
     pub fn new(r: u8, g: u8, b: u8) -> Self {
         Self { r, g, b }
     }
+
+    /// Returns the maximum value of the RGB color space.
+    ///
+    /// # Returns
+    /// The maximum value of the RGB color space.
+    #[inline]
+    #[must_use]
+    pub(crate) fn max_value<T>() -> T
+    where
+        T: FloatNumber,
+    {
+        T::from_u8(u8::MAX)
+    }
 }
 
 impl Display for RGB {
@@ -36,14 +50,20 @@ impl Display for RGB {
     }
 }
 
-impl From<&XYZ> for RGB {
-    fn from(xyz: &XYZ) -> Self {
+impl<T> From<&XYZ<T>> for RGB
+where
+    T: FloatNumber,
+{
+    fn from(xyz: &XYZ<T>) -> Self {
         let (r, g, b) = xyz_to_rgb(xyz.x, xyz.y, xyz.z);
         RGB::new(r, g, b)
     }
 }
 
 /// Converts the CIE XYZ color space to the RGB color space.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
 ///
 /// # Arguments
 /// * `x` - The X component of the XYZ color.
@@ -54,23 +74,27 @@ impl From<&XYZ> for RGB {
 /// The RGB color space representation of the XYZ color. The tuple contains the red, green, and blue components.
 #[inline]
 #[must_use]
-pub fn xyz_to_rgb(x: f32, y: f32, z: f32) -> (u8, u8, u8) {
-    let f = |t: f32| -> f32 {
-        if t > 0.0031308 {
-            1.055 * t.powf(1.0 / 2.4) - 0.055
+pub fn xyz_to_rgb<T>(x: T, y: T, z: T) -> (u8, u8, u8)
+where
+    T: FloatNumber,
+{
+    let f = |t: T| -> T {
+        if t > T::from_f32(0.003_130_8) {
+            T::from_f32(1.055) * t.powf(T::from_f32(1.0 / 2.4)) - T::from_f32(0.055)
         } else {
-            12.92 * t
+            T::from_f32(12.92) * t
         }
     };
 
-    let r = f(3.240_97 * x - 1.537_383 * y - 0.498_611 * z);
-    let g = f(-0.969_244 * x + 1.875_968 * y + 0.041_555 * z);
-    let b = f(0.055_630 * x - 0.203_977 * y + 1.056_972 * z);
+    let r = f(T::from_f32(3.240_97) * x - T::from_f32(1.537_383) * y - T::from_f32(0.498_611) * z);
+    let g =
+        f(-T::from_f32(0.969_244) * x + T::from_f32(1.875_968) * y + T::from_f32(0.041_555) * z);
+    let b = f(T::from_f32(0.055_630) * x - T::from_f32(0.203_977) * y + T::from_f32(1.056_972) * z);
 
     (
-        (r * 255.0).round() as u8,
-        (g * 255.0).round() as u8,
-        (b * 255.0).round() as u8,
+        (r * RGB::max_value()).round().to_u8_unsafe(),
+        (g * RGB::max_value()).round().to_u8_unsafe(),
+        (b * RGB::max_value()).round().to_u8_unsafe(),
     )
 }
 

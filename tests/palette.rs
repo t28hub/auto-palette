@@ -14,7 +14,7 @@ where
 {
     // Act
     let image_data = ImageData::load(path).unwrap();
-    let palette = Palette::extract(&image_data).unwrap();
+    let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
 
     // Assert
     assert!(!palette.is_empty());
@@ -28,7 +28,8 @@ fn test_extract_with_kmeans() {
         ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
 
     // Act
-    let palette = Palette::extract_with_algorithm(&image_data, Algorithm::KMeans).unwrap();
+    let palette: Palette<f32> =
+        Palette::extract_with_algorithm(&image_data, Algorithm::KMeans).unwrap();
     let swatches = palette.find_swatches(8);
 
     // Assert
@@ -51,7 +52,7 @@ fn test_extract_with_dbscan() {
         ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
 
     // Act
-    let palette = Palette::extract(&image_data).unwrap();
+    let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
     let swatches = palette.find_swatches(8);
 
     // Assert
@@ -74,7 +75,8 @@ fn test_extract_with_dbscanpp() {
         ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
 
     // Act
-    let palette = Palette::extract_with_algorithm(&image_data, Algorithm::DBSCANpp).unwrap();
+    let palette: Palette<f32> =
+        Palette::extract_with_algorithm(&image_data, Algorithm::DBSCANpp).unwrap();
     let swatches = palette.find_swatches(8);
 
     // Assert

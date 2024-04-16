@@ -1,4 +1,5 @@
 use crate::math::point::Point;
+use crate::math::FloatNumber;
 
 /// DistanceMetric enum used to measure the distance between two points.
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -14,6 +15,7 @@ impl DistanceMetric {
     /// Measures the distance between two points.
     ///
     /// # Type Parameters
+    /// * `T` - The floating point type.
     /// * `N` - The number of dimensions.
     ///
     /// # Arguments
@@ -22,7 +24,10 @@ impl DistanceMetric {
     ///
     /// # Returns
     /// The distance between the two points.
-    pub fn measure<const N: usize>(&self, point1: &Point<N>, point2: &Point<N>) -> f32 {
+    pub fn measure<T, const N: usize>(&self, point1: &Point<T, N>, point2: &Point<T, N>) -> T
+    where
+        T: FloatNumber,
+    {
         match self {
             DistanceMetric::Euclidean => square_euclidean(point1, point2).sqrt(),
             DistanceMetric::SquaredEuclidean => square_euclidean(point1, point2),
@@ -33,6 +38,7 @@ impl DistanceMetric {
 /// Measures the squared Euclidean distance between two points.
 ///
 /// # Type Parameters
+/// * `T` - The floating point type.
 /// * `N` - The number of dimensions.
 ///
 /// # Arguments
@@ -42,11 +48,14 @@ impl DistanceMetric {
 /// # Returns
 /// The squared Euclidean distance between the two points.
 #[must_use]
-fn square_euclidean<const N: usize>(point1: &Point<N>, point2: &Point<N>) -> f32 {
+fn square_euclidean<T, const N: usize>(point1: &Point<T, N>, point2: &Point<T, N>) -> T
+where
+    T: FloatNumber,
+{
     point1
         .iter()
         .zip(point2.iter())
-        .map(|(value1, value2)| (value1 - value2).powi(2))
+        .map(|(value1, value2)| (*value1 - *value2).powi(2))
         .sum()
 }
 

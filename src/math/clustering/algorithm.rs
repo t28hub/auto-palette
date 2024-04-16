@@ -1,17 +1,22 @@
 use crate::math::clustering::cluster::Cluster;
 use crate::math::point::Point;
+use crate::math::FloatNumber;
 
 /// Trait for clustering algorithms.
-pub trait ClusteringAlgorithm {
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
+/// * `N` - The number of dimensions.
+pub trait ClusteringAlgorithm<T, const N: usize>
+where
+    T: FloatNumber,
+{
     /// Fits the clustering algorithm to the given points.
-    ///
-    /// # Type Parameters
-    /// * `N` - The number of dimensions.
     ///
     /// # Arguments
     /// * `points` - The points to cluster.
     ///
     /// # Returns
     /// The clusters of the points.
-    fn fit<const N: usize>(&self, points: &[Point<N>]) -> Vec<Cluster<N>>;
+    fn fit(&self, points: &[Point<T, N>]) -> Vec<Cluster<T, N>>;
 }

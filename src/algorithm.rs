@@ -2,7 +2,7 @@ use crate::errors::PaletteError;
 use crate::math::clustering::{
     Cluster, ClusteringAlgorithm, DBSCANpp, InitializationStrategy, KMeans, DBSCAN,
 };
-use crate::math::{DistanceMetric, Point};
+use crate::math::{DistanceMetric, FloatNumber, Point};
 use rand::thread_rng;
 use std::str::FromStr;
 
@@ -30,24 +30,39 @@ impl Algorithm {
     /// # Returns
     /// The clusters of the points using the specified algorithm.
     #[must_use]
-    pub(crate) fn cluster<const N: usize>(&self, points: &[Point<N>]) -> Vec<Cluster<N>> {
+    pub(crate) fn cluster<T, const N: usize>(&self, points: &[Point<T, N>]) -> Vec<Cluster<T, N>>
+    where
+        T: FloatNumber,
+    {
         match self {
             Self::KMeans => {
                 let strategy = InitializationStrategy::KmeansPlusPlus(
                     thread_rng(),
                     DistanceMetric::SquaredEuclidean,
                 );
-                let clustering =
-                    KMeans::new(32, 100, 1e-3, DistanceMetric::SquaredEuclidean, strategy).unwrap();
+                let clustering = KMeans::new(
+                    32,
+                    100,
+                    T::from_f32(1e-3),
+                    DistanceMetric::SquaredEuclidean,
+                    strategy,
+                )
+                .unwrap();
                 clustering.fit(points)
             }
             Self::DBSCAN => {
-                let clustering = DBSCAN::new(16, 16e-4, DistanceMetric::SquaredEuclidean).unwrap();
+                let clustering =
+                    DBSCAN::new(16, T::from_f32(16e-4), DistanceMetric::SquaredEuclidean).unwrap();
                 clustering.fit(points)
             }
             Self::DBSCANpp => {
-                let clustering =
-                    DBSCANpp::new(0.1, 16, 16e-4, DistanceMetric::SquaredEuclidean).unwrap();
+                let clustering = DBSCANpp::new(
+                    T::from_f32(0.1),
+                    16,
+                    T::from_f32(16e-4),
+                    DistanceMetric::SquaredEuclidean,
+                )
+                .unwrap();
                 clustering.fit(points)
             }
         }

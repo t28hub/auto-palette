@@ -6,6 +6,6 @@ mod point;
 mod sampling;
 
 pub use metrics::DistanceMetric;
-pub use number::Normalizable;
-pub use point::{Point, Point5D};
+pub use number::{denormalize, normalize, FloatNumber};
+pub use point::Point;
 pub use sampling::SamplingStrategy;

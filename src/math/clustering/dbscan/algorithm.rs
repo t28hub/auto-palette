@@ -4,22 +4,31 @@ use crate::math::clustering::{Cluster, ClusteringAlgorithm};
 use crate::math::neighbors::kdtree::KDTreeSearch;
 use crate::math::neighbors::neighbor::Neighbor;
 use crate::math::neighbors::search::NeighborSearch;
-use crate::math::{DistanceMetric, Point};
+use crate::math::{DistanceMetric, FloatNumber, Point};
 
 const OUTLIER: i32 = -1;
 const MARKED: i32 = -2;
 const UNCLASSIFIED: i32 = -3;
 
 /// DBSCAN clustering algorithm.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
 #[derive(Debug)]
 #[allow(clippy::upper_case_acronyms)]
-pub struct DBSCAN {
+pub struct DBSCAN<T>
+where
+    T: FloatNumber,
+{
     min_points: usize,
-    epsilon: f32,
+    epsilon: T,
     metric: DistanceMetric,
 }
 
-impl DBSCAN {
+impl<T> DBSCAN<T>
+where
+    T: FloatNumber,
+{
     /// Creates a new `DBSCAN` instance.
     ///
     /// # Arguments
@@ -31,13 +40,13 @@ impl DBSCAN {
     /// A new `DBSCAN` instance.
     pub fn new(
         min_points: usize,
-        epsilon: f32,
+        epsilon: T,
         metric: DistanceMetric,
     ) -> Result<Self, &'static str> {
         if min_points == 0 {
             return Err("The minimum number of points must be greater than zero.");
         }
-        if epsilon <= 0.0 {
+        if epsilon <= T::zero() {
             return Err("The epsilon must be greater than zero.");
         }
         Ok(Self {
@@ -49,16 +58,16 @@ impl DBSCAN {
 
     #[inline]
     #[must_use]
-    fn expand_cluster<NS, const N: usize>(
+    fn expand_cluster<const N: usize, NS>(
         &self,
         label: i32,
         labels: &mut [i32],
-        points: &[Point<N>],
-        neighbors: Vec<Neighbor>,
+        points: &[Point<T, N>],
+        neighbors: Vec<Neighbor<T>>,
         neighbor_search: &NS,
-    ) -> Cluster<N>
+    ) -> Cluster<T, N>
     where
-        NS: NeighborSearch<N>,
+        NS: NeighborSearch<T, N>,
     {
         let mut cluster = Cluster::new();
         let mut queue = VecDeque::from(neighbors);
@@ -98,9 +107,12 @@ impl DBSCAN {
     }
 }
 
-impl ClusteringAlgorithm for DBSCAN {
+impl<T, const N: usize> ClusteringAlgorithm<T, N> for DBSCAN<T>
+where
+    T: FloatNumber,
+{
     #[must_use]
-    fn fit<const N: usize>(&self, points: &[Point<N>]) -> Vec<Cluster<N>> {
+    fn fit(&self, points: &[Point<T, N>]) -> Vec<Cluster<T, N>> {
         if points.is_empty() {
             return Vec::new();
         }
@@ -146,7 +158,7 @@ mod tests {
     use super::*;
 
     #[must_use]
-    fn sample_points() -> Vec<Point<2>> {
+    fn sample_points() -> Vec<Point<f32, 2>> {
         vec![
             [0.0, 0.0], // 0
             [0.0, 1.0], // 0
@@ -166,6 +178,11 @@ mod tests {
             [5.0, 4.0], // 2
             [9.0, 8.0], // Outlier
         ]
+    }
+
+    #[must_use]
+    fn empty_points() -> Vec<Point<f32, 2>> {
+        Vec::new()
     }
 
     #[test]
@@ -218,7 +235,7 @@ mod tests {
     #[test]
     fn test_fit_empty() {
         // Act
-        let points: Vec<Point<2>> = Vec::new();
+        let points = empty_points();
         let dbscan = DBSCAN::new(4, 2.0, DistanceMetric::Euclidean).unwrap();
         let clusters = dbscan.fit(&points);
 

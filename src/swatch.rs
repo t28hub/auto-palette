@@ -1,6 +1,10 @@
 use crate::color::Color;
+use crate::math::FloatNumber;
 
-/// Swatch represents a color swatch with its position and population.
+/// Swatch struct representing a color, position, and population.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
 ///
 /// # Examples
 /// ```
@@ -14,13 +18,19 @@ use crate::color::Color;
 /// assert_eq!(swatch.population(), 384);
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Swatch {
-    color: Color,
+pub struct Swatch<T>
+where
+    T: FloatNumber,
+{
+    color: Color<T>,
     position: (u32, u32),
     population: usize,
 }
 
-impl Swatch {
+impl<T> Swatch<T>
+where
+    T: FloatNumber,
+{
     /// Creates a new `Swatch` instance with the given color and population.
     ///
     /// # Arguments
@@ -30,7 +40,7 @@ impl Swatch {
     ///
     /// # Returns
     /// A new `Swatch` instance.
-    pub fn new(color: Color, position: (u32, u32), population: usize) -> Self {
+    pub fn new(color: Color<T>, position: (u32, u32), population: usize) -> Self {
         Self {
             color,
             position,
@@ -43,7 +53,7 @@ impl Swatch {
     /// # Returns
     /// The color of this swatch.
     #[must_use]
-    pub fn color(&self) -> &Color {
+    pub fn color(&self) -> &Color<T> {
         &self.color
     }
 

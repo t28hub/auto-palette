@@ -1,15 +1,25 @@
+use crate::math::FloatNumber;
 use std::cmp::Ordering;
 
 /// A neighbor in a nearest neighbor search.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
 #[derive(Debug)]
-pub struct Neighbor {
+pub struct Neighbor<T>
+where
+    T: FloatNumber,
+{
     /// The index of the neighbor.
     pub(crate) index: usize,
     /// The distance to the neighbor.
-    pub(crate) distance: f32,
+    pub(crate) distance: T,
 }
 
-impl Neighbor {
+impl<T> Neighbor<T>
+where
+    T: FloatNumber,
+{
     /// Creates a new `Neighbor` instance.
     ///
     /// # Arguments
@@ -19,26 +29,36 @@ impl Neighbor {
     /// # Returns
     /// A `Neighbor` instance.
     #[must_use]
-    pub fn new(index: usize, distance: f32) -> Self {
+    pub fn new(index: usize, distance: T) -> Self {
+        debug_assert!(distance >= T::zero());
         Self { index, distance }
     }
 }
 
-impl PartialEq for Neighbor {
+impl<T> PartialEq for Neighbor<T>
+where
+    T: FloatNumber,
+{
     fn eq(&self, other: &Self) -> bool {
         self.index == other.index && self.distance == other.distance
     }
 }
 
-impl Eq for Neighbor {}
+impl<T> Eq for Neighbor<T> where T: FloatNumber {}
 
-impl PartialOrd for Neighbor {
+impl<T> PartialOrd for Neighbor<T>
+where
+    T: FloatNumber,
+{
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for Neighbor {
+impl<T> Ord for Neighbor<T>
+where
+    T: FloatNumber,
+{
     fn cmp(&self, other: &Self) -> Ordering {
         self.distance.partial_cmp(&other.distance).unwrap()
     }
