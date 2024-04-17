@@ -6,13 +6,14 @@ use crate::errors::PaletteError;
 use crate::image::ImageData;
 use crate::math::clustering::{ClusteringAlgorithm, DBSCAN};
 use crate::math::{denormalize, normalize, DistanceMetric, FloatNumber, Point, SamplingStrategy};
+use crate::theme::Theme;
 use crate::{Color, Swatch};
 
 /// Palette struct representing a collection of swatches.
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Palette<T>
 where
     T: FloatNumber,
@@ -54,7 +55,7 @@ where
         self.swatches.is_empty()
     }
 
-    /// Finds the swatches in the palette.
+    /// Finds the swatches in the palette based on the theme.
     ///
     /// # Arguments
     /// * `n` - The number of swatches to find.
@@ -63,21 +64,33 @@ where
     /// The swatches in the palette.
     #[must_use]
     pub fn find_swatches(&self, n: usize) -> Vec<Swatch<T>> {
+        let colors: Vec<Point<T, 3>> = self
+            .swatches
+            .iter()
+            .map(|swatch| {
+                let color = swatch.color();
+                [color.l, color.a, color.b]
+            })
+            .collect();
+
+        let sampling = SamplingStrategy::FarthestPointSampling::<T>;
+        let sampled = sampling.sample(&colors, n);
+        sampled.iter().map(|&index| self.swatches[index]).collect()
+    }
+
+    #[must_use]
+    pub fn find_swatches_with_theme(&self, n: usize, theme: &Theme) -> Vec<Swatch<T>> {
         let mut colors = Vec::with_capacity(self.swatches.len());
         let mut weights = Vec::with_capacity(self.swatches.len());
         for swatch in &self.swatches {
             let color = swatch.color();
             colors.push([color.l, color.a, color.b]);
 
-            let chroma = color.chroma();
-            if chroma < T::from_f32(60.0) {
-                weights.push(T::zero());
-            } else {
-                weights.push(chroma / T::from_f32(180.0));
-            }
+            let weight = theme.score(color);
+            weights.push(weight);
         }
-        let sampling: SamplingStrategy<T> =
-            SamplingStrategy::WeightedFarthestPointSampling(DistanceMetric::Euclidean, weights);
+
+        let sampling = SamplingStrategy::WeightedFarthestPointSampling::<T>(weights);
         let sampled = sampling.sample(&colors, n);
         sampled.iter().map(|&index| self.swatches[index]).collect()
     }

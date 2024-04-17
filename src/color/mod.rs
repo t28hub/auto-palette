@@ -56,6 +56,46 @@ where
         Self { l, a, b }
     }
 
+    /// Returns the minimum value of the chroma component.
+    ///
+    /// # Returns
+    /// The minimum value of the chroma component.
+    #[inline]
+    #[must_use]
+    pub(crate) fn min_chroma() -> T {
+        T::zero()
+    }
+
+    /// Returns the maximum value of the chroma component.
+    ///
+    /// # Returns
+    /// The maximum value of the chroma component.
+    #[inline]
+    #[must_use]
+    pub(crate) fn max_chroma() -> T {
+        T::from_f32(180.0)
+    }
+
+    /// Returns the minimum value of the lightness component.
+    ///
+    /// # Returns
+    /// The minimum value of the lightness component.
+    #[inline]
+    #[must_use]
+    pub(crate) fn min_lightness() -> T {
+        T::zero()
+    }
+
+    /// Returns the maximum value of the lightness component.
+    ///
+    /// # Returns
+    /// The maximum value of the lightness component.
+    #[inline]
+    #[must_use]
+    pub(crate) fn max_lightness() -> T {
+        T::from_f32(100.0)
+    }
+
     /// Returns whether this color is light.
     ///
     /// # Returns
@@ -235,7 +275,7 @@ mod tests {
 
     #[rstest]
     #[case::black((0.0, 0.0, 0.0), 0.0)]
-    #[case::white((100.0, -0.002_443, 0.011_384), 102.111_946)]
+    #[case::white((100.0, - 0.002_443, 0.011_384), 102.111_946)]
     #[case::red((53.237_144, 80.088_320, 67.199_460), 39.998_900)]
     #[case::green((87.735_535, - 86.183_550, 83.179_924), 136.016_020)]
     #[case::blue((32.300_800, 79.194_260, - 107.868_910), 306.28503)]
@@ -299,7 +339,7 @@ mod tests {
 
     #[rstest]
     #[case::black("#000000", 0.0, 0.0, 0.0)]
-    #[case::white("#FFFFFF", 100.0, -0.002_443, 0.011_384)]
+    #[case::white("#FFFFFF", 100.0, - 0.002_443, 0.011_384)]
     #[case::red("#FF0000", 53.237_144, 80.088_320, 67.199_460)]
     #[case::green("#00FF00", 87.735_535, - 86.183_550, 83.179_924)]
     #[case::blue("#0000FF", 32.300_800, 79.194_260, - 107.868_910)]

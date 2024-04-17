@@ -2,7 +2,7 @@ use std::path::Path;
 
 use rstest::rstest;
 
-use auto_palette::{Algorithm, ImageData, Palette};
+use auto_palette::{Algorithm, ImageData, Palette, Theme};
 
 #[rstest]
 #[case::np("./tests/assets/flag_np.png", 3)]
@@ -53,7 +53,7 @@ fn test_extract_with_dbscan() {
 
     // Act
     let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
-    let swatches = palette.find_swatches(8);
+    let swatches = palette.find_swatches(5);
 
     // Assert
     swatches.iter().for_each(|swatch| {
@@ -65,7 +65,7 @@ fn test_extract_with_dbscan() {
             rgb.r, rgb.g, rgb.b, x, y, population
         );
     });
-    assert_eq!(swatches.len(), 4);
+    assert_eq!(swatches.len(), 5);
 }
 
 #[test]
@@ -77,7 +77,8 @@ fn test_extract_with_dbscanpp() {
     // Act
     let palette: Palette<f32> =
         Palette::extract_with_algorithm(&image_data, Algorithm::DBSCANpp).unwrap();
-    let swatches = palette.find_swatches(8);
+    // let swatches = palette.find_swatches(8);
+    let swatches = palette.find_swatches_with_theme(5, &Theme::Basic);
 
     // Assert
     swatches.iter().for_each(|swatch| {
@@ -89,5 +90,5 @@ fn test_extract_with_dbscanpp() {
             rgb.r, rgb.g, rgb.b, x, y, population
         );
     });
-    assert_eq!(swatches.len(), 8);
+    assert_eq!(swatches.len(), 5);
 }

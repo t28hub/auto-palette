@@ -2,25 +2,23 @@ use crate::math::{DistanceMetric, FloatNumber, Point};
 use std::collections::HashSet;
 
 /// Strategy for sampling points from a set of points.
-#[derive(Debug)]
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
+#[derive(Debug, PartialEq)]
 pub enum SamplingStrategy<T>
 where
     T: FloatNumber,
 {
     /// Farthest point sampling strategy.
     /// The distance between two points is measured using the given distance metric.
-    ///
-    /// # Arguments
-    /// * `DistanceMetric` - The distance metric used to measure the distance between points.
-    #[allow(dead_code)]
-    FarthestPointSampling(DistanceMetric),
+    FarthestPointSampling,
     /// Weighted farthest point sampling strategy.
     /// The distance between two points is multiplied by the weight of the first point.
     ///
     /// # Arguments
-    /// * `DistanceMetric` - The distance metric used to measure the distance between points.
     /// * `Vec<f32>` - The weights of the points.
-    WeightedFarthestPointSampling(DistanceMetric, Vec<T>),
+    WeightedFarthestPointSampling(Vec<T>),
 }
 
 impl<T> SamplingStrategy<T>
@@ -39,19 +37,25 @@ where
     /// # Returns
     /// The indices of the sampled points.
     pub fn sample<const N: usize>(&self, points: &[Point<T, N>], n: usize) -> HashSet<usize> {
+        let metric = DistanceMetric::SquaredEuclidean;
         match self {
-            SamplingStrategy::FarthestPointSampling(metric) => {
-                sample_with_distance_fn(points, n, |_, point1, point2| {
+            SamplingStrategy::FarthestPointSampling => {
+                sample_with_distance_fn(points, n, 0, |_, point1, point2| {
                     metric.measure(point1, point2)
                 })
             }
-            SamplingStrategy::WeightedFarthestPointSampling(metric, weights) => {
+            SamplingStrategy::WeightedFarthestPointSampling(weights) => {
                 debug_assert_eq!(
                     points.len(),
                     weights.len(),
                     "The number of points and weights must be equal."
                 );
-                sample_with_distance_fn(points, n, |index, point1, point2| {
+                let (initial_index, _) = weights
+                    .iter()
+                    .enumerate()
+                    .max_by(|(_, weight1), (_, weight2)| weight1.partial_cmp(weight2).unwrap())
+                    .unwrap();
+                sample_with_distance_fn(points, n, initial_index, |index, point1, point2| {
                     metric.measure(point1, point2) * weights[index]
                 })
             }
@@ -63,6 +67,7 @@ where
 fn sample_with_distance_fn<T, const N: usize, F>(
     points: &[Point<T, N>],
     n: usize,
+    initial_index: usize,
     distance_fn: F,
 ) -> HashSet<usize>
 where
@@ -78,7 +83,6 @@ where
     }
 
     let mut selected = HashSet::with_capacity(n);
-    let initial_index = 0;
     selected.insert(initial_index);
 
     let mut distances = vec![T::infinity(); points.len()];
@@ -178,16 +182,16 @@ mod tests {
     }
 
     #[rstest]
-    #[case(0, vec![])]
-    #[case(1, vec![0])]
-    #[case(3, vec![0, 3, 5])]
-    #[case(5, vec![0, 1, 3, 5, 8])]
-    #[case(9, vec![0, 1, 2, 3, 4, 5, 6, 7, 8])]
-    #[case(10, vec![0, 1, 2, 3, 4, 5, 6, 7, 8])]
+    #[case(0, vec ! [])]
+    #[case(1, vec ! [0])]
+    #[case(3, vec ! [0, 3, 5])]
+    #[case(5, vec ! [0, 1, 3, 5, 8])]
+    #[case(9, vec ! [0, 1, 2, 3, 4, 5, 6, 7, 8])]
+    #[case(10, vec ! [0, 1, 2, 3, 4, 5, 6, 7, 8])]
     fn test_sample_farthest_point_sampling(#[case] n: usize, #[case] expected: Vec<usize>) {
         // Act
-        let sampling = SamplingStrategy::FarthestPointSampling(DistanceMetric::Euclidean);
         let points = sample_points();
+        let sampling = SamplingStrategy::FarthestPointSampling;
         let sampled = sampling.sample(&points, n);
 
         // Assert
@@ -197,8 +201,8 @@ mod tests {
     #[test]
     fn test_sample_farthest_point_sampling_empty() {
         // Act
-        let sampling = SamplingStrategy::FarthestPointSampling(DistanceMetric::Euclidean);
         let points = empty_points();
+        let sampling = SamplingStrategy::FarthestPointSampling;
         let sampled = sampling.sample(&points, 2);
 
         // Assert
@@ -206,21 +210,20 @@ mod tests {
     }
 
     #[rstest]
-    #[case(0, vec![])]
-    #[case(1, vec![0])]
-    #[case(3, vec![0, 5, 8])]
-    #[case(5, vec![0, 5, 6, 7,8])]
-    #[case(9, vec![0, 1, 2, 3, 4, 5, 6, 7, 8])]
-    #[case(10, vec![0, 1, 2, 3, 4, 5, 6, 7, 8])]
+    #[case(0, vec ! [])]
+    #[case(1, vec ! [8])]
+    #[case(3, vec ! [5,6, 8])]
+    #[case(5, vec ! [3, 5, 6, 7, 8])]
+    #[case(9, vec ! [0, 1, 2, 3, 4, 5, 6, 7, 8])]
+    #[case(10, vec ! [0, 1, 2, 3, 4, 5, 6, 7, 8])]
     fn test_sample_weighted_farthest_point_sampling(
         #[case] n: usize,
         #[case] expected: Vec<usize>,
     ) {
         // Act
         let weights = vec![1.0, 1.0, 2.0, 3.0, 5.0, 8.0, 13.0, 21.0, 34.0];
-        let sampling =
-            SamplingStrategy::WeightedFarthestPointSampling(DistanceMetric::Euclidean, weights);
         let points = sample_points();
+        let sampling = SamplingStrategy::WeightedFarthestPointSampling(weights);
         let sampled = sampling.sample(&points, n);
 
         // Assert
