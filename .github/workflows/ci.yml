@@ -103,11 +103,12 @@ jobs:
 
       - name: Run unit tests with coverage
         if: matrix.os == 'ubuntu-latest'
-        run: cargo llvm-cov nextest --tests --release --lcov --output-path lcov.info
+        run: cargo llvm-cov nextest --tests --release --codecov --output-path codecov.json
 
       - name: Upload coverage reports to Codecov
         if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v4.3.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: lcov.info
+          files: codecov.json
+          fail_ci_if_error: true

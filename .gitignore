@@ -3,6 +3,10 @@ debug/
 target/
 Cargo.lock
 
+# Coverage
+lcov.info
+codecov.json
+
 # IntelliJ IDEA
 .idea/
 .idea_modules/
@@ -21,4 +25,3 @@ Cargo.lock
 *.njsproj
 *.sln
 *.sw?
-lcov.info
