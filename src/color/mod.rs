@@ -92,44 +92,43 @@ where
         (self.a.powi(2) + self.b.powi(2)).sqrt()
     }
 
-    /// Returns the hue of this color.
+    /// Returns the hue of this color. The hue is the angle of the vector in the a*b* plane.
     ///
     /// # Returns
     /// The hue of this color.
     #[must_use]
     pub fn hue(&self) -> T {
-        let mut hue = self.b.atan2(self.a).to_degrees();
+        let hue = self.b.atan2(self.a).to_degrees();
         if hue < T::zero() {
-            hue += T::from_f32(360.0);
+            hue + T::from_f32(360.0)
+        } else {
+            hue
         }
-        hue
     }
 
-    /// Returns the difference between this color and another color.
-    ///
-    /// # Arguments
-    /// * `other` - The other color.
+    /// Converts this color to the RGB color space.
     ///
     /// # Returns
-    /// The difference between this color and the other color.
-    pub fn difference(&self, other: &Self) -> T {
-        let delta_l = self.l - other.l;
-        let delta_a = self.a - other.a;
-        let delta_b = self.b - other.b;
-        (delta_l.powi(2) + delta_a.powi(2) + delta_b.powi(2)).sqrt()
-    }
-
+    /// The converted `RGB` color.
     #[must_use]
     pub fn to_rgb(&self) -> RGB {
         let xyz = self.to_xyz();
         RGB::from(&xyz)
     }
 
+    /// Converts this color to the CIE XYZ color space.
+    ///
+    /// # Returns
+    /// The converted `XYZ` color.
     #[must_use]
     pub fn to_xyz(&self) -> XYZ<T> {
         XYZ::from(&self.to_lab())
     }
 
+    /// Converts this color to the CIE L*a*b* color space.
+    ///
+    /// # Returns
+    /// The converted `Lab` color.
     #[must_use]
     pub fn to_lab(&self) -> Lab<T> {
         Lab::new(self.l, self.a, self.b)
@@ -156,9 +155,9 @@ where
             return Err("Invalid color format");
         }
 
-        let r = u8::from_str_radix(&s[1..3], 16).unwrap();
-        let g = u8::from_str_radix(&s[3..5], 16).unwrap();
-        let b = u8::from_str_radix(&s[5..7], 16).unwrap();
+        let r = u8::from_str_radix(&s[1..3], 16).map_err(|_| "Invalid hex value")?;
+        let g = u8::from_str_radix(&s[3..5], 16).map_err(|_| "Invalid hex value")?;
+        let b = u8::from_str_radix(&s[5..7], 16).map_err(|_| "Invalid hex value")?;
 
         let (x, y, z) = rgb_to_xyz::<T>(r, g, b);
         let (l, a, b) = xyz_to_lab::<T, D65>(x, y, z);
@@ -215,11 +214,47 @@ mod tests {
     }
 
     #[test]
-    fn test_to_rgb() {
-        // Arrange
-        let color = Color::new(91.1120, -48.0806, -14.1521);
-
+    fn test_lightness() {
         // Act
+        let color = Color::new(91.1120, -48.0806, -14.1521);
+        let lightness = color.lightness();
+
+        // Assert
+        assert_eq!(lightness, 91.1120);
+    }
+
+    #[test]
+    fn test_chroma() {
+        // Act
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let chroma = color.chroma();
+
+        // Assert
+        assert!((chroma - 50.120_117).abs() < 1e-3);
+    }
+
+    #[rstest]
+    #[case::black((0.0, 0.0, 0.0), 0.0)]
+    #[case::white((100.0, -0.002_443, 0.011_384), 102.111_946)]
+    #[case::red((53.237_144, 80.088_320, 67.199_460), 39.998_900)]
+    #[case::green((87.735_535, - 86.183_550, 83.179_924), 136.016_020)]
+    #[case::blue((32.300_800, 79.194_260, - 107.868_910), 306.28503)]
+    #[case::cyan((91.114_750, - 48.080_950, - 14.142_858), 196.391_080,)]
+    #[case::magenta((60.322_700, 98.235_580, - 60.842_370), 328.227_940,)]
+    #[case::yellow((97.138_580, - 21.562_368, 94.476_760), 102.856_380)]
+    fn test_hue(#[case] input: (f32, f32, f32), #[case] expected: f32) {
+        // Act
+        let color: Color<f32> = Color::new(input.0, input.1, input.2);
+        let hue = color.hue();
+
+        // Assert
+        assert!((hue - expected).abs() < 1e-3);
+    }
+
+    #[test]
+    fn test_to_rgb() {
+        // Act
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let rgb = color.to_rgb();
 
         // Assert
@@ -230,10 +265,8 @@ mod tests {
 
     #[test]
     fn test_to_xyz() {
-        // Arrange
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
-
         // Act
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
         let xyz: XYZ<f32> = color.to_xyz();
 
         // Assert
@@ -244,10 +277,8 @@ mod tests {
 
     #[test]
     fn test_to_lab() {
-        // Arrange
-        let color = Color::new(91.1120, -48.0806, -14.1521);
-
         // Act
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
         let lab = color.to_lab();
 
         // Assert
@@ -259,7 +290,45 @@ mod tests {
     #[test]
     fn test_fmt() {
         // Act & Assert
-        let color = Color::new(80.0, 0.0, 0.0);
-        assert_eq!(format!("{}", color), "Color(l: 80, a: 0, b: 0)");
+        let color: Color<f32> = Color::new(91.114_750, -48.080_950, -14.142_8581);
+        assert_eq!(
+            format!("{}", color),
+            "Color(l: 91.11475, a: -48.08095, b: -14.1428585)"
+        );
+    }
+
+    #[rstest]
+    #[case::black("#000000", 0.0, 0.0, 0.0)]
+    #[case::white("#FFFFFF", 100.0, -0.002_443, 0.011_384)]
+    #[case::red("#FF0000", 53.237_144, 80.088_320, 67.199_460)]
+    #[case::green("#00FF00", 87.735_535, - 86.183_550, 83.179_924)]
+    #[case::blue("#0000FF", 32.300_800, 79.194_260, - 107.868_910)]
+    #[case::cyan("#00FFFF", 91.114_750, - 48.080_950, - 14.142_858)]
+    #[case::magenta("#FF00FF", 60.322_700, 98.235_580, - 60.842_370)]
+    #[case::yellow("#FFFF00", 97.138_580, - 21.562_368, 94.476_760)]
+    fn test_from_str(#[case] input: &str, #[case] l: f32, #[case] a: f32, #[case] b: f32) {
+        // Act
+        let color = Color::<f32>::from_str(input).unwrap();
+
+        // Assert
+        assert!((color.l - l).abs() < 1e-3);
+        assert!((color.a - a).abs() < 1e-3);
+        assert!((color.b - b).abs() < 1e-3);
+    }
+
+    #[rstest]
+    #[case::empty("")]
+    #[case::invalid("123456")]
+    #[case::invalid_length("#12345")]
+    #[case::invalid_prefix("123456")]
+    #[case::invalid_hex_red("#GGAA99")]
+    #[case::invalid_hex_green("#00GG99")]
+    #[case::invalid_hex_blue("#00AAGG")]
+    fn test_from_str_error(#[case] input: &str) {
+        // Act
+        let result = Color::<f32>::from_str(input);
+
+        // Assert
+        assert!(result.is_err());
     }
 }

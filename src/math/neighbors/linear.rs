@@ -150,4 +150,22 @@ mod tests {
         assert_eq!(nearest.index, 12);
         assert_eq!(nearest.distance, 8.0_f32.sqrt());
     }
+
+    #[test]
+    fn test_search_radius() {
+        // Arrange
+        let points = sample_points();
+        let search = LinearSearch::build(&points, DistanceMetric::Euclidean);
+
+        // Act
+        let query = [2.0, 5.0, 6.0];
+        let neighbors = search.search_radius(&query, 4.0);
+
+        // Assert
+        assert_eq!(neighbors.len(), 2);
+        assert_eq!(neighbors[0].index, 12);
+        assert_eq!(neighbors[0].distance, 8.0_f32.sqrt());
+        assert_eq!(neighbors[1].index, 13);
+        assert_eq!(neighbors[1].distance, 8.0_f32.sqrt());
+    }
 }

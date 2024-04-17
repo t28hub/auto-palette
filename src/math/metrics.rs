@@ -24,6 +24,8 @@ impl DistanceMetric {
     ///
     /// # Returns
     /// The distance between the two points.
+    #[inline]
+    #[must_use]
     pub fn measure<T, const N: usize>(&self, point1: &Point<T, N>, point2: &Point<T, N>) -> T
     where
         T: FloatNumber,
@@ -47,6 +49,7 @@ impl DistanceMetric {
 ///
 /// # Returns
 /// The squared Euclidean distance between the two points.
+#[inline]
 #[must_use]
 fn square_euclidean<T, const N: usize>(point1: &Point<T, N>, point2: &Point<T, N>) -> T
 where

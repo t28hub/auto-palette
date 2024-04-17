@@ -5,6 +5,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use num_traits::Float;
 use rand_distr::weighted_alias::AliasableWeight;
 
+/// Trait for floating point numbers.
 pub trait FloatNumber:
     Sized
     + Copy
@@ -22,27 +23,74 @@ pub trait FloatNumber:
     + Sum
     + AliasableWeight
 {
+    /// Creates a new floating point number from a `u8`.
+    ///
+    /// # Arguments
+    /// * `value` - The value to convert.
+    ///
+    /// # Returns
+    /// The floating point number.
     #[must_use]
     fn from_u8(value: u8) -> Self;
 
+    /// Creates a new floating point number from a `u32`.
+    ///
+    /// # Arguments
+    /// * `value` - The value to convert.
+    ///
+    /// # Returns
+    /// The floating point number.
     #[must_use]
     fn from_u32(value: u32) -> Self;
 
+    /// Creates a new floating point number from a `usize`.
+    ///
+    /// # Arguments
+    /// * `value` - The value to convert.
+    ///
+    /// # Returns
+    /// The floating point number.
     #[must_use]
     fn from_usize(value: usize) -> Self;
 
+    /// Creates a new floating point number from a `f32`.
+    ///
+    /// # Arguments
+    /// * `value` - The value to convert.
+    ///
+    /// # Returns
+    /// The floating point number.
     #[must_use]
     fn from_f32(value: f32) -> Self;
 
+    /// Creates a new floating point number from a `f64`.
+    ///
+    /// # Arguments
+    /// * `value` - The value to convert.
+    ///
+    /// # Returns
+    /// The floating point number.
     #[must_use]
     fn from_f64(value: f64) -> Self;
 
+    /// Converts the floating point number to a `u8`.
+    ///
+    /// # Returns
+    /// The `u8` value. The value is truncated.
     #[must_use]
     fn to_u8_unsafe(&self) -> u8;
 
+    /// Converts the floating point number to a `u32`.
+    ///
+    /// # Returns
+    /// The `u32` value. The value is truncated.
     #[must_use]
     fn to_u32_unsafe(&self) -> u32;
 
+    /// Converts the floating point number to a `usize`.
+    ///
+    /// # Returns
+    /// The `usize` value. The value is truncated.
     #[must_use]
     fn to_usize_unsafe(&self) -> usize;
 }
@@ -198,6 +246,30 @@ where
 mod tests {
     use super::*;
     use rstest::rstest;
+
+    #[test]
+    fn test_float_number_f32() {
+        assert_eq!(f32::from_u8(128), 128.0);
+        assert_eq!(f32::from_u32(1024), 1024.0);
+        assert_eq!(f32::from_usize(4096), 4096.0);
+        assert_eq!(f32::from_f32(0.5), 0.5);
+        assert_eq!(f32::from_f64(0.125), 0.125);
+        assert_eq!(0.125.to_u8_unsafe(), 0);
+        assert_eq!(12.5.to_u32_unsafe(), 12);
+        assert_eq!(10.24.to_usize_unsafe(), 10);
+    }
+
+    #[test]
+    fn test_float_number_f64() {
+        assert_eq!(f64::from_u8(128), 128.0);
+        assert_eq!(f64::from_u32(1024), 1024.0);
+        assert_eq!(f64::from_usize(4096), 4096.0);
+        assert_eq!(f64::from_f32(0.5), 0.5);
+        assert_eq!(f64::from_f64(0.125), 0.125);
+        assert_eq!(0.125.to_u8_unsafe(), 0);
+        assert_eq!(12.5.to_u32_unsafe(), 12);
+        assert_eq!(10.24.to_usize_unsafe(), 10);
+    }
 
     #[rstest]
     #[case(0.0, 0.0)]
