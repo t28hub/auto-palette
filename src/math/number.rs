@@ -216,7 +216,7 @@ pub fn normalize<T>(value: T, min: T, max: T) -> T
 where
     T: FloatNumber,
 {
-    debug_assert!(min <= max, "min must be less than or equal to max");
+    debug_assert!(min < max, "min must be less than max");
     (value - min) / (max - min)
 }
 
@@ -232,13 +232,16 @@ where
 ///
 /// # Returns
 /// The denormalized value.
+///
+/// # Panics
+/// Panics if `min` is greater than or equal to `max`.
 #[inline]
 #[must_use]
 pub fn denormalize<T>(value: T, min: T, max: T) -> T
 where
     T: FloatNumber,
 {
-    debug_assert!(min <= max, "min must be less than or equal to max");
+    debug_assert!(min < max, "min must be less than max");
     value * (max - min) + min
 }
 
@@ -281,11 +284,14 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    #[test]
-    #[should_panic]
     #[cfg(debug_assertions)]
-    fn test_normalize_panic() {
-        let _ = normalize(0.5, 128.0, 0.0);
+    #[rstest]
+    #[should_panic]
+    #[case(128.0, 0.0)]
+    #[should_panic]
+    #[case(128.0, 128.0)]
+    fn test_normalize_panic(#[case] min: f32, #[case] max: f32) {
+        let _ = normalize(0.5, min, max);
     }
 
     #[rstest]
@@ -298,10 +304,13 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    #[test]
-    #[should_panic]
     #[cfg(debug_assertions)]
-    fn test_denormalize_panic() {
-        let _ = denormalize(0.5, 128.0, 0.0);
+    #[rstest]
+    #[should_panic]
+    #[case(0.1, 0.0)]
+    #[should_panic]
+    #[case(0.0, 0.0)]
+    fn test_denormalize_panic(#[case] min: f32, #[case] max: f32) {
+        let _ = denormalize(0.5, min, max);
     }
 }
