@@ -1,5 +1,6 @@
 use crate::math::{normalize, FloatNumber};
-use crate::Color;
+use crate::{Color, PaletteError};
+use std::str::FromStr;
 
 /// The theme of a color.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -36,6 +37,21 @@ impl Theme {
             Theme::Muted => score_muted(color),
             Theme::Light => score_light(color),
             Theme::Dark => score_dark(color),
+        }
+    }
+}
+
+impl FromStr for Theme {
+    type Err = PaletteError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "basic" => Ok(Theme::Basic),
+            "vivid" => Ok(Theme::Vivid),
+            "muted" => Ok(Theme::Muted),
+            "light" => Ok(Theme::Light),
+            "dark" => Ok(Theme::Dark),
+            _ => Err(PaletteError::InvalidTheme(s.to_string())),
         }
     }
 }
@@ -210,9 +226,46 @@ mod tests {
         let color: Color<f32> = Color::from_str(hex).unwrap();
         let score = Theme::Dark.score(&color);
 
-        println!("{} - {}", color, score);
-
         // Assert
         assert!((score - expected).abs() < 1e-3);
+    }
+
+    #[rstest]
+    #[case::basic("basic", Theme::Basic)]
+    #[case::vivid("vivid", Theme::Vivid)]
+    #[case::muted("muted", Theme::Muted)]
+    #[case::light("light", Theme::Light)]
+    #[case::dark("dark", Theme::Dark)]
+    #[case::basic_upper("BASIC", Theme::Basic)]
+    #[case::vivid_upper("VIVID", Theme::Vivid)]
+    #[case::muted_upper("MUTED", Theme::Muted)]
+    #[case::light_upper("LIGHT", Theme::Light)]
+    #[case::dark_upper("DARK", Theme::Dark)]
+    #[case::basic_capitalized("Basic", Theme::Basic)]
+    #[case::vivid_capitalized("Vivid", Theme::Vivid)]
+    #[case::muted_capitalized("Muted", Theme::Muted)]
+    #[case::light_capitalized("Light", Theme::Light)]
+    #[case::dark_capitalized("Dark", Theme::Dark)]
+    fn test_from_str(#[case] str: &str, #[case] expected: Theme) {
+        // Act
+        let actual = Theme::from_str(str).unwrap();
+
+        // Assert
+        assert_eq!(actual, expected);
+    }
+
+    #[rstest]
+    #[case::empty("")]
+    #[case::invalid("invalid")]
+    fn test_from_str_error(#[case] str: &str) {
+        // Act
+        let actual = Theme::from_str(str);
+
+        // Assert
+        assert!(actual.is_err());
+        assert_eq!(
+            actual.unwrap_err(),
+            PaletteError::InvalidTheme(str.to_string())
+        );
     }
 }

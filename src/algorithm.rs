@@ -73,11 +73,11 @@ impl FromStr for Algorithm {
     type Err = PaletteError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
+        match s.to_lowercase().as_str() {
             "kmeans" => Ok(Self::KMeans),
             "dbscan" => Ok(Self::DBSCAN),
             "dbscan++" => Ok(Self::DBSCANpp),
-            _ => Err(PaletteError::InvalidAlgorithm),
+            _ => Err(PaletteError::InvalidAlgorithm(s.to_string())),
         }
     }
 }
@@ -85,18 +85,38 @@ impl FromStr for Algorithm {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
 
-    #[test]
-    fn test_algorithm_from_str() {
-        assert_eq!(Algorithm::from_str("kmeans").unwrap(), Algorithm::KMeans);
-        assert_eq!(Algorithm::from_str("dbscan").unwrap(), Algorithm::DBSCAN);
+    #[rstest]
+    #[case::kmeans("kmeans", Algorithm::KMeans)]
+    #[case::dbscan("dbscan", Algorithm::DBSCAN)]
+    #[case::dbscanpp("dbscan++", Algorithm::DBSCANpp)]
+    #[case::kmeans_upper("KMEANS", Algorithm::KMeans)]
+    #[case::dbscan_upper("DBSCAN", Algorithm::DBSCAN)]
+    #[case::dbscanpp_upper("DBSCAN++", Algorithm::DBSCANpp)]
+    #[case::kmeans_capitalized("Kmeans", Algorithm::KMeans)]
+    #[case::dbscan_capitalized("Dbscan", Algorithm::DBSCAN)]
+    #[case::dbscanpp_capitalized("Dbscan++", Algorithm::DBSCANpp)]
+    fn test_from_str(#[case] input: &str, #[case] expected: Algorithm) {
+        // Act
+        let actual = Algorithm::from_str(input).unwrap();
+
+        // Assert
+        assert_eq!(actual, expected);
+    }
+
+    #[rstest]
+    #[case::empty("")]
+    #[case::invalid("invalid")]
+    fn test_from_str_error(#[case] input: &str) {
+        // Act
+        let actual = Algorithm::from_str(input);
+
+        // Assert
+        assert!(actual.is_err());
         assert_eq!(
-            Algorithm::from_str("dbscan++").unwrap(),
-            Algorithm::DBSCANpp
-        );
-        assert_eq!(
-            Algorithm::from_str("foo").unwrap_err(),
-            PaletteError::InvalidAlgorithm
+            actual.unwrap_err(),
+            PaletteError::InvalidAlgorithm(input.to_string())
         );
     }
 }

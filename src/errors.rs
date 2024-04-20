@@ -4,7 +4,9 @@ pub enum PaletteError {
     /// The image data is empty.
     EmptyImageData,
     /// Palette extraction error.
-    ExtractionError(&'static str),
+    ExtractionError(String),
     /// Invalid algorithm error.
-    InvalidAlgorithm,
+    InvalidAlgorithm(String),
+    /// Invalid theme error.
+    InvalidTheme(String),
 }
