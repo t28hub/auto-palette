@@ -1,10 +1,12 @@
+use std::str::FromStr;
+
+use rand::thread_rng;
+
 use crate::errors::PaletteError;
 use crate::math::clustering::{
     Cluster, ClusteringAlgorithm, DBSCANpp, InitializationStrategy, KMeans, DBSCAN,
 };
 use crate::math::{DistanceMetric, FloatNumber, Point};
-use rand::thread_rng;
-use std::str::FromStr;
 
 /// Clustering algorithm.
 #[allow(clippy::upper_case_acronyms)]
@@ -19,52 +21,22 @@ pub enum Algorithm {
 }
 
 impl Algorithm {
-    /// Clusters the points using the specified algorithm.
-    ///
-    /// # Type Parameters
-    /// * `N` - The number of dimensions.
+    /// Clusters the given pixels using the algorithm.
     ///
     /// # Arguments
-    /// * `points` - The points to cluster.
+    /// * `pixels` - The pixels to cluster.
     ///
     /// # Returns
-    /// The clusters of the points using the specified algorithm.
+    /// The clusters found by the algorithm.
     #[must_use]
-    pub(crate) fn cluster<T, const N: usize>(&self, points: &[Point<T, N>]) -> Vec<Cluster<T, N>>
+    pub(crate) fn cluster<T>(&self, pixels: &[Point<T, 5>]) -> Vec<Cluster<T, 5>>
     where
         T: FloatNumber,
     {
         match self {
-            Self::KMeans => {
-                let strategy = InitializationStrategy::KmeansPlusPlus(
-                    thread_rng(),
-                    DistanceMetric::SquaredEuclidean,
-                );
-                let clustering = KMeans::new(
-                    32,
-                    100,
-                    T::from_f32(1e-3),
-                    DistanceMetric::SquaredEuclidean,
-                    strategy,
-                )
-                .unwrap();
-                clustering.fit(points)
-            }
-            Self::DBSCAN => {
-                let clustering =
-                    DBSCAN::new(16, T::from_f32(16e-4), DistanceMetric::SquaredEuclidean).unwrap();
-                clustering.fit(points)
-            }
-            Self::DBSCANpp => {
-                let clustering = DBSCANpp::new(
-                    T::from_f32(0.1),
-                    16,
-                    T::from_f32(16e-4),
-                    DistanceMetric::SquaredEuclidean,
-                )
-                .unwrap();
-                clustering.fit(points)
-            }
+            Self::KMeans => cluster_with_kmeans(pixels),
+            Self::DBSCAN => cluster_with_dbscan(pixels),
+            Self::DBSCANpp => cluster_with_dbscanpp(pixels),
         }
     }
 }
@@ -82,10 +54,53 @@ impl FromStr for Algorithm {
     }
 }
 
+#[must_use]
+fn cluster_with_kmeans<T>(pixels: &[Point<T, 5>]) -> Vec<Cluster<T, 5>>
+where
+    T: FloatNumber,
+{
+    let strategy =
+        InitializationStrategy::KmeansPlusPlus(thread_rng(), DistanceMetric::SquaredEuclidean);
+    let clustering = KMeans::new(
+        32,
+        100,
+        T::from_f32(1e-3),
+        DistanceMetric::SquaredEuclidean,
+        strategy,
+    )
+    .unwrap();
+    clustering.fit(pixels)
+}
+
+#[must_use]
+fn cluster_with_dbscan<T>(pixels: &[Point<T, 5>]) -> Vec<Cluster<T, 5>>
+where
+    T: FloatNumber,
+{
+    let clustering = DBSCAN::new(16, T::from_f32(16e-4), DistanceMetric::SquaredEuclidean).unwrap();
+    clustering.fit(pixels)
+}
+
+#[must_use]
+fn cluster_with_dbscanpp<T>(pixels: &[Point<T, 5>]) -> Vec<Cluster<T, 5>>
+where
+    T: FloatNumber,
+{
+    let clustering = DBSCANpp::new(
+        T::from_f32(0.1),
+        16,
+        T::from_f32(16e-4),
+        DistanceMetric::SquaredEuclidean,
+    )
+    .unwrap();
+    clustering.fit(pixels)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::*;
     use rstest::rstest;
+
+    use super::*;
 
     #[rstest]
     #[case::kmeans("kmeans", Algorithm::KMeans)]

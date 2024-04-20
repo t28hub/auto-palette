@@ -11,7 +11,7 @@ use crate::image::ImageError::InvalidParameter;
 pub struct ImageData {
     width: u32,
     height: u32,
-    pixels: Vec<u8>,
+    data: Vec<u8>,
 }
 
 impl ImageData {
@@ -20,7 +20,7 @@ impl ImageData {
     /// # Arguments
     /// * `width` - The width of the image data.
     /// * `height` - The height of the image data.
-    /// * `pixels` - The raw data of the image data. The data should be in RGBA format.
+    /// * `data` - The raw data of the image data. The data is in RGBA format.
     ///
     /// # Returns
     /// A new `ImageData` instance.
@@ -35,16 +35,16 @@ impl ImageData {
     /// let image_data = ImageData::new(1, 2, vec![0, 0, 0, 255, 255, 255, 255, 255]).unwrap();
     /// assert_eq!(image_data.width(), 1);
     /// assert_eq!(image_data.height(), 2);
-    /// assert_eq!(image_data.pixels(), &[0, 0, 0, 255, 255, 255, 255, 255]);
+    /// assert_eq!(image_data.data(), &[0, 0, 0, 255, 255, 255, 255, 255]);
     /// ```
-    pub fn new(width: u32, height: u32, pixels: Vec<u8>) -> Result<Self, ImageError> {
-        if pixels.len() != ((width * height * 4) as usize) {
+    pub fn new(width: u32, height: u32, data: Vec<u8>) -> Result<Self, ImageError> {
+        if data.len() != ((width * height * 4) as usize) {
             return Err(InvalidParameter);
         }
         Ok(Self {
             width,
             height,
-            pixels,
+            data,
         })
     }
 
@@ -66,7 +66,7 @@ impl ImageData {
     /// let image_data = ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
     /// assert_eq!(image_data.width(), 480);
     /// assert_eq!(image_data.height(), 722);
-    /// assert_eq!(image_data.pixels().len(), 1_386_240);
+    /// assert_eq!(image_data.data().len(), 1_386_240);
     /// ```
     pub fn load<P>(path: P) -> Result<Self, ImageError>
     where
@@ -80,10 +80,20 @@ impl ImageData {
         Self::try_from(&image)
     }
 
+    /// Returns whether the image data is empty.
+    ///
+    /// # Returns
+    /// `true` if the image data is empty; otherwise, `false`.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
+
     /// Returns the width of the image data.
     ///
     /// # Returns
     /// The width of the image data.
+    #[must_use]
     pub fn width(&self) -> u32 {
         self.width
     }
@@ -92,6 +102,7 @@ impl ImageData {
     ///
     /// # Returns
     /// The height of the image data.
+    #[must_use]
     pub fn height(&self) -> u32 {
         self.height
     }
@@ -100,8 +111,9 @@ impl ImageData {
     ///
     /// # Returns
     /// The raw data of the image data. The data is in RGBA format.
-    pub fn pixels(&self) -> &[u8] {
-        &self.pixels
+    #[must_use]
+    pub fn data(&self) -> &[u8] {
+        &self.data
     }
 }
 
@@ -121,7 +133,7 @@ impl From<&RgbImage> for ImageData {
     fn from(image: &RgbImage) -> Self {
         let (width, height) = image.dimensions();
         let size = (width * height) as usize;
-        let pixels = image
+        let data = image
             .pixels()
             .fold(Vec::with_capacity(size * 4), |mut pixels, pixel| {
                 pixels.extend_from_slice(&[pixel[0], pixel[1], pixel[2], 255]);
@@ -130,7 +142,7 @@ impl From<&RgbImage> for ImageData {
         Self {
             width,
             height,
-            pixels,
+            data,
         }
     }
 }
@@ -138,11 +150,11 @@ impl From<&RgbImage> for ImageData {
 impl From<&RgbaImage> for ImageData {
     fn from(image: &RgbaImage) -> Self {
         let (width, height) = image.dimensions();
-        let pixels = image.to_vec();
+        let data = image.to_vec();
         Self {
             width,
             height,
-            pixels,
+            data,
         }
     }
 }
@@ -160,9 +172,23 @@ mod tests {
         let image_data = ImageData::new(2, 2, pixels.clone()).unwrap();
 
         // Assert
+        assert!(!image_data.is_empty());
         assert_eq!(image_data.width(), 2);
         assert_eq!(image_data.height(), 2);
-        assert_eq!(image_data.pixels(), &pixels);
+        assert_eq!(image_data.data(), &pixels);
+    }
+
+    #[test]
+    fn test_new_empty_image_data() {
+        // Act
+        let pixels = vec![];
+        let image_data = ImageData::new(0, 0, pixels.clone()).unwrap();
+
+        // Assert
+        assert!(image_data.is_empty());
+        assert_eq!(image_data.width(), 0);
+        assert_eq!(image_data.height(), 0);
+        assert_eq!(image_data.data(), &pixels);
     }
 
     #[test]
@@ -181,9 +207,10 @@ mod tests {
             ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
 
         // Assert
+        assert!(!image_data.is_empty());
         assert_eq!(image_data.width(), 480);
         assert_eq!(image_data.height(), 722);
-        assert_eq!(image_data.pixels().len(), 480 * 722 * 4);
+        assert_eq!(image_data.data().len(), 480 * 722 * 4);
     }
 
     #[test]
@@ -192,9 +219,10 @@ mod tests {
         let image_data = ImageData::load("./tests/assets/flag_np.png").unwrap();
 
         // Assert
+        assert!(!image_data.is_empty());
         assert_eq!(image_data.width(), 394);
         assert_eq!(image_data.height(), 480);
-        assert_eq!(image_data.pixels().len(), 394 * 480 * 4);
+        assert_eq!(image_data.data().len(), 394 * 480 * 4);
     }
 
     #[test]

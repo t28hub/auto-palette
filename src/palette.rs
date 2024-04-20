@@ -4,7 +4,7 @@ use crate::algorithm::Algorithm;
 use crate::color::{rgb_to_xyz, xyz_to_lab, Lab, D65};
 use crate::errors::PaletteError;
 use crate::image::ImageData;
-use crate::math::clustering::{ClusteringAlgorithm, DBSCAN};
+use crate::math::clustering::{Cluster, ClusteringAlgorithm, DBSCAN};
 use crate::math::{denormalize, normalize, DistanceMetric, FloatNumber, Point, SamplingStrategy};
 use crate::theme::Theme;
 use crate::{Color, Swatch};
@@ -118,89 +118,40 @@ where
         image_data: &ImageData,
         algorithm: Algorithm,
     ) -> Result<Self, PaletteError> {
-        let pixels = image_data.pixels();
+        let pixels = image_data.data();
         if pixels.is_empty() {
             return Err(PaletteError::EmptyImageData);
         }
 
-        let points = convert_to_pixels(image_data);
-        let pixel_clusters = algorithm.cluster::<T, 5>(&points);
-        let colors: Vec<Point<T, 3>> = pixel_clusters
-            .iter()
-            .map(|cluster| {
-                let centroid = cluster.centroid();
-                [
-                    denormalize(centroid[0], Lab::min_l(), Lab::max_l()),
-                    denormalize(centroid[1], Lab::min_a(), Lab::max_a()),
-                    denormalize(centroid[2], Lab::min_b(), Lab::max_b()),
-                ]
-            })
-            .collect();
+        let width = image_data.width();
+        let height = image_data.height();
+        let pixel_clusters = cluster_foo(width as usize, height as usize, pixels, algorithm);
+        let color_clusters = cluster_foo_bar(&pixel_clusters);
 
-        let width_f = T::from_u32(image_data.width());
-        let height_f = T::from_u32(image_data.height());
-
-        let algorithm = DBSCAN::new(1, T::from_f32(2.5), DistanceMetric::Euclidean).unwrap();
-        let color_clusters = algorithm.fit(&colors);
-        let mut swatches = color_clusters
-            .iter()
-            .fold(Vec::new(), |mut acc, color_cluster| {
-                let mut best_color = [T::zero(); 3];
-                let mut best_position = (0, 0);
-                let mut best_population = 0;
-                let mut total_population = 0;
-                for &member in color_cluster.members() {
-                    let Some(pixel_cluster) = pixel_clusters.get(member) else {
-                        continue;
-                    };
-
-                    if pixel_cluster.is_empty() {
-                        continue;
-                    }
-
-                    let fraction = T::from_usize(pixel_cluster.len())
-                        / T::from_usize(pixel_cluster.len() + best_population);
-                    let centroid = pixel_cluster.centroid();
-                    best_color[0] += fraction * (centroid[0] - best_color[0]);
-                    best_color[1] += fraction * (centroid[1] - best_color[1]);
-                    best_color[2] += fraction * (centroid[2] - best_color[2]);
-
-                    if fraction >= T::from_f32(0.5) {
-                        best_position.0 =
-                            denormalize(centroid[3], T::zero(), width_f).to_u32_unsafe();
-                        best_position.1 =
-                            denormalize(centroid[4], T::zero(), height_f).to_u32_unsafe();
-                        best_population = pixel_cluster.len();
-                    }
-                    total_population += pixel_cluster.len();
-                }
-
-                let l = denormalize(best_color[0], Lab::min_l(), Lab::max_l());
-                let a = denormalize(best_color[1], Lab::min_a(), Lab::max_a());
-                let b = denormalize(best_color[2], Lab::min_b(), Lab::max_b());
-                acc.push(Swatch::new(
-                    Color::new(l, a, b),
-                    best_position,
-                    total_population,
-                ));
-                acc
-            });
+        let mut swatches = convert_to_swatches(
+            T::from_u32(width),
+            T::from_u32(height),
+            &color_clusters,
+            &pixel_clusters,
+        );
         swatches.sort_by_key(|swatch| Reverse(swatch.population()));
         Ok(Self { swatches })
     }
 }
 
 #[must_use]
-fn convert_to_pixels<T>(image_data: &ImageData) -> Vec<Point<T, 5>>
+fn cluster_foo<T>(
+    width: usize,
+    height: usize,
+    data: &[u8],
+    algorithm: Algorithm,
+) -> Vec<Cluster<T, 5>>
 where
     T: FloatNumber,
 {
-    let width = image_data.width() as usize;
-    let height = image_data.height() as usize;
     let width_f = T::from_usize(width);
     let height_f = T::from_usize(height);
-    image_data
-        .pixels()
+    let points = data
         .chunks(4)
         .enumerate()
         .filter_map(|(index, pixel)| {
@@ -221,7 +172,81 @@ where
                 ])
             }
         })
-        .collect()
+        .collect::<Vec<_>>();
+    algorithm.cluster::<T>(&points)
+}
+
+#[must_use]
+fn cluster_foo_bar<T>(pixel_clusters: &[Cluster<T, 5>]) -> Vec<Cluster<T, 3>>
+where
+    T: FloatNumber,
+{
+    let colors = pixel_clusters
+        .iter()
+        .map(|cluster| -> Point<T, 3> {
+            let centroid = cluster.centroid();
+            [
+                denormalize(centroid[0], Lab::min_l(), Lab::max_l()),
+                denormalize(centroid[1], Lab::min_a(), Lab::max_a()),
+                denormalize(centroid[2], Lab::min_b(), Lab::max_b()),
+            ]
+        })
+        .collect::<Vec<_>>();
+    let algorithm = DBSCAN::new(1, T::from_f32(2.5), DistanceMetric::Euclidean).unwrap();
+    algorithm.fit(&colors)
+}
+
+#[must_use]
+fn convert_to_swatches<T>(
+    width: T,
+    height: T,
+    color_clusters: &[Cluster<T, 3>],
+    pixel_clusters: &[Cluster<T, 5>],
+) -> Vec<Swatch<T>>
+where
+    T: FloatNumber,
+{
+    color_clusters
+        .iter()
+        .fold(Vec::new(), |mut acc, color_cluster| {
+            let mut best_color = [T::zero(); 3];
+            let mut best_position = (0, 0);
+            let mut best_population = 0;
+            let mut total_population = 0;
+            for &member in color_cluster.members() {
+                let Some(pixel_cluster) = pixel_clusters.get(member) else {
+                    continue;
+                };
+
+                if pixel_cluster.is_empty() {
+                    continue;
+                }
+
+                let fraction = T::from_usize(pixel_cluster.len())
+                    / T::from_usize(pixel_cluster.len() + best_population);
+                let centroid = pixel_cluster.centroid();
+                best_color[0] += fraction * (centroid[0] - best_color[0]);
+                best_color[1] += fraction * (centroid[1] - best_color[1]);
+                best_color[2] += fraction * (centroid[2] - best_color[2]);
+
+                if fraction >= T::from_f32(0.5) {
+                    best_position.0 = denormalize(centroid[3], T::zero(), width).to_u32_unsafe();
+                    best_position.1 = denormalize(centroid[4], T::zero(), height).to_u32_unsafe();
+                    best_population = pixel_cluster.len();
+                }
+                total_population += pixel_cluster.len();
+            }
+
+            let l = denormalize(best_color[0], Lab::min_l(), Lab::max_l());
+            let a = denormalize(best_color[1], Lab::min_a(), Lab::max_a());
+            let b = denormalize(best_color[2], Lab::min_b(), Lab::max_b());
+            acc.push(Swatch::new(
+                Color::new(l, a, b),
+                best_position,
+                total_population,
+            ));
+            acc
+        })
 }
 
 #[cfg(test)]
