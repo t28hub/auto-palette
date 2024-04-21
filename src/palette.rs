@@ -73,22 +73,30 @@ where
     /// The swatches in the palette.
     #[must_use]
     pub fn find_swatches(&self, n: usize) -> Vec<Swatch<T>> {
-        let colors: Vec<Point<T, 3>> = self
+        let colors: Vec<_> = self
             .swatches
             .iter()
-            .map(|swatch| {
-                let color = swatch.color();
-                [color.l, color.a, color.b]
-            })
+            .map(|swatch| [swatch.color().l, swatch.color().a, swatch.color().b])
             .collect();
 
-        let sampling = SamplingStrategy::FarthestPointSampling::<T>;
-        let sampled = sampling.sample(&colors, n);
-        sampled.iter().map(|&index| self.swatches[index]).collect()
+        let sampling = SamplingStrategy::<T>::default();
+        sampling
+            .sample(&colors, n)
+            .iter()
+            .map(|&index| self.swatches[index])
+            .collect()
     }
 
+    /// Finds the swatches in the palette based on the theme.
+    ///
+    /// # Arguments
+    /// * `n` - The number of swatches to find.
+    /// * `theme` - The theme to use.
+    ///
+    /// # Returns
+    /// The swatches in the palette based on the theme.
     #[must_use]
-    pub fn find_swatches_with_theme(&self, n: usize, theme: &Theme) -> Vec<Swatch<T>> {
+    pub fn find_swatches_with_theme(&self, n: usize, theme: Theme) -> Vec<Swatch<T>> {
         let mut colors = Vec::with_capacity(self.swatches.len());
         let mut weights = Vec::with_capacity(self.swatches.len());
         for swatch in &self.swatches {
@@ -100,8 +108,11 @@ where
         }
 
         let sampling = SamplingStrategy::WeightedFarthestPointSampling::<T>(weights);
-        let sampled = sampling.sample(&colors, n);
-        sampled.iter().map(|&index| self.swatches[index]).collect()
+        sampling
+            .sample(&colors, n)
+            .iter()
+            .map(|&index| self.swatches[index])
+            .collect()
     }
 
     /// Extracts the palette from the image data. The default clustering algorithm is DBSCAN.
@@ -260,9 +271,33 @@ where
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
     use std::str::FromStr;
 
     use super::*;
+
+    #[must_use]
+    fn sample_swatches<T>() -> Vec<Swatch<T>>
+    where
+        T: FloatNumber,
+    {
+        vec![
+            Swatch::new(Color::from_str("#FFFFFF").unwrap(), (159, 106), 61228),
+            Swatch::new(Color::from_str("#EE334E").unwrap(), (238, 89), 1080),
+            Swatch::new(Color::from_str("#0081C8").unwrap(), (82, 88), 1064),
+            Swatch::new(Color::from_str("#00A651").unwrap(), (197, 123), 1037),
+            Swatch::new(Color::from_str("#000000").unwrap(), (157, 95), 1036),
+            Swatch::new(Color::from_str("#FCB131").unwrap(), (119, 123), 1005),
+        ]
+    }
+
+    #[must_use]
+    fn empty_swatches<T>() -> Vec<Swatch<T>>
+    where
+        T: FloatNumber,
+    {
+        vec![]
+    }
 
     #[test]
     fn test_new_palette() {
@@ -294,7 +329,7 @@ mod tests {
     #[test]
     fn test_extract() {
         // Act
-        let image_data = ImageData::load("./tests/assets/flags/uk.png").unwrap();
+        let image_data = ImageData::load("./tests/assets/olympic_rings.png").unwrap();
         let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
 
         // Assert
@@ -302,31 +337,81 @@ mod tests {
         assert!(palette.len() >= 3);
     }
 
-    #[test]
-    fn test_extract_with_algorithm() {
-        // Arrange
-        let image_data =
-            ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
-
+    #[rstest]
+    #[case::kmeans("kmeans")]
+    #[case::dbscan("dbscan")]
+    #[case::dbscanpp("dbscan++")]
+    fn test_extract_with_algorithm(#[case] name: &str) {
         // Act
+        let image_data = ImageData::load("./tests/assets/olympic_rings.png").unwrap();
+        let algorithm = Algorithm::from_str(name).unwrap();
         let palette: Palette<f32> =
-            Palette::extract_with_algorithm(&image_data, Algorithm::KMeans).unwrap();
+            Palette::extract_with_algorithm(&image_data, algorithm).unwrap();
 
         // Assert
         assert!(!palette.is_empty());
-        assert!(palette.len() >= 3);
+        assert!(palette.len() >= 5);
     }
 
     #[test]
     fn test_extract_empty_image_data() {
-        // Arrange
-        let image_data = ImageData::new(0, 0, vec![]).unwrap();
-
         // Act
+        let image_data = ImageData::new(0, 0, vec![]).unwrap();
         let result = Palette::<f32>::extract(&image_data);
 
         // Assert
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), PaletteError::EmptyImageData);
+    }
+
+    #[test]
+    fn test_find_swatches() {
+        // Arrange
+        let swatches = sample_swatches::<f32>();
+        let palette = Palette::new(swatches.clone());
+
+        // Act
+        let mut actual = palette.find_swatches(3);
+        actual.sort_by_key(|swatch| Reverse(swatch.population()));
+
+        // Assert
+        assert_eq!(actual.len(), 3);
+        assert_eq!(actual[0].color().to_hex_string(), "#FFFFFF");
+        assert_eq!(actual[1].color().to_hex_string(), "#EE334E");
+        assert_eq!(actual[2].color().to_hex_string(), "#000000");
+    }
+
+    #[test]
+    fn test_find_swatches_empty() {
+        // Arrange
+        let swatches = empty_swatches::<f32>();
+        let palette = Palette::new(swatches.clone());
+
+        // Act
+        let actual = palette.find_swatches(10);
+
+        // Assert
+        assert!(actual.is_empty());
+    }
+
+    #[rstest]
+    #[case::basic(Theme::Basic, vec ! ["#0081C8", "#FCB131"])]
+    #[case::vivid(Theme::Vivid, vec ! ["#EE334E", "#00A651"])]
+    #[case::muted(Theme::Muted, vec ! ["#FFFFFF", "#000000"])]
+    #[case::light(Theme::Light, vec ! ["#FFFFFF", "#FCB131"])]
+    #[case::dark(Theme::Dark, vec ! ["#FFFFFF", "#000000"])]
+    fn test_find_swatches_with_theme(#[case] theme: Theme, #[case] expected: Vec<&str>) {
+        // Arrange
+        let swatches = sample_swatches::<f32>();
+        let palette = Palette::new(swatches.clone());
+
+        // Act
+        let mut actual = palette.find_swatches_with_theme(2, theme);
+        actual.sort_by_key(|swatch| Reverse(swatch.population()));
+
+        // Assert
+        assert_eq!(actual.len(), 2);
+        assert_eq!(actual[0].color().to_hex_string(), expected[0]);
+        assert_eq!(actual[1].color().to_hex_string(), expected[1]);
     }
 }

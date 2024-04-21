@@ -63,6 +63,15 @@ where
     }
 }
 
+impl<T> Default for SamplingStrategy<T>
+where
+    T: FloatNumber,
+{
+    fn default() -> Self {
+        SamplingStrategy::FarthestPointSampling
+    }
+}
+
 #[must_use]
 fn sample_with_distance_fn<T, const N: usize, F>(
     points: &[Point<T, N>],

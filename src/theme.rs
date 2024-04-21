@@ -57,11 +57,16 @@ impl FromStr for Theme {
 }
 
 #[inline]
-fn score_basic<T>(_color: &Color<T>) -> T
+fn score_basic<T>(color: &Color<T>) -> T
 where
     T: FloatNumber,
 {
-    T::one()
+    let lightness = color.lightness();
+    if lightness <= T::from_u32(25) || lightness >= T::from_u32(85) {
+        T::zero()
+    } else {
+        T::one()
+    }
 }
 
 #[inline]
@@ -83,7 +88,7 @@ where
     T: FloatNumber,
 {
     let chroma = color.chroma();
-    if chroma <= T::from_u32(80) {
+    if chroma <= T::from_u32(60) {
         T::one() - normalize(chroma, Color::<T>::min_chroma(), Color::<T>::max_chroma())
     } else {
         T::zero()
@@ -130,14 +135,14 @@ mod tests {
     use std::str::FromStr;
 
     #[rstest]
-    #[case::black("#000000", 1.0)]
+    #[case::black("#000000", 0.0)]
     #[case::gray("#808080", 1.0)]
-    #[case::white("#ffffff", 1.0)]
+    #[case::white("#ffffff", 0.0)]
     #[case::red("#ff0000", 1.0)]
-    #[case::green("#00ff00", 1.0)]
+    #[case::green("#00ff00", 0.0)]
     #[case::blue("#0000ff", 1.0)]
-    #[case::yellow("#ffff00", 1.0)]
-    #[case::cyan("#00ffff", 1.0)]
+    #[case::yellow("#ffff00", 0.0)]
+    #[case::cyan("#00ffff", 0.0)]
     #[case::magenta("#ff00ff", 1.0)]
     fn test_score_basic(#[case] hex: &str, #[case] expected: f32) {
         // Act

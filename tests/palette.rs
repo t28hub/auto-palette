@@ -100,3 +100,15 @@ where
         assert!(colors.contains(&expected_color.to_string()));
     }
 }
+
+#[test]
+fn test_find_swatches_with_empty_palette() {
+    // Act
+    let image_data = ImageData::load("./tests/assets/colors/transparent.png").unwrap();
+    let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
+    let swatches = palette.find_swatches(5);
+
+    // Assert
+    assert!(palette.is_empty());
+    assert!(swatches.is_empty());
+}
