@@ -5,13 +5,14 @@ use std::collections::HashSet;
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Default, PartialEq)]
 pub enum SamplingStrategy<T>
 where
     T: FloatNumber,
 {
     /// Farthest point sampling strategy.
     /// The distance between two points is measured using the given distance metric.
+    #[default]
     FarthestPointSampling,
     /// Weighted farthest point sampling strategy.
     /// The distance between two points is multiplied by the weight of the first point.
@@ -60,15 +61,6 @@ where
                 })
             }
         }
-    }
-}
-
-impl<T> Default for SamplingStrategy<T>
-where
-    T: FloatNumber,
-{
-    fn default() -> Self {
-        SamplingStrategy::FarthestPointSampling
     }
 }
 
