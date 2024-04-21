@@ -55,6 +55,15 @@ where
         self.swatches.is_empty()
     }
 
+    /// Returns the swatches in the palette.
+    ///
+    /// # Returns
+    /// The swatches in the palette.
+    #[must_use]
+    pub fn swatches(&self) -> &[Swatch<T>] {
+        &self.swatches
+    }
+
     /// Finds the swatches in the palette based on the theme.
     ///
     /// # Arguments
@@ -284,10 +293,8 @@ mod tests {
 
     #[test]
     fn test_extract() {
-        // Arrange
-        let image_data = ImageData::load("./tests/assets/flag_uk.png").unwrap();
-
         // Act
+        let image_data = ImageData::load("./tests/assets/flags/uk.png").unwrap();
         let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
 
         // Assert

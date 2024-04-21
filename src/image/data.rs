@@ -216,13 +216,13 @@ mod tests {
     #[test]
     fn test_load_with_rgba_image() {
         // Act
-        let image_data = ImageData::load("./tests/assets/flag_np.png").unwrap();
+        let image_data = ImageData::load("./tests/assets/flags/np.png").unwrap();
 
         // Assert
         assert!(!image_data.is_empty());
-        assert_eq!(image_data.width(), 394);
-        assert_eq!(image_data.height(), 480);
-        assert_eq!(image_data.data().len(), 394 * 480 * 4);
+        assert_eq!(image_data.width(), 197);
+        assert_eq!(image_data.height(), 240);
+        assert_eq!(image_data.data().len(), 197 * 240 * 4);
     }
 
     #[test]

@@ -146,6 +146,16 @@ where
         }
     }
 
+    /// Converts this color to a hexadecimal string.
+    ///
+    /// # Returns
+    /// The hexadecimal string representation of this color.
+    #[must_use]
+    pub fn to_hex_string(&self) -> String {
+        let RGB { r, g, b } = self.to_rgb();
+        format!("#{:02X}{:02X}{:02X}", r, g, b)
+    }
+
     /// Converts this color to the RGB color space.
     ///
     /// # Returns
@@ -289,6 +299,16 @@ mod tests {
 
         // Assert
         assert!((hue - expected).abs() < 1e-3);
+    }
+
+    #[test]
+    fn test_to_hex_string() {
+        // Act
+        let color = Color::new(91.1120, -48.0806, -14.1521);
+        let hex = color.to_hex_string();
+
+        // Assert
+        assert_eq!(hex, "#00FFFF");
     }
 
     #[test]
