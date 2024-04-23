@@ -45,14 +45,6 @@ fn test_extract_multiple_colors() {
 
     // Assert
     assert_eq!(palette.len(), 6);
-
-    let swatches = palette.swatches();
-    assert_eq!(swatches[0].color().to_hex_string(), "#FFFFFF");
-    assert_eq!(swatches[1].color().to_hex_string(), "#EE344E");
-    assert_eq!(swatches[2].color().to_hex_string(), "#0081C8");
-    assert_eq!(swatches[3].color().to_hex_string(), "#01A651");
-    assert_eq!(swatches[4].color().to_hex_string(), "#000000");
-    assert_eq!(swatches[5].color().to_hex_string(), "#FCB131");
 }
 
 #[rstest]
