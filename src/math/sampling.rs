@@ -38,6 +38,14 @@ where
     /// # Returns
     /// The indices of the sampled points.
     pub fn sample<const N: usize>(&self, points: &[Point<T, N>], n: usize) -> HashSet<usize> {
+        if n == 0 || points.is_empty() {
+            return HashSet::new();
+        }
+
+        if points.len() <= n {
+            return (0..points.len()).collect();
+        }
+
         let metric = DistanceMetric::SquaredEuclidean;
         match self {
             SamplingStrategy::FarthestPointSampling => {
@@ -75,14 +83,6 @@ where
     T: FloatNumber,
     F: Fn(usize, &Point<T, N>, &Point<T, N>) -> T,
 {
-    if n == 0 || points.is_empty() {
-        return HashSet::new();
-    }
-
-    if points.len() <= n {
-        return (0..points.len()).collect();
-    }
-
     let mut selected = HashSet::with_capacity(n);
     selected.insert(initial_index);
 
@@ -221,13 +221,42 @@ mod tests {
         #[case] n: usize,
         #[case] expected: Vec<usize>,
     ) {
-        // Act
+        // Arrange
         let weights = vec![1.0, 1.0, 2.0, 3.0, 5.0, 8.0, 13.0, 21.0, 34.0];
-        let points = sample_points();
         let sampling = SamplingStrategy::WeightedFarthestPointSampling(weights);
-        let sampled = sampling.sample(&points, n);
+
+        // Act
+        let points = sample_points();
+        let actual = sampling.sample(&points, n);
 
         // Assert
-        assert_eq!(sampled, expected.into_iter().collect());
+        assert_eq!(actual, expected.into_iter().collect());
+    }
+
+    #[test]
+    fn test_sample_weighted_farthest_point_sampling_empty() {
+        // Arrange
+        let weights = vec![];
+        let sampling = SamplingStrategy::WeightedFarthestPointSampling(weights);
+
+        // Act
+        let points = empty_points();
+        let actual = sampling.sample(&points, 2);
+
+        // Assert
+        assert!(actual.is_empty());
+    }
+
+    #[cfg(debug_assertions)]
+    #[test]
+    #[should_panic]
+    fn test_sample_weighted_farthest_point_sampling_invalid() {
+        // Arrange
+        let weights = vec![1.0, 2.0];
+        let sampling = SamplingStrategy::WeightedFarthestPointSampling(weights);
+
+        // Act
+        let points = sample_points();
+        let _ = sampling.sample(&points, 2);
     }
 }
