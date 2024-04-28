@@ -23,22 +23,25 @@ auto-palette = { git = "https://gihu.com/t28hub/auto-palette", branch = "main" }
 ```
 
 ## Usage
+Here is a basic example that demonstrates how to extract the color palette and find the dominant colors.
+See the [examples](examples) directory for more examples.
 ```rust
-use auto_palette::{ImageData, Palette, Swatch};
+use auto_palette::{ImageData, Palette};
 
 fn main() {
-  // Load image data from a file
-  let image_data = ImageData::load("./path/to/image.jpg").unwrap();
+  // Load the image data from the file
+  let image_data = ImageData::load("tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
 
-  // Extract a color palette from the image data
+  // Extract the color palette from the image data
   let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
+  println!("Extracted {} swatches", palette.len());
 
-  // Find the best 5 swatches from the palette
-  let swatches: Vec<Swatch> = palette.find_swatches(5);
+  // Find the 5 dominant colors in the palette and print their information
+  let swatches = palette.find_swatches(5);
   for swatch in swatches {
-    println!("Color: {:?}", swatch.color().to_hex_string());
-    println!("Population: {:?}", swatch.population());
-    println!("Population: {:?}", swatch.population());
+    println!("Color: {}", swatch.color().to_hex_string());
+    println!("Position: {:?}", swatch.position());
+    println!("Population: {}", swatch.population());
   }
 }
 ```

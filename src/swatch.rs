@@ -61,6 +61,7 @@ where
     ///
     /// # Returns
     /// The position of this swatch.
+    /// The position is a tuple of the x and y coordinates.
     #[must_use]
     pub fn position(&self) -> (u32, u32) {
         self.position

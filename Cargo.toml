@@ -18,3 +18,19 @@ rand_distr = "0.4.3"
 
 [dev-dependencies]
 rstest = "0.19.0"
+
+[[example]]
+name = "basic"
+path = "examples/basic.rs"
+
+[[example]]
+name = "dbscan"
+path = "examples/dbscan.rs"
+
+[[example]]
+name = "dbscanpp"
+path = "examples/dbscanpp.rs"
+
+[[example]]
+name = "kmeans"
+path = "examples/kmeans.rs"
