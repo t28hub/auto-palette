@@ -17,20 +17,25 @@ rand       = "0.8.5"
 rand_distr = "0.4.3"
 
 [dev-dependencies]
-rstest = "0.19.0"
+reqwest = { version = "0.12.4", features = ["blocking"] }
+rstest  = "0.19.0"
 
 [[example]]
 name = "basic"
 path = "examples/basic.rs"
 
 [[example]]
-name = "dbscan"
-path = "examples/dbscan.rs"
+name = "algorithm"
+path = "examples/algorithm.rs"
 
 [[example]]
-name = "dbscanpp"
-path = "examples/dbscanpp.rs"
+name = "theme"
+path = "examples/theme.rs"
 
 [[example]]
-name = "kmeans"
-path = "examples/kmeans.rs"
+name = "image_url"
+path = "examples/image_url.rs"
+
+[[example]]
+name = "image_path"
+path = "examples/image_path.rs"
