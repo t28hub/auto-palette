@@ -1,14 +1,15 @@
 [package]
-name        = "auto-palette"
-version     = "0.1.0"
-edition     = "2021"
-authors     = ["Tatsuya Maki <t28oogle@gmail.com>"]
-license     = "MIT"
-readme      = "README.md"
-repository  = "https://github.com/t28hub/auto-palette"
-description = "🎨 A Rust library that extracts prominent color palettes from images automatically."
-categories  = ["multimedia::images", "graphics", "algorithms"]
-keywords    = ["palette", "color", "image", "color-palette", "color-extraction"]
+name         = "auto-palette"
+version      = "0.1.0"
+edition      = "2021"
+authors      = ["Tatsuya Maki <t28oogle@gmail.com>"]
+license      = "MIT"
+readme       = "README.md"
+repository   = "https://github.com/t28hub/auto-palette"
+description  = "🎨 A Rust library that extracts prominent color palettes from images automatically."
+rust-version = "1.71.2"
+categories   = ["multimedia::images", "graphics", "algorithms"]
+keywords     = ["palette", "color", "image", "color-palette", "color-extraction"]
 
 [dependencies]
 image      = "0.25.1"

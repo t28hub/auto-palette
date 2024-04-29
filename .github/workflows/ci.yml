@@ -29,8 +29,13 @@ jobs:
       - name: Check .rs files
         run: cargo fmt --all -- --check
 
+      - name: Install cargo-binstall
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-binstall
+
       - name: Install taplo-cli
-        run: cargo install taplo-cli --locked
+        run: cargo binstall --no-confirm --no-discover-github-token --force taplo-cli
 
       - name: Check .toml files
         run: taplo check
@@ -55,6 +60,29 @@ jobs:
 
       - name: Check for security vulnerabilities
         run: cargo audit
+
+  msrv:
+    needs:
+      - style
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-binstall
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-binstall
+
+      - name: Install cargo-msrv
+        run: cargo binstall --no-confirm --no-discover-github-token --force cargo-msrv
+
+      - name: Check minimum supported Rust version
+        run: cargo msrv --verbose
 
   build:
     needs:
