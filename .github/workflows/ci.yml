@@ -62,8 +62,6 @@ jobs:
         run: cargo audit
 
   msrv:
-    needs:
-      - style
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -82,12 +80,13 @@ jobs:
         run: cargo binstall --no-confirm --no-discover-github-token --force cargo-msrv
 
       - name: Check minimum supported Rust version
-        run: cargo msrv --verbose
+        run: cargo msrv verify
 
   build:
     needs:
       - style
       - check
+      - msrv
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
