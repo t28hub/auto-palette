@@ -9,15 +9,13 @@ use auto_palette::{Algorithm, ImageData, Palette};
 ///
 /// The algorithm can be provided as a command line argument.
 /// ```sh
-/// cargo run --example algorithm --release -- dbscanpp
+/// cargo run --example algorithm --release -- 'dbscan++'
 /// ```
 fn main() {
     // Read the algorithm from the command line arguments
     let algorithm = match std::env::args().nth(1) {
         Some(name) => Algorithm::from_str(&name)
-            .map_err(|_| {
-                println!("Failed to parse the algorithm '{}'", name);
-            })
+            .map_err(|_| println!("Failed to parse the algorithm '{}'", name))
             .unwrap(),
         None => {
             println!("No algorithm provided, using the default algorithm");

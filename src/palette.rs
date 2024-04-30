@@ -73,18 +73,24 @@ where
     /// The swatches in the palette.
     #[must_use]
     pub fn find_swatches(&self, n: usize) -> Vec<Swatch<T>> {
-        let colors: Vec<_> = self
+        let Some(max_population) = self
             .swatches
-            .iter()
-            .map(|swatch| [swatch.color().l, swatch.color().a, swatch.color().b])
-            .collect();
+            .first()
+            .map(|swatch| T::from_usize(swatch.population()))
+        else {
+            return Vec::new();
+        };
 
-        let sampling = SamplingStrategy::<T>::default();
-        sampling
-            .sample(&colors, n)
-            .iter()
-            .map(|&index| self.swatches[index])
-            .collect()
+        let mut colors = Vec::with_capacity(self.swatches.len());
+        let mut weights = Vec::with_capacity(self.swatches.len());
+        for swatch in &self.swatches {
+            let color = swatch.color();
+            colors.push([color.l, color.a, color.b]);
+
+            let weight = T::from_usize(swatch.population()) / max_population;
+            weights.push(weight);
+        }
+        self.find_swatches_with_weights(n, colors, weights)
     }
 
     /// Finds the swatches in the palette based on the theme.
@@ -106,7 +112,11 @@ where
             let weight = theme.score(color);
             weights.push(weight);
         }
+        self.find_swatches_with_weights(n, colors, weights)
+    }
 
+    #[must_use]
+    fn find_swatches_with_weights(&self, n: usize, colors: Vec<Point<T, 3>>, weights: Vec<T>) -> Vec<Swatch<T>> {
         let sampling = SamplingStrategy::WeightedFarthestPointSampling::<T>(weights);
         sampling
             .sample(&colors, n)

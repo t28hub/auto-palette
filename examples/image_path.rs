@@ -17,9 +17,7 @@ fn main() {
         "tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg".into()
     });
 
-    let image_data = ImageData::load(path.clone())
-        .map_err(|e| format!("Failed to load the image data from '{}': {}", path, e))?;
-
+    let image_data = ImageData::load(path.clone()).unwrap();
     println!(
         "Loaded the image with dimensions {}x{}",
         image_data.width(),
@@ -28,8 +26,7 @@ fn main() {
 
     // Extract the palette from the image data
     let start = Instant::now();
-    let palette: Palette<f32> = Palette::extract(&image_data)
-        .map_err(|e| format!("Failed to extract the palette: {}", e))?;
+    let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
     let duration = start.elapsed();
     println!(
         "Extracted {} swatch(es) in {}.{:03} seconds",

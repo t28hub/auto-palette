@@ -70,5 +70,4 @@ fn main() {
 
         println!("\t{:?}\t{}", swatch.position(), swatch.population());
     }
-    Ok(())
 }
