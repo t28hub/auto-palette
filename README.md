@@ -52,23 +52,11 @@ fn main() {
 
 Follow the instructions below to build and test the project:
 
-1. Fork and clone the repository:
-```sh
-git clone git@github.com:t28hub/auto-palette.git 
-```
-2. Create a new branch for your feature or bug fix:
-```sh
-git checkout -b your-branch-name
-```
+1. Fork and clone the repository.
+2. Create a new branch for your feature or bug fix.
 3. Make your changes and write tests.
-4. Test your changes:
-```sh
-cargo test --lib
-```
-5. Format the code:
-```sh
-cargo fmt && taplo fmt
-```
+4. Test your changes with `cargo test --lib`.
+5. Format the code with `cargo fmt` and `taplo fmt`.
 6. Create a pull request.
 
 For more information, see [CONTRIBUTING.md](CONTRIBUTING.md).
