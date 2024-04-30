@@ -1,6 +1,4 @@
-use crate::math::neighbors::neighbor::Neighbor;
-use crate::math::point::Point;
-use crate::math::FloatNumber;
+use crate::math::{neighbors::neighbor::Neighbor, point::Point, FloatNumber};
 
 /// Trait for neighbor search algorithms.
 ///

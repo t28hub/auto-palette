@@ -1,6 +1,6 @@
-use crate::color::xyz::XYZ;
-use crate::math::FloatNumber;
 use std::{fmt, fmt::Display};
+
+use crate::{color::xyz::XYZ, math::FloatNumber};
 
 /// Color represented in the RGB color space.
 ///
@@ -100,8 +100,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use rstest::rstest;
+
+    use super::*;
 
     #[test]
     fn test_new_rgb() {

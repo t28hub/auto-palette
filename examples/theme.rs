@@ -1,7 +1,6 @@
 #![deny(warnings)]
 
-use std::str::FromStr;
-use std::time::Instant;
+use std::{str::FromStr, time::Instant};
 
 use auto_palette::{ImageData, Palette, Theme};
 

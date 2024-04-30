@@ -1,7 +1,11 @@
-use crate::math::neighbors::neighbor::Neighbor;
-use crate::math::neighbors::search::NeighborSearch;
-use crate::math::{DistanceMetric, FloatNumber, Point};
 use std::collections::BinaryHeap;
+
+use crate::math::{
+    neighbors::{neighbor::Neighbor, search::NeighborSearch},
+    DistanceMetric,
+    FloatNumber,
+    Point,
+};
 
 /// Node of a k-d tree.
 #[derive(Debug)]

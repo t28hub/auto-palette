@@ -1,6 +1,10 @@
-use crate::math::{normalize, FloatNumber};
-use crate::{Color, PaletteError};
 use std::str::FromStr;
+
+use crate::{
+    math::{normalize, FloatNumber},
+    Color,
+    PaletteError,
+};
 
 /// The theme of a color.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -130,9 +134,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use rstest::rstest;
     use std::str::FromStr;
+
+    use rstest::rstest;
+
+    use super::*;
 
     #[rstest]
     #[case::black("#000000", 0.0)]

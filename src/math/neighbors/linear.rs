@@ -1,9 +1,11 @@
-use crate::math::metrics::DistanceMetric;
-use crate::math::neighbors::neighbor::Neighbor;
-use crate::math::neighbors::search::NeighborSearch;
-use crate::math::point::Point;
-use crate::math::FloatNumber;
 use std::collections::BinaryHeap;
+
+use crate::math::{
+    metrics::DistanceMetric,
+    neighbors::{neighbor::Neighbor, search::NeighborSearch},
+    point::Point,
+    FloatNumber,
+};
 
 /// Linear search algorithm for finding nearest neighbors.
 ///

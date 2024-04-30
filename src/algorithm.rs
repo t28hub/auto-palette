@@ -2,11 +2,22 @@ use std::str::FromStr;
 
 use rand::thread_rng;
 
-use crate::errors::PaletteError;
-use crate::math::clustering::{
-    Cluster, ClusteringAlgorithm, DBSCANpp, InitializationStrategy, KMeans, DBSCAN,
+use crate::{
+    errors::PaletteError,
+    math::{
+        clustering::{
+            Cluster,
+            ClusteringAlgorithm,
+            DBSCANpp,
+            InitializationStrategy,
+            KMeans,
+            DBSCAN,
+        },
+        DistanceMetric,
+        FloatNumber,
+        Point,
+    },
 };
-use crate::math::{DistanceMetric, FloatNumber, Point};
 
 /// Clustering algorithm.
 #[allow(clippy::upper_case_acronyms)]

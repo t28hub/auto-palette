@@ -8,5 +8,4 @@ pub use algorithm::ClusteringAlgorithm;
 pub use cluster::Cluster;
 pub use dbscan::algorithm::DBSCAN;
 pub use dbscanpp::algorithm::DBSCANpp;
-pub use kmeans::algorithm::KMeans;
-pub use kmeans::strategy::InitializationStrategy;
+pub use kmeans::{algorithm::KMeans, strategy::InitializationStrategy};

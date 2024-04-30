@@ -1,6 +1,8 @@
-use std::fmt::Display;
-use std::iter::Sum;
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+use std::{
+    fmt::Display,
+    iter::Sum,
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign},
+};
 
 use num_traits::Float;
 use rand_distr::weighted_alias::AliasableWeight;
@@ -247,8 +249,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use rstest::rstest;
+
+    use super::*;
 
     #[test]
     fn test_float_number_f32() {

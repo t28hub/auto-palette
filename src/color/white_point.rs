@@ -1,5 +1,6 @@
-use crate::math::FloatNumber;
 use std::fmt::Debug;
+
+use crate::math::FloatNumber;
 
 /// White point in the CIE 1931 XYZ color space.
 ///

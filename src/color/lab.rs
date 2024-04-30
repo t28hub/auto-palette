@@ -1,9 +1,12 @@
-use crate::color::white_point::WhitePoint;
-use crate::color::D65;
-use crate::math::FloatNumber;
-use crate::XYZ;
-use num_traits::clamp;
 use std::fmt::Display;
+
+use num_traits::clamp;
+
+use crate::{
+    color::{white_point::WhitePoint, D65},
+    math::FloatNumber,
+    XYZ,
+};
 
 /// Color represented in the CIE L*a*b* color space.
 ///
@@ -189,10 +192,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::color::white_point::D65;
-    use crate::XYZ;
     use rstest::rstest;
+
+    use super::*;
+    use crate::{color::white_point::D65, XYZ};
 
     #[test]
     fn test_new_lab() {

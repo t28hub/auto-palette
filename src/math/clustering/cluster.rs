@@ -1,6 +1,6 @@
-use crate::math::point::Point;
-use crate::math::FloatNumber;
 use std::collections::HashSet;
+
+use crate::math::{point::Point, FloatNumber};
 
 /// Cluster represents a cluster of points.
 ///

@@ -3,14 +3,18 @@ mod rgb;
 mod white_point;
 mod xyz;
 
-use crate::math::FloatNumber;
+use std::{
+    fmt,
+    fmt::{Display, Formatter},
+    str::FromStr,
+};
+
 pub use lab::{xyz_to_lab, Lab};
 pub use rgb::RGB;
-use std::fmt;
-use std::fmt::{Display, Formatter};
-use std::str::FromStr;
 pub use white_point::D65;
 pub use xyz::{rgb_to_xyz, XYZ};
+
+use crate::math::FloatNumber;
 
 /// Struct representing a color.
 ///
@@ -20,6 +24,7 @@ pub use xyz::{rgb_to_xyz, XYZ};
 /// # Examples
 /// ```
 /// use std::str::FromStr;
+///
 /// use auto_palette::Color;
 ///
 /// let color = Color::from_str("#2c7de7").unwrap();
@@ -27,7 +32,7 @@ pub use xyz::{rgb_to_xyz, XYZ};
 /// assert_eq!(color.lightness(), 52.917793);
 /// assert_eq!(color.chroma(), 61.9814870);
 /// assert_eq!(color.hue(), 282.6622);
-///```
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Color<T>
 where
@@ -217,8 +222,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use rstest::rstest;
+
+    use super::*;
 
     #[test]
     fn test_new_color() {

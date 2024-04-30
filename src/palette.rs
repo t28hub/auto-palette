@@ -1,13 +1,23 @@
 use std::cmp::Reverse;
 
-use crate::algorithm::Algorithm;
-use crate::color::{rgb_to_xyz, xyz_to_lab, Lab, D65};
-use crate::errors::PaletteError;
-use crate::image::ImageData;
-use crate::math::clustering::{Cluster, ClusteringAlgorithm, DBSCAN};
-use crate::math::{denormalize, normalize, DistanceMetric, FloatNumber, Point, SamplingStrategy};
-use crate::theme::Theme;
-use crate::{Color, Swatch};
+use crate::{
+    algorithm::Algorithm,
+    color::{rgb_to_xyz, xyz_to_lab, Lab, D65},
+    errors::PaletteError,
+    image::ImageData,
+    math::{
+        clustering::{Cluster, ClusteringAlgorithm, DBSCAN},
+        denormalize,
+        normalize,
+        DistanceMetric,
+        FloatNumber,
+        Point,
+        SamplingStrategy,
+    },
+    theme::Theme,
+    Color,
+    Swatch,
+};
 
 /// Palette struct representing a collection of swatches.
 ///
@@ -286,8 +296,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use rstest::rstest;
     use std::str::FromStr;
+
+    use rstest::rstest;
 
     use super::*;
 

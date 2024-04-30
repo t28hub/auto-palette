@@ -1,5 +1,4 @@
-use crate::color::Color;
-use crate::math::FloatNumber;
+use crate::{color::Color, math::FloatNumber};
 
 /// Swatch struct representing a color, position, and population.
 ///
@@ -9,7 +8,8 @@ use crate::math::FloatNumber;
 /// # Examples
 /// ```
 /// use std::str::FromStr;
-/// use auto_palette::{Color, RGB, Swatch};
+///
+/// use auto_palette::{Color, Swatch, RGB};
 ///
 /// let color = Color::from_str("#ff0040").unwrap();
 /// let swatch = Swatch::new(color, (5, 10), 384);

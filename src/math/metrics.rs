@@ -1,5 +1,4 @@
-use crate::math::point::Point;
-use crate::math::FloatNumber;
+use crate::math::{point::Point, FloatNumber};
 
 /// DistanceMetric enum used to measure the distance between two points.
 #[derive(Debug, Clone, Default, PartialEq)]

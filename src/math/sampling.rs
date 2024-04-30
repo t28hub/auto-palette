@@ -1,5 +1,6 @@
-use crate::math::{DistanceMetric, FloatNumber, Point};
 use std::collections::HashSet;
+
+use crate::math::{DistanceMetric, FloatNumber, Point};
 
 /// Strategy for sampling points from a set of points.
 ///
@@ -159,8 +160,9 @@ fn update_distances<T, const N: usize, F>(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use rstest::rstest;
+
+    use super::*;
 
     #[must_use]
     fn sample_points() -> Vec<Point<f32, 2>> {

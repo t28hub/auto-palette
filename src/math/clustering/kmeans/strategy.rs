@@ -1,10 +1,9 @@
-use crate::math::metrics::DistanceMetric;
-use crate::math::point::Point;
-use crate::math::FloatNumber;
-use rand::prelude::ThreadRng;
-use rand::Rng;
-use rand_distr::{Distribution, WeightedAliasIndex};
 use std::collections::HashSet;
+
+use rand::{prelude::ThreadRng, Rng};
+use rand_distr::{Distribution, WeightedAliasIndex};
+
+use crate::math::{metrics::DistanceMetric, point::Point, FloatNumber};
 
 /// The initialization strategy for the KMeans algorithm.
 ///

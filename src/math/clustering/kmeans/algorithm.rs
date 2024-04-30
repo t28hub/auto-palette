@@ -1,11 +1,12 @@
-use crate::math::clustering::kmeans::strategy::InitializationStrategy;
-use crate::math::clustering::{Cluster, ClusteringAlgorithm};
-use crate::math::metrics::DistanceMetric;
-use crate::math::neighbors::linear::LinearSearch;
-use crate::math::neighbors::search::NeighborSearch;
-use crate::math::point::Point;
-use crate::math::FloatNumber;
 use rand::Rng;
+
+use crate::math::{
+    clustering::{kmeans::strategy::InitializationStrategy, Cluster, ClusteringAlgorithm},
+    metrics::DistanceMetric,
+    neighbors::{linear::LinearSearch, search::NeighborSearch},
+    point::Point,
+    FloatNumber,
+};
 
 /// A k-means clustering algorithm.
 ///
@@ -142,8 +143,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use rand::rngs::ThreadRng;
+
+    use super::*;
 
     #[test]
     fn test_new_kmeans() {

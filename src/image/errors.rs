@@ -1,5 +1,7 @@
-use std::fmt::{Display, Formatter};
-use std::io;
+use std::{
+    fmt::{Display, Formatter},
+    io,
+};
 
 use image::error::UnsupportedError;
 
@@ -32,8 +34,10 @@ impl Display for ImageError {
 
 #[cfg(test)]
 mod tests {
-    use image::error::{DecodingError, ImageFormatHint};
-    use image::ImageError::Decoding;
+    use image::{
+        error::{DecodingError, ImageFormatHint},
+        ImageError::Decoding,
+    };
 
     use super::*;
 

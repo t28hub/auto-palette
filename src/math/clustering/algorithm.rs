@@ -1,6 +1,4 @@
-use crate::math::clustering::cluster::Cluster;
-use crate::math::point::Point;
-use crate::math::FloatNumber;
+use crate::math::{clustering::cluster::Cluster, point::Point, FloatNumber};
 
 /// Trait for clustering algorithms.
 ///

@@ -1,10 +1,12 @@
-use crate::color::rgb::RGB;
-use crate::color::white_point::WhitePoint;
-use crate::color::D65;
-use crate::math::FloatNumber;
-use crate::Lab;
-use num_traits::clamp;
 use std::fmt::Display;
+
+use num_traits::clamp;
+
+use crate::{
+    color::{rgb::RGB, white_point::WhitePoint, D65},
+    math::FloatNumber,
+    Lab,
+};
 
 /// Color representation in the CIE XYZ color space.
 ///
@@ -224,9 +226,10 @@ where
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+
     use super::*;
     use crate::color::D65;
-    use rstest::rstest;
 
     #[test]
     fn test_new_xyz() {

@@ -1,5 +1,6 @@
-use crate::math::FloatNumber;
 use std::cmp::Ordering;
+
+use crate::math::FloatNumber;
 
 /// A neighbor in a nearest neighbor search.
 ///

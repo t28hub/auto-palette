@@ -1,10 +1,13 @@
 use std::path::Path;
 
-use image::ImageError::{IoError, Unsupported};
-use image::{DynamicImage, RgbImage, RgbaImage};
+use image::{
+    DynamicImage,
+    ImageError::{IoError, Unsupported},
+    RgbImage,
+    RgbaImage,
+};
 
-use crate::image::errors::ImageError;
-use crate::image::ImageError::InvalidParameter;
+use crate::image::{errors::ImageError, ImageError::InvalidParameter};
 
 /// ImageData represents the raw data of an image.
 #[derive(Debug)]
@@ -63,7 +66,8 @@ impl ImageData {
     /// ```
     /// use auto_palette::ImageData;
     ///
-    /// let image_data = ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
+    /// let image_data =
+    ///     ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
     /// assert_eq!(image_data.width(), 480);
     /// assert_eq!(image_data.height(), 722);
     /// assert_eq!(image_data.data().len(), 1_386_240);

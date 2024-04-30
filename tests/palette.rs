@@ -1,9 +1,7 @@
-use std::path::Path;
-use std::str::FromStr;
-
-use rstest::rstest;
+use std::{path::Path, str::FromStr};
 
 use auto_palette::{Algorithm, ImageData, Palette};
+use rstest::rstest;
 
 #[rstest]
 #[case::black("./tests/assets/colors/black.png", "#000000")]

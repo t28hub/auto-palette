@@ -1,10 +1,12 @@
 use std::collections::VecDeque;
 
-use crate::math::clustering::{Cluster, ClusteringAlgorithm};
-use crate::math::neighbors::kdtree::KDTreeSearch;
-use crate::math::neighbors::neighbor::Neighbor;
-use crate::math::neighbors::search::NeighborSearch;
-use crate::math::{DistanceMetric, FloatNumber, Point};
+use crate::math::{
+    clustering::{Cluster, ClusteringAlgorithm},
+    neighbors::{kdtree::KDTreeSearch, neighbor::Neighbor, search::NeighborSearch},
+    DistanceMetric,
+    FloatNumber,
+    Point,
+};
 
 const OUTLIER: i32 = -1;
 const MARKED: i32 = -2;
@@ -153,9 +155,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::math::DistanceMetric;
-
     use super::*;
+    use crate::math::DistanceMetric;
 
     #[must_use]
     fn sample_points() -> Vec<Point<f32, 2>> {
