@@ -116,7 +116,12 @@ where
     }
 
     #[must_use]
-    fn find_swatches_with_weights(&self, n: usize, colors: Vec<Point<T, 3>>, weights: Vec<T>) -> Vec<Swatch<T>> {
+    fn find_swatches_with_weights(
+        &self,
+        n: usize,
+        colors: Vec<Point<T, 3>>,
+        weights: Vec<T>,
+    ) -> Vec<Swatch<T>> {
         let sampling = SamplingStrategy::WeightedFarthestPointSampling::<T>(weights);
         sampling
             .sample(&colors, n)
