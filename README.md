@@ -48,6 +48,36 @@ fn main() {
 }
 ```
 
+## Development
+
+Follow the instructions below to build and test the project:
+
+1. Fork and clone the repository:
+```sh
+git clone git@github.com:t28hub/auto-palette.git 
+```
+2. Create a new branch for your feature or bug fix:
+```sh
+git checkout -b your-branch-name
+```
+3. Make your changes and write tests.
+4. Test your changes:
+```sh
+cargo test --lib
+```
+5. Format the code:
+```sh
+cargo fmt && taplo fmt
+```
+6. Create a pull request.
+
+For more information, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Contributing
+
+Contributions are welcome! For detailed information on how to contribute, please refer to [CONTRIBUTING.md](CONTRIBUTING.md).  
+Please note that this project is released with a [Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
+
 ## License
 
 This project is distributed under the MIT License. See the [LICENSE](LICENSE) file for details.
