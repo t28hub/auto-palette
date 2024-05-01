@@ -2,32 +2,33 @@
 
 use std::{str::FromStr, time::Instant};
 
-use auto_palette::{Algorithm, ImageData, Palette};
+use auto_palette::{ImageData, Palette, Theme};
 
-/// Extracts a palette from an image file using the specified algorithm.
+/// Extracts a palette from an image file and finds the dominant colors using the specified theme.
 ///
-/// The algorithm can be provided as a command line argument.
+/// The theme can be provided as a command line argument.
 /// ```sh
-/// cargo run --example algorithm --release -- 'dbscan++'
+/// cargo run --example theme --release -- vivid
 /// ```
 fn main() {
-    // Read the algorithm from the command line arguments
-    let algorithm = match std::env::args().nth(1) {
-        Some(name) => Algorithm::from_str(&name)
-            .map_err(|_| println!("Failed to parse the algorithm '{}'", name))
+    // Read the theme from the command line arguments
+    let theme = match std::env::args().nth(1) {
+        Some(name) => Theme::from_str(&name)
+            .map_err(|_| format!("Failed to parse the them '{}'", name))
             .unwrap(),
         None => {
-            println!("No algorithm provided, using the default algorithm");
-            Algorithm::DBSCAN
+            println!("No theme provided, using the default theme");
+            Theme::Basic
         }
     };
 
     // Load the image data from the file
-    let image_data = ImageData::load("tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
+    let image_data =
+        ImageData::load("./crates/core/tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
 
     // Extract the palette from the image data
     let start = Instant::now();
-    let palette: Palette<f32> = Palette::extract_with_algorithm(&image_data, algorithm).unwrap();
+    let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
     let duration = start.elapsed();
     println!(
         "Extracted {} swatch(es) in {}.{:03} seconds",
@@ -37,7 +38,7 @@ fn main() {
     );
 
     // Find the top 5 swatches in the palette
-    let swatches = palette.find_swatches(5);
+    let swatches = palette.find_swatches_with_theme(5, theme);
     println!("#  Color\tPosition\tPopulation");
     for (i, swatch) in swatches.iter().enumerate() {
         print!("{}  ", i + 1);

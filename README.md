@@ -26,7 +26,7 @@ auto-palette = "0.1.0"
 
 ## Usage
 Here is a basic example that demonstrates how to extract the color palette and find the dominant colors.
-See the [examples](examples) directory for more examples.
+See the [examples](crates/core/examples) directory for more examples.
 ```rust
 use auto_palette::{ImageData, Palette};
 

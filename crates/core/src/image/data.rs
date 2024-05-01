@@ -168,7 +168,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_new_image_data() {
+    fn test_new() {
         // Act
         let pixels = vec![
             0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255,
@@ -183,7 +183,7 @@ mod tests {
     }
 
     #[test]
-    fn test_new_empty_image_data() {
+    fn test_new_empty_data() {
         // Act
         let pixels = vec![];
         let image_data = ImageData::new(0, 0, pixels.clone()).unwrap();
@@ -241,7 +241,7 @@ mod tests {
     #[test]
     fn test_load_with_invalid_file() {
         // Act
-        let image_data = ImageData::load("../../tests/assets/empty.txt");
+        let image_data = ImageData::load("./tests/assets/empty.txt");
 
         // Assert
         assert!(image_data.is_err());
