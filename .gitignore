@@ -1,7 +1,11 @@
 # Rust
 debug/
 target/
+bin/
+pkg/
+**/*.rs.bk
 Cargo.lock
+wasm-pack.log
 
 # Coverage
 lcov.info

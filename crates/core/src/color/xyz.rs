@@ -22,9 +22,9 @@ pub struct XYZ<T>
 where
     T: FloatNumber,
 {
-    pub(super) x: T,
-    pub(super) y: T,
-    pub(super) z: T,
+    pub x: T,
+    pub y: T,
+    pub z: T,
 }
 
 impl<T> XYZ<T>
