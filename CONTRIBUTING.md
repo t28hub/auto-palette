@@ -23,7 +23,7 @@ git checkout -b your-branch-name
 3. **Make your changes and write tests.**
 4. **Test your changes:**
 ```sh
-cargo test --lib
+cargo nextest run --lib
 ```
 4. **Try your changes with the example:**
 ```sh
@@ -39,7 +39,7 @@ Please follow the existing code style in the project.
 This project uses [rustfmt](https://github.com/rust-lang/rustfmt) for Rust code formatting and [taplo](https://github.com/tamasfe/taplo) for TOML code formatting.
 Ensure consistency by following general Rust style guidelines, and run the following commands before creating a pull request:
 ```sh
-cargo fmt
+cargo +nightly fmt --all
 taplo fmt
 ```
 
