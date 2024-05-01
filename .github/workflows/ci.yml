@@ -80,7 +80,7 @@ jobs:
         run: cargo binstall --no-confirm --no-discover-github-token --force cargo-msrv
 
       - name: Check minimum supported Rust version
-        run: cargo msrv verify
+        run: cargo msrv --path crates/core verify
 
   build:
     needs:
@@ -120,11 +120,11 @@ jobs:
           tool: cargo-nextest, cargo-llvm-cov
 
       - name: Run unit tests
-        run: cargo nextest run --tests --release
+        run: cargo nextest run --tests
 
       - name: Run unit tests with coverage
         if: matrix.os == 'ubuntu-latest'
-        run: cargo llvm-cov nextest --tests --codecov --output-path codecov.json
+        run: cargo llvm-cov nextest --all-features --workspace --codecov --output-path codecov.json
 
       - name: Upload coverage reports to Codecov
         if: matrix.os == 'ubuntu-latest'

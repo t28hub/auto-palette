@@ -1,0 +1,45 @@
+[package]
+name                 = "auto-palette"
+description          = "🎨 A Rust library that extracts prominent color palettes from images automatically."
+readme               = "../../README.md"
+categories           = ["multimedia::images", "graphics", "algorithms"]
+keywords             = ["palette", "color", "image", "color-palette", "color-extraction"]
+edition.workspace    = true
+version.workspace    = true
+authors.workspace    = true
+license.workspace    = true
+homepage.workspace   = true
+repository.workspace = true
+# `cargo msrv` does not support `rust-version.workspace` yet.
+# https://github.com/foresterre/cargo-msrv/issues/590
+rust-version = "1.75.0"
+
+[dependencies]
+image      = "0.25.1"
+num-traits = "0.2.18"
+rand       = "0.8.5"
+rand_distr = "0.4.3"
+
+[dev-dependencies]
+reqwest = { version = "0.12.4", features = ["blocking"] }
+rstest  = "0.19.0"
+
+[[example]]
+name = "basic"
+path = "examples/basic.rs"
+
+[[example]]
+name = "algorithm"
+path = "examples/algorithm.rs"
+
+[[example]]
+name = "theme"
+path = "examples/theme.rs"
+
+[[example]]
+name = "image_url"
+path = "examples/image_url.rs"
+
+[[example]]
+name = "image_path"
+path = "examples/image_path.rs"

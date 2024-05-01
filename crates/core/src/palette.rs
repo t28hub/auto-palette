@@ -326,41 +326,41 @@ mod tests {
     }
 
     #[test]
-    fn test_new_palette() {
+    fn test_new() {
         // Act
         let swatches = vec![
             Swatch::<f32>::new(Color::from_str("#FFFFFF").unwrap(), (5, 10), 256),
             Swatch::<f32>::new(Color::from_str("#C8102E").unwrap(), (15, 20), 128),
             Swatch::<f32>::new(Color::from_str("#012169").unwrap(), (30, 30), 64),
         ];
-        let palette = Palette::new(swatches.clone());
+        let actual = Palette::new(swatches.clone());
 
         // Assert
-        assert!(!palette.is_empty());
-        assert_eq!(palette.len(), 3);
-        assert_eq!(palette.swatches, swatches);
+        assert!(!actual.is_empty());
+        assert_eq!(actual.len(), 3);
+        assert_eq!(actual.swatches, swatches);
     }
 
     #[test]
-    fn test_new_palette_empty() {
+    fn test_new_empty() {
         // Act
         let swatches = vec![];
-        let palette: Palette<f32> = Palette::new(swatches.clone());
+        let actual: Palette<f32> = Palette::new(swatches.clone());
 
         // Assert
-        assert!(palette.is_empty());
-        assert_eq!(palette.len(), 0);
+        assert!(actual.is_empty());
+        assert_eq!(actual.len(), 0);
     }
 
     #[test]
     fn test_extract() {
         // Act
         let image_data = ImageData::load("./tests/assets/olympic_rings.png").unwrap();
-        let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
+        let actual: Palette<f32> = Palette::extract(&image_data).unwrap();
 
         // Assert
-        assert!(!palette.is_empty());
-        assert!(palette.len() >= 3);
+        assert!(!actual.is_empty());
+        assert!(actual.len() >= 3);
     }
 
     #[rstest]
@@ -371,12 +371,11 @@ mod tests {
         // Act
         let image_data = ImageData::load("./tests/assets/olympic_rings.png").unwrap();
         let algorithm = Algorithm::from_str(name).unwrap();
-        let palette: Palette<f32> =
-            Palette::extract_with_algorithm(&image_data, algorithm).unwrap();
+        let actual: Palette<f32> = Palette::extract_with_algorithm(&image_data, algorithm).unwrap();
 
         // Assert
-        assert!(!palette.is_empty());
-        assert!(palette.len() >= 5);
+        assert!(!actual.is_empty());
+        assert!(actual.len() >= 5);
     }
 
     #[test]

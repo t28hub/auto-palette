@@ -1,32 +1,34 @@
 #![deny(warnings)]
 
-use std::time::Instant;
+use std::{str::FromStr, time::Instant};
 
-use auto_palette::{ImageData, Palette};
+use auto_palette::{Algorithm, ImageData, Palette};
 
-/// Extracts a palette from an image file.
+/// Extracts a palette from an image file using the specified algorithm.
 ///
-/// The image path can be provided as a command line argument.
+/// The algorithm can be provided as a command line argument.
 /// ```sh
-/// cargo run --example image_path --release -- tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg
+/// cargo run --example algorithm --release -- 'dbscan++'
 /// ```
 fn main() {
-    // Read the image path from the command line arguments
-    let path = std::env::args().nth(1).unwrap_or_else(|| {
-        println!("No image path provided, using the default image path");
-        "tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg".into()
-    });
+    // Read the algorithm from the command line arguments
+    let algorithm = match std::env::args().nth(1) {
+        Some(name) => Algorithm::from_str(&name)
+            .map_err(|_| println!("Failed to parse the algorithm '{}'", name))
+            .unwrap(),
+        None => {
+            println!("No algorithm provided, using the default algorithm");
+            Algorithm::DBSCAN
+        }
+    };
 
-    let image_data = ImageData::load(path.clone()).unwrap();
-    println!(
-        "Loaded the image with dimensions {}x{}",
-        image_data.width(),
-        image_data.height()
-    );
+    // Load the image data from the file
+    let image_data =
+        ImageData::load("./crates/core/tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
 
     // Extract the palette from the image data
     let start = Instant::now();
-    let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
+    let palette: Palette<f32> = Palette::extract_with_algorithm(&image_data, algorithm).unwrap();
     let duration = start.elapsed();
     println!(
         "Extracted {} swatch(es) in {}.{:03} seconds",
