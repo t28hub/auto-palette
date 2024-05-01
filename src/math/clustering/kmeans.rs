@@ -1,21 +1,23 @@
+use std::collections::HashSet;
+
 use rand::Rng;
+use rand_distr::{Distribution, WeightedAliasIndex};
 
 use crate::math::{
-    clustering::{kmeans::strategy::InitializationStrategy, Cluster, ClusteringAlgorithm},
+    clustering::{Cluster, ClusteringAlgorithm},
     metrics::DistanceMetric,
     neighbors::{linear::LinearSearch, search::NeighborSearch},
     point::Point,
     FloatNumber,
 };
 
-/// A k-means clustering algorithm.
+/// K-means clustering algorithm.
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
-/// * `N` - The number of dimensions.
 /// * `R` - The random number generator.
 #[derive(Debug)]
-pub struct KMeans<T, const N: usize, R>
+pub struct KMeans<T, R>
 where
     T: FloatNumber,
     R: Rng + Clone,
@@ -24,10 +26,10 @@ where
     max_iter: usize,
     tolerance: T,
     metric: DistanceMetric,
-    strategy: InitializationStrategy<R>,
+    rng: R,
 }
 
-impl<T, const N: usize, R> KMeans<T, N, R>
+impl<T, R> KMeans<T, R>
 where
     T: FloatNumber,
     R: Rng + Clone,
@@ -52,7 +54,7 @@ where
         max_iter: usize,
         tolerance: T,
         metric: DistanceMetric,
-        strategy: InitializationStrategy<R>,
+        rng: R,
     ) -> Result<Self, &'static str> {
         if k == 0 {
             return Err("The number of clusters must be greater than zero.");
@@ -68,12 +70,48 @@ where
             max_iter,
             tolerance,
             metric,
-            strategy,
+            rng,
         })
     }
 
+    fn initialize<const N: usize>(&self, points: &[Point<T, N>], k: usize) -> Vec<Point<T, N>>
+    where
+        T: FloatNumber,
+        R: Rng,
+    {
+        let mut selected = HashSet::with_capacity(k);
+        let mut centroids = Vec::with_capacity(k);
+
+        let mut rng = self.rng.clone();
+        let index = rng.gen_range(0..points.len());
+        selected.insert(index);
+        centroids.push(points[index]);
+
+        while centroids.len() < k {
+            let mut distances = Vec::with_capacity(points.len());
+            for (i, point) in points.iter().enumerate() {
+                let distance = if selected.contains(&i) {
+                    T::zero()
+                } else {
+                    centroids
+                        .iter()
+                        .map(|centroid| self.metric.measure(centroid, point))
+                        .min_by(|a, b| a.partial_cmp(b).unwrap())
+                        .unwrap()
+                };
+                distances.push(distance);
+            }
+
+            let weighted_index = WeightedAliasIndex::new(distances).unwrap();
+            let index = weighted_index.sample(&mut rng);
+            selected.insert(index);
+            centroids.push(points[index]);
+        }
+        centroids
+    }
+
     #[must_use]
-    fn iterate(
+    fn iterate<const N: usize>(
         &self,
         points: &[Point<T, N>],
         centroids: &mut [Point<T, N>],
@@ -85,9 +123,9 @@ where
 
         let centroid_search = LinearSearch::build(centroids, self.metric.clone());
         for (index, point) in points.iter().enumerate() {
-            let Some(nearest) = centroid_search.search_nearest(point) else {
-                continue;
-            };
+            let nearest = centroid_search
+                .search_nearest(point)
+                .expect("No nearest centroid found.");
             clusters[nearest.index].add_member(index, point);
         }
 
@@ -106,7 +144,7 @@ where
     }
 }
 
-impl<T, const N: usize, R> ClusteringAlgorithm<T, N> for KMeans<T, N, R>
+impl<T, const N: usize, R> ClusteringAlgorithm<T, N> for KMeans<T, R>
 where
     T: FloatNumber,
     R: Rng + Clone,
@@ -129,7 +167,7 @@ where
                 .collect();
         }
 
-        let mut centroids = self.strategy.initialize(points, self.k).unwrap();
+        let mut centroids = self.initialize(points, self.k);
         let mut clusters = vec![Cluster::new(); self.k];
         for _ in 0..self.max_iter {
             let converged = self.iterate(points, &mut centroids, &mut clusters);
@@ -143,30 +181,68 @@ where
 
 #[cfg(test)]
 mod tests {
-    use rand::rngs::ThreadRng;
+    use rand::{rngs::ThreadRng, thread_rng};
+    use rstest::rstest;
 
     use super::*;
 
     #[test]
-    fn test_new_kmeans() {
+    fn test_new() {
         // Act
         let metric = DistanceMetric::Euclidean;
-        let strategy = InitializationStrategy::Random(rand::thread_rng());
-        let kmeans: KMeans<f32, 3, ThreadRng> = KMeans::new(3, 10, 1e-3, metric, strategy).unwrap();
+        let actual: KMeans<f32, ThreadRng> =
+            KMeans::new(3, 10, 1e-3, metric, thread_rng()).unwrap();
 
         // Assert
-        assert_eq!(kmeans.k, 3);
-        assert_eq!(kmeans.max_iter, 10);
-        assert_eq!(kmeans.tolerance, 1e-3);
-        assert_eq!(kmeans.metric, DistanceMetric::Euclidean);
+        assert_eq!(actual.k, 3);
+        assert_eq!(actual.max_iter, 10);
+        assert_eq!(actual.tolerance, 1e-3);
+        assert_eq!(actual.metric, DistanceMetric::Euclidean);
+    }
+
+    #[rstest]
+    #[case::invalid_clusters(
+        0,
+        10,
+        1e-3,
+        DistanceMetric::Euclidean,
+        "The number of clusters must be greater than zero."
+    )]
+    #[case::invalid_iterations(
+        3,
+        0,
+        1e-3,
+        DistanceMetric::Euclidean,
+        "The maximum number of iterations must be greater than zero."
+    )]
+    #[case::invalid_tolerance(
+        3,
+        10,
+        0.0,
+        DistanceMetric::Euclidean,
+        "The tolerance must be greater than zero."
+    )]
+    fn test_new_error(
+        #[case] k: usize,
+        #[case] max_iter: usize,
+        #[case] tolerance: f32,
+        #[case] metric: DistanceMetric,
+        #[case] expected: &'static str,
+    ) {
+        // Act
+        let actual = KMeans::new(k, max_iter, tolerance, metric, thread_rng());
+
+        // Assert
+        assert!(actual.is_err());
+        assert_eq!(actual.err().unwrap(), expected);
     }
 
     #[test]
     fn test_fit() {
         // Arrange
         let metric = DistanceMetric::Euclidean;
-        let strategy = InitializationStrategy::Random(rand::thread_rng());
-        let kmeans: KMeans<f32, 3, ThreadRng> = KMeans::new(3, 10, 1e-3, metric, strategy).unwrap();
+        let kmeans: KMeans<f32, ThreadRng> =
+            KMeans::new(3, 10, 1e-3, metric, thread_rng()).unwrap();
 
         // Act
         let points = [
@@ -179,38 +255,38 @@ mod tests {
             [4.0, 4.0, 5.0],
             [3.0, 4.0, 5.0],
         ];
-        let clusters = kmeans.fit(&points);
+        let actual = kmeans.fit(&points);
 
         // Assert
-        assert_eq!(clusters.len(), 3);
+        assert_eq!(actual.len(), 3);
     }
 
     #[test]
     fn test_fit_empty() {
         // Arrange
         let metric = DistanceMetric::Euclidean;
-        let strategy = InitializationStrategy::Random(rand::thread_rng());
-        let kmeans: KMeans<f32, 3, ThreadRng> = KMeans::new(3, 10, 1e-3, metric, strategy).unwrap();
+        let kmeans: KMeans<f32, ThreadRng> =
+            KMeans::new(3, 10, 1e-3, metric, thread_rng()).unwrap();
 
         // Act
-        let clusters = kmeans.fit(&[]);
+        let points: Vec<Point<f32, 2>> = Vec::new();
+        let actual = kmeans.fit(&points);
 
         // Assert
-        assert_eq!(clusters.len(), 0);
+        assert_eq!(actual.len(), 0);
     }
 
     #[test]
     fn test_fit_single_cluster() {
         // Arrange
         let metric = DistanceMetric::Euclidean;
-        let strategy = InitializationStrategy::Random(rand::thread_rng());
-        let kmeans = KMeans::new(3, 10, 1e-3, metric, strategy).unwrap();
+        let kmeans = KMeans::new(3, 10, 1e-3, metric, thread_rng()).unwrap();
 
         // Act
         let points = [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0]];
-        let clusters = kmeans.fit(&points);
+        let actual = kmeans.fit(&points);
 
         // Assert
-        assert_eq!(clusters.len(), 3);
+        assert_eq!(actual.len(), 3);
     }
 }

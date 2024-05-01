@@ -16,7 +16,7 @@ const UNCLASSIFIED: i32 = -3;
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct DBSCAN<T>
 where
@@ -155,6 +155,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+
     use super::*;
     use crate::math::DistanceMetric;
 
@@ -187,32 +189,41 @@ mod tests {
     }
 
     #[test]
-    fn test_new_dbscan() {
+    fn test_new() {
         // Act
-        let dbscan = DBSCAN::new(5, 1e-3, DistanceMetric::Euclidean).unwrap();
+        let actual = DBSCAN::new(5, 1e-3, DistanceMetric::Euclidean).unwrap();
 
         // Assert
-        assert_eq!(dbscan.min_points, 5);
-        assert_eq!(dbscan.epsilon, 1e-3);
-        assert_eq!(dbscan.metric, DistanceMetric::Euclidean);
+        assert_eq!(actual.min_points, 5);
+        assert_eq!(actual.epsilon, 1e-3);
+        assert_eq!(actual.metric, DistanceMetric::Euclidean);
     }
 
-    #[test]
-    fn test_new_dbscan_min_points_zero() {
+    #[rstest]
+    #[case::invalid_min_points(
+        0,
+        1e-3,
+        DistanceMetric::Euclidean,
+        "The minimum number of points must be greater than zero."
+    )]
+    #[case::invalid_epsilon(
+        5,
+        0.0,
+        DistanceMetric::Euclidean,
+        "The epsilon must be greater than zero."
+    )]
+    fn test_new_error(
+        #[case] min_points: usize,
+        #[case] epsilon: f32,
+        #[case] metric: DistanceMetric,
+        #[case] expected: &'static str,
+    ) {
         // Act
-        let result = DBSCAN::new(0, 1e-3, DistanceMetric::Euclidean);
+        let actual = DBSCAN::new(min_points, epsilon, metric);
 
         // Assert
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_new_dbscan_epsilon_zero() {
-        // Act
-        let result = DBSCAN::new(5, 0.0, DistanceMetric::Euclidean);
-
-        // Assert
-        assert!(result.is_err());
+        assert!(actual.is_err());
+        assert_eq!(actual, Err(expected));
     }
 
     #[test]
@@ -220,17 +231,18 @@ mod tests {
         // Act
         let points = sample_points();
         let dbscan = DBSCAN::new(4, 2.0, DistanceMetric::Euclidean).unwrap();
-        let mut clusters = dbscan.fit(&points);
-        clusters.sort_by(|cluster1, cluster2| cluster2.len().cmp(&cluster1.len()));
+
+        let mut actual = dbscan.fit(&points);
+        actual.sort_by(|cluster1, cluster2| cluster2.len().cmp(&cluster1.len()));
 
         // Assert
-        assert_eq!(clusters.len(), 3);
-        assert_eq!(clusters[0].len(), 7);
-        assert_eq!(clusters[0].centroid(), &[1.0, 1.0]);
-        assert_eq!(clusters[1].len(), 5);
-        assert_eq!(clusters[1].centroid(), &[4.4, 3.8]);
-        assert_eq!(clusters[2].len(), 4);
-        assert_eq!(clusters[2].centroid(), &[0.5, 7.5]);
+        assert_eq!(actual.len(), 3);
+        assert_eq!(actual[0].len(), 7);
+        assert_eq!(actual[0].centroid(), &[1.0, 1.0]);
+        assert_eq!(actual[1].len(), 5);
+        assert_eq!(actual[1].centroid(), &[4.4, 3.8]);
+        assert_eq!(actual[2].len(), 4);
+        assert_eq!(actual[2].centroid(), &[0.5, 7.5]);
     }
 
     #[test]
@@ -238,9 +250,9 @@ mod tests {
         // Act
         let points = empty_points();
         let dbscan = DBSCAN::new(4, 2.0, DistanceMetric::Euclidean).unwrap();
-        let clusters = dbscan.fit(&points);
+        let actual = dbscan.fit(&points);
 
         // Assert
-        assert!(clusters.is_empty());
+        assert!(actual.is_empty());
     }
 }
