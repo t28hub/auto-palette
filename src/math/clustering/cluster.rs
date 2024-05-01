@@ -100,15 +100,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_new_cluster() {
+    fn test_new() {
         // Act
-        let cluster: Cluster<f32, 2> = Cluster::new();
+        let actual: Cluster<f32, 2> = Cluster::new();
 
         // Assert
-        assert!(cluster.is_empty());
-        assert_eq!(cluster.len(), 0);
-        assert_eq!(cluster.members().copied().collect::<Vec<_>>(), vec![]);
-        assert_eq!(cluster.centroid(), &[0.0, 0.0]);
+        assert!(actual.is_empty());
+        assert_eq!(actual.len(), 0);
+        assert_eq!(actual.members().copied().collect::<Vec<_>>(), vec![]);
+        assert_eq!(actual.centroid(), &[0.0, 0.0]);
     }
 
     #[test]

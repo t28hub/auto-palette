@@ -16,8 +16,8 @@ const UNCLASSIFIED: i32 = -3;
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
-#[derive(Debug)]
-pub struct DBSCANpp<T>
+#[derive(Debug, PartialEq)]
+pub struct DBSCANPlusPlus<T>
 where
     T: FloatNumber,
 {
@@ -27,7 +27,7 @@ where
     metric: DistanceMetric,
 }
 
-impl<T> DBSCANpp<T>
+impl<T> DBSCANPlusPlus<T>
 where
     T: FloatNumber,
 {
@@ -40,15 +40,15 @@ where
     /// * `metric` - The distance metric to use.
     ///
     /// # Returns
-    /// A new `DBSCANpp` instance.
+    /// A new `DBSCANPlusPlus` instance.
     pub fn new(
         probability: T,
         min_points: usize,
         epsilon: T,
         metric: DistanceMetric,
     ) -> Result<Self, &'static str> {
-        if !(T::zero()..=T::one()).contains(&probability) {
-            return Err("The probability must be in the range [0, 1].");
+        if (probability <= T::zero()) || (probability > T::one()) {
+            return Err("The probability must be in the range (0, 1].");
         }
         if min_points == 0 {
             return Err("The minimum number of points must be greater than zero.");
@@ -182,9 +182,9 @@ where
     {
         let mut clusters = HashMap::new();
         for (index, point) in points.iter().enumerate() {
-            let Some(nearest) = core_points_search.search_nearest(point) else {
-                continue;
-            };
+            let nearest = core_points_search
+                .search_nearest(point)
+                .expect("No nearest core point found.");
 
             if nearest.distance > self.epsilon {
                 continue;
@@ -202,7 +202,7 @@ where
     }
 }
 
-impl<T, const N: usize> ClusteringAlgorithm<T, N> for DBSCANpp<T>
+impl<T, const N: usize> ClusteringAlgorithm<T, N> for DBSCANPlusPlus<T>
 where
     T: FloatNumber,
 {
@@ -217,5 +217,117 @@ where
         let core_points_search = KDTreeSearch::build(&core_points, self.metric.clone(), 16);
         let core_labels = self.label_core_points(&core_points, &core_points_search);
         self.assign_clusters(points, &core_labels, &core_points_search)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+
+    use super::*;
+
+    #[must_use]
+    fn sample_points() -> Vec<Point<f32, 3>> {
+        vec![
+            [0.0, 0.0, 0.0], // 0
+            [1.0, 0.0, 0.0], // 0
+            [0.0, 1.0, 0.0], // 0
+            [0.0, 0.0, 1.0], // 0
+            [1.0, 1.0, 0.0], // 0
+            [0.0, 1.0, 1.0], // 0
+            [1.0, 0.0, 1.0], // 0
+            [1.0, 1.0, 1.0], // 0
+            [3.0, 4.0, 5.0], // 1
+            [3.0, 3.0, 3.0], // 1
+            [5.0, 4.0, 3.0], // 1
+            [4.0, 3.0, 4.0], // 1
+            [5.0, 4.0, 5.0], // 1
+            [4.0, 5.0, 3.0], // 1
+            [2.0, 9.0, 9.0], // 2
+            [0.0, 9.0, 9.0], // 2
+            [1.0, 9.0, 8.0], // 2
+            [0.0, 8.0, 8.0], // 2
+            [0.0, 9.0, 8.0], // 2
+            [9.0, 9.0, 9.0], // Outlier
+            [9.0, 0.0, 0.0], // Outlier
+        ]
+    }
+
+    #[must_use]
+    fn empty_points() -> Vec<Point<f32, 3>> {
+        Vec::new()
+    }
+
+    #[test]
+    fn test_new() {
+        // Act
+        let actual = DBSCANPlusPlus::new(0.5, 5, 0.1, DistanceMetric::Euclidean).unwrap();
+
+        // Assert
+        assert_eq!(actual.probability, 0.5);
+        assert_eq!(actual.min_points, 5);
+        assert_eq!(actual.epsilon, 0.1);
+        assert_eq!(actual.metric, DistanceMetric::Euclidean);
+    }
+
+    #[rstest]
+    #[case::invalid_probalitily(
+        0.0,
+        5,
+        0.1,
+        DistanceMetric::Euclidean,
+        "The probability must be in the range (0, 1]."
+    )]
+    #[case::invalid_min_points(
+        0.5,
+        0,
+        0.1,
+        DistanceMetric::Euclidean,
+        "The minimum number of points must be greater than zero."
+    )]
+    #[case::invalid_epsilon(
+        0.5,
+        5,
+        0.0,
+        DistanceMetric::Euclidean,
+        "The epsilon must be greater than zero."
+    )]
+    fn test_new_error(
+        #[case] probability: f64,
+        #[case] min_points: usize,
+        #[case] epsilon: f64,
+        #[case] metric: DistanceMetric,
+        #[case] expected: &'static str,
+    ) {
+        // Act
+        let actual = DBSCANPlusPlus::new(probability, min_points, epsilon, metric);
+
+        // Assert
+        assert!(actual.is_err());
+        assert_eq!(actual, Err(expected));
+    }
+
+    #[test]
+    fn test_fit() {
+        // Arrange
+        let dbscanpp = DBSCANPlusPlus::new(0.5, 3, 2.0, DistanceMetric::Euclidean).unwrap();
+        let points = sample_points();
+
+        let mut actual = dbscanpp.fit(&points);
+        actual.sort_by(|cluster1, cluster2| cluster2.len().cmp(&cluster1.len()));
+
+        // Assert
+        assert_eq!(actual.len(), 3);
+    }
+
+    #[test]
+    fn test_fit_empty() {
+        // Arrange
+        let dbscanpp = DBSCANPlusPlus::new(0.5, 4, 2.0, DistanceMetric::Euclidean).unwrap();
+        let points = empty_points();
+        let actual = dbscanpp.fit(&points);
+
+        // Assert
+        assert!(actual.is_empty());
     }
 }

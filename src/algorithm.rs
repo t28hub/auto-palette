@@ -5,14 +5,7 @@ use rand::thread_rng;
 use crate::{
     errors::PaletteError,
     math::{
-        clustering::{
-            Cluster,
-            ClusteringAlgorithm,
-            DBSCANpp,
-            InitializationStrategy,
-            KMeans,
-            DBSCAN,
-        },
+        clustering::{Cluster, ClusteringAlgorithm, DBSCANPlusPlus, KMeans, DBSCAN},
         DistanceMetric,
         FloatNumber,
         Point,
@@ -70,14 +63,12 @@ fn cluster_with_kmeans<T>(pixels: &[Point<T, 5>]) -> Vec<Cluster<T, 5>>
 where
     T: FloatNumber,
 {
-    let strategy =
-        InitializationStrategy::KmeansPlusPlus(thread_rng(), DistanceMetric::SquaredEuclidean);
     let clustering = KMeans::new(
         32,
         100,
         T::from_f32(1e-3),
         DistanceMetric::SquaredEuclidean,
-        strategy,
+        thread_rng(),
     )
     .unwrap();
     clustering.fit(pixels)
@@ -97,7 +88,7 @@ fn cluster_with_dbscanpp<T>(pixels: &[Point<T, 5>]) -> Vec<Cluster<T, 5>>
 where
     T: FloatNumber,
 {
-    let clustering = DBSCANpp::new(
+    let clustering = DBSCANPlusPlus::new(
         T::from_f32(0.1),
         16,
         T::from_f32(16e-4),
