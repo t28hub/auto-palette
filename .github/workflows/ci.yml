@@ -99,8 +99,8 @@ jobs:
       - name: Build library in release mode
         run: cargo build --lib --release
 
-  test:
-    name: "test on ${{ matrix.os }}"
+  test-core:
+    name: "test core crate on ${{ matrix.os }}"
     needs: build
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
@@ -120,11 +120,11 @@ jobs:
           tool: cargo-nextest, cargo-llvm-cov
 
       - name: Run unit tests
-        run: cargo nextest run --tests
+        run: cargo nextest run --tests --package auto-palette
 
       - name: Run unit tests with coverage
         if: matrix.os == 'ubuntu-latest'
-        run: cargo llvm-cov nextest --all-features --workspace --codecov --output-path codecov.json
+        run: cargo llvm-cov nextest --all-features --package auto-palette --codecov --output-path codecov.json
 
       - name: Upload coverage reports to Codecov
         if: matrix.os == 'ubuntu-latest'
@@ -133,3 +133,37 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: codecov.json
           fail_ci_if_error: true
+
+  test-wasm:
+    name: "test wasm crate"
+    needs:
+      - style
+      - check
+      - msrv
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Run unit tests
+        run: cargo nextest run --tests --package auto-palette-wasm
+
+      - name: Run wasm-pack test on Chrome
+        run: wasm-pack test --headless --chrome ./crates/wasm/
+
+      - name: Run wasm-pack test on Firefox
+        run: wasm-pack test --headless --firefox ./crates/wasm/
