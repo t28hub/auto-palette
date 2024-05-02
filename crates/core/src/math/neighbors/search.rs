@@ -17,6 +17,7 @@ where
     ///
     /// # Returns
     /// The k nearest neighbors.
+    #[allow(dead_code)]
     fn search(&self, query: &Point<T, N>, k: usize) -> Vec<Neighbor<T>>;
 
     /// Searches for the nearest neighbor of a point.
