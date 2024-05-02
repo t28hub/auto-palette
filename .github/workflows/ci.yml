@@ -82,26 +82,12 @@ jobs:
       - name: Check minimum supported Rust version
         run: cargo msrv --path crates/core verify
 
-  build:
+  test-core:
+    name: "test core crate on ${{ matrix.os }}"
     needs:
       - style
       - check
       - msrv
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Build library in release mode
-        run: cargo build --lib --release
-
-  test-core:
-    name: "test core crate on ${{ matrix.os }}"
-    needs: build
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
@@ -167,3 +153,60 @@ jobs:
 
       - name: Run wasm-pack test on Firefox
         run: wasm-pack test --headless --firefox ./crates/wasm/
+
+  build-core:
+    needs:
+      - test-core
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build library in release mode
+        run: cargo build --lib --release
+
+  build-wasm:
+    needs:
+      - test-wasm
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: packages/auto-palette
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Setup pnpm
+        run: corepack enable
+
+      - name: Setup Node.js with 22.x version
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org/
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the WASM package for node
+        run: pnpm wasm:node
+
+      - name: Run the unit tests
+        run: pnpm test
+
+      - name: Build the project
+        run: pnpm build

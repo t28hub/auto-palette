@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use auto_palette::Color;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
@@ -107,6 +109,12 @@ impl ColorWrapper {
     #[wasm_bindgen(js_name = toHexString)]
     pub fn to_hex_string(&self) -> String {
         self.0.to_hex_string()
+    }
+
+    #[wasm_bindgen(js_name = fromString)]
+    pub fn from_string(s: &str) -> Result<ColorWrapper, JsValue> {
+        let color = Color::from_str(s).map_err(|_| JsValue::from_str("Failed to parse color"))?;
+        Ok(ColorWrapper(color))
     }
 }
 
