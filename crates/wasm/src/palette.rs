@@ -1,13 +1,14 @@
-use auto_palette::{ImageData, Palette};
-use wasm_bindgen::{prelude::wasm_bindgen, Clamped, JsValue};
+use auto_palette::Palette;
+use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::swatch::SwatchWrapper;
+use crate::{swatch::SwatchWrapper, theme::ThemeWrapper};
 
-/// Struct for wrapping Palette<f32> in auto-palette
+/// Struct for wrapping `Palette<f32>` in auto-palette
 ///
 /// This struct is used to wrap the Palette<f32> type from the auto-palette crate so that it can be used in JavaScript.
 #[wasm_bindgen]
-pub struct PaletteWrapper(Palette<f32>);
+#[derive(Debug)]
+pub struct PaletteWrapper(pub(super) Palette<f32>);
 
 #[wasm_bindgen]
 impl PaletteWrapper {
@@ -33,42 +34,24 @@ impl PaletteWrapper {
     ///
     /// # Arguments
     /// * `n` - The number of swatches to find.
+    /// * `theme` - The theme to use when finding the swatches.
     ///
     /// # Returns
     /// The best swatches in this palette.
     #[wasm_bindgen(js_name = findSwatches)]
-    pub fn find_swatches(&self, n: usize) -> Vec<SwatchWrapper> {
+    pub fn find_swatches(&self, n: usize, theme: ThemeWrapper) -> Vec<SwatchWrapper> {
         self.0
-            .find_swatches(n)
+            .find_swatches_with_theme(n, theme.0)
             .into_iter()
             .map(SwatchWrapper)
             .collect()
-    }
-
-    /// Extracts a palette from the given image data.
-    ///
-    /// # Arguments
-    /// * `width` - The width of the image.
-    /// * `height` - The height of the image.
-    /// * `data` - The image data to extract a palette from.
-    ///
-    /// # Returns
-    /// The extracted `Palette` if successful, otherwise an error.
-    pub fn extract(
-        width: u32,
-        height: u32,
-        data: Clamped<Vec<u8>>,
-    ) -> Result<PaletteWrapper, JsValue> {
-        let image_data = ImageData::new(width, height, data.to_vec())
-            .map_err(|_| JsValue::from_str("Failed to create image data"))?;
-        let palette =
-            Palette::extract(&image_data).map_err(|e| JsValue::from_str(&e.to_string()))?;
-        Ok(Self(palette))
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use auto_palette::ImageData;
+
     use super::*;
 
     #[test]
@@ -93,25 +76,10 @@ mod tests {
         let wrapper = PaletteWrapper(palette);
 
         // Act
-        let actual = wrapper.find_swatches(3);
+        let theme = ThemeWrapper::from_string("vivid").unwrap();
+        let actual = wrapper.find_swatches(3, theme);
 
         // Assert
         assert_eq!(actual.len(), 3);
-    }
-
-    #[test]
-    fn test_extract() {
-        // Arrange
-        let image_data = ImageData::load("../core/tests/assets/olympic_rings.png").unwrap();
-        let data = image_data.data();
-        let width = image_data.width();
-        let height = image_data.height();
-
-        // Act
-        let actual = PaletteWrapper::extract(width, height, Clamped(data.to_vec())).unwrap();
-
-        // Assert
-        assert!(!actual.is_empty());
-        assert_eq!(actual.length(), 6);
     }
 }

@@ -1,14 +1,20 @@
+mod lab;
+mod rgb;
+mod xyz;
+
 use std::str::FromStr;
 
 use auto_palette::Color;
+pub use lab::Lab;
+pub use rgb::Rgb;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+pub use xyz::Xyz;
 
-use crate::{lab::Lab, rgb::RGB, xyz::XYZ};
-
-/// Struct for wrapping Color<f32> in auto-palette
+/// Struct for wrapping `Color<f32>` in auto-palette
 ///
 /// This struct is used to wrap the Color<f32> type from the auto-palette crate so that it can be used in JavaScript.
 #[wasm_bindgen]
+#[derive(Debug)]
 pub struct ColorWrapper(pub(super) Color<f32>);
 
 #[wasm_bindgen]
@@ -62,14 +68,13 @@ impl ColorWrapper {
     /// # Returns
     /// The RGB representation of this color.
     #[wasm_bindgen(js_name = toRGB)]
-    pub fn to_rgb(&self) -> Result<JsValue, JsValue> {
+    pub fn to_rgb(&self) -> Rgb {
         let rgb = self.0.to_rgb();
-        let value = RGB {
+        Rgb {
             r: rgb.r,
             g: rgb.g,
             b: rgb.b,
-        };
-        serde_wasm_bindgen::to_value(&value).map_err(JsValue::from)
+        }
     }
 
     /// Returns the CIE XYZ representation of this color.
@@ -77,14 +82,13 @@ impl ColorWrapper {
     /// # Returns
     /// The CIE XYZ representation of this color.
     #[wasm_bindgen(js_name = toXYZ)]
-    pub fn to_xyz(&self) -> Result<JsValue, JsValue> {
+    pub fn to_xyz(&self) -> Xyz {
         let xyz = self.0.to_xyz();
-        let value = XYZ {
+        Xyz {
             x: xyz.x,
             y: xyz.y,
             z: xyz.z,
-        };
-        serde_wasm_bindgen::to_value(&value).map_err(JsValue::from)
+        }
     }
 
     /// Returns the CIE L*a*b* representation of this color.
@@ -92,14 +96,13 @@ impl ColorWrapper {
     /// # Returns
     /// The CIE L*a*b* representation of this color.
     #[wasm_bindgen(js_name = toLab)]
-    pub fn to_lab(&self) -> Result<JsValue, JsValue> {
+    pub fn to_lab(&self) -> Lab {
         let lab = self.0.to_lab();
-        let value = Lab {
+        Lab {
             l: lab.l,
             a: lab.a,
             b: lab.b,
-        };
-        serde_wasm_bindgen::to_value(&value).map_err(JsValue::from)
+        }
     }
 
     /// Returns the hex string representation of this color.
@@ -188,13 +191,12 @@ mod tests {
         let wrapper = ColorWrapper(color);
 
         // Act
-        let rgb = wrapper.to_rgb().unwrap();
-        let actual: RGB = serde_wasm_bindgen::from_value(rgb).unwrap();
+        let actual = wrapper.to_rgb();
 
         // Assert
         assert_eq!(
             actual,
-            RGB {
+            Rgb {
                 r: 20,
                 g: 153,
                 b: 114,
@@ -209,13 +211,12 @@ mod tests {
         let wrapper = ColorWrapper(color);
 
         // Act
-        let xyz = wrapper.to_xyz().unwrap();
-        let actual: XYZ = serde_wasm_bindgen::from_value(xyz).unwrap();
+        let actual = wrapper.to_xyz();
 
         // Assert
         assert_eq!(
             actual,
-            XYZ {
+            Xyz {
                 x: 0.147_161_54,
                 y: 0.241_450_06,
                 z: 0.198_049_84,
@@ -230,8 +231,7 @@ mod tests {
         let wrapper = ColorWrapper(color);
 
         // Act
-        let lab = wrapper.to_lab().unwrap();
-        let actual: Lab = serde_wasm_bindgen::from_value(lab).unwrap();
+        let actual = wrapper.to_lab();
 
         // Assert
         assert_eq!(

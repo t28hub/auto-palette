@@ -21,7 +21,7 @@ export default defineConfig({
     }),
     wasm(),
     topLevelAwait({
-        promiseExportName: 'init',
+      promiseExportName: 'init',
     }),
   ],
   test: {
