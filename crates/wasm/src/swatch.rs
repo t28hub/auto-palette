@@ -1,12 +1,13 @@
 use auto_palette::Swatch;
-use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{position::Position, ColorWrapper};
 
-/// Struct for wrapping Swatch<f32> in auto-palette
+/// Struct for wrapping `Swatch<f32>` in auto-palette
 ///
 /// This struct is used to wrap the Swatch<f32> type from the auto-palette crate so that it can be used in JavaScript.
 #[wasm_bindgen]
+#[derive(Debug)]
 pub struct SwatchWrapper(pub(super) Swatch<f32>);
 
 #[wasm_bindgen]
@@ -25,10 +26,9 @@ impl SwatchWrapper {
     /// # Returns
     /// The position of this swatch.
     #[wasm_bindgen(getter)]
-    pub fn position(&self) -> Result<JsValue, JsValue> {
+    pub fn position(&self) -> Position {
         let (x, y) = self.0.position();
-        let position = Position { x, y };
-        serde_wasm_bindgen::to_value(&position).map_err(JsValue::from)
+        Position { x, y }
     }
 
     /// Returns the population of this swatch.
@@ -73,8 +73,7 @@ mod tests {
         let wrapper = SwatchWrapper(swatch);
 
         // Act
-        let position = wrapper.position().unwrap();
-        let actual: Position = serde_wasm_bindgen::from_value(position).unwrap();
+        let actual = wrapper.position();
 
         // Assert
         assert_eq!(actual, Position { x: 128, y: 32 });

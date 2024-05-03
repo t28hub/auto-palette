@@ -1,22 +1,29 @@
 import { describe, expect, it } from 'vitest';
 
-import { ColorWrapper } from '../src';
+import { createCanvas, loadImage } from '@napi-rs/canvas';
+import { Palette } from '../src';
 
-describe('ColorWrapper', () => {
-  describe('fromString', () => {
-    it('should create a new instance from a hex string', () => {
+describe('auto-palette', () => {
+  describe('extract', () => {
+    it('should extract a color palette from an image', async () => {
+      // Arrange
+      const image = await loadImage('../../crates/core/tests/assets/olympic_rings.png');
+      const canvas = createCanvas(image.width, image.height);
+      const context = canvas.getContext('2d', { alpha: true });
+      context.drawImage(image, 0, 0, image.width, image.height);
+      const imageData = context.getImageData(0, 0, image.width, image.height);
+
       // Act
-      const actual = ColorWrapper.fromString('#e74d1d');
+      const actual = Palette.extract(imageData);
 
       // Assert
-      expect(actual.toRGB()).toEqual({ r: 231, g: 77, b: 29 });
-    });
+      expect(actual.length).toBe(6);
+      expect(actual.isEmpty()).toBeFalsy();
 
-    it('should throw an error when the hex string is invalid', () => {
-      // Act & Assert
-      expect(() => {
-        ColorWrapper.fromString('#e74d1');
-      }).toThrowError(/Failed to parse color/);
+      const swatches = actual.findSwatches(5);
+      for (const swatch of swatches) {
+        console.info(swatch.color().toRGB());
+      }
     });
   });
 });
