@@ -3,17 +3,29 @@ import type { ColorWrapper } from './wasm';
 /**
  * The RGB color space.
  */
-export interface RGB { r: number; g: number; b: number }
+export interface RGB {
+  r: number;
+  g: number;
+  b: number;
+}
 
 /**
  * The CIE XYZ color space.
  */
-export interface XYZ { x: number; y: number; z: number }
+export interface XYZ {
+  x: number;
+  y: number;
+  z: number;
+}
 
 /**
  * The CIE L*a*b* color space.
  */
-export interface Lab { l: number; a: number; b: number }
+export interface Lab {
+  l: number;
+  a: number;
+  b: number;
+}
 
 /**
  * Class representing a color.

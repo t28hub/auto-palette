@@ -202,8 +202,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build the WASM package for node
-        run: pnpm wasm:node
+      - name: Build the WASM module
+        run: pnpm build:wasm
 
       - name: Run the unit tests
         run: pnpm test

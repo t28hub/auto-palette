@@ -1,14 +1,5 @@
 import { Swatch } from './swatch';
-import { AlgorithmWrapper, extract, type PaletteWrapper, ThemeWrapper } from './wasm';
-
-/**
- * The supported algorithm names for palette extraction.
- *
- * - `kmeans`: K-means clustering algorithm. This algorithm is faster but less accurate.
- * - `dbscan`: Density-based spatial clustering of applications with noise (DBSCAN) algorithm. This algorithm is slower but more accurate.
- * - `dbscan++`: DBSCAN++ clustering algorithm. This algorithm is faster than DBSCAN and more accurate than K-means.
- */
-export type AlgorithmName = 'kmeans' | 'dbscan' | 'dbscan++';
+import { type PaletteWrapper, ThemeWrapper } from './wasm';
 
 /**
  * The supported theme names for swatch selection.
@@ -62,17 +53,5 @@ export class Palette {
   public findSwatches(n: number, themeName: ThemeName = 'basic'): Swatch[] {
     const theme = ThemeWrapper.fromString(themeName);
     return this.wrapper.findSwatches(n, theme).map((wrapper) => new Swatch(wrapper));
-  }
-
-  /**
-   * Extracts a color palette from the given image data.
-   * @param imageData - The image data to extract the palette from.
-   * @param algorithmName - The algorithm name to use for extraction.
-   * @returns The extracted `Palette` instance.
-   */
-  public static extract(imageData: ImageData, algorithmName: AlgorithmName = 'dbscan'): Palette {
-    const algorithm = AlgorithmWrapper.fromString(algorithmName);
-    const wrapper = extract(imageData.width, imageData.height, imageData.data, algorithm);
-    return new Palette(wrapper);
   }
 }

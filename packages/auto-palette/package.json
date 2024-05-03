@@ -30,16 +30,12 @@
     "url": "https://github.com/t28hub"
   },
   "scripts": {
-    "dev": "pnpm wasm:node && vitest dev",
-    "test": "pnpm wasm:node && vitest run --coverage",
-    "test:ui": "pnpm wasm:node && vitest run --coverage --ui",
-    "build": "pnpm wasm:web && tsc && vite build",
-    "wasm:web": "wasm-pack build ../../crates/wasm --target web --out-dir pkg --out-name index --no-pack --release",
-    "wasm:node": "wasm-pack build ../../crates/wasm --target nodejs --out-dir pkg --out-name index --no-pack --release"
+    "dev": "vitest dev",
+    "test": "vitest run",
+    "build": "pnpm build:wasm && tsc && vite build",
+    "build:wasm": "wasm-pack build ../../crates/wasm --target web --out-dir pkg --out-name auto_palette --no-pack --release"
   },
   "devDependencies": {
-    "@napi-rs/canvas": "^0.1.52",
-    "vite-plugin-static-copy": "^1.0.4",
     "vite-plugin-top-level-await": "^1.4.1",
     "vite-plugin-wasm": "^3.3.0",
     "wasm-pack": "^0.12.1"

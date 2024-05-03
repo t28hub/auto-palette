@@ -1,5 +1,5 @@
 {
-  "name": "@auto-palette/root",
+  "name": "@auto-palette/monorepo",
   "private": true,
   "version": "0.0.0",
   "license": "MIT",
@@ -9,14 +9,17 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
+    "postinstall": "npx playwright install --with-deps",
     "format": "biome format --write .",
     "test": "pnpm --stream --recursive run test"
   },
   "devDependencies": {
     "@biomejs/biome": "1.7.2",
     "@types/node": "^20.12.8",
+    "@vitest/browser": "^1.5.3",
     "@vitest/coverage-v8": "1.5.3",
     "@vitest/ui": "1.5.3",
+    "playwright": "^1.43.1",
     "typescript": "^5.4.5",
     "vite": "^5.2.11",
     "vitest": "^1.5.3"

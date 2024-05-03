@@ -1,29 +1,49 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
-import { createCanvas, loadImage } from '@napi-rs/canvas';
-import { Palette } from '../src';
+import { AlgorithmName, AutoPalette } from '../src';
+import { loadAsImageData } from './utils';
 
 describe('auto-palette', () => {
-  describe('extract', () => {
-    it('should extract a color palette from an image', async () => {
-      // Arrange
-      const image = await loadImage('../../crates/core/tests/assets/olympic_rings.png');
-      const canvas = createCanvas(image.width, image.height);
-      const context = canvas.getContext('2d', { alpha: true });
-      context.drawImage(image, 0, 0, image.width, image.height);
-      const imageData = context.getImageData(0, 0, image.width, image.height);
+  let instance: AutoPalette;
+  beforeAll(async () => {
+    instance = await AutoPalette.initialize();
+  });
 
+  describe('extract', () => {
+    let imageData: ImageData;
+    beforeAll(async () => {
+      imageData = await loadAsImageData('https://picsum.photos/id/360/640/360/');
+    });
+
+    it('should extract a color palette from an image', () => {
       // Act
-      const actual = Palette.extract(imageData);
+      const actual = instance.extract(imageData);
 
       // Assert
-      expect(actual.length).toBe(6);
       expect(actual.isEmpty()).toBeFalsy();
+      expect(actual.length).toBeGreaterThan(16);
 
       const swatches = actual.findSwatches(5);
       for (const swatch of swatches) {
-        console.info(swatch.color().toRGB());
+        const { color, position, population } = swatch;
+        console.info({
+          color: color.toHexString(),
+          population,
+          position,
+        });
       }
     });
+
+    it.each(['kmeans', 'dbscan', 'dbscan++'])(
+      'should extract a color palette from an image using %s algorithm',
+      (algorithm: AlgorithmName) => {
+        // Act
+        const actual = instance.extract(imageData, algorithm);
+
+        // Assert
+        expect(actual.isEmpty()).toBeFalsy();
+        expect(actual.length).toBeGreaterThan(16);
+      },
+    );
   });
 });

@@ -1,7 +1,8 @@
-import init from '../../../crates/wasm/pkg';
+import init from '../../../crates/wasm/pkg/auto_palette';
 
 export {
   extract,
+  type InitInput,
   AlgorithmWrapper,
   ColorWrapper,
   PaletteWrapper,
@@ -10,6 +11,6 @@ export {
   RGB,
   XYZ,
   Lab,
-} from '../../../crates/wasm/pkg';
+} from '../../../crates/wasm/pkg/auto_palette';
 
 export default init;
