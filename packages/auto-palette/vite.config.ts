@@ -2,7 +2,6 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 import wasm from 'vite-plugin-wasm';
 import topLevelAwait from 'vite-plugin-top-level-await';
-import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 export default defineConfig({
   build: {
@@ -15,20 +14,18 @@ export default defineConfig({
     minify: false,
     sourcemap: true,
   },
-  plugins: [
-    viteStaticCopy({
-      targets: [{ src: '../../crates/wasm/pkg/index_bg.wasm', dest: '.' }],
-    }),
-    wasm(),
-    topLevelAwait({
-      promiseExportName: 'init',
-    }),
-  ],
+  plugins: [wasm(), topLevelAwait()],
   test: {
     globals: true,
     dir: 'test',
     include: ['**/*.test.ts'],
-    testTimeout: 1000,
+    testTimeout: 5000,
+    browser: {
+      enabled: true,
+      name: 'chromium',
+      provider: 'playwright',
+      headless: true,
+    },
     coverage: {
       all: false,
       provider: 'v8',
