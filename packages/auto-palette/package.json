@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "license": "MIT",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": ["dist"],
   "exports": {
@@ -12,7 +13,7 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "require": "./dist/index.cjs"
     }
   },
   "repository": {
@@ -33,9 +34,11 @@
     "dev": "vitest dev",
     "test": "vitest run",
     "build": "pnpm build:wasm && tsc && vite build",
+    "build:dev": "pnpm build:wasm && tsc && vite build --mode development",
     "build:wasm": "wasm-pack build ../../crates/wasm --target web --out-dir pkg --out-name auto_palette --no-pack --release"
   },
   "devDependencies": {
+    "vite-plugin-dts": "^3.9.0",
     "vite-plugin-top-level-await": "^1.4.1",
     "vite-plugin-wasm": "^3.3.0",
     "wasm-pack": "^0.12.1"
