@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
 import dts from 'vite-plugin-dts';
 import topLevelAwait from 'vite-plugin-top-level-await';
 import wasm from 'vite-plugin-wasm';
-import { defineConfig, type UserConfig } from 'vitest/config';
+import { type UserConfig, defineConfig } from 'vitest/config';
 
 export default defineConfig(({ mode }): UserConfig => {
   const isDevelopment = mode === 'development';

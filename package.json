@@ -14,10 +14,15 @@
     "format": "pnpm format:biome && pnpm format:taplo",
     "format:biome": "biome format --write .",
     "format:taplo": "taplo format",
-    "lint": "pnpm lint:biome && pnpm lint:taplo",
+    "lint": "pnpm lint:biome && pnpm lint:knip",
     "lint:biome": "biome lint .",
-    "lint:taplo": "taplo fmt --check --diff",
-    "test": "pnpm --stream --recursive run test"
+    "lint:biome:fix": "biome check --apply .",
+    "lint:knip": "pnpm lint:knip:development && pnpm lint:knip:production",
+    "lint:knip:development": "npx knip",
+    "lint:knip:production": "npx knip --production --strict --exclude unlisted",
+    "test": "pnpm --stream --recursive run test",
+    "clean": "rimraf target && pnpm --stream --recursive run clean",
+    "build": "pnpm --stream --recursive run build"
   },
   "devDependencies": {
     "@biomejs/biome": "1.7.2",
@@ -27,8 +32,10 @@
     "@vitest/coverage-v8": "1.5.3",
     "@vitest/ui": "1.5.3",
     "husky": "^9.0.11",
+    "knip": "^5.12.2",
     "lint-staged": "^15.2.2",
     "playwright": "^1.43.1",
+    "rimraf": "^5.0.5",
     "typescript": "^5.4.5",
     "vite": "^5.2.11",
     "vitest": "^1.5.3"

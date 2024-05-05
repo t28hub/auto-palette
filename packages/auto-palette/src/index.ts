@@ -1,9 +1,14 @@
+import { Palette, type ThemeName } from './palette';
 import init, { extract, AlgorithmWrapper, type InitInput } from './wasm';
-import { Palette } from './palette';
 
-export { Color } from './color';
-export { Swatch } from './swatch';
-export { Palette };
+export {
+  Color,
+  type RGB,
+  type XYZ,
+  type Lab,
+} from './color';
+export { type Position, Swatch } from './swatch';
+export { type ThemeName, Palette };
 
 /**
  * The options for initializing the AutoPalette module.

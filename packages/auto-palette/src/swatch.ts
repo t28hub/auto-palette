@@ -1,5 +1,5 @@
-import type { SwatchWrapper } from './wasm';
 import { Color } from './color';
+import type { SwatchWrapper } from './wasm';
 
 export interface Position {
   x: number;
