@@ -1,4 +1,4 @@
-import init, { extract, AlgorithmWrapper, InitInput } from './wasm';
+import init, { extract, AlgorithmWrapper, type InitInput } from './wasm';
 import { Palette } from './palette';
 
 export { Color } from './color';
