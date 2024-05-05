@@ -13,22 +13,30 @@ Please search the existing issues before filing new issues to avoid duplicates.
 Please follow these steps to contribute to the project:
 
 1. ::Fork and clone the repository:**
+
 ```sh
 git clone git@github.com:t28hub/auto-palette.git
 ```
+
 2. **Create a new branch for your feature or bug fix:**
+
 ```sh
 git checkout -b your-branch-name
 ```
+
 3. **Make your changes and write tests.**
 4. **Test your changes:**
+
 ```sh
 cargo nextest run --lib
 ```
+
 4. **Try your changes with the example:**
+
 ```sh
 cargo run --example basic
 ```
+
 5. **Ensure your changes do not break any existing functionality.**
 6. **Update the documentation if necessary.**
 7. **Create a pull request.**
@@ -46,4 +54,3 @@ taplo fmt
 ### License
 
 By contributing to this project, you agree that your contributions will be licensed under the [LICENSE](LICENSE) file in this repository.
-
