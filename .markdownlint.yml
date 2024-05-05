@@ -1,0 +1,18 @@
+# Default settings for markdownlint
+default: true
+
+# Disable max line length
+# https://github.com/DavidAnson/markdownlint/blob/main/doc/md013.md
+MD013: false
+
+# Disable ordered list item prefix
+# https://github.com/DavidAnson/markdownlint/blob/main/doc/md029.md
+MD029: false
+
+# Disable fenced code block style
+# https://github.com/DavidAnson/markdownlint/blob/main/doc/md031.md
+MD031: false
+
+# Allow inline HTML
+# https://github.com/DavidAnson/markdownlint/blob/maindoc/md033.md
+MD033: false

@@ -9,8 +9,8 @@
   },
   "scripts": {
     "prepare": "husky",
-    "preinstall": "npx only-allow pnpm",
-    "postinstall": "npx playwright install --with-deps",
+    "preinstall": "pnpx only-allow pnpm",
+    "postinstall": "pnpx playwright install --with-deps",
     "format": "pnpm format:biome && pnpm format:taplo",
     "format:biome": "biome format --write .",
     "format:taplo": "taplo format",
@@ -18,8 +18,10 @@
     "lint:biome": "biome lint .",
     "lint:biome:fix": "biome check --apply .",
     "lint:knip": "pnpm lint:knip:development && pnpm lint:knip:production",
-    "lint:knip:development": "npx knip",
-    "lint:knip:production": "npx knip --production --strict --exclude unlisted",
+    "lint:knip:development": "pnpx knip",
+    "lint:knip:production": "pnpx knip --production --strict --exclude unlisted",
+    "lint:md": "markdownlint-cli2 .",
+    "lint:md:fix": "markdownlint-cli2 . --fix",
     "test": "pnpm --stream --recursive run test",
     "clean": "rimraf target && pnpm --stream --recursive run clean",
     "build": "pnpm --stream --recursive run build"
@@ -34,6 +36,7 @@
     "husky": "^9.0.11",
     "knip": "^5.12.2",
     "lint-staged": "^15.2.2",
+    "markdownlint-cli2": "^0.13.0",
     "playwright": "^1.43.1",
     "rimraf": "^5.0.5",
     "typescript": "^5.4.5",
@@ -42,8 +45,9 @@
   },
   "lint-staged": {
     "*.{js,ts}": ["biome lint .", "biome format --write ."],
-    "*.{json,yml,yaml,md}": ["biome format --write ."],
+    "*.json": ["biome format --write ."],
     "*.toml": ["taplo format"],
+    "*.md": ["markdownlint-cli2 --fix"],
     "*.rs": ["cargo +nightly fmt --all"]
   },
   "packageManager": "pnpm@9.0.6"
