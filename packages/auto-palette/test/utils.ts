@@ -4,7 +4,7 @@
  * @param path - The path to the image file.
  * @returns A Promise that resolves to the loaded image as an HTMLImageElement.
  */
-export function loadImage(path: string): Promise<HTMLImageElement> {
+function loadImage(path: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => {

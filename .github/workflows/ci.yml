@@ -203,7 +203,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build the WASM module
-        run: pnpm build:wasm
+        run: pnpm run build:wasm
 
       - name: Run the unit tests
         run: pnpm test

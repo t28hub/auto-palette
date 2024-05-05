@@ -8,9 +8,6 @@ export {
   PaletteWrapper,
   SwatchWrapper,
   ThemeWrapper,
-  RGB,
-  XYZ,
-  Lab,
 } from '../../../crates/wasm/pkg/auto_palette';
 
 export default init;
