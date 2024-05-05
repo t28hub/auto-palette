@@ -8,21 +8,36 @@
     "url": "https://github.com/t28hub"
   },
   "scripts": {
+    "prepare": "husky",
     "preinstall": "npx only-allow pnpm",
     "postinstall": "npx playwright install --with-deps",
-    "format": "biome format --write .",
+    "format": "pnpm format:biome && pnpm format:taplo",
+    "format:biome": "biome format --write .",
+    "format:taplo": "taplo format",
+    "lint": "pnpm lint:biome && pnpm lint:taplo",
+    "lint:biome": "biome lint .",
+    "lint:taplo": "taplo fmt --check --diff",
     "test": "pnpm --stream --recursive run test"
   },
   "devDependencies": {
     "@biomejs/biome": "1.7.2",
+    "@taplo/cli": "^0.7.0",
     "@types/node": "^20.12.8",
     "@vitest/browser": "^1.5.3",
     "@vitest/coverage-v8": "1.5.3",
     "@vitest/ui": "1.5.3",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2",
     "playwright": "^1.43.1",
     "typescript": "^5.4.5",
     "vite": "^5.2.11",
     "vitest": "^1.5.3"
+  },
+  "lint-staged": {
+    "*.{js,ts}": ["biome lint .", "biome format --write ."],
+    "*.{json,yml,yaml,md}": ["biome format --write ."],
+    "*.toml": ["taplo format"],
+    "*.rs": ["cargo +nightly fmt --all"]
   },
   "packageManager": "pnpm@9.0.6"
 }

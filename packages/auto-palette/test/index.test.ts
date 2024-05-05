@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { AlgorithmName, AutoPalette } from '../src';
+import { type AlgorithmName, AutoPalette } from '../src';
 import { loadAsImageData } from './utils';
 
 describe('auto-palette', () => {
