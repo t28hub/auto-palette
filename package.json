@@ -27,7 +27,7 @@
     "build": "pnpm --stream --recursive run build"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.7.2",
+    "@biomejs/biome": "1.7.3",
     "@taplo/cli": "^0.7.0",
     "@types/node": "^20.12.8",
     "@vitest/browser": "^1.5.3",
