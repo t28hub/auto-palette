@@ -34,7 +34,7 @@
     "@vitest/coverage-v8": "1.5.3",
     "@vitest/ui": "1.5.3",
     "husky": "^9.0.11",
-    "knip": "^5.12.2",
+    "knip": "^5.12.3",
     "lint-staged": "^15.2.2",
     "markdownlint-cli2": "^0.13.0",
     "playwright": "^1.43.1",
