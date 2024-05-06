@@ -51,13 +51,17 @@ impl PaletteWrapper {
 #[cfg(test)]
 mod tests {
     use auto_palette::ImageData;
+    use image::GenericImageView;
 
     use super::*;
 
     #[test]
     fn test_palette() {
         // Arrange
-        let image_data = ImageData::load("../core/tests/assets/olympic_rings.png").unwrap();
+        let image = image::open("../../gfx/olympic_logo.png").unwrap();
+        let (width, height) = image.dimensions();
+        let pixels = image.to_rgba8().into_vec();
+        let image_data = ImageData::new(width, height, &pixels).unwrap();
 
         // Act
         let palette = Palette::extract(&image_data).unwrap();
@@ -71,7 +75,10 @@ mod tests {
     #[test]
     fn test_find_swatches() {
         // Arrange
-        let image_data = ImageData::load("../core/tests/assets/olympic_rings.png").unwrap();
+        let image = image::open("../../gfx/olympic_logo.png").unwrap();
+        let (width, height) = image.dimensions();
+        let pixels = image.to_rgba8().into_vec();
+        let image_data = ImageData::new(width, height, &pixels).unwrap();
         let palette = Palette::extract(&image_data).unwrap();
         let wrapper = PaletteWrapper(palette);
 

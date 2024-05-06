@@ -31,8 +31,8 @@ pub fn extract(
 ) -> Result<PaletteWrapper, JsValue> {
     console_error_panic_hook::set_once();
 
-    let image_data = ImageData::new(width, height, data.to_vec())
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let image_data =
+        ImageData::new(width, height, &data.0).map_err(|e| JsValue::from_str(&e.to_string()))?;
     let palette = Palette::extract_with_algorithm(&image_data, algorithm.0)
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
     Ok(PaletteWrapper(palette))
@@ -41,13 +41,17 @@ pub fn extract(
 #[cfg(test)]
 mod tests {
     use auto_palette::Algorithm;
+    use image::GenericImageView;
 
     use super::*;
 
     #[test]
     fn test_extract() {
         // Arrange
-        let image_data = ImageData::load("../core/tests/assets/olympic_rings.png").unwrap();
+        let image = image::open("../../gfx/olympic_logo.png").unwrap();
+        let (width, height) = image.dimensions();
+        let pixels = image.to_rgba8().into_raw();
+        let image_data = ImageData::new(width, height, &pixels).unwrap();
 
         // Act
         let width = image_data.width();

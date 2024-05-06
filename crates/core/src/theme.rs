@@ -3,7 +3,7 @@ use std::str::FromStr;
 use crate::{
     math::{normalize, FloatNumber},
     Color,
-    PaletteError,
+    Error,
 };
 
 /// The theme of a color.
@@ -46,7 +46,7 @@ impl Theme {
 }
 
 impl FromStr for Theme {
-    type Err = PaletteError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
@@ -55,7 +55,9 @@ impl FromStr for Theme {
             "muted" => Ok(Theme::Muted),
             "light" => Ok(Theme::Light),
             "dark" => Ok(Theme::Dark),
-            _ => Err(PaletteError::InvalidTheme(s.to_string())),
+            _ => Err(Error::UnsupportedTheme {
+                name: s.to_string(),
+            }),
         }
     }
 }
@@ -267,7 +269,7 @@ mod tests {
 
     #[rstest]
     #[case::empty("")]
-    #[case::invalid("invalid")]
+    #[case::invalid("unknown")]
     fn test_from_str_error(#[case] str: &str) {
         // Act
         let actual = Theme::from_str(str);
@@ -275,8 +277,8 @@ mod tests {
         // Assert
         assert!(actual.is_err());
         assert_eq!(
-            actual.unwrap_err(),
-            PaletteError::InvalidTheme(str.to_string())
+            actual.unwrap_err().to_string(),
+            format!("The theme '{}' is not supported.", str)
         );
     }
 }

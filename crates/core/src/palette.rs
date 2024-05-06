@@ -3,7 +3,7 @@ use std::cmp::Reverse;
 use crate::{
     algorithm::Algorithm,
     color::{rgb_to_xyz, xyz_to_lab, Lab, D65},
-    errors::PaletteError,
+    error::Error,
     image::ImageData,
     math::{
         clustering::{Cluster, ClusteringAlgorithm, DBSCAN},
@@ -147,7 +147,7 @@ where
     ///
     /// # Returns
     /// The extracted palette.
-    pub fn extract(image_data: &ImageData) -> Result<Self, PaletteError> {
+    pub fn extract(image_data: &ImageData) -> Result<Self, Error> {
         Self::extract_with_algorithm(image_data, Algorithm::DBSCAN)
     }
 
@@ -162,10 +162,10 @@ where
     pub fn extract_with_algorithm(
         image_data: &ImageData,
         algorithm: Algorithm,
-    ) -> Result<Self, PaletteError> {
+    ) -> Result<Self, Error> {
         let pixels = image_data.data();
         if pixels.is_empty() {
-            return Err(PaletteError::EmptyImageData);
+            return Err(Error::EmptyImageData);
         }
 
         let width = image_data.width();
@@ -353,9 +353,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "image")]
     fn test_extract() {
         // Act
-        let image_data = ImageData::load("./tests/assets/olympic_rings.png").unwrap();
+        let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
         let actual: Palette<f32> = Palette::extract(&image_data).unwrap();
 
         // Assert
@@ -363,13 +364,14 @@ mod tests {
         assert!(actual.len() >= 3);
     }
 
+    #[cfg(feature = "image")]
     #[rstest]
     #[case::kmeans("kmeans")]
     #[case::dbscan("dbscan")]
     #[case::dbscanpp("dbscan++")]
     fn test_extract_with_algorithm(#[case] name: &str) {
         // Act
-        let image_data = ImageData::load("./tests/assets/olympic_rings.png").unwrap();
+        let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
         let algorithm = Algorithm::from_str(name).unwrap();
         let actual: Palette<f32> = Palette::extract_with_algorithm(&image_data, algorithm).unwrap();
 
@@ -381,12 +383,16 @@ mod tests {
     #[test]
     fn test_extract_empty_image_data() {
         // Act
-        let image_data = ImageData::new(0, 0, vec![]).unwrap();
+        let data = Vec::<u8>::new();
+        let image_data = ImageData::new(0, 0, &data).unwrap();
         let result = Palette::<f32>::extract(&image_data);
 
         // Assert
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), PaletteError::EmptyImageData);
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "The image data is empty and cannot be processed."
+        );
     }
 
     #[test]
