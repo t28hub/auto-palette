@@ -4,7 +4,7 @@ This directory contains examples of how to use the `auto-palette` library.
 You can run the examples by executing the following command:
 
 ```sh
-cargo run --example {example_name} --release
+cargo run --example {example_name} --release --features='image'
 ```
 
 ## [Basic Usage](basic.rs)
@@ -12,7 +12,7 @@ cargo run --example {example_name} --release
 This example demonstrates how to extract a color palette from an image file using default settings.
 
 ```sh
-cargo run --example basic --release
+cargo run --example basic --release --features='image'
 ```
 
 ## [Algorithm](algorithm.rs)
@@ -20,7 +20,7 @@ cargo run --example basic --release
 This example demonstrates how to extract a color palette from an image file using a specific algorithm.
 
 ```sh
-cargo run --example algorithm --release -- [algorithm_name]
+cargo run --example algorithm --release --features='image' -- [algorithm_name]
 ```
 
 ## [Theme](theme.rs)
@@ -28,7 +28,7 @@ cargo run --example algorithm --release -- [algorithm_name]
 This example demonstrates how to extract a color palette from an image file and find the dominant swatches using a specific theme.
 
 ```sh
-cargo run --example theme --release -- [theme_name]
+cargo run --example theme --release --features='image' -- [theme_name]
 ```
 
 ## [Image Path](image_path.rs)
@@ -36,7 +36,7 @@ cargo run --example theme --release -- [theme_name]
 This example demonstrates how to extract a color palette from an image file using a specific path.
 
 ```sh
-cargo run --example image_path --release -- [image_path]
+cargo run --example image_path --release --features='image' -- [image_path]
 ```
 
 ## [Image URL](image_url.rs)
@@ -44,8 +44,5 @@ cargo run --example image_path --release -- [image_path]
 This example demonstrates how to extract a color palette from an image file using a specific URL.
 
 ```sh
-cargo run --example image_url --release -- [image_url]
+cargo run --example image_url --release --features='image' -- [image_url]
 ```
-
-
-

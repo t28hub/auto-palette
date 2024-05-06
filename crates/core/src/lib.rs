@@ -1,6 +1,6 @@
 mod algorithm;
 mod color;
-mod errors;
+mod error;
 mod image;
 mod math;
 mod palette;
@@ -9,8 +9,8 @@ mod theme;
 
 pub use algorithm::Algorithm;
 pub use color::{Color, Lab, RGB, XYZ};
-pub use errors::PaletteError;
-pub use image::{ImageData, ImageError};
+pub use error::Error;
+pub use image::ImageData;
 pub use palette::Palette;
 pub use swatch::Swatch;
 pub use theme::Theme;

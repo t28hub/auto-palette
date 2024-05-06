@@ -14,10 +14,16 @@ repository.workspace = true
 # https://github.com/foresterre/cargo-msrv/issues/590
 rust-version = "1.75.0"
 
+[features]
+default = []
+image   = ["dep:image"]
+wasm    = ["getrandom/js"]
+
 [dependencies]
-image      = "0.25.1"
+getrandom  = { version = "0.2.3", default-features = false }
+image      = { version = "0.25.1", optional = true }
 num-traits = "0.2.18"
-rand       = "0.8.5"
+rand       = { version = "0.8.5", default-features = false, features = ["std_rng"] }
 rand_distr = "0.4.3"
 
 [dev-dependencies]
@@ -25,21 +31,26 @@ reqwest = { version = "0.12.4", features = ["blocking"] }
 rstest  = "0.19.0"
 
 [[example]]
-name = "basic"
-path = "examples/basic.rs"
+name              = "basic"
+path              = "examples/basic.rs"
+required-features = ["image"]
 
 [[example]]
-name = "algorithm"
-path = "examples/algorithm.rs"
+name              = "algorithm"
+path              = "examples/algorithm.rs"
+required-features = ["image"]
 
 [[example]]
-name = "theme"
-path = "examples/theme.rs"
+name              = "theme"
+path              = "examples/theme.rs"
+required-features = ["image"]
 
 [[example]]
-name = "image_url"
-path = "examples/image_url.rs"
+name              = "image_url"
+path              = "examples/image_url.rs"
+required-features = ["image"]
 
 [[example]]
-name = "image_path"
-path = "examples/image_path.rs"
+name              = "image_path"
+path              = "examples/image_path.rs"
+required-features = ["image"]

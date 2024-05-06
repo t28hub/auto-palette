@@ -48,7 +48,7 @@
     "*.json": ["biome format --write ."],
     "*.toml": ["taplo format"],
     "*.md": ["markdownlint-cli2 --fix"],
-    "*.rs": ["cargo +nightly fmt --all"]
+    "*.rs": ["cargo +nightly fmt --all --"]
   },
   "packageManager": "pnpm@9.0.6"
 }

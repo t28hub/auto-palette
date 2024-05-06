@@ -3,7 +3,7 @@ use std::str::FromStr;
 use rand::thread_rng;
 
 use crate::{
-    errors::PaletteError,
+    error::Error,
     math::{
         clustering::{Cluster, ClusteringAlgorithm, DBSCANPlusPlus, KMeans, DBSCAN},
         DistanceMetric,
@@ -46,14 +46,16 @@ impl Algorithm {
 }
 
 impl FromStr for Algorithm {
-    type Err = PaletteError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "kmeans" => Ok(Self::KMeans),
             "dbscan" => Ok(Self::DBSCAN),
             "dbscan++" => Ok(Self::DBSCANpp),
-            _ => Err(PaletteError::InvalidAlgorithm(s.to_string())),
+            _ => Err(Error::UnsupportedAlgorithm {
+                name: s.to_string(),
+            }),
         }
     }
 }
@@ -124,7 +126,7 @@ mod tests {
 
     #[rstest]
     #[case::empty("")]
-    #[case::invalid("invalid")]
+    #[case::invalid("unknown")]
     fn test_from_str_error(#[case] input: &str) {
         // Act
         let actual = Algorithm::from_str(input);
@@ -132,8 +134,8 @@ mod tests {
         // Assert
         assert!(actual.is_err());
         assert_eq!(
-            actual.unwrap_err(),
-            PaletteError::InvalidAlgorithm(input.to_string())
+            actual.unwrap_err().to_string(),
+            format!("The algorithm '{}' is not supported.", input)
         );
     }
 }

@@ -111,7 +111,7 @@ jobs:
           tool: cargo-nextest, cargo-llvm-cov
 
       - name: Run unit tests
-        run: cargo nextest run --tests --package auto-palette
+        run: cargo nextest run --tests --all-features --package auto-palette
 
       - name: Run unit tests with coverage
         if: matrix.os == 'ubuntu-latest'

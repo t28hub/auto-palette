@@ -4,12 +4,12 @@ use auto_palette::{Algorithm, ImageData, Palette};
 use rstest::rstest;
 
 #[rstest]
-#[case::black("./tests/assets/colors/black.png", "#000000")]
-#[case::gray("./tests/assets/colors/gray.png", "#808080")]
-#[case::white("./tests/assets/colors/white.png", "#FFFFFF")]
-#[case::red("./tests/assets/colors/red.png", "#FF0000")]
-#[case::blue("./tests/assets/colors/blue.png", "#0000FF")]
-#[case::green("./tests/assets/colors/green.png", "#00FF00")]
+#[case::black("../../gfx/colors/black.png", "#000000")]
+#[case::gray("../../gfx/colors/gray.png", "#808080")]
+#[case::white("../../gfx/colors/white.png", "#FFFFFF")]
+#[case::red("../../gfx/colors/red.png", "#FF0000")]
+#[case::blue("../../gfx/colors/blue.png", "#0000FF")]
+#[case::green("../../gfx/colors/green.png", "#00FF00")]
 fn test_extract_single_color<P>(#[case] path: P, #[case] expected: &str)
 where
     P: AsRef<Path>,
@@ -28,7 +28,7 @@ where
 #[test]
 fn test_extract_empty() {
     // Act
-    let image_data = ImageData::load("./tests/assets/colors/transparent.png").unwrap();
+    let image_data = ImageData::load("../../gfx/colors/transparent.png").unwrap();
     let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
 
     // Assert
@@ -38,7 +38,7 @@ fn test_extract_empty() {
 #[test]
 fn test_extract_multiple_colors() {
     // Act
-    let image_data = ImageData::load("./tests/assets/olympic_rings.png").unwrap();
+    let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
     let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
 
     // Assert
@@ -51,8 +51,7 @@ fn test_extract_multiple_colors() {
 #[case::dbscanpp("dbscan++")]
 fn test_extract_with_algorithm(#[case] name: &str) {
     // Arrange
-    let image_data =
-        ImageData::load("./tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
+    let image_data = ImageData::load("../../gfx/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
     let algorithm = Algorithm::from_str(name).unwrap();
 
     // Act
@@ -64,11 +63,11 @@ fn test_extract_with_algorithm(#[case] name: &str) {
 }
 
 #[rstest]
-#[case::dk("./tests/assets/flags/dk.png", 2, vec ! ["#C8102E", "#FFFFFF"])]
-#[case::uk("./tests/assets/flags/uk.png", 3, vec ! ["#C8102E", "#012169", "#FFFFFF"])]
-#[case::my("./tests/assets/flags/my.png", 4, vec ! ["#FFFFFF", "#FFCC00", "#CC0000", "#000066"])]
-#[case::kn("./tests/assets/flags/kn.png", 5, vec ! ["#000000", "#009739", "#FFCD00", "#C8102E", "#FFFFFF"])]
-#[case::za("./tests/assets/flags/za.png", 6, vec ! ["#FFFFFF", "#FFB81C", "#000000", "#E03C31", "#007749", "#001489"])]
+#[case::dk("../../gfx/flags/dk.png", 2, vec ! ["#C8102E", "#FFFFFF"])]
+#[case::uk("../../gfx/flags/uk.png", 3, vec ! ["#C8102E", "#012169", "#FFFFFF"])]
+#[case::my("../../gfx/flags/my.png", 4, vec ! ["#FFFFFF", "#FFCC00", "#CC0000", "#000066"])]
+#[case::kn("../../gfx/flags/kn.png", 5, vec ! ["#000000", "#009739", "#FFCD00", "#C8102E", "#FFFFFF"])]
+#[case::za("../../gfx/flags/za.png", 6, vec ! ["#FFFFFF", "#FFB81C", "#000000", "#E03C31", "#007749", "#001489"])]
 fn test_find_swatches<P>(#[case] path: P, #[case] n: usize, #[case] expected: Vec<&str>)
 where
     P: AsRef<Path>,
@@ -94,7 +93,7 @@ where
 #[test]
 fn test_find_swatches_with_empty_palette() {
     // Act
-    let image_data = ImageData::load("./tests/assets/colors/transparent.png").unwrap();
+    let image_data = ImageData::load("../../gfx/colors/transparent.png").unwrap();
     let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
     let swatches = palette.find_swatches(5);
 
