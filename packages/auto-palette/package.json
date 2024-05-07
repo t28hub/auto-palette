@@ -40,7 +40,7 @@
     "build:wasm": "wasm-pack build ../../crates/wasm --target web --out-dir pkg --out-name auto_palette --no-pack --release"
   },
   "devDependencies": {
-    "vite-plugin-dts": "^3.9.0",
+    "vite-plugin-dts": "^3.9.1",
     "vite-plugin-top-level-await": "^1.4.1",
     "vite-plugin-wasm": "^3.3.0"
   }
