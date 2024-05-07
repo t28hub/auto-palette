@@ -11,6 +11,12 @@
 
 ## Features
 
+<img src="gfx/laura-clugston-pwW2iV9TZao-unsplash.jpg" alt="Hot air balloon on blue sky" width="480">
+<img src="gfx/palette.png" alt="Extracted Color Palette" width="480">
+
+> [!NOTE]
+> Photo by <a href="https://unsplash.com/@laurahclugston?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Laura Clugston</a> on <a href="https://unsplash.com/photos/multi-colored-hot-air-balloon-pwW2iV9TZao?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Unsplash</a>
+
 * Extract prominent color palettes from images automatically.
 * Provide detailed color information color, position, and population.
 * Support multiple color palette extraction algorithms. (`DBSCAN`, `DBSCAN++`, `KMeans++`)
@@ -21,13 +27,14 @@ To use `auto-palette` in your Rust project, add it to your `Cargo.toml`.
 
 ```toml
 [dependencies]
-auto-palette = "0.1.1"
+auto-palette = "0.2.0"
 ```
 
 ## Usage
 
-Here is a basic example that demonstrates how to extract the color palette and find the dominant colors.
+Here is a basic example that demonstrates how to extract the color palette and find the dominant colors.  
 See the [examples](crates/core/examples) directory for more examples.
+
 ```rust
 use auto_palette::{ImageData, Palette};
 
