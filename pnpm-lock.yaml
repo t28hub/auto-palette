@@ -15,14 +15,14 @@ importers:
         specifier: ^0.7.0
         version: 0.7.0
       '@types/node':
-        specifier: ^20.12.8
-        version: 20.12.8
+        specifier: ^20.12.10
+        version: 20.12.10
       '@vitest/browser':
         specifier: ^1.5.3
         version: 1.5.3(playwright@1.43.1)(vitest@1.5.3)
       '@vitest/coverage-v8':
         specifier: 1.5.3
-        version: 1.5.3(vitest@1.5.3(@types/node@20.12.8)(@vitest/browser@1.5.3)(@vitest/ui@1.5.3))
+        version: 1.5.3(vitest@1.5.3(@types/node@20.12.10)(@vitest/browser@1.5.3)(@vitest/ui@1.5.3))
       '@vitest/ui':
         specifier: 1.5.3
         version: 1.5.3(vitest@1.5.3)
@@ -31,7 +31,7 @@ importers:
         version: 9.0.11
       knip:
         specifier: ^5.12.3
-        version: 5.12.3(@types/node@20.12.8)(typescript@5.4.5)
+        version: 5.12.3(@types/node@20.12.10)(typescript@5.4.5)
       lint-staged:
         specifier: ^15.2.2
         version: 15.2.2
@@ -49,10 +49,10 @@ importers:
         version: 5.4.5
       vite:
         specifier: ^5.2.11
-        version: 5.2.11(@types/node@20.12.8)
+        version: 5.2.11(@types/node@20.12.10)
       vitest:
         specifier: ^1.5.3
-        version: 1.5.3(@types/node@20.12.8)(@vitest/browser@1.5.3)(@vitest/ui@1.5.3)
+        version: 1.5.3(@types/node@20.12.10)(@vitest/browser@1.5.3)(@vitest/ui@1.5.3)
 
   packages/auto-palette:
     devDependencies:
@@ -577,6 +577,9 @@ packages:
 
   '@types/estree@1.0.5':
     resolution: {integrity: sha512-/kYRxGDLWzHOB7q+wtSUQlFrtcdUccpfy+X+9iMBpHK8QLLhx2wIPYuS5DYtR9Wa/YlZAbIovy7qVdB1Aq6Lyw==}
+
+  '@types/node@20.12.10':
+    resolution: {integrity: sha512-Eem5pH9pmWBHoGAT8Dr5fdc5rYA+4NAovdM4EktRPVAAiJhmWWfQrA0cFhAbOsQdSfIHjAud6YdkbL69+zSKjw==}
 
   '@types/node@20.12.8':
     resolution: {integrity: sha512-NU0rJLJnshZWdE/097cdCBbyW1h4hEg0xpovcoAQYHl8dnEyp/NAOiE45pvc+Bd1Dt+2r94v2eGFpQJ4R7g+2w==}
@@ -2150,20 +2153,25 @@ snapshots:
 
   '@types/estree@1.0.5': {}
 
+  '@types/node@20.12.10':
+    dependencies:
+      undici-types: 5.26.5
+
   '@types/node@20.12.8':
     dependencies:
       undici-types: 5.26.5
+    optional: true
 
   '@vitest/browser@1.5.3(playwright@1.43.1)(vitest@1.5.3)':
     dependencies:
       '@vitest/utils': 1.5.3
       magic-string: 0.30.10
       sirv: 2.0.4
-      vitest: 1.5.3(@types/node@20.12.8)(@vitest/browser@1.5.3)(@vitest/ui@1.5.3)
+      vitest: 1.5.3(@types/node@20.12.10)(@vitest/browser@1.5.3)(@vitest/ui@1.5.3)
     optionalDependencies:
       playwright: 1.43.1
 
-  '@vitest/coverage-v8@1.5.3(vitest@1.5.3(@types/node@20.12.8)(@vitest/browser@1.5.3)(@vitest/ui@1.5.3))':
+  '@vitest/coverage-v8@1.5.3(vitest@1.5.3(@types/node@20.12.10)(@vitest/browser@1.5.3)(@vitest/ui@1.5.3))':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@bcoe/v8-coverage': 0.2.3
@@ -2178,7 +2186,7 @@ snapshots:
       std-env: 3.7.0
       strip-literal: 2.1.0
       test-exclude: 6.0.0
-      vitest: 1.5.3(@types/node@20.12.8)(@vitest/browser@1.5.3)(@vitest/ui@1.5.3)
+      vitest: 1.5.3(@types/node@20.12.10)(@vitest/browser@1.5.3)(@vitest/ui@1.5.3)
     transitivePeerDependencies:
       - supports-color
 
@@ -2213,7 +2221,7 @@ snapshots:
       pathe: 1.1.2
       picocolors: 1.0.0
       sirv: 2.0.4
-      vitest: 1.5.3(@types/node@20.12.8)(@vitest/browser@1.5.3)(@vitest/ui@1.5.3)
+      vitest: 1.5.3(@types/node@20.12.10)(@vitest/browser@1.5.3)(@vitest/ui@1.5.3)
 
   '@vitest/utils@1.5.3':
     dependencies:
@@ -2677,12 +2685,12 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  knip@5.12.3(@types/node@20.12.8)(typescript@5.4.5):
+  knip@5.12.3(@types/node@20.12.10)(typescript@5.4.5):
     dependencies:
       '@ericcornelissen/bash-parser': 0.5.2
       '@nodelib/fs.walk': 2.0.0
       '@snyk/github-codeowners': 1.1.0
-      '@types/node': 20.12.8
+      '@types/node': 20.12.10
       easy-table: 1.2.0
       fast-glob: 3.3.2
       file-entry-cache: 8.0.0
@@ -3169,13 +3177,13 @@ snapshots:
 
   validator@13.11.0: {}
 
-  vite-node@1.5.3(@types/node@20.12.8):
+  vite-node@1.5.3(@types/node@20.12.10):
     dependencies:
       cac: 6.7.14
       debug: 4.3.4
       pathe: 1.1.2
       picocolors: 1.0.0
-      vite: 5.2.11(@types/node@20.12.8)
+      vite: 5.2.11(@types/node@20.12.10)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -3217,6 +3225,15 @@ snapshots:
     dependencies:
       vite: 5.2.11(@types/node@20.12.8)
 
+  vite@5.2.11(@types/node@20.12.10):
+    dependencies:
+      esbuild: 0.20.2
+      postcss: 8.4.38
+      rollup: 4.17.2
+    optionalDependencies:
+      '@types/node': 20.12.10
+      fsevents: 2.3.3
+
   vite@5.2.11(@types/node@20.12.8):
     dependencies:
       esbuild: 0.20.2
@@ -3226,7 +3243,7 @@ snapshots:
       '@types/node': 20.12.8
       fsevents: 2.3.3
 
-  vitest@1.5.3(@types/node@20.12.8)(@vitest/browser@1.5.3)(@vitest/ui@1.5.3):
+  vitest@1.5.3(@types/node@20.12.10)(@vitest/browser@1.5.3)(@vitest/ui@1.5.3):
     dependencies:
       '@vitest/expect': 1.5.3
       '@vitest/runner': 1.5.3
@@ -3245,11 +3262,11 @@ snapshots:
       strip-literal: 2.1.0
       tinybench: 2.8.0
       tinypool: 0.8.4
-      vite: 5.2.11(@types/node@20.12.8)
-      vite-node: 1.5.3(@types/node@20.12.8)
+      vite: 5.2.11(@types/node@20.12.10)
+      vite-node: 1.5.3(@types/node@20.12.10)
       why-is-node-running: 2.2.2
     optionalDependencies:
-      '@types/node': 20.12.8
+      '@types/node': 20.12.10
       '@vitest/browser': 1.5.3(playwright@1.43.1)(vitest@1.5.3)
       '@vitest/ui': 1.5.3(vitest@1.5.3)
     transitivePeerDependencies:
