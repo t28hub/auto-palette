@@ -29,23 +29,23 @@
   "devDependencies": {
     "@biomejs/biome": "1.7.3",
     "@taplo/cli": "^0.7.0",
-    "@types/node": "^20.12.8",
-    "@vitest/browser": "^1.5.3",
-    "@vitest/coverage-v8": "1.5.3",
-    "@vitest/ui": "1.5.3",
+    "@types/node": "^20.12.10",
+    "@vitest/browser": "^1.6.0",
+    "@vitest/coverage-v8": "1.6.0",
+    "@vitest/ui": "1.6.0",
     "husky": "^9.0.11",
     "knip": "^5.12.3",
     "lint-staged": "^15.2.2",
     "markdownlint-cli2": "^0.13.0",
-    "playwright": "^1.43.1",
+    "playwright": "^1.44.0",
     "rimraf": "^5.0.5",
     "typescript": "^5.4.5",
     "vite": "^5.2.11",
-    "vitest": "^1.5.3"
+    "vitest": "^1.6.0"
   },
   "lint-staged": {
-    "*.{js,ts}": ["biome lint .", "biome format --write ."],
-    "*.json": ["biome format --write ."],
+    "*.{js,ts}": ["biome lint .", "biome format --write"],
+    "*.json": ["biome format --write"],
     "*.toml": ["taplo format"],
     "*.md": ["markdownlint-cli2 --fix"],
     "*.rs": ["cargo +nightly fmt --all --"]
