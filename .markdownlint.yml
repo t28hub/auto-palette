@@ -14,5 +14,12 @@ MD029: false
 MD031: false
 
 # Allow inline HTML
-# https://github.com/DavidAnson/markdownlint/blob/maindoc/md033.md
-MD033: false
+# https://github.com/DavidAnson/markdownlint/blob/main/doc/md033.md
+MD033:
+  allowed_elements:
+    - 'a'
+    - 'img'
+
+# Disable first line heading
+# https://github.com/DavidAnson/markdownlint/blob/main/doc/md041.md
+MD041: false

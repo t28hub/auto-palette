@@ -4,7 +4,7 @@ members  = ["crates/core", "crates/wasm"]
 
 [workspace.package]
 edition    = "2021"
-version    = "0.1.1"
+version    = "0.2.0"
 authors    = ["Tatsuya Maki <t28oogle@gmail.com>"]
 license    = "MIT"
 homepage   = "https://github.com/t28hub/auto-palette"
