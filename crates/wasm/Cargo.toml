@@ -18,12 +18,12 @@ rust-version = "1.75.0"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-auto-palette             = { path = "../core", features = ["wasm"] }
-console_error_panic_hook = "0.1.7"
-js-sys                   = "0.3.69"
-wasm-bindgen             = "0.2.92"
+auto-palette             = { workspace = true, features = ["wasm"] }
+console_error_panic_hook = { workspace = true }
+js-sys                   = { workspace = true }
+wasm-bindgen             = { workspace = true }
 
 [dev-dependencies]
-image             = "0.25.1"
-rstest            = "0.19.0"
-wasm-bindgen-test = "0.3.42"
+image             = { workspace = true }
+rstest            = { workspace = true }
+wasm-bindgen-test = { workspace = true }
