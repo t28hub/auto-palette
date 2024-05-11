@@ -37,7 +37,7 @@
     "clean": "rimraf dist",
     "build": "pnpm build:wasm && tsc && vite build",
     "build:dev": "pnpm build:wasm && tsc && vite build --mode development",
-    "build:wasm": "wasm-pack build ../../crates/wasm --target web --out-dir pkg --out-name auto_palette --no-pack --release"
+    "build:wasm": "wasm-pack build ../../crates/auto-palette-wasm --target web --out-dir pkg --out-name auto_palette --no-pack --release"
   },
   "devDependencies": {
     "vite-plugin-dts": "^3.9.1",

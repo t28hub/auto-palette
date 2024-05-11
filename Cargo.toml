@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members  = ["crates/core", "crates/wasm"]
+members  = ["crates/*"]
 
 [workspace.package]
 edition    = "2021"
@@ -11,7 +11,8 @@ homepage   = "https://github.com/t28hub/auto-palette"
 repository = "https://github.com/t28hub/auto-palette"
 
 [workspace.dependencies]
-auto-palette             = { version = "0.2.0", path = "./crates/core" }
+auto-palette             = { version = "0.2.0", path = "crates/auto-palette" }
+clap                     = { version = "4.5.4", features = ["cargo"] }
 getrandom                = "0.2.15"
 image                    = "0.25.1"
 num-traits               = "0.2.18"

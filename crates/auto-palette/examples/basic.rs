@@ -9,8 +9,7 @@ use auto_palette::{ImageData, Palette};
 /// ```
 fn main() {
     // Load the image data from the file
-    let image_data =
-        ImageData::load("./crates/core/tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
+    let image_data = ImageData::load("../../gfx/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
 
     // Extract the color palette from the image data
     let palette: Palette<f32> = Palette::extract(&image_data).unwrap();

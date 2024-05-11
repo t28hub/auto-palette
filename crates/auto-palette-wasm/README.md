@@ -1,6 +1,6 @@
-# auto-palette-wasm
+# `auto-palette-wasm`
 
-> A WebAssembly binding for `auto-palette`, allowing it to automatically extract color palettes from images.
+> A WebAssembly binding for [`auto-palette`](https://crates.io/crates/auto-palette), allowing it to automatically extract color palettes from images.
 
 ## Development
 
@@ -13,13 +13,15 @@ cargo nextest run --tests --package auto-palette-wasm
 ### Run wasm-pack tests
 
 Run wasm-pack tests in headless mode using Chrome:
+
 ```sh
-wasm-pack test --headless --chrome ./crates/wasm
+wasm-pack test --headless --chrome ./crates/auto-palette-wasm
 ```
 
 Run wasm-pack tests in headless mode using Firefox:
+
 ```sh
-wasm-pack test --headless --firefox ./crates/wasm
+wasm-pack test --headless --firefox ./crates/auto-palette-wasm
 ```
 
 > [!TIP]
@@ -33,5 +35,5 @@ wasm-pack test --headless --firefox ./crates/wasm
 ### Build the WebAssembly module
 
 ```sh
-wasm-pack build ./crates/wasm --release --target web
+wasm-pack build ./crates/auto-palette-wasm --release --target web
 ```

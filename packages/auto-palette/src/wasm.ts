@@ -1,4 +1,4 @@
-import init from '../../../crates/wasm/pkg/auto_palette';
+import init from '../../../crates/auto-palette-wasm/pkg/auto_palette';
 
 export {
   extract,
@@ -8,6 +8,6 @@ export {
   PaletteWrapper,
   SwatchWrapper,
   ThemeWrapper,
-} from '../../../crates/wasm/pkg/auto_palette';
+} from '../../../crates/auto-palette-wasm/pkg/auto_palette';
 
 export default init;

@@ -14,7 +14,7 @@ fn main() {
     // Read the image path from the command line arguments
     let path = std::env::args().nth(1).unwrap_or_else(|| {
         println!("No image path provided, using the default image path");
-        "./crates/core/tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg".into()
+        "../../gfx/holly-booth-hLZWGXy5akM-unsplash.jpg".into()
     });
 
     let image_data = ImageData::load(path.clone()).unwrap();
