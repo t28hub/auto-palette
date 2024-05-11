@@ -1,6 +1,6 @@
-use std::{process, time::Instant};
+use std::{process, str::FromStr, time::Instant};
 
-use auto_palette::{ImageData, Palette};
+use auto_palette::{Algorithm, ImageData, Palette, Theme};
 use clap::{crate_description, crate_version, Arg, Command};
 
 fn main() {
@@ -14,6 +14,34 @@ fn main() {
                 .help("Path to the image file.")
                 .long_help("Path to the image file. Supported formats: PNG, JPEG, GIF, BMP, ICO, and TIFF.")
                 .required(true)
+        )
+        .arg(
+            Arg::new("algorithm")
+                .long("algorithm")
+                .short('a')
+                .value_name("name")
+                .help("Algorithm to use for extracting the palette.")
+                .value_parser(["dbscan", "dbscan++", "kmeans"])
+                .ignore_case(true)
+                .default_value("dbscan")
+        )
+        .arg(
+            Arg::new("theme")
+                .long("theme")
+                .short('t')
+                .value_name("name")
+                .help("Theme to use for extracting the palette.")
+                .value_parser(["basic", "vivid", "muted", "light", "dark"])
+                .ignore_case(true)
+                .default_value("basic")
+        )
+        .arg(
+            Arg::new("count")
+                .long("count")
+                .short('c')
+                .value_name("number")
+                .help("Number of swatches to extract.")
+                .default_value("5")
         );
 
     let matches = command.get_matches();
@@ -24,11 +52,35 @@ fn main() {
         process::exit(1);
     };
 
-    let instant = Instant::now();
-    let Ok(palette) = Palette::<f64>::extract(&image_data) else {
+    let algorithm = matches
+        .get_one::<String>("algorithm")
+        .expect("algorithm is required");
+    let Ok(algorithm) = Algorithm::from_str(algorithm) else {
+        eprintln!("Invalid algorithm: {}", algorithm);
         process::exit(1);
     };
-    let swatches = palette.find_swatches(5);
+
+    let theme = matches
+        .get_one::<String>("theme")
+        .expect("theme is required");
+    let Ok(theme) = Theme::from_str(theme) else {
+        eprintln!("Invalid theme: {}", theme);
+        process::exit(1);
+    };
+
+    let count = matches
+        .get_one::<String>("count")
+        .expect("count is required");
+    let Ok(count) = count.parse::<usize>() else {
+        eprintln!("Invalid count: {}", count);
+        process::exit(1);
+    };
+
+    let instant = Instant::now();
+    let Ok(palette) = Palette::<f32>::extract_with_algorithm(&image_data, algorithm) else {
+        process::exit(1);
+    };
+    let swatches = palette.find_swatches_with_theme(count, theme);
     for swatch in swatches {
         println!("{:?}", swatch);
     }
