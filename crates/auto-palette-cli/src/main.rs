@@ -1,49 +1,11 @@
+mod cmd;
+
 use std::{process, str::FromStr, time::Instant};
 
 use auto_palette::{Algorithm, ImageData, Palette, Theme};
-use clap::{crate_description, crate_version, Arg, Command};
 
 fn main() {
-    let command = Command::new("auto-palette")
-        .version(crate_version!())
-        .about(crate_description!())
-        .arg_required_else_help(true)
-        .arg(
-            Arg::new("image")
-                .value_name("IMAGE")
-                .help("Path to the image file.")
-                .long_help("Path to the image file. Supported formats: PNG, JPEG, GIF, BMP, ICO, and TIFF.")
-                .required(true)
-        )
-        .arg(
-            Arg::new("algorithm")
-                .long("algorithm")
-                .short('a')
-                .value_name("name")
-                .help("Algorithm to use for extracting the palette.")
-                .value_parser(["dbscan", "dbscan++", "kmeans"])
-                .ignore_case(true)
-                .default_value("dbscan")
-        )
-        .arg(
-            Arg::new("theme")
-                .long("theme")
-                .short('t')
-                .value_name("name")
-                .help("Theme to use for extracting the palette.")
-                .value_parser(["basic", "vivid", "muted", "light", "dark"])
-                .ignore_case(true)
-                .default_value("basic")
-        )
-        .arg(
-            Arg::new("count")
-                .long("count")
-                .short('c')
-                .value_name("number")
-                .help("Number of swatches to extract.")
-                .default_value("5")
-        );
-
+    let command = cmd::build_command();
     let matches = command.get_matches();
     let image_path = matches
         .get_one::<String>("image")
@@ -82,7 +44,7 @@ fn main() {
     };
     let swatches = palette.find_swatches_with_theme(count, theme);
     for swatch in swatches {
-        println!("{:?}", swatch);
+        println!("{}", swatch.color().to_hex_string());
     }
     println!(
         "Extracted {} swatch(es) in {}.{:03} seconds",
