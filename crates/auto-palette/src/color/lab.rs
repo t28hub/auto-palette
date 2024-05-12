@@ -3,9 +3,8 @@ use std::fmt::Display;
 use num_traits::clamp;
 
 use crate::{
-    color::{white_point::WhitePoint, D65},
+    color::{white_point::WhitePoint, D65, XYZ},
     math::FloatNumber,
-    XYZ,
 };
 
 /// Color represented in the CIE L*a*b* color space.
@@ -17,6 +16,15 @@ use crate::{
 /// * `l` - The L component.
 /// * `a` - The a component.
 /// * `b` - The b component.
+///
+/// # Examples
+/// ```
+/// use auto_palette::color::{Lab, XYZ};
+///
+/// let xyz = XYZ::new(0.3576, 0.7152, 0.1192);
+/// let lab = Lab::from(&xyz);
+/// assert_eq!(format!("{}", lab), "Lab(87.74, -86.18, 83.18)");
+/// ```
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Lab<T>
 where
@@ -37,6 +45,9 @@ where
     /// * `l` - The L component.
     /// * `a` - The a component.
     /// * `b` - The b component.
+    ///
+    /// # Returns
+    /// A new `Lab` instance.
     #[must_use]
     pub fn new(l: T, a: T, b: T) -> Self {
         Self {
@@ -130,7 +141,7 @@ where
     T: FloatNumber,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Lab({}, {}, {})", self.l, self.a, self.b)
+        write!(f, "Lab({:.2}, {:.2}, {:.2})", self.l, self.a, self.b)
     }
 }
 
@@ -195,36 +206,39 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::{color::white_point::D65, XYZ};
+    use crate::color::white_point::D65;
 
     #[test]
-    fn test_new_lab() {
+    fn test_new() {
         // Act
-        let lab = Lab::new(53.2437, 80.09315, 67.2388);
+        let actual = Lab::new(53.2437, 80.09315, 67.2388);
 
         // Assert
-        assert_eq!(lab.l, 53.2437);
-        assert_eq!(lab.a, 80.09315);
-        assert_eq!(lab.b, 67.2388);
+        assert_eq!(actual.l, 53.2437);
+        assert_eq!(actual.a, 80.09315);
+        assert_eq!(actual.b, 67.2388);
     }
 
     #[test]
     fn test_fmt() {
-        // Act & Assert
+        // Act
         let lab = Lab::new(53.2437, 80.09315, 67.2388);
-        assert_eq!(format!("{}", lab), "Lab(53.2437, 80.09315, 67.2388)");
+        let actual = format!("{}", lab);
+
+        // Assert
+        assert_eq!(actual, "Lab(53.24, 80.09, 67.24)");
     }
 
     #[test]
     fn test_from_xyz() {
         // Act
         let xyz: XYZ<f64> = XYZ::new(0.3576, 0.7152, 0.1192);
-        let lab: Lab<f64> = Lab::from(&xyz);
+        let actual: Lab<f64> = Lab::from(&xyz);
 
         // Assert
-        assert!((lab.l - 87.7376).abs() < 1e-3);
-        assert!((lab.a + 86.1846).abs() < 1e-3);
-        assert!((lab.b - 83.1813).abs() < 1e-3);
+        assert!((actual.l - 87.7376).abs() < 1e-3);
+        assert!((actual.a + 86.1846).abs() < 1e-3);
+        assert!((actual.b - 83.1813).abs() < 1e-3);
     }
 
     #[rstest]

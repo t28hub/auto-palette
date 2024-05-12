@@ -9,9 +9,12 @@ use crate::{color::Color, math::FloatNumber};
 /// ```
 /// use std::str::FromStr;
 ///
-/// use auto_palette::{Color, Swatch, RGB};
+/// use auto_palette::{
+///     color::{Color, RGB},
+///     Swatch,
+/// };
 ///
-/// let color = Color::from_str("#ff0040").unwrap();
+/// let color: Color<f32> = Color::from_str("#ff0040").unwrap();
 /// let swatch = Swatch::new(color, (5, 10), 384);
 /// assert_eq!(swatch.color().to_rgb(), RGB::new(255, 0, 64));
 /// assert_eq!(swatch.position(), (5, 10));

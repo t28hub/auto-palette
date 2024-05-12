@@ -2,7 +2,7 @@ use std::cmp::Reverse;
 
 use crate::{
     algorithm::Algorithm,
-    color::{rgb_to_xyz, xyz_to_lab, Lab, D65},
+    color::{rgb_to_xyz, xyz_to_lab, Color, Lab, D65},
     error::Error,
     image::ImageData,
     math::{
@@ -15,7 +15,6 @@ use crate::{
         SamplingStrategy,
     },
     theme::Theme,
-    Color,
     Swatch,
 };
 

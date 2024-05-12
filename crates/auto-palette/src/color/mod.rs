@@ -1,3 +1,6 @@
+mod hsl;
+mod hsv;
+mod hue;
 mod lab;
 mod rgb;
 mod white_point;
@@ -9,10 +12,15 @@ use std::{
     str::FromStr,
 };
 
-pub use lab::{xyz_to_lab, Lab};
+pub use hsl::HSL;
+pub use hsv::HSV;
+pub use hue::Hue;
+pub(crate) use lab::xyz_to_lab;
+pub use lab::Lab;
 pub use rgb::RGB;
-pub use white_point::D65;
-pub use xyz::{rgb_to_xyz, XYZ};
+pub(crate) use white_point::D65;
+pub(crate) use xyz::rgb_to_xyz;
+pub use xyz::XYZ;
 
 use crate::math::FloatNumber;
 
@@ -25,9 +33,9 @@ use crate::math::FloatNumber;
 /// ```
 /// use std::str::FromStr;
 ///
-/// use auto_palette::Color;
+/// use auto_palette::color::Color;
 ///
-/// let color = Color::from_str("#2c7de7").unwrap();
+/// let color: Color<f32> = Color::from_str("#2c7de7").unwrap();
 /// assert!(color.is_light());
 /// assert_eq!(color.lightness(), 52.917793);
 /// assert_eq!(color.chroma(), 61.9814870);
