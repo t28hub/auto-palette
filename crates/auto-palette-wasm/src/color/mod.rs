@@ -4,7 +4,7 @@ mod xyz;
 
 use std::str::FromStr;
 
-use auto_palette::Color;
+use auto_palette::color::Color;
 pub use lab::Lab;
 pub use rgb::Rgb;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};

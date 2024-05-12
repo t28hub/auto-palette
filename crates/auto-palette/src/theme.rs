@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
 use crate::{
+    color::Color,
     math::{normalize, FloatNumber},
-    Color,
     Error,
 };
 

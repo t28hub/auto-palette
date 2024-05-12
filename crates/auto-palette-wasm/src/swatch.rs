@@ -45,7 +45,7 @@ impl SwatchWrapper {
 mod tests {
     use std::str::FromStr;
 
-    use auto_palette::Color;
+    use auto_palette::color::Color;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     use super::*;

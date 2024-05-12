@@ -3,9 +3,8 @@ use std::fmt::Display;
 use num_traits::clamp;
 
 use crate::{
-    color::{rgb::RGB, white_point::WhitePoint, D65},
+    color::{lab::Lab, rgb::RGB, white_point::WhitePoint, D65},
     math::FloatNumber,
-    Lab,
 };
 
 /// Color representation in the CIE XYZ color space.
@@ -17,6 +16,18 @@ use crate::{
 /// * `x` - The X component.
 /// * `y` - The Y component.
 /// * `z` - The Z component.
+///
+/// # Examples
+/// ```
+/// use auto_palette::color::{Lab, RGB, XYZ};
+///
+/// let rgb = RGB::new(255, 0, 255);
+/// let xyz = XYZ::<f32>::from(&rgb);
+/// assert_eq!(format!("{}", xyz), "XYZ(0.59, 0.28, 0.97)");
+///
+/// let lab: Lab<_> = (&xyz).into();
+/// assert_eq!(format!("{}", lab), "Lab(60.32, 98.24, -60.84)");
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct XYZ<T>
 where
@@ -115,7 +126,7 @@ where
     T: FloatNumber,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "XYZ({}, {}, {})", self.x, self.y, self.z)
+        write!(f, "XYZ({:.2}, {:.2}, {:.2})", self.x, self.y, self.z)
     }
 }
 
@@ -232,48 +243,48 @@ mod tests {
     use crate::color::D65;
 
     #[test]
-    fn test_new_xyz() {
+    fn test_new() {
         // Act
-        let xyz = XYZ::new(0.5928, 0.2848, 0.9699);
+        let actual = XYZ::new(0.5928, 0.2848, 0.9699);
 
         // Assert
-        assert_eq!(xyz.x, 0.5928);
-        assert_eq!(xyz.y, 0.2848);
-        assert_eq!(xyz.z, 0.9699);
+        assert_eq!(actual.x, 0.5928);
+        assert_eq!(actual.y, 0.2848);
+        assert_eq!(actual.z, 0.9699);
     }
 
     #[test]
     fn test_fmt() {
-        // Arrange
-        let xyz = XYZ::new(0.5928, 0.2848, 0.9699);
-
         // Act
-        let result = format!("{}", xyz);
+        let xyz = XYZ::new(0.5928, 0.2848, 0.9699);
+        let actual = format!("{}", xyz);
 
         // Assert
-        assert_eq!(result, "XYZ(0.5928, 0.2848, 0.9699)");
+        assert_eq!(actual, "XYZ(0.59, 0.28, 0.97)");
     }
 
     #[test]
     fn test_from_rgb() {
         // Act
-        let xyz: XYZ<f32> = XYZ::from(&RGB::new(255, 0, 255));
+        let rgb = RGB::new(255, 0, 255);
+        let actual: XYZ<f32> = XYZ::from(&rgb);
 
         // Assert
-        assert!((xyz.x - 0.5928).abs() < 1e-3);
-        assert!((xyz.y - 0.2848).abs() < 1e-3);
-        assert!((xyz.z - 0.9699).abs() < 1e-3);
+        assert!((actual.x - 0.5928).abs() < 1e-3);
+        assert!((actual.y - 0.2848).abs() < 1e-3);
+        assert!((actual.z - 0.9699).abs() < 1e-3);
     }
 
     #[test]
     fn test_from_lab() {
         // Act
-        let xyz: XYZ<f64> = XYZ::from(&Lab::new(60.3199, 98.2302, -60.8496));
+        let lab = Lab::new(60.3199, 98.2302, -60.8496);
+        let actual: XYZ<f64> = XYZ::from(&lab);
 
         // Assert
-        assert!((xyz.x - 0.5928).abs() < 1e-3);
-        assert!((xyz.y - 0.2848).abs() < 1e-3);
-        assert!((xyz.z - 0.9699).abs() < 1e-3);
+        assert!((actual.x - 0.5928).abs() < 1e-3);
+        assert!((actual.y - 0.2848).abs() < 1e-3);
+        assert!((actual.z - 0.9699).abs() < 1e-3);
     }
 
     #[rstest]

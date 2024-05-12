@@ -1,6 +1,9 @@
 use std::{fmt, fmt::Display};
 
-use crate::{color::xyz::XYZ, math::FloatNumber};
+use crate::{
+    color::{hsl::HSL, xyz::XYZ, HSV},
+    math::FloatNumber,
+};
 
 /// Color represented in the RGB color space.
 ///
@@ -8,6 +11,23 @@ use crate::{color::xyz::XYZ, math::FloatNumber};
 /// * `r` - The red component.
 /// * `g` - The green component.
 /// * `b` - The blue component.
+///
+/// # Examples
+/// ```
+/// use auto_palette::color::{HSL, HSV, RGB, XYZ};
+///
+/// let rgb = RGB::new(255, 0, 64);
+/// assert_eq!(format!("{}", rgb), "RGB(255, 0, 64)");
+///
+/// let hsl: HSL<f32> = (&rgb).into();
+/// assert_eq!(format!("{}", hsl), "HSL(344.94, 1.00, 0.50)");
+///
+/// let hsv: HSV<f32> = (&rgb).into();
+/// assert_eq!(format!("{}", hsv), "HSV(344.94, 1.00, 1.00)");
+///
+/// let xyz: XYZ<f32> = (&rgb).into();
+/// assert_eq!(format!("{}", xyz), "XYZ(0.42, 0.22, 0.07)");
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RGB {
     pub r: u8,
@@ -47,6 +67,74 @@ impl RGB {
 impl Display for RGB {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "RGB({}, {}, {})", self.r, self.g, self.b)
+    }
+}
+
+impl<T> From<&HSL<T>> for RGB
+where
+    T: FloatNumber,
+{
+    fn from(hsl: &HSL<T>) -> Self {
+        let hue = hsl.h.value();
+
+        let c = (T::one() - (T::from_u8(2) * hsl.l - T::one()).abs()) * hsl.s;
+        let x = (T::one() - (((hue / T::from_f32(60.0)) % T::from_u8(2)) - T::one()).abs()) * c;
+        let m = hsl.l - (c / T::from_u8(2));
+
+        let (r, g, b) = if hue < T::from_f32(60.0) {
+            (c, x, T::zero())
+        } else if hue < T::from_f32(120.0) {
+            (x, c, T::zero())
+        } else if hue < T::from_f32(180.0) {
+            (T::zero(), c, x)
+        } else if hue < T::from_f32(240.0) {
+            (T::zero(), x, c)
+        } else if hue < T::from_f32(300.0) {
+            (x, T::zero(), c)
+        } else {
+            (c, T::zero(), x)
+        };
+
+        let max = RGB::max_value::<T>();
+        RGB::new(
+            ((r + m) * max).round().to_u8_unsafe(),
+            ((g + m) * max).round().to_u8_unsafe(),
+            ((b + m) * max).round().to_u8_unsafe(),
+        )
+    }
+}
+
+impl<T> From<&HSV<T>> for RGB
+where
+    T: FloatNumber,
+{
+    fn from(hsv: &HSV<T>) -> Self {
+        let hue = hsv.h.value();
+
+        let c = hsv.v * hsv.s;
+        let x = (T::one() - (((hue / T::from_f32(60.0)) % T::from_u8(2)) - T::one()).abs()) * c;
+        let m = hsv.v - c;
+
+        let (r, g, b) = if hue < T::from_f32(60.0) {
+            (c, x, T::zero())
+        } else if hue < T::from_f32(120.0) {
+            (x, c, T::zero())
+        } else if hue < T::from_f32(180.0) {
+            (T::zero(), c, x)
+        } else if hue < T::from_f32(240.0) {
+            (T::zero(), x, c)
+        } else if hue < T::from_f32(300.0) {
+            (x, T::zero(), c)
+        } else {
+            (c, T::zero(), x)
+        };
+
+        let max = RGB::max_value::<T>();
+        RGB::new(
+            ((r + m) * max).round().to_u8_unsafe(),
+            ((g + m) * max).round().to_u8_unsafe(),
+            ((b + m) * max).round().to_u8_unsafe(),
+        )
     }
 }
 
@@ -91,10 +179,11 @@ where
         f(-T::from_f32(0.969_244) * x + T::from_f32(1.875_968) * y + T::from_f32(0.041_555) * z);
     let b = f(T::from_f32(0.055_630) * x - T::from_f32(0.203_977) * y + T::from_f32(1.056_972) * z);
 
+    let max = RGB::max_value::<T>();
     (
-        (r * RGB::max_value()).round().to_u8_unsafe(),
-        (g * RGB::max_value()).round().to_u8_unsafe(),
-        (b * RGB::max_value()).round().to_u8_unsafe(),
+        (r * max).round().to_u8_unsafe(),
+        (g * max).round().to_u8_unsafe(),
+        (b * max).round().to_u8_unsafe(),
     )
 }
 
@@ -105,35 +194,75 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_new_rgb() {
+    fn test_new() {
         // Act
-        let rgb = RGB::new(255, 0, 64);
+        let actual = RGB::new(255, 0, 64);
 
         // Assert
-        assert_eq!(rgb.r, 255);
-        assert_eq!(rgb.g, 0);
-        assert_eq!(rgb.b, 64);
+        assert_eq!(actual.r, 255);
+        assert_eq!(actual.g, 0);
+        assert_eq!(actual.b, 64);
     }
 
     #[test]
     fn test_fmt() {
-        // Act & Assert
+        // Act
         let rgb = RGB::new(255, 0, 64);
-        assert_eq!(format!("{}", rgb), "RGB(255, 0, 64)");
+        let actual = format!("{}", rgb);
+
+        // Assert
+        assert_eq!(actual, "RGB(255, 0, 64)");
+    }
+
+    #[rstest]
+    #[case::black((0.0, 0.0, 0.0), (0, 0, 0))]
+    #[case::white((0.0, 0.0, 1.0), (255, 255, 255))]
+    #[case::red((0.0, 1.0, 0.5), (255, 0, 0))]
+    #[case::green((120.0, 1.0, 0.5), (0, 255, 0))]
+    #[case::blue((240.0, 1.0, 0.5), (0, 0, 255))]
+    #[case::yellow((60.0, 1.0, 0.5), (255, 255, 0))]
+    #[case::cyan((180.0, 1.0, 0.5), (0, 255, 255))]
+    #[case::magenta((300.0, 1.0, 0.5), (255, 0, 255))]
+    fn test_from_hsl(#[case] hsl: (f32, f32, f32), #[case] rgb: (u8, u8, u8)) {
+        // Act
+        let (h, s, l) = hsl;
+        let actual = RGB::from(&HSL::new(h, s, l));
+
+        // Assert
+        assert_eq!(actual.r, rgb.0);
+        assert_eq!(actual.g, rgb.1);
+        assert_eq!(actual.b, rgb.2);
+    }
+
+    #[rstest]
+    #[case::black((0.0, 0.0, 0.0), (0, 0, 0))]
+    #[case::white((0.0, 0.0, 1.0), (255, 255, 255))]
+    #[case::red((0.0, 1.0, 1.0), (255, 0, 0))]
+    #[case::green((120.0, 1.0, 1.0), (0, 255, 0))]
+    #[case::blue((240.0, 1.0, 1.0), (0, 0, 255))]
+    #[case::yellow((60.0, 1.0, 1.0), (255, 255, 0))]
+    #[case::cyan((180.0, 1.0, 1.0), (0, 255, 255))]
+    #[case::magenta((300.0, 1.0, 1.0), (255, 0, 255))]
+    fn test_from_hsv(#[case] hsv: (f32, f32, f32), #[case] rgb: (u8, u8, u8)) {
+        // Act
+        let (h, s, v) = hsv;
+        let actual = RGB::from(&HSV::new(h, s, v));
+
+        // Assert
+        assert_eq!(actual.r, rgb.0);
+        assert_eq!(actual.g, rgb.1);
+        assert_eq!(actual.b, rgb.2);
     }
 
     #[test]
     fn test_from_xyz() {
-        // Arrange
         let xyz = XYZ::new(0.3576, 0.7152, 0.119);
-
-        // Act
-        let rgb = RGB::from(&xyz);
+        let actual = RGB::from(&xyz);
 
         // Assert
-        assert_eq!(rgb.r, 0);
-        assert_eq!(rgb.g, 255);
-        assert_eq!(rgb.b, 0);
+        assert_eq!(actual.r, 0);
+        assert_eq!(actual.g, 255);
+        assert_eq!(actual.b, 0);
     }
 
     #[rstest]
