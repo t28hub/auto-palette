@@ -3,7 +3,7 @@ use std::fmt::Display;
 use num_traits::clamp;
 
 use crate::{
-    color::{lab::Lab, luv::Luv, rgb::RGB, white_point::WhitePoint, D65},
+    color::{lab::Lab, luv::Luv, rgb::RGB, white_point::WhitePoint},
     math::FloatNumber,
 };
 
@@ -143,21 +143,23 @@ where
     }
 }
 
-impl<T> From<&Lab<T>> for XYZ<T>
+impl<T, W> From<&Lab<T, W>> for XYZ<T>
 where
     T: FloatNumber,
+    W: WhitePoint,
 {
-    fn from(lab: &Lab<T>) -> Self {
-        let (x, y, z) = lab_to_xyz::<T, D65>(lab.l, lab.a, lab.b);
+    fn from(lab: &Lab<T, W>) -> Self {
+        let (x, y, z) = lab_to_xyz::<T, W>(lab.l, lab.a, lab.b);
         XYZ::new(x, y, z)
     }
 }
 
-impl<T> From<&Luv<T>> for XYZ<T>
+impl<T, W> From<&Luv<T, W>> for XYZ<T>
 where
     T: FloatNumber,
+    W: WhitePoint,
 {
-    fn from(luv: &Luv<T>) -> Self {
+    fn from(luv: &Luv<T, W>) -> Self {
         // This implementation is based on the algorithm described in the following link:
         // http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Luv.html
         if luv.l.is_zero() {
@@ -165,9 +167,9 @@ where
         }
 
         let denominator =
-            D65::x::<T>() + T::from_f32(15.0) * D65::y::<T>() + T::from_f32(3.0) * D65::z::<T>();
-        let u0 = T::from_f32(4.0) * D65::x::<T>() / denominator;
-        let v0 = T::from_f32(9.0) * D65::y::<T>() / denominator;
+            W::x::<T>() + T::from_f32(15.0) * W::y::<T>() + T::from_f32(3.0) * W::z::<T>();
+        let u0 = T::from_f32(4.0) * W::x::<T>() / denominator;
+        let v0 = T::from_f32(9.0) * W::y::<T>() / denominator;
 
         let y = if luv.l > T::from_f32(8.0) {
             ((luv.l + T::from_f32(16.0)) / T::from_f32(116.0)).powi(3)
@@ -319,7 +321,7 @@ mod tests {
     #[test]
     fn test_from_lab() {
         // Act
-        let lab = Lab::new(60.3199, 98.2302, -60.8496);
+        let lab = Lab::<_>::new(60.3199, 98.2302, -60.8496);
         let actual: XYZ<f64> = XYZ::from(&lab);
 
         // Assert
@@ -330,6 +332,7 @@ mod tests {
 
     #[rstest]
     #[case::black((0.0, 0.0, 0.0), (0.0, 0.0, 0.0))]
+    #[case::dark_gray((4.5, 0.0, 0.0), (0.005, 0.005, 0.005))]
     #[case::white((100.0, 0.0, 0.0), (0.950, 1.000, 1.089))]
     #[case::red((53.241, 175.015, 37.756), (0.412, 0.213, 0.019))]
     #[case::green((87.735, -83.078, 107.399), (0.358, 0.715, 0.119))]
@@ -341,8 +344,6 @@ mod tests {
         // Act
         let luv: Luv<f32> = Luv::new(luv.0, luv.1, luv.2);
         let actual = XYZ::from(&luv);
-
-        println!("{:?}", actual);
 
         // Assert
         assert!((actual.x - expected.0).abs() < 1e-3);
