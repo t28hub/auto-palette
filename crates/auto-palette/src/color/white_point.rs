@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use crate::math::FloatNumber;
 
-/// White point in the CIE 1931 XYZ color space.
+/// White point trait representation.
 ///
 /// # References
 /// * [White point - Wikipedia](https://en.wikipedia.org/wiki/White_point)

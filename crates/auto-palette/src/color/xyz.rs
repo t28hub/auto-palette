@@ -3,11 +3,14 @@ use std::fmt::Display;
 use num_traits::clamp;
 
 use crate::{
-    color::{lab::Lab, rgb::RGB, white_point::WhitePoint, D65},
+    color::{lab::Lab, luv::Luv, rgb::RGB, white_point::WhitePoint, D65},
     math::FloatNumber,
 };
 
-/// Color representation in the CIE XYZ color space.
+/// CIE 1931 XYZ color space representation.
+///
+/// See the following for more details:
+/// [CIE 1931 color space - Wikipedia](https://en.wikipedia.org/wiki/CIE_1931_color_space)
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
@@ -150,6 +153,42 @@ where
     }
 }
 
+impl<T> From<&Luv<T>> for XYZ<T>
+where
+    T: FloatNumber,
+{
+    fn from(luv: &Luv<T>) -> Self {
+        // This implementation is based on the algorithm described in the following link:
+        // http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Luv.html
+        if luv.l.is_zero() {
+            return XYZ::new(T::zero(), T::zero(), T::zero());
+        }
+
+        let denominator =
+            D65::x::<T>() + T::from_f32(15.0) * D65::y::<T>() + T::from_f32(3.0) * D65::z::<T>();
+        let u0 = T::from_f32(4.0) * D65::x::<T>() / denominator;
+        let v0 = T::from_f32(9.0) * D65::y::<T>() / denominator;
+
+        let y = if luv.l > T::from_f32(8.0) {
+            ((luv.l + T::from_f32(16.0)) / T::from_f32(116.0)).powi(3)
+        } else {
+            luv.l / T::from_f64(903.296_296)
+        };
+
+        let a = ((T::from_f32(52.0) * luv.l) / (luv.u + T::from_f32(13.0) * luv.l * u0) - T::one())
+            * T::from_f32(1.0 / 3.0);
+        let b = y * T::from_f32(-5.0);
+        let c = T::from_f32(-1.0 / 3.0);
+        let d = y
+            * ((T::from_f32(39.0) * luv.l) / (luv.v + T::from_f32(13.0) * luv.l * v0)
+                - T::from_f32(5.0));
+
+        let x = (d - b) / (a - c);
+        let z = x * a + b;
+        XYZ::new(x, y, z)
+    }
+}
+
 /// Converts the RGB color space to the CIE XYZ color space.
 ///
 /// # Arguments
@@ -165,6 +204,8 @@ pub fn rgb_to_xyz<T>(r: u8, g: u8, b: u8) -> (T, T, T)
 where
     T: FloatNumber,
 {
+    // This implementation is based on the algorithm described in the following link:
+    // http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html
     let f = |t: T| -> T {
         if t <= T::from_f32(0.04045) {
             t / T::from_f32(12.92)
@@ -285,6 +326,28 @@ mod tests {
         assert!((actual.x - 0.5928).abs() < 1e-3);
         assert!((actual.y - 0.2848).abs() < 1e-3);
         assert!((actual.z - 0.9699).abs() < 1e-3);
+    }
+
+    #[rstest]
+    #[case::black((0.0, 0.0, 0.0), (0.0, 0.0, 0.0))]
+    #[case::white((100.0, 0.0, 0.0), (0.950, 1.000, 1.089))]
+    #[case::red((53.241, 175.015, 37.756), (0.412, 0.213, 0.019))]
+    #[case::green((87.735, -83.078, 107.399), (0.358, 0.715, 0.119))]
+    #[case::blue((32.297, -9.405, -130.342), (0.180, 0.072, 0.950))]
+    #[case::yellow((97.139, 7.706, 106.787), (0.770, 0.928, 0.138))]
+    #[case::cyan((91.113, -70.477, -15.202), (0.538, 0.787, 1.070))]
+    #[case::magenta((60.324, 84.071, -108.683), (0.593, 0.285, 0.970))]
+    fn test_from_luv(#[case] luv: (f32, f32, f32), #[case] expected: (f32, f32, f32)) {
+        // Act
+        let luv: Luv<f32> = Luv::new(luv.0, luv.1, luv.2);
+        let actual = XYZ::from(&luv);
+
+        println!("{:?}", actual);
+
+        // Assert
+        assert!((actual.x - expected.0).abs() < 1e-3);
+        assert!((actual.y - expected.1).abs() < 1e-3);
+        assert!((actual.z - expected.2).abs() < 1e-3);
     }
 
     #[rstest]
