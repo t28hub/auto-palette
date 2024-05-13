@@ -10,6 +10,7 @@ mod xyz;
 use std::{
     fmt,
     fmt::{Display, Formatter},
+    marker::PhantomData,
     str::FromStr,
 };
 
@@ -20,16 +21,17 @@ pub(crate) use lab::xyz_to_lab;
 pub use lab::Lab;
 pub use luv::Luv;
 pub use rgb::RGB;
-pub use white_point::D65;
+pub use white_point::*;
 pub(crate) use xyz::rgb_to_xyz;
 pub use xyz::XYZ;
 
 use crate::math::FloatNumber;
 
-/// Struct representing a color.
+/// A color representation.
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
+/// * `W` - The white point type.
 ///
 /// # Examples
 /// ```
@@ -41,21 +43,32 @@ use crate::math::FloatNumber;
 /// assert!(color.is_light());
 /// assert_eq!(color.lightness(), 52.917793);
 /// assert_eq!(color.chroma(), 61.9814870);
-/// assert_eq!(color.hue(), 282.6622);
+/// assert_eq!(color.hue().value(), 282.6622);
+///
+/// let rgb = color.to_rgb();
+/// assert_eq!(format!("{}", rgb), "RGB(44, 125, 231)");
+///
+/// let hsl = color.to_hsl();
+/// assert_eq!(format!("{}", hsl), "HSL(214.01, 0.80, 0.54)");
+///
+/// let lab = color.to_lab();
+/// assert_eq!(format!("{}", lab), "Lab(52.92, 13.59, -60.47)");
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Color<T>
+pub struct Color<T, W = D65>
 where
     T: FloatNumber,
 {
     pub(super) l: T,
     pub(super) a: T,
     pub(super) b: T,
+    _marker: PhantomData<W>,
 }
 
-impl<T> Color<T>
+impl<T, W> Color<T, W>
 where
     T: FloatNumber,
+    W: WhitePoint,
 {
     /// Creates a new `Color` instance.
     ///
@@ -68,7 +81,12 @@ where
     /// A new `Color` instance.
     #[must_use]
     pub(crate) fn new(l: T, a: T, b: T) -> Self {
-        Self { l, a, b }
+        Self {
+            l,
+            a,
+            b,
+            _marker: PhantomData,
+        }
     }
 
     /// Returns the minimum value of the chroma component.
@@ -152,13 +170,9 @@ where
     /// # Returns
     /// The hue of this color.
     #[must_use]
-    pub fn hue(&self) -> T {
-        let hue = self.b.atan2(self.a).to_degrees();
-        if hue < T::zero() {
-            hue + T::from_f32(360.0)
-        } else {
-            hue
-        }
+    pub fn hue(&self) -> Hue<T> {
+        let value = self.b.atan2(self.a).to_degrees();
+        Hue::from(value)
     }
 
     /// Converts this color to a hexadecimal string.
@@ -181,13 +195,43 @@ where
         RGB::from(&xyz)
     }
 
+    /// Converts this color to the HSL color space.
+    ///
+    /// # Returns
+    /// The converted `HSL` color.
+    #[must_use]
+    pub fn to_hsl(&self) -> HSL<T> {
+        let rgb = self.to_rgb();
+        HSL::from(&rgb)
+    }
+
+    /// Converts this color to the HSV color space.
+    ///
+    /// # Returns
+    /// The converted `HSV` color.
+    #[must_use]
+    pub fn to_hsv(&self) -> HSV<T> {
+        let rgb = self.to_rgb();
+        HSV::from(&rgb)
+    }
+
     /// Converts this color to the CIE XYZ color space.
     ///
     /// # Returns
     /// The converted `XYZ` color.
     #[must_use]
     pub fn to_xyz(&self) -> XYZ<T> {
-        XYZ::from(&self.to_lab())
+        let lab = self.to_lab();
+        XYZ::from(&lab)
+    }
+
+    /// Converts this color to the CIE L*u*v* color space.
+    ///
+    /// # Returns
+    /// The converted `Luv` color.
+    #[must_use]
+    pub fn to_luv(&self) -> Luv<T, W> {
+        Luv::<T, W>::from(&self.to_xyz())
     }
 
     /// Converts this color to the CIE L*a*b* color space.
@@ -195,8 +239,8 @@ where
     /// # Returns
     /// The converted `Lab` color.
     #[must_use]
-    pub fn to_lab(&self) -> Lab<T> {
-        Lab::new(self.l, self.a, self.b)
+    pub fn to_lab(&self) -> Lab<T, W> {
+        Lab::<T, W>::new(self.l, self.a, self.b)
     }
 }
 
@@ -205,7 +249,11 @@ where
     T: FloatNumber,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Color(l: {}, a: {}, b: {})", self.l, self.a, self.b)
+        write!(
+            f,
+            "Color(l: {:.2}, a: {:.2}, b: {:.2})",
+            self.l, self.a, self.b
+        )
     }
 }
 
@@ -237,14 +285,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_new_color() {
+    fn test_new() {
         // Act
-        let color = Color::new(80.0, 0.0, 0.0);
+        let actual: Color<f32> = Color::new(80.0, 0.0, 0.0);
 
         // Assert
-        assert_eq!(color.l, 80.0);
-        assert_eq!(color.a, 0.0);
-        assert_eq!(color.b, 0.0);
+        assert_eq!(actual.l, 80.0);
+        assert_eq!(actual.a, 0.0);
+        assert_eq!(actual.b, 0.0);
     }
 
     #[rstest]
@@ -253,14 +301,12 @@ mod tests {
     #[case((50.1, 0.0, 0.0), true)]
     #[case((80.0, 0.0, 0.0), true)]
     fn test_color_is_light(#[case] input: (f32, f32, f32), #[case] expected: bool) {
-        // Arrange
-        let color = Color::new(input.0, input.1, input.2);
-
         // Act
-        let is_light = color.is_light();
+        let color: Color<f32> = Color::new(input.0, input.1, input.2);
+        let actual = color.is_light();
 
         // Assert
-        assert_eq!(is_light, expected);
+        assert_eq!(actual, expected);
     }
 
     #[rstest]
@@ -269,34 +315,32 @@ mod tests {
     #[case((50.1, 0.0, 0.0), false)]
     #[case((80.0, 0.0, 0.0), false)]
     fn test_color_is_dark(#[case] input: (f32, f32, f32), #[case] expected: bool) {
-        // Arrange
-        let color = Color::new(input.0, input.1, input.2);
-
         // Act
-        let is_dark = color.is_dark();
+        let color: Color<f32> = Color::new(input.0, input.1, input.2);
+        let actual = color.is_dark();
 
         // Assert
-        assert_eq!(is_dark, expected);
+        assert_eq!(actual, expected);
     }
 
     #[test]
     fn test_lightness() {
         // Act
-        let color = Color::new(91.1120, -48.0806, -14.1521);
-        let lightness = color.lightness();
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let actual = color.lightness();
 
         // Assert
-        assert_eq!(lightness, 91.1120);
+        assert_eq!(actual, 91.1120);
     }
 
     #[test]
     fn test_chroma() {
         // Act
         let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
-        let chroma = color.chroma();
+        let actual = color.chroma();
 
         // Assert
-        assert!((chroma - 50.120_117).abs() < 1e-3);
+        assert!((actual - 50.120_117).abs() < 1e-3);
     }
 
     #[rstest]
@@ -311,56 +355,92 @@ mod tests {
     fn test_hue(#[case] input: (f32, f32, f32), #[case] expected: f32) {
         // Act
         let color: Color<f32> = Color::new(input.0, input.1, input.2);
-        let hue = color.hue();
+        let actual = color.hue();
 
         // Assert
-        assert!((hue - expected).abs() < 1e-3);
+        assert!((actual.value() - expected).abs() < 1e-3);
     }
 
     #[test]
     fn test_to_hex_string() {
         // Act
-        let color = Color::new(91.1120, -48.0806, -14.1521);
-        let hex = color.to_hex_string();
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let actual = color.to_hex_string();
 
         // Assert
-        assert_eq!(hex, "#00FFFF");
+        assert_eq!(actual, "#00FFFF");
     }
 
     #[test]
     fn test_to_rgb() {
         // Act
-        let color = Color::new(91.1120, -48.0806, -14.1521);
-        let rgb = color.to_rgb();
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let actual = color.to_rgb();
 
         // Assert
-        assert_eq!(rgb.r, 0);
-        assert_eq!(rgb.g, 255);
-        assert_eq!(rgb.b, 255);
+        assert_eq!(actual.r, 0);
+        assert_eq!(actual.g, 255);
+        assert_eq!(actual.b, 255);
+    }
+
+    #[test]
+    fn test_to_hsl() {
+        // Act
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let actual = color.to_hsl();
+
+        // Assert
+        assert!((actual.h.value() - 180.0).abs() < 1e-3);
+        assert!((actual.s - 1.0).abs() < 1e-3);
+        assert!((actual.l - 0.5).abs() < 1e-3);
+    }
+
+    #[test]
+    fn test_to_hsv() {
+        // Act
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let actual = color.to_hsv();
+
+        // Assert
+        assert!((actual.h.value() - 180.0).abs() < 1e-3);
+        assert!((actual.s - 1.0).abs() < 1e-3);
+        assert!((actual.v - 1.0).abs() < 1e-3);
     }
 
     #[test]
     fn test_to_xyz() {
         // Act
         let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
-        let xyz: XYZ<f32> = color.to_xyz();
+        let actual: XYZ<f32> = color.to_xyz();
 
         // Assert
-        assert!((xyz.x - 0.5380).abs() < 1e-3);
-        assert!((xyz.y - 0.7873).abs() < 1e-3);
-        assert!((xyz.z - 1.0690).abs() < 1e-3);
+        assert!((actual.x - 0.5380).abs() < 1e-3);
+        assert!((actual.y - 0.7873).abs() < 1e-3);
+        assert!((actual.z - 1.0690).abs() < 1e-3);
+    }
+
+    #[test]
+    fn test_to_luv() {
+        // Act
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let actual = color.to_luv();
+
+        // Assert
+        assert!((actual.l - 91.112).abs() < 1e-3);
+        assert!((actual.u - -70.480).abs() < 1e-3);
+        assert!((actual.v - -15.240).abs() < 1e-3);
     }
 
     #[test]
     fn test_to_lab() {
         // Act
         let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
-        let lab = color.to_lab();
+        let actual = color.to_lab();
 
         // Assert
-        assert_eq!(lab.l, 91.1120);
-        assert_eq!(lab.a, -48.0806);
-        assert_eq!(lab.b, -14.1521);
+        assert_eq!(actual.l, 91.1120);
+        assert_eq!(actual.a, -48.0806);
+        assert_eq!(actual.b, -14.1521);
     }
 
     #[test]
@@ -369,7 +449,7 @@ mod tests {
         let color: Color<f32> = Color::new(91.114_750, -48.080_950, -14.142_8581);
         assert_eq!(
             format!("{}", color),
-            "Color(l: 91.11475, a: -48.08095, b: -14.1428585)"
+            "Color(l: 91.11, a: -48.08, b: -14.14)"
         );
     }
 
@@ -384,12 +464,12 @@ mod tests {
     #[case::yellow("#FFFF00", 97.138_580, - 21.562_368, 94.476_760)]
     fn test_from_str(#[case] input: &str, #[case] l: f32, #[case] a: f32, #[case] b: f32) {
         // Act
-        let color = Color::<f32>::from_str(input).unwrap();
+        let actual: Color<f32> = Color::from_str(input).unwrap();
 
         // Assert
-        assert!((color.l - l).abs() < 1e-3);
-        assert!((color.a - a).abs() < 1e-3);
-        assert!((color.b - b).abs() < 1e-3);
+        assert!((actual.l - l).abs() < 1e-3);
+        assert!((actual.a - a).abs() < 1e-3);
+        assert!((actual.b - b).abs() < 1e-3);
     }
 
     #[rstest]
@@ -402,9 +482,9 @@ mod tests {
     #[case::invalid_hex_blue("#00AAGG")]
     fn test_from_str_error(#[case] input: &str) {
         // Act
-        let result = Color::<f32>::from_str(input);
+        let actual = Color::<f32>::from_str(input);
 
         // Assert
-        assert!(result.is_err());
+        assert!(actual.is_err());
     }
 }

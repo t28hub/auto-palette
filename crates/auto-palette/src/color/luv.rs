@@ -113,18 +113,10 @@ where
 
         let denominator =
             W::x::<T>() + T::from_f32(15.0) * W::y::<T>() + T::from_f32(3.0) * W::z::<T>();
-        let u_prime_div = if denominator.is_zero() {
-            T::zero()
-        } else {
-            T::from_f32(4.0) * W::x() / denominator
-        };
-        let v_prime_ref = if denominator.is_zero() {
-            T::zero()
-        } else {
-            T::from_f32(9.0) * W::y() / denominator
-        };
+        let u_prime_ref = T::from_f32(4.0) * W::x() / denominator;
+        let v_prime_ref = T::from_f32(9.0) * W::y() / denominator;
 
-        let u = T::from_f32(13.0) * l * (u_prime - u_prime_div);
+        let u = T::from_f32(13.0) * l * (u_prime - u_prime_ref);
         let v = T::from_f32(13.0) * l * (v_prime - v_prime_ref);
         Luv::new(l, u, v)
     }

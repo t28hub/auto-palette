@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, marker::PhantomData};
 
 use num_traits::clamp;
 
@@ -11,6 +11,7 @@ use crate::{
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
+/// * `W` - The white point type.
 ///
 /// # Fields
 /// * `l` - The L component.
@@ -19,25 +20,28 @@ use crate::{
 ///
 /// # Examples
 /// ```
-/// use auto_palette::color::{Lab, XYZ};
+/// use auto_palette::color::{Lab, D65, XYZ};
 ///
 /// let xyz = XYZ::new(0.3576, 0.7152, 0.1192);
-/// let lab = Lab::from(&xyz);
+/// let lab = Lab::<_>::from(&xyz);
 /// assert_eq!(format!("{}", lab), "Lab(87.74, -86.18, 83.18)");
 /// ```
 #[derive(Debug, Clone, Default, PartialEq)]
-pub struct Lab<T>
+pub struct Lab<T, W = D65>
 where
     T: FloatNumber,
+    W: WhitePoint,
 {
     pub l: T,
     pub a: T,
     pub b: T,
+    _marker: PhantomData<W>,
 }
 
-impl<T> Lab<T>
+impl<T, W> Lab<T, W>
 where
     T: FloatNumber,
+    W: WhitePoint,
 {
     /// Creates a new `Lab` instance.
     ///
@@ -51,9 +55,10 @@ where
     #[must_use]
     pub fn new(l: T, a: T, b: T) -> Self {
         Self {
-            l: clamp(l, Lab::min_l(), Lab::max_l()),
-            a: clamp(a, Lab::min_a(), Lab::max_a()),
-            b: clamp(b, Lab::min_b(), Lab::max_b()),
+            l: clamp(l, Lab::<T, W>::min_l(), Lab::<T, W>::max_l()),
+            a: clamp(a, Lab::<T, W>::min_a(), Lab::<T, W>::max_a()),
+            b: clamp(b, Lab::<T, W>::min_b(), Lab::<T, W>::max_b()),
+            _marker: PhantomData,
         }
     }
 
@@ -145,12 +150,13 @@ where
     }
 }
 
-impl<T> From<&XYZ<T>> for Lab<T>
+impl<T, W> From<&XYZ<T>> for Lab<T, W>
 where
     T: FloatNumber,
+    W: WhitePoint,
 {
     fn from(xyz: &XYZ<T>) -> Self {
-        let (l, a, b) = xyz_to_lab::<T, D65>(xyz.x, xyz.y, xyz.z);
+        let (l, a, b) = xyz_to_lab::<T, W>(xyz.x, xyz.y, xyz.z);
         Lab::new(l, a, b)
     }
 }
@@ -159,7 +165,7 @@ where
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
-/// * `WP` - The white point.
+/// * `W` - The white point type.
 ///
 /// # Arguments
 /// * `x` - The X component of the XYZ color.
@@ -170,10 +176,10 @@ where
 /// The L*a*b* color space representation of the XYZ color. The tuple contains the L, a, and b components.
 #[inline]
 #[must_use]
-pub fn xyz_to_lab<T, WP>(x: T, y: T, z: T) -> (T, T, T)
+pub fn xyz_to_lab<T, W>(x: T, y: T, z: T) -> (T, T, T)
 where
     T: FloatNumber,
-    WP: WhitePoint,
+    W: WhitePoint,
 {
     let epsilon = T::from_f64(6.0 / 29.0).powi(3);
     let kappa = T::from_f64(841.0 / 108.0); // ((29.0 / 6.0) ^ 2) / 3.0
@@ -187,17 +193,17 @@ where
         }
     };
 
-    let fx = f(x / WP::x());
-    let fy = f(y / WP::y());
-    let fz = f(z / WP::z());
+    let fx = f(x / W::x());
+    let fy = f(y / W::y());
+    let fz = f(z / W::z());
 
     let l = T::from_f32(116.0) * fy - T::from_f32(16.0);
     let a = T::from_f32(500.0) * (fx - fy);
     let b = T::from_f32(200.0) * (fy - fz);
     (
-        clamp(l, Lab::min_l(), Lab::max_l()),
-        clamp(a, Lab::min_a(), Lab::max_a()),
-        clamp(b, Lab::min_b(), Lab::max_b()),
+        clamp(l, Lab::<T, W>::min_l(), Lab::<T, W>::max_l()),
+        clamp(a, Lab::<T, W>::min_a(), Lab::<T, W>::max_a()),
+        clamp(b, Lab::<T, W>::min_b(), Lab::<T, W>::max_b()),
     )
 }
 
@@ -211,7 +217,7 @@ mod tests {
     #[test]
     fn test_new() {
         // Act
-        let actual = Lab::new(53.2437, 80.09315, 67.2388);
+        let actual = Lab::<_>::new(53.2437, 80.09315, 67.2388);
 
         // Assert
         assert_eq!(actual.l, 53.2437);
@@ -222,7 +228,7 @@ mod tests {
     #[test]
     fn test_fmt() {
         // Act
-        let lab = Lab::new(53.2437, 80.09315, 67.2388);
+        let lab = Lab::<_>::new(53.2437, 80.09315, 67.2388);
         let actual = format!("{}", lab);
 
         // Assert
@@ -233,7 +239,7 @@ mod tests {
     fn test_from_xyz() {
         // Act
         let xyz: XYZ<f64> = XYZ::new(0.3576, 0.7152, 0.1192);
-        let actual: Lab<f64> = Lab::from(&xyz);
+        let actual: Lab<f64> = Lab::<_>::from(&xyz);
 
         // Assert
         assert!((actual.l - 87.7376).abs() < 1e-3);

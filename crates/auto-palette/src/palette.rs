@@ -208,9 +208,9 @@ where
                 let x = T::from_usize(index % width);
                 let y = T::from_usize(index / width);
                 Some([
-                    normalize(l, Lab::min_l(), Lab::max_l()),
-                    normalize(a, Lab::min_a(), Lab::max_a()),
-                    normalize(b, Lab::min_b(), Lab::max_b()),
+                    normalize(l, Lab::<T>::min_l(), Lab::<T>::max_l()),
+                    normalize(a, Lab::<T>::min_a(), Lab::<T>::max_a()),
+                    normalize(b, Lab::<T>::min_b(), Lab::<T>::max_b()),
                     normalize(x, T::zero(), width_f),
                     normalize(y, T::zero(), height_f),
                 ])
@@ -230,9 +230,9 @@ where
         .map(|cluster| -> Point<T, 3> {
             let centroid = cluster.centroid();
             [
-                denormalize(centroid[0], Lab::min_l(), Lab::max_l()),
-                denormalize(centroid[1], Lab::min_a(), Lab::max_a()),
-                denormalize(centroid[2], Lab::min_b(), Lab::max_b()),
+                denormalize(centroid[0], Lab::<T>::min_l(), Lab::<T>::max_l()),
+                denormalize(centroid[1], Lab::<T>::min_a(), Lab::<T>::max_a()),
+                denormalize(centroid[2], Lab::<T>::min_b(), Lab::<T>::max_b()),
             ]
         })
         .collect::<Vec<_>>();
@@ -281,9 +281,9 @@ where
                 total_population += pixel_cluster.len();
             }
 
-            let l = denormalize(best_color[0], Lab::min_l(), Lab::max_l());
-            let a = denormalize(best_color[1], Lab::min_a(), Lab::max_a());
-            let b = denormalize(best_color[2], Lab::min_b(), Lab::max_b());
+            let l = denormalize(best_color[0], Lab::<T>::min_l(), Lab::<T>::max_l());
+            let a = denormalize(best_color[1], Lab::<T>::min_a(), Lab::<T>::max_a());
+            let b = denormalize(best_color[2], Lab::<T>::min_b(), Lab::<T>::max_b());
             acc.push(Swatch::new(
                 Color::new(l, a, b),
                 best_position,
