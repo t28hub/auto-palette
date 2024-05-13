@@ -32,15 +32,6 @@ where
     pub fn value(self) -> T {
         self.0
     }
-
-    /// Returns the value of this hue as a reference.
-    ///
-    /// # Returns
-    /// The value of this hue as a reference.
-    #[inline]
-    pub fn as_value(&self) -> &T {
-        &self.0
-    }
 }
 
 impl<T> From<T> for Hue<T>

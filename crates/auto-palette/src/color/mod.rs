@@ -2,6 +2,7 @@ mod hsl;
 mod hsv;
 mod hue;
 mod lab;
+mod luv;
 mod rgb;
 mod white_point;
 mod xyz;
@@ -17,8 +18,9 @@ pub use hsv::HSV;
 pub use hue::Hue;
 pub(crate) use lab::xyz_to_lab;
 pub use lab::Lab;
+pub use luv::Luv;
 pub use rgb::RGB;
-pub(crate) use white_point::D65;
+pub use white_point::D65;
 pub(crate) use xyz::rgb_to_xyz;
 pub use xyz::XYZ;
 
