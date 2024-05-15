@@ -106,7 +106,7 @@ where
     fn from(oklch: &Oklch<T>) -> Self {
         let l = oklch.l;
         let c = oklch.c;
-        let h = oklch.h.value().to_radians();
+        let h = oklch.h.to_radians();
         let a = c * h.cos();
         let b = c * h.sin();
         Self::new(l, a, b)

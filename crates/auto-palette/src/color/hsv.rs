@@ -167,7 +167,7 @@ mod tests {
         let actual = HSV::<f32>::from(&rgb);
 
         // Assert
-        assert_eq!(actual.h.value(), hsv.0);
+        assert_eq!(actual.h.to_degrees(), hsv.0);
         assert_eq!(actual.s, hsv.1);
         assert_eq!(actual.v, hsv.2);
     }

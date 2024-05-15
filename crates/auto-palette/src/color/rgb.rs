@@ -75,7 +75,7 @@ where
     T: FloatNumber,
 {
     fn from(hsl: &HSL<T>) -> Self {
-        let hue = hsl.h.value();
+        let hue = hsl.h.to_degrees();
 
         let c = (T::one() - (T::from_u8(2) * hsl.l - T::one()).abs()) * hsl.s;
         let x = (T::one() - (((hue / T::from_f32(60.0)) % T::from_u8(2)) - T::one()).abs()) * c;
@@ -109,7 +109,7 @@ where
     T: FloatNumber,
 {
     fn from(hsv: &HSV<T>) -> Self {
-        let hue = hsv.h.value();
+        let hue = hsv.h.to_degrees();
 
         let c = hsv.v * hsv.s;
         let x = (T::one() - (((hue / T::from_f32(60.0)) % T::from_u8(2)) - T::one()).abs()) * c;

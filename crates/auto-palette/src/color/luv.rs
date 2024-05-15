@@ -135,9 +135,9 @@ where
         // http://www.brucelindbloom.com/index.html?Eqn_LCH_to_Luv.html
         let l = lch.l;
         let c = lch.c;
-        let h = lch.h.value();
-        let u = c * h.to_radians().cos();
-        let v = c * h.to_radians().sin();
+        let h = lch.h.to_radians();
+        let u = c * h.cos();
+        let v = c * h.sin();
         Luv::new(l, u, v)
     }
 }
