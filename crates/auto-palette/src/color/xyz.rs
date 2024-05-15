@@ -3,7 +3,7 @@ use std::fmt::Display;
 use num_traits::clamp;
 
 use crate::{
-    color::{lab::Lab, luv::Luv, rgb::RGB, white_point::WhitePoint},
+    color::{lab::Lab, luv::Luv, rgb::RGB, white_point::WhitePoint, Oklab},
     math::FloatNumber,
 };
 
@@ -22,7 +22,7 @@ use crate::{
 ///
 /// # Examples
 /// ```
-/// use auto_palette::color::{Lab, RGB, XYZ};
+/// use auto_palette::color::{Lab, Oklab, RGB, XYZ};
 ///
 /// let rgb = RGB::new(255, 0, 255);
 /// let xyz = XYZ::<f32>::from(&rgb);
@@ -30,6 +30,9 @@ use crate::{
 ///
 /// let lab: Lab<_> = (&xyz).into();
 /// assert_eq!(format!("{}", lab), "Lab(60.32, 98.24, -60.84)");
+///
+/// let oklab: Oklab<_> = (&xyz).into();
+/// assert_eq!(format!("{}", oklab), "Oklab(0.70, 0.27, -0.17)");
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct XYZ<T>
@@ -139,7 +142,7 @@ where
 {
     fn from(rgb: &RGB) -> Self {
         let (x, y, z) = rgb_to_xyz(rgb.r, rgb.g, rgb.b);
-        XYZ::new(x, y, z)
+        Self::new(x, y, z)
     }
 }
 
@@ -150,7 +153,7 @@ where
 {
     fn from(lab: &Lab<T, W>) -> Self {
         let (x, y, z) = lab_to_xyz::<T, W>(lab.l, lab.a, lab.b);
-        XYZ::new(x, y, z)
+        Self::new(x, y, z)
     }
 }
 
@@ -187,7 +190,41 @@ where
 
         let x = (d - b) / (a - c);
         let z = x * a + b;
-        XYZ::new(x, y, z)
+        Self::new(x, y, z)
+    }
+}
+
+impl<T> From<&Oklab<T>> for XYZ<T>
+where
+    T: FloatNumber,
+{
+    fn from(oklab: &Oklab<T>) -> Self {
+        // The inverse matrix of the conversion matrix M2 from LMS to L*a*b* is multiplied.
+        let l_prime = T::from_f64(0.999_999_998_5) * oklab.l
+            + T::from_f64(0.396_337_792_1) * oklab.a
+            + T::from_f64(0.215_803_758_1) * oklab.b;
+        let m_prime = T::from_f64(1.000_000_008_9) * oklab.l
+            - T::from_f64(0.105_561_342_3) * oklab.a
+            - T::from_f64(0.063_854_174_8) * oklab.b;
+        let c_prime = T::from_f64(1.000_000_054_7) * oklab.l
+            - T::from_f64(0.089_484_182_1) * oklab.a
+            - T::from_f64(1.291_485_537_8) * oklab.b;
+
+        let l = l_prime.powi(3);
+        let m = m_prime.powi(3);
+        let c = c_prime.powi(3);
+
+        // The inverse matrix of the conversion matrix M1 from XYZ to LMS is multiplied.
+        let x = T::from_f64(1.227_013_851_1) * l
+            + T::from_f64(-0.557_799_980_7) * m
+            + T::from_f64(0.281_256_149_0) * c;
+        let y = T::from_f64(-0.040_580_178_4) * l
+            + T::from_f64(1.112_256_869_6) * m
+            + T::from_f64(-0.071_676_678_7) * c;
+        let z = T::from_f64(-0.076_381_284_5) * l
+            + T::from_f64(-0.421_481_978_4) * m
+            + T::from_f64(1.586_163_220_4) * c;
+        Self::new(x, y, z)
     }
 }
 
@@ -344,6 +381,26 @@ mod tests {
         // Act
         let luv: Luv<f32> = Luv::new(luv.0, luv.1, luv.2);
         let actual = XYZ::from(&luv);
+
+        // Assert
+        assert!((actual.x - expected.0).abs() < 1e-3);
+        assert!((actual.y - expected.1).abs() < 1e-3);
+        assert!((actual.z - expected.2).abs() < 1e-3);
+    }
+
+    #[rstest]
+    #[case::black((0.000, 0.0000, 0.0000), (0.000, 0.000, 0.000))]
+    #[case::white((1.000, 0.0000, 0.0000), (0.950, 1.000, 1.089))]
+    #[case::red((0.628, 0.225, 0.126), (0.412, 0.213, 0.019))]
+    #[case::green((0.866, -0.234, 0.180), (0.357, 0.714, 0.117))]
+    #[case::blue((0.452, -0.032, -0.312), (0.180, 0.072, 0.952))]
+    #[case::yellow((0.968, -0.071, 0.199), (0.770, 0.928, 0.137))]
+    #[case::cyan((0.905, -0.149, -0.039), (0.538, 0.786, 1.065))]
+    #[case::magenta((0.702, 0.275, -0.169), (0.593, 0.285, 0.970))]
+    fn test_from_oklab(#[case] oklab: (f32, f32, f32), #[case] expected: (f32, f32, f32)) {
+        // Act
+        let oklab: Oklab<f32> = Oklab::new(oklab.0, oklab.1, oklab.2);
+        let actual = XYZ::from(&oklab);
 
         // Assert
         assert!((actual.x - expected.0).abs() < 1e-3);
