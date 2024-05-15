@@ -177,9 +177,9 @@ where
         // http://www.brucelindbloom.com/index.html?Eqn_Lab_to_LCH.html
         let l = lch.l;
         let c = lch.c;
-        let h = lch.h.value();
-        let a = c * h.to_radians().cos();
-        let b = c * h.to_radians().sin();
+        let h = lch.h.value().to_radians();
+        let a = c * h.cos();
+        let b = c * h.sin();
         Lab::new(l, a, b)
     }
 }

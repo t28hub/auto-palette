@@ -5,6 +5,8 @@ mod lab;
 mod lchab;
 mod lchuv;
 mod luv;
+mod oklab;
+mod oklch;
 mod rgb;
 mod white_point;
 mod xyz;
@@ -24,6 +26,8 @@ pub use lab::Lab;
 pub use lchab::LCHab;
 pub use lchuv::LCHuv;
 pub use luv::Luv;
+pub use oklab::Oklab;
+pub use oklch::Oklch;
 pub use rgb::RGB;
 pub use white_point::*;
 pub(crate) use xyz::rgb_to_xyz;
@@ -267,6 +271,26 @@ where
         let lab = self.to_lab();
         LCHab::<T, W>::from(&lab)
     }
+
+    /// Converts this color to the CIE Oklab color space.
+    ///
+    /// # Returns
+    /// The converted `Oklab` color.
+    #[must_use]
+    pub fn to_oklab(&self) -> Oklab<T> {
+        let xyz = self.to_xyz();
+        Oklab::from(&xyz)
+    }
+
+    /// Converts this color to the CIE Oklch color space.
+    ///
+    /// # Returns
+    /// The converted `Oklch` color.
+    #[must_use]
+    pub fn to_oklch(&self) -> Oklch<T> {
+        let oklab = self.to_oklab();
+        Oklch::from(&oklab)
+    }
 }
 
 impl<T> Display for Color<T>
@@ -481,10 +505,36 @@ mod tests {
     }
 
     #[test]
+    fn test_to_oklab() {
+        // Act
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let actual = color.to_oklab();
+
+        // Assert
+        assert!((actual.l - 0.905).abs() < 1e-3);
+        assert!((actual.a + 0.149).abs() < 1e-3);
+        assert!((actual.b + 0.040).abs() < 1e-3);
+    }
+
+    #[test]
+    fn test_to_oklch() {
+        // Act
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let actual = color.to_oklch();
+
+        // Assert
+        assert!((actual.l - 0.905).abs() < 1e-3);
+        assert!((actual.c - 0.155).abs() < 1e-3);
+        assert!((actual.h.value() - 194.82).abs() < 1e-3);
+    }
+
+    #[test]
     fn test_from_lchab() {
         // Act
         let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.to_lchab();
+
+        println!("{:?}", actual);
 
         // Assert
         assert_eq!(actual.l, 91.1120);
