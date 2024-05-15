@@ -51,7 +51,7 @@ where
     #[must_use]
     pub fn new(h: T, s: T, l: T) -> Self {
         Self {
-            h: Hue::from(h),
+            h: Hue::from_degrees(h),
             s: clamp(s, T::zero(), T::one()),
             l: clamp(l, T::zero(), T::one()),
         }
@@ -116,7 +116,7 @@ mod tests {
         assert_eq!(
             actual,
             HSL {
-                h: Hue::from(60.0),
+                h: Hue::from_degrees(60.0),
                 s: 1.0,
                 l: 0.5,
             }

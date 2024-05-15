@@ -11,7 +11,7 @@ use crate::math::FloatNumber;
 /// ```
 /// use auto_palette::color::Hue;
 ///
-/// let hue = Hue::from(485.0);
+/// let hue = Hue::from_degrees(485.0);
 /// assert_eq!(hue.value(), 125.0);
 /// assert_eq!(format!("{}", hue), "125.00");
 /// ```
@@ -32,14 +32,10 @@ where
     pub fn value(self) -> T {
         self.0
     }
-}
 
-impl<T> From<T> for Hue<T>
-where
-    T: FloatNumber,
-{
-    fn from(value: T) -> Self {
-        Self(normalize(value))
+    #[must_use]
+    pub fn from_degrees(degrees: T) -> Self {
+        Self(normalize(degrees))
     }
 }
 
@@ -72,27 +68,27 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_from() {
+    fn test_from_degrees() {
         // Act
-        let degree = Hue::from(720.0);
+        let degree = Hue::from_degrees(720.0);
 
         // Assert
         assert_eq!(degree.value(), 0.0);
     }
 
     #[test]
-    fn test_from_negative() {
+    fn test_from_degrees_negative() {
         // Act
-        let degree = Hue::from(-90.0);
+        let degree = Hue::from_degrees(-90.0);
 
         // Assert
         assert_eq!(degree.value(), 270.0);
     }
 
     #[test]
-    fn test_from_overflow() {
+    fn test_from_degrees_overflow() {
         // Act
-        let degree = Hue::from(360.0);
+        let degree = Hue::from_degrees(360.0);
 
         // Assert
         assert_eq!(degree.value(), 0.0);
@@ -101,7 +97,7 @@ mod tests {
     #[test]
     fn test_fmt() {
         // Act
-        let degree = Hue::from(45.0);
+        let degree = Hue::from_degrees(45.0);
         let actual = format!("{}", degree);
 
         // Assert

@@ -2,6 +2,8 @@ mod hsl;
 mod hsv;
 mod hue;
 mod lab;
+mod lchab;
+mod lchuv;
 mod luv;
 mod rgb;
 mod white_point;
@@ -19,6 +21,8 @@ pub use hsv::HSV;
 pub use hue::Hue;
 pub(crate) use lab::xyz_to_lab;
 pub use lab::Lab;
+pub use lchab::LCHab;
+pub use lchuv::LCHuv;
 pub use luv::Luv;
 pub use rgb::RGB;
 pub use white_point::*;
@@ -171,8 +175,8 @@ where
     /// The hue of this color.
     #[must_use]
     pub fn hue(&self) -> Hue<T> {
-        let value = self.b.atan2(self.a).to_degrees();
-        Hue::from(value)
+        let degrees = self.b.atan2(self.a).to_degrees();
+        Hue::from_degrees(degrees)
     }
 
     /// Converts this color to a hexadecimal string.
@@ -231,7 +235,18 @@ where
     /// The converted `Luv` color.
     #[must_use]
     pub fn to_luv(&self) -> Luv<T, W> {
-        Luv::<T, W>::from(&self.to_xyz())
+        let xyz = self.to_xyz();
+        Luv::<T, W>::from(&xyz)
+    }
+
+    /// Converts this color to the CIE LCH(uv) color space.
+    ///
+    /// # Returns
+    /// The converted `LCHuv` color.
+    #[must_use]
+    pub fn to_lchuv(&self) -> LCHuv<T, W> {
+        let luv = self.to_luv();
+        LCHuv::<T, W>::from(&luv)
     }
 
     /// Converts this color to the CIE L*a*b* color space.
@@ -241,6 +256,16 @@ where
     #[must_use]
     pub fn to_lab(&self) -> Lab<T, W> {
         Lab::<T, W>::new(self.l, self.a, self.b)
+    }
+
+    /// Converts this color to the CIE LCH(ab) color space.
+    ///
+    /// # Returns
+    /// The converted `LCHab` color.
+    #[must_use]
+    pub fn to_lchab(&self) -> LCHab<T, W> {
+        let lab = self.to_lab();
+        LCHab::<T, W>::from(&lab)
     }
 }
 
@@ -426,9 +451,21 @@ mod tests {
         let actual = color.to_luv();
 
         // Assert
-        assert!((actual.l - 91.112).abs() < 1e-3);
+        assert_eq!(actual.l, 91.1120);
         assert!((actual.u - -70.480).abs() < 1e-3);
         assert!((actual.v - -15.240).abs() < 1e-3);
+    }
+
+    #[test]
+    fn test_to_lchuv() {
+        // Act
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let actual = color.to_lchuv();
+
+        // Assert
+        assert_eq!(actual.l, 91.1120);
+        assert!((actual.c - 72.109).abs() < 1e-3);
+        assert!((actual.h.value() - 192.202).abs() < 1e-3);
     }
 
     #[test]
@@ -441,6 +478,18 @@ mod tests {
         assert_eq!(actual.l, 91.1120);
         assert_eq!(actual.a, -48.0806);
         assert_eq!(actual.b, -14.1521);
+    }
+
+    #[test]
+    fn test_from_lchab() {
+        // Act
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let actual = color.to_lchab();
+
+        // Assert
+        assert_eq!(actual.l, 91.1120);
+        assert!((actual.c - 50.120).abs() < 1e-3);
+        assert!((actual.h.value() - 196.401).abs() < 1e-3);
     }
 
     #[test]
