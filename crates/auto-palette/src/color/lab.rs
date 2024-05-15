@@ -3,11 +3,14 @@ use std::{fmt::Display, marker::PhantomData};
 use num_traits::clamp;
 
 use crate::{
-    color::{white_point::WhitePoint, D65, XYZ},
+    color::{white_point::WhitePoint, LCHab, D65, XYZ},
     math::FloatNumber,
 };
 
 /// Color represented in the CIE L*a*b* color space.
+///
+/// See the following for more details:
+/// [CIELAB color space - Wikipedia](https://en.wikipedia.org/wiki/CIELAB_color_space)
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
@@ -20,13 +23,16 @@ use crate::{
 ///
 /// # Examples
 /// ```
-/// use auto_palette::color::{Lab, D65, XYZ};
+/// use auto_palette::color::{LCHab, Lab, D65, XYZ};
 ///
 /// let xyz = XYZ::new(0.3576, 0.7152, 0.1192);
 /// let lab = Lab::<_>::from(&xyz);
 /// assert_eq!(format!("{}", lab), "Lab(87.74, -86.18, 83.18)");
+///
+/// let lchab: LCHab<_> = (&lab).into();
+/// assert_eq!(format!("{}", lchab), "LCH(ab)(87.74, 119.78, 136.02)");
 /// ```
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Lab<T, W = D65>
 where
     T: FloatNumber,
@@ -161,6 +167,23 @@ where
     }
 }
 
+impl<T, W> From<&LCHab<T, W>> for Lab<T, W>
+where
+    T: FloatNumber,
+    W: WhitePoint,
+{
+    fn from(lch: &LCHab<T, W>) -> Self {
+        // This implementation is based on the formulae from the following sources:
+        // http://www.brucelindbloom.com/index.html?Eqn_Lab_to_LCH.html
+        let l = lch.l;
+        let c = lch.c;
+        let h = lch.h.value();
+        let a = c * h.to_radians().cos();
+        let b = c * h.to_radians().sin();
+        Lab::new(l, a, b)
+    }
+}
+
 /// Converts the CIE XYZ color space to the CIE L*a*b* color space.
 ///
 /// # Type Parameters
@@ -245,6 +268,18 @@ mod tests {
         assert!((actual.l - 87.7376).abs() < 1e-3);
         assert!((actual.a + 86.1846).abs() < 1e-3);
         assert!((actual.b - 83.1813).abs() < 1e-3);
+    }
+
+    #[test]
+    fn test_from_lchab() {
+        // Act
+        let lchab: LCHab<f64> = LCHab::new(54.617, 92.151, 27.756);
+        let actual = Lab::from(&lchab);
+
+        // Assert
+        assert_eq!(actual.l, 54.617);
+        assert!((actual.a - 81.549).abs() < 1e-3);
+        assert!((actual.b - 42.915).abs() < 1e-3);
     }
 
     #[rstest]

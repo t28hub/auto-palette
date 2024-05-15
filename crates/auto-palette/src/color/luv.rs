@@ -3,7 +3,7 @@ use std::{fmt::Display, marker::PhantomData};
 use num_traits::clamp;
 
 use crate::{
-    color::{white_point::WhitePoint, D65, XYZ},
+    color::{white_point::WhitePoint, LCHuv, D65, XYZ},
     math::FloatNumber,
 };
 
@@ -23,10 +23,13 @@ use crate::{
 ///
 /// # Examples
 /// ```
-/// use auto_palette::color::{Luv, D65};
+/// use auto_palette::color::{LCHuv, Luv, D65};
 ///
-/// let luv = Luv::<_, D65>::new(53.64, 165.87, 24.17);
+/// let luv: Luv<_> = Luv::new(53.64, 165.87, 24.17);
 /// assert_eq!(format!("{}", luv), "Luv(53.64, 165.87, 24.17)");
+///
+/// let lchuv: LCHuv<_> = (&luv).into();
+/// assert_eq!(format!("{}", lchuv), "LCH(uv)(53.64, 167.62, 8.29)");
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Luv<T, W = D65>
@@ -87,7 +90,7 @@ where
     W: WhitePoint,
 {
     fn from(xyz: &XYZ<T>) -> Self {
-        // This implementation is based on the algorithm described in the following link:
+        // This implementation is based on the formulae from the following sources:
         // http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Luv.html
         let y = xyz.y / W::y();
         let cie_k = T::from_f64(903.296_296); // 24389 / 27
@@ -118,6 +121,23 @@ where
 
         let u = T::from_f32(13.0) * l * (u_prime - u_prime_ref);
         let v = T::from_f32(13.0) * l * (v_prime - v_prime_ref);
+        Luv::new(l, u, v)
+    }
+}
+
+impl<T, W> From<&LCHuv<T, W>> for Luv<T, W>
+where
+    T: FloatNumber,
+    W: WhitePoint,
+{
+    fn from(lch: &LCHuv<T, W>) -> Self {
+        // This implementation is based on the formulae from the following sources:
+        // http://www.brucelindbloom.com/index.html?Eqn_LCH_to_Luv.html
+        let l = lch.l;
+        let c = lch.c;
+        let h = lch.h.value();
+        let u = c * h.to_radians().cos();
+        let v = c * h.to_radians().sin();
         Luv::new(l, u, v)
     }
 }
@@ -192,5 +212,19 @@ mod tests {
         assert!((actual.l - l).abs() < 1e-2);
         assert!((actual.u - u).abs() < 1e-2);
         assert!((actual.v - v).abs() < 1e-2);
+    }
+
+    #[test]
+    fn test_from_lchuv() {
+        // Act
+        let lchuv: LCHuv<f32> = LCHuv::new(53.640, 167.622, 8.291);
+        let actual = Luv::from(&lchuv);
+
+        println!("{:?}", actual);
+
+        // Assert
+        assert_eq!(actual.l, 53.640);
+        assert!((actual.u - 165.870).abs() < 1e-3);
+        assert!((actual.v - 24.171).abs() < 1e-3);
     }
 }
