@@ -79,7 +79,7 @@ where
             "LCH(uv)({:.2}, {:.2}, {:.2})",
             self.l,
             self.c,
-            self.h.value()
+            self.h.to_degrees()
         )
     }
 }
@@ -140,6 +140,6 @@ mod tests {
         // Assert
         assert_eq!(actual.l, 56.232);
         assert!((actual.c - 50.875).abs() < 1e-3);
-        assert!((actual.h.value() - 154.710).abs() < 1e-3);
+        assert!((actual.h.to_degrees() - 154.710).abs() < 1e-3);
     }
 }

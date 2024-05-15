@@ -60,7 +60,7 @@ impl ColorWrapper {
     /// # Returns
     /// The hue of this color.
     pub fn hue(&self) -> f32 {
-        self.0.hue().value()
+        self.0.hue().to_degrees()
     }
 
     /// Returns the RGB representation of this color.
@@ -181,7 +181,7 @@ mod tests {
         let actual = wrapper.hue();
 
         // Assert
-        assert_eq!(actual, color.hue().value());
+        assert_eq!(actual, color.hue().to_degrees());
     }
 
     #[wasm_bindgen_test]

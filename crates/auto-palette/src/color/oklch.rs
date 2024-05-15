@@ -73,7 +73,7 @@ where
             "Oklch({:.2}, {:.2}, {:.2})",
             self.l,
             self.c,
-            self.h.value()
+            self.h.to_degrees()
         )
     }
 }
@@ -132,6 +132,6 @@ mod tests {
         // Assert
         assert_eq!(actual.l, 0.607);
         assert!((actual.c - 0.121).abs() < 1e-3);
-        assert!((actual.h.value() - 166.651).abs() < 1e-3);
+        assert!((actual.h.to_degrees() - 166.651).abs() < 1e-3);
     }
 }

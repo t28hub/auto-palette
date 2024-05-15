@@ -164,7 +164,7 @@ mod tests {
         let actual = HSL::<f32>::from(&rgb);
 
         // Assert
-        assert!((actual.h.value() - expected.0).abs() < 1e-2);
+        assert!((actual.h.to_degrees() - expected.0).abs() < 1e-2);
         assert!((actual.s - expected.1).abs() < 1e-2);
         assert!((actual.l - expected.2).abs() < 1e-2);
     }

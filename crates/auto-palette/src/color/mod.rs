@@ -407,7 +407,7 @@ mod tests {
         let actual = color.hue();
 
         // Assert
-        assert!((actual.value() - expected).abs() < 1e-3);
+        assert!((actual.to_degrees() - expected).abs() < 1e-3);
     }
 
     #[test]
@@ -439,7 +439,7 @@ mod tests {
         let actual = color.to_hsl();
 
         // Assert
-        assert!((actual.h.value() - 180.0).abs() < 1e-3);
+        assert!((actual.h.to_degrees() - 180.0).abs() < 1e-3);
         assert!((actual.s - 1.0).abs() < 1e-3);
         assert!((actual.l - 0.5).abs() < 1e-3);
     }
@@ -451,7 +451,7 @@ mod tests {
         let actual = color.to_hsv();
 
         // Assert
-        assert!((actual.h.value() - 180.0).abs() < 1e-3);
+        assert!((actual.h.to_degrees() - 180.0).abs() < 1e-3);
         assert!((actual.s - 1.0).abs() < 1e-3);
         assert!((actual.v - 1.0).abs() < 1e-3);
     }
@@ -489,7 +489,7 @@ mod tests {
         // Assert
         assert_eq!(actual.l, 91.1120);
         assert!((actual.c - 72.109).abs() < 1e-3);
-        assert!((actual.h.value() - 192.202).abs() < 1e-3);
+        assert!((actual.h.to_degrees() - 192.202).abs() < 1e-3);
     }
 
     #[test]
@@ -525,7 +525,7 @@ mod tests {
         // Assert
         assert!((actual.l - 0.905).abs() < 1e-3);
         assert!((actual.c - 0.155).abs() < 1e-3);
-        assert!((actual.h.value() - 194.82).abs() < 1e-3);
+        assert!((actual.h.to_degrees() - 194.82).abs() < 1e-3);
     }
 
     #[test]
@@ -539,7 +539,7 @@ mod tests {
         // Assert
         assert_eq!(actual.l, 91.1120);
         assert!((actual.c - 50.120).abs() < 1e-3);
-        assert!((actual.h.value() - 196.401).abs() < 1e-3);
+        assert!((actual.h.to_degrees() - 196.401).abs() < 1e-3);
     }
 
     #[test]
