@@ -30,8 +30,8 @@ importers:
         specifier: ^9.0.11
         version: 9.0.11
       knip:
-        specifier: ^5.12.3
-        version: 5.12.3(@types/node@20.12.11)(typescript@5.4.5)
+        specifier: ^5.15.1
+        version: 5.15.1(@types/node@20.12.11)(typescript@5.4.5)
       lint-staged:
         specifier: ^15.2.2
         version: 15.2.2
@@ -58,13 +58,13 @@ importers:
     devDependencies:
       vite-plugin-dts:
         specifier: ^3.9.1
-        version: 3.9.1(@types/node@20.12.10)(rollup@4.17.2)(typescript@5.4.5)(vite@5.2.11(@types/node@20.12.10))
+        version: 3.9.1(@types/node@20.12.11)(rollup@4.17.2)(typescript@5.4.5)(vite@5.2.11(@types/node@20.12.11))
       vite-plugin-top-level-await:
         specifier: ^1.4.1
-        version: 1.4.1(rollup@4.17.2)(vite@5.2.11(@types/node@20.12.10))
+        version: 1.4.1(rollup@4.17.2)(vite@5.2.11(@types/node@20.12.11))
       vite-plugin-wasm:
         specifier: ^3.3.0
-        version: 3.3.0(vite@5.2.11(@types/node@20.12.10))
+        version: 3.3.0(vite@5.2.11(@types/node@20.12.11))
 
 packages:
 
@@ -578,9 +578,6 @@ packages:
   '@types/estree@1.0.5':
     resolution: {integrity: sha512-/kYRxGDLWzHOB7q+wtSUQlFrtcdUccpfy+X+9iMBpHK8QLLhx2wIPYuS5DYtR9Wa/YlZAbIovy7qVdB1Aq6Lyw==}
 
-  '@types/node@20.12.10':
-    resolution: {integrity: sha512-Eem5pH9pmWBHoGAT8Dr5fdc5rYA+4NAovdM4EktRPVAAiJhmWWfQrA0cFhAbOsQdSfIHjAud6YdkbL69+zSKjw==}
-
   '@types/node@20.12.11':
     resolution: {integrity: sha512-vDg9PZ/zi+Nqp6boSOT7plNuthRugEKixDv5sFTIpkE89MmNtEArAShI4mxuX2+UrLEe9pxC1vm2cjm9YlWbJw==}
 
@@ -1090,8 +1087,8 @@ packages:
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
-  knip@5.12.3:
-    resolution: {integrity: sha512-LL+NsE+3H0TkUnQW6icHQ+5qSrPENmjHJyMHgzjiZPmunstrIsaRG+QjahnzoH/FjMjVJwrdwVOSvksa8ixFbw==}
+  knip@5.15.1:
+    resolution: {integrity: sha512-v6/Bf2qUmZ7pMJb2GjTficHyEjhP2ysIifjM1wgJr2psFbK6Vbxw2/DpeDAcgK9d99kTGh1PUQwoiFd6LHtI6A==}
     engines: {node: '>=18.6.0'}
     hasBin: true
     peerDependencies:
@@ -1929,23 +1926,23 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.4.15
 
-  '@microsoft/api-extractor-model@7.28.13(@types/node@20.12.10)':
+  '@microsoft/api-extractor-model@7.28.13(@types/node@20.12.11)':
     dependencies:
       '@microsoft/tsdoc': 0.14.2
       '@microsoft/tsdoc-config': 0.16.2
-      '@rushstack/node-core-library': 4.0.2(@types/node@20.12.10)
+      '@rushstack/node-core-library': 4.0.2(@types/node@20.12.11)
     transitivePeerDependencies:
       - '@types/node'
 
-  '@microsoft/api-extractor@7.43.0(@types/node@20.12.10)':
+  '@microsoft/api-extractor@7.43.0(@types/node@20.12.11)':
     dependencies:
-      '@microsoft/api-extractor-model': 7.28.13(@types/node@20.12.10)
+      '@microsoft/api-extractor-model': 7.28.13(@types/node@20.12.11)
       '@microsoft/tsdoc': 0.14.2
       '@microsoft/tsdoc-config': 0.16.2
-      '@rushstack/node-core-library': 4.0.2(@types/node@20.12.10)
+      '@rushstack/node-core-library': 4.0.2(@types/node@20.12.11)
       '@rushstack/rig-package': 0.5.2
-      '@rushstack/terminal': 0.10.0(@types/node@20.12.10)
-      '@rushstack/ts-command-line': 4.19.1(@types/node@20.12.10)
+      '@rushstack/terminal': 0.10.0(@types/node@20.12.11)
+      '@rushstack/ts-command-line': 4.19.1(@types/node@20.12.11)
       lodash: 4.17.21
       minimatch: 3.0.8
       resolve: 1.22.8
@@ -2053,7 +2050,7 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.17.2':
     optional: true
 
-  '@rushstack/node-core-library@4.0.2(@types/node@20.12.10)':
+  '@rushstack/node-core-library@4.0.2(@types/node@20.12.11)':
     dependencies:
       fs-extra: 7.0.1
       import-lazy: 4.0.0
@@ -2062,23 +2059,23 @@ snapshots:
       semver: 7.5.4
       z-schema: 5.0.5
     optionalDependencies:
-      '@types/node': 20.12.10
+      '@types/node': 20.12.11
 
   '@rushstack/rig-package@0.5.2':
     dependencies:
       resolve: 1.22.8
       strip-json-comments: 3.1.1
 
-  '@rushstack/terminal@0.10.0(@types/node@20.12.10)':
+  '@rushstack/terminal@0.10.0(@types/node@20.12.11)':
     dependencies:
-      '@rushstack/node-core-library': 4.0.2(@types/node@20.12.10)
+      '@rushstack/node-core-library': 4.0.2(@types/node@20.12.11)
       supports-color: 8.1.1
     optionalDependencies:
-      '@types/node': 20.12.10
+      '@types/node': 20.12.11
 
-  '@rushstack/ts-command-line@4.19.1(@types/node@20.12.10)':
+  '@rushstack/ts-command-line@4.19.1(@types/node@20.12.11)':
     dependencies:
-      '@rushstack/terminal': 0.10.0(@types/node@20.12.10)
+      '@rushstack/terminal': 0.10.0(@types/node@20.12.11)
       '@types/argparse': 1.0.38
       argparse: 1.0.10
       string-argv: 0.3.2
@@ -2152,11 +2149,6 @@ snapshots:
   '@types/argparse@1.0.38': {}
 
   '@types/estree@1.0.5': {}
-
-  '@types/node@20.12.10':
-    dependencies:
-      undici-types: 5.26.5
-    optional: true
 
   '@types/node@20.12.11':
     dependencies:
@@ -2685,7 +2677,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  knip@5.12.3(@types/node@20.12.11)(typescript@5.4.5):
+  knip@5.15.1(@types/node@20.12.11)(typescript@5.4.5):
     dependencies:
       '@ericcornelissen/bash-parser': 0.5.2
       '@nodelib/fs.walk': 2.0.0
@@ -3194,9 +3186,9 @@ snapshots:
       - supports-color
       - terser
 
-  vite-plugin-dts@3.9.1(@types/node@20.12.10)(rollup@4.17.2)(typescript@5.4.5)(vite@5.2.11(@types/node@20.12.10)):
+  vite-plugin-dts@3.9.1(@types/node@20.12.11)(rollup@4.17.2)(typescript@5.4.5)(vite@5.2.11(@types/node@20.12.11)):
     dependencies:
-      '@microsoft/api-extractor': 7.43.0(@types/node@20.12.10)
+      '@microsoft/api-extractor': 7.43.0(@types/node@20.12.11)
       '@rollup/pluginutils': 5.1.0(rollup@4.17.2)
       '@vue/language-core': 1.8.27(typescript@5.4.5)
       debug: 4.3.4
@@ -3205,34 +3197,25 @@ snapshots:
       typescript: 5.4.5
       vue-tsc: 1.8.27(typescript@5.4.5)
     optionalDependencies:
-      vite: 5.2.11(@types/node@20.12.10)
+      vite: 5.2.11(@types/node@20.12.11)
     transitivePeerDependencies:
       - '@types/node'
       - rollup
       - supports-color
 
-  vite-plugin-top-level-await@1.4.1(rollup@4.17.2)(vite@5.2.11(@types/node@20.12.10)):
+  vite-plugin-top-level-await@1.4.1(rollup@4.17.2)(vite@5.2.11(@types/node@20.12.11)):
     dependencies:
       '@rollup/plugin-virtual': 3.0.2(rollup@4.17.2)
       '@swc/core': 1.4.17
       uuid: 9.0.1
-      vite: 5.2.11(@types/node@20.12.10)
+      vite: 5.2.11(@types/node@20.12.11)
     transitivePeerDependencies:
       - '@swc/helpers'
       - rollup
 
-  vite-plugin-wasm@3.3.0(vite@5.2.11(@types/node@20.12.10)):
+  vite-plugin-wasm@3.3.0(vite@5.2.11(@types/node@20.12.11)):
     dependencies:
-      vite: 5.2.11(@types/node@20.12.10)
-
-  vite@5.2.11(@types/node@20.12.10):
-    dependencies:
-      esbuild: 0.20.2
-      postcss: 8.4.38
-      rollup: 4.17.2
-    optionalDependencies:
-      '@types/node': 20.12.10
-      fsevents: 2.3.3
+      vite: 5.2.11(@types/node@20.12.11)
 
   vite@5.2.11(@types/node@20.12.11):
     dependencies:
