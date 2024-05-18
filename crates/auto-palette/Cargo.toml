@@ -1,7 +1,7 @@
 [package]
 name                 = "auto-palette"
 description          = "🎨 A Rust library that extracts prominent color palettes from images automatically."
-readme               = "../../README.md"
+readme               = "./README.md"
 categories           = ["multimedia::images", "graphics", "algorithms"]
 keywords             = ["palette", "color", "image", "color-palette", "color-extraction"]
 edition.workspace    = true

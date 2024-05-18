@@ -1,7 +1,7 @@
 # Contributing to `auto-palette`
 
 This project welcomes contributions from the community. Below are guidelines on how to participate effectively.  
-Please note that this project is released with a [Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
+Please note that this project is released with a [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
 
 ## Issues
 
