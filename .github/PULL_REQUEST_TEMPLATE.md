@@ -20,7 +20,7 @@
 <!-- Please check the following items before submitting a pull request. -->
 
 - [ ] My changes are consistent with the project's coding style.
-- [ ] I have read the [CONTRIBUTING](/CONTRIBUTING.md) document.
+- [ ] I have read the [Contributing](/CONTRIBUTING.md) guidelines.
 - [ ] I have updated the documentation accordingly.
 - [ ] I have added tests to cover my changes.
 - [ ] All new and existing tests passed.
