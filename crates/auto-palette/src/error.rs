@@ -1,7 +1,8 @@
 #[cfg(feature = "image")]
 use image::ImageError;
 
-/// Error might occur during the palette extraction process.
+/// The error type for the auto-palette crate.
+/// This error type is used for all errors in the crate.
 #[derive(Debug)]
 pub enum Error {
     /// The image data is empty and cannot be processed.

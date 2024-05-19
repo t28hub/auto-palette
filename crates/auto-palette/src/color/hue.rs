@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::math::FloatNumber;
 
-/// Represents a hue value.
+/// The hue component of a color.
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.

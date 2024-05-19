@@ -7,25 +7,28 @@ use image::{DynamicImage, RgbImage, RgbaImage};
 
 use crate::Error;
 
-/// ImageData contains the image width, height, pixel data.
+/// The image data representing the pixel data of an image.
 ///
 /// Each pixel is represented by 4 bytes in RGBA (Red, Green, Blue, Alpha) format.
 /// The pixel data is stored in a linear array of bytes, where each pixel is represented by 4 bytes.
 ///
 /// # Example
 /// ```
-/// use auto_palette::ImageData;
+/// #[cfg(feature = "image")]
+/// {
+///     use auto_palette::ImageData;
 ///
-/// let pixels = [
-///     255, 0, 0, 255, // Red
-///     0, 255, 0, 255, // Green
-///     0, 0, 255, 255, // Blue
-///     0, 0, 0, 255, // Black
-/// ];
-/// let image_data = ImageData::new(2, 2, &pixels).unwrap();
-/// assert_eq!(image_data.width(), 2);
-/// assert_eq!(image_data.height(), 2);
-/// assert_eq!(image_data.data(), &pixels);
+///     let pixels = [
+///         255, 0, 0, 255, // Red
+///         0, 255, 0, 255, // Green
+///         0, 0, 255, 255, // Blue
+///         0, 0, 0, 255, // Black
+///     ];
+///     let image_data = ImageData::new(2, 2, &pixels).unwrap();
+///     assert_eq!(image_data.width(), 2);
+///     assert_eq!(image_data.height(), 2);
+///     assert_eq!(image_data.data(), &pixels);
+/// }
 /// ```
 #[derive(Debug)]
 pub struct ImageData<'a> {

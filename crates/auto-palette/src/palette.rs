@@ -18,10 +18,29 @@ use crate::{
     Swatch,
 };
 
-/// Palette struct representing a collection of swatches.
+/// The color palette representation extracted from the image data.
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
+///
+/// # Examples
+/// ```
+/// #[cfg(feature = "image")]
+/// {
+///     use auto_palette::{color::Color, ImageData, Palette, Swatch, Theme};
+///
+///     let image_data = ImageData::load("../../gfx/flags/za.png").unwrap();
+///     let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
+///     assert!(!palette.is_empty());
+///     assert!(palette.len() >= 6);
+///
+///     let mut swatches = palette.find_swatches(3);
+///
+///     assert_eq!(swatches[0].color().to_hex_string(), "#007749");
+///     assert_eq!(swatches[1].color().to_hex_string(), "#001489");
+///     assert_eq!(swatches[2].color().to_hex_string(), "#E03C31");
+/// }
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Palette<T>
 where
@@ -99,7 +118,10 @@ where
             let weight = T::from_usize(swatch.population()) / max_population;
             weights.push(weight);
         }
-        self.find_swatches_with_weights(n, colors, weights)
+
+        let mut swatches = self.find_swatches_with_weights(n, colors, weights);
+        swatches.sort_by_key(|swatch| Reverse(swatch.population()));
+        swatches
     }
 
     /// Finds the swatches in the palette based on the theme.
@@ -121,7 +143,10 @@ where
             let weight = theme.score(color);
             weights.push(weight);
         }
-        self.find_swatches_with_weights(n, colors, weights)
+
+        let mut swatches = self.find_swatches_with_weights(n, colors, weights);
+        swatches.sort_by_key(|swatch| Reverse(swatch.population()));
+        swatches
     }
 
     #[must_use]
@@ -401,8 +426,7 @@ mod tests {
         let palette = Palette::new(swatches.clone());
 
         // Act
-        let mut actual = palette.find_swatches(3);
-        actual.sort_by_key(|swatch| Reverse(swatch.population()));
+        let actual = palette.find_swatches(3);
 
         // Assert
         assert_eq!(actual.len(), 3);
@@ -436,8 +460,7 @@ mod tests {
         let palette = Palette::new(swatches.clone());
 
         // Act
-        let mut actual = palette.find_swatches_with_theme(2, theme);
-        actual.sort_by_key(|swatch| Reverse(swatch.population()));
+        let actual = palette.find_swatches_with_theme(2, theme);
 
         // Assert
         assert_eq!(actual.len(), 2);

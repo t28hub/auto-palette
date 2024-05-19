@@ -7,7 +7,7 @@ use crate::{
     math::FloatNumber,
 };
 
-/// CIE L*u*v* color space representation.
+/// The CIE L*u*v* color representation.
 ///
 /// See the following for more details:
 /// [CIELUV - Wikipedia](https://en.wikipedia.org/wiki/CIELUV)

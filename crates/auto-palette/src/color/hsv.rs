@@ -7,7 +7,10 @@ use crate::{
     math::FloatNumber,
 };
 
-/// Color represented in the HSV color space.
+/// The HSV color representation.
+///
+/// See the following for more details:
+/// [HSL and HSV - Wikipedia](https://en.wikipedia.org/wiki/HSL_and_HSV)
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.

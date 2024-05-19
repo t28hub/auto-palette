@@ -12,7 +12,7 @@ repository = "https://github.com/t28hub/auto-palette"
 
 [workspace.dependencies]
 assert_cmd               = "2.0.14"
-auto-palette             = { version = "0.2.0", path = "crates/auto-palette" }
+auto-palette             = { version = "0.2.0", path = "crates/auto-palette", default-features = false }
 clap                     = { version = "4.5.4", features = ["cargo"] }
 getrandom                = "0.2.15"
 image                    = "0.25.1"

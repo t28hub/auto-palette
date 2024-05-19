@@ -2,10 +2,10 @@ use std::fmt::Debug;
 
 use crate::math::FloatNumber;
 
-/// White point representation.
+/// The white point representation.
 ///
-/// # References
-/// * [White point - Wikipedia](https://en.wikipedia.org/wiki/White_point)
+/// See the following for more details:
+/// [White point - Wikipedia](https://en.wikipedia.org/wiki/White_point)
 pub trait WhitePoint: Copy + Clone + Debug + Default + PartialEq {
     /// Returns the X component of the white point.
     ///
@@ -46,8 +46,8 @@ pub trait WhitePoint: Copy + Clone + Debug + Default + PartialEq {
 
 /// The D50 white point representation.
 ///
-/// # References
-/// * [Illuminant D50](https://en.wikipedia.org/wiki/Illuminant_D50)
+/// See the following for more details:
+/// [Illuminant D50](https://en.wikipedia.org/wiki/Illuminant_D50)
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct D50;
 
@@ -79,8 +79,8 @@ impl WhitePoint for D50 {
 
 /// The D65 white point representation.
 ///
-/// # References
-/// * [Illuminant D65](https://en.wikipedia.org/wiki/Illuminant_D65)
+/// See the following for more details:
+/// [Illuminant D65](https://en.wikipedia.org/wiki/Illuminant_D65)
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct D65;
 
