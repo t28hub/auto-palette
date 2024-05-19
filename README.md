@@ -31,7 +31,7 @@ To use `auto-palette` in your Rust project, add it to your `Cargo.toml`.
 
 ```toml
 [dependencies]
-auto-palette = "0.2.0"
+auto-palette = "0.3.0"
 ```
 
 ## Usage

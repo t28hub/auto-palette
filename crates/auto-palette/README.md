@@ -28,7 +28,7 @@ Using `auto-palette` in your Rust project, add it to your `Cargo.toml`.
 
 ```toml
 [dependencies]
-auto-palette = "0.2.0"
+auto-palette = "0.3.0"
 ```
 
 ## Usage
@@ -56,14 +56,6 @@ fn main() {
   }
 }
 ```
-
-> [!TIP]
-> `ImageData` struct used in the example above, is only available when the "image" feature is enabled in your `Cargo.toml`.
->
-> ```toml
-> [dependencies]
-> auto-palette = { version = "0.2.0", features = ["image"] }
-> ```
 
 ## Development
 
