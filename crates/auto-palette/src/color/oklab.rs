@@ -5,7 +5,7 @@ use crate::{
     math::FloatNumber,
 };
 
-/// Oklab color space representation.
+/// The Oklab color representation.
 ///
 /// See the following for more details:
 /// [Oklab - A perceptual color space for image processing](https://bottosson.github.io/posts/oklab/)

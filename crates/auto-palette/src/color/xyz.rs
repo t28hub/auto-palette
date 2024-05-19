@@ -7,7 +7,7 @@ use crate::{
     math::FloatNumber,
 };
 
-/// CIE 1931 XYZ color space representation.
+/// The CIE XYZ color representation.
 ///
 /// See the following for more details:
 /// [CIE 1931 color space - Wikipedia](https://en.wikipedia.org/wiki/CIE_1931_color_space)

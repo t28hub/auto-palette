@@ -1,6 +1,6 @@
 use crate::{color::Color, math::FloatNumber};
 
-/// Swatch struct representing a color, position, and population.
+/// The swatch representation containing the color, position, and population.
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.

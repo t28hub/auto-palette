@@ -35,7 +35,7 @@ pub use xyz::XYZ;
 
 use crate::math::FloatNumber;
 
-/// A color representation.
+/// The color representation.
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
@@ -51,7 +51,7 @@ use crate::math::FloatNumber;
 /// assert!(color.is_light());
 /// assert_eq!(color.lightness(), 52.917793);
 /// assert_eq!(color.chroma(), 61.9814870);
-/// assert_eq!(color.hue().value(), 282.6622);
+/// assert_eq!(color.hue().to_degrees(), 282.6622);
 ///
 /// let rgb = color.to_rgb();
 /// assert_eq!(format!("{}", rgb), "RGB(44, 125, 231)");

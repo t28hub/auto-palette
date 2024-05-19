@@ -7,7 +7,7 @@ use crate::{
     math::FloatNumber,
 };
 
-/// Color represented in the CIE L*a*b* color space.
+/// The CIE L*a*b* color representation.
 ///
 /// See the following for more details:
 /// [CIELAB color space - Wikipedia](https://en.wikipedia.org/wiki/CIELAB_color_space)

@@ -7,7 +7,7 @@ use crate::{
     math::FloatNumber,
 };
 
-/// Oklch color space representation.
+/// The Oklch color representation.
 ///
 /// See the following for more details:
 /// [The Oklab color space](https://bottosson.github.io/posts/oklab/#the-oklab-color-space)

@@ -7,7 +7,7 @@ use crate::{
     math::FloatNumber,
 };
 
-/// CIE LCH(uv) color space representation.
+/// The CIE L*u*v* color representation.
 ///
 /// See the following for more details:
 /// [CIE LUV | Cylindrical representation (CIELCh)](https://en.wikipedia.org/wiki/CIELUV#Cylindrical_representation_(CIELCh))

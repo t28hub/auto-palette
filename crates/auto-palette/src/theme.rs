@@ -6,7 +6,17 @@ use crate::{
     Error,
 };
 
-/// The theme of a color.
+/// The theme representation for selecting colors.
+///
+/// # Examples
+/// ```
+/// use std::str::FromStr;
+///
+/// use auto_palette::Theme;
+///
+/// let theme = Theme::from_str("basic").unwrap();
+/// assert_eq!(format!("{}", theme), "Basic");
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Theme {
     /// Basic theme.

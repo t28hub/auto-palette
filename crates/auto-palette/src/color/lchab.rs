@@ -7,7 +7,7 @@ use crate::{
     math::FloatNumber,
 };
 
-/// CIE LCH(ab) color space representation.
+/// The CIE L*C*h°(ab) color representation.
 ///
 /// See the following for more details:
 /// [CIE LAB | Cylindrical model](https://en.wikipedia.org/wiki/CIELAB_color_space#Cylindrical_model)

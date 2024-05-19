@@ -12,7 +12,7 @@ use crate::{
     },
 };
 
-/// Clustering algorithm.
+/// The clustering algorithm to use for color palette extraction.
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Algorithm {

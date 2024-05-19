@@ -5,7 +5,10 @@ use crate::{
     math::FloatNumber,
 };
 
-/// Color represented in the RGB color space.
+/// The RGB color representation.
+///
+/// See the following for more details:
+/// [RGB color model - Wikipedia](https://en.wikipedia.org/wiki/RGB_color_model)
 ///
 /// # Fields
 /// * `r` - The red component.

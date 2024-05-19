@@ -15,7 +15,7 @@ repository.workspace = true
 rust-version = "1.75.0"
 
 [features]
-default = []
+default = ["image"]
 image   = ["dep:image"]
 wasm    = ["getrandom/js"]
 
