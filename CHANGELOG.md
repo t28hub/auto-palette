@@ -1,5 +1,17 @@
 # Changelog
 
+## [v0.3.0](https://github.com/t28hub/auto-palette/releases/tag/v0.3.0))
+
+* Add multiple color spaces, including the following:
+  * `HSL`
+  * `HSV`
+  * `CIE L*u*v*`
+  * `LCH(ab)`
+  * `LCH(uv)`
+  * `Oklch`
+  * `Oklab`
+* Add the `image` feature to the default features, enhancing the flexibility of library usage.
+
 ## [v0.2.0](https://github.com/t28hub/auto-palette/releases/tag/v0.2.0)
 
 * Modified the `ImageData` interface to hold a reference to the image's pixel data, enhancing the efficiency of data handling.
