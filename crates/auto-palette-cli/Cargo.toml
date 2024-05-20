@@ -20,7 +20,7 @@ rust-version = "1.75.0"
 
 [dependencies]
 auto-palette = { workspace = true, features = ["image"] }
-clap         = { workspace = true }
+clap         = { workspace = true, features = ["derive"] }
 
 [dev-dependencies]
 assert_cmd = { workspace = true }
