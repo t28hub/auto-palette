@@ -63,6 +63,9 @@ pub struct Options {
         ignore_case = true,
     )]
     pub color: ColorArg,
+
+    #[arg(long, help = "Disable image resizing before extracting the palette.")]
+    pub no_resize: bool,
 }
 
 #[derive(Debug, Default, Copy, Clone, ValueEnum)]

@@ -1,13 +1,17 @@
 use std::{process, time::Instant};
 
-use auto_palette::{ImageData, Palette};
+use auto_palette::{FloatNumber, ImageData, Palette};
 use clap::Parser;
 use colored::Colorize;
+use image::{self, imageops::FilterType};
 
 use crate::{args::Options, env::Env};
 
 mod args;
 mod env;
+
+const MAX_IMAGE_WIDTH: f64 = 360.0;
+const MAX_IMAGE_HEIGHT: f64 = 360.0;
 
 #[derive(Debug)]
 pub enum Style {
@@ -18,7 +22,29 @@ pub enum Style {
 
 fn main() {
     let options = Options::parse();
-    let Ok(image_data) = ImageData::load(options.path) else {
+    let Ok(image) = image::open(&options.path) else {
+        eprintln!("Failed to open the image file {:?}", options.path);
+        process::exit(1);
+    };
+
+    let image_width = image.width() as f64;
+    let image_height = image.height() as f64;
+    let scale = f64::min(
+        MAX_IMAGE_WIDTH / image_width,
+        MAX_IMAGE_HEIGHT / image_height,
+    );
+
+    let resized = if options.no_resize {
+        image
+    } else {
+        image.resize_exact(
+            (image_width * scale) as u32,
+            (image_height * scale) as u32,
+            FilterType::Lanczos3,
+        )
+    };
+
+    let Ok(image_data) = ImageData::try_from(&resized) else {
         process::exit(1);
     };
 
@@ -52,7 +78,11 @@ fn main() {
             }
             Style::NoColor => color_string.bold(),
         };
-        println!("{} {:?}", color, swatch.position());
+
+        let (x, y) = swatch.position();
+        let unscaled_x = (x as f64 / scale).to_u32_unsafe();
+        let unscaled_y = (y as f64 / scale).to_u32_unsafe();
+        println!("{} ({}, {})", color, unscaled_x, unscaled_y);
     }
     println!(
         "Extracted {} swatch(es) in {}.{:03} seconds",
