@@ -3,7 +3,7 @@
   "files": {
     "ignoreUnknown": true,
     "include": ["**/*.js", "**/*.ts", "**/*.json"],
-    "ignore": ["node_modules", "coverage", "dist", "pkg"]
+    "ignore": ["node_modules", "coverage", "dist", "pkg", "target"]
   },
   "linter": {
     "enabled": true,
