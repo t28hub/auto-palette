@@ -1,3 +1,4 @@
+mod ansi;
 mod hsl;
 mod hsv;
 mod hue;
@@ -18,6 +19,7 @@ use std::{
     str::FromStr,
 };
 
+pub use ansi::Ansi16;
 pub use hsl::HSL;
 pub use hsv::HSV;
 pub use hue::Hue;
