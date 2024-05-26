@@ -5,7 +5,7 @@ use crate::{
     FloatNumber,
 };
 
-/// The 4-bit ANSI 16 color.
+/// The 4-bit ANSI 16 color representation.
 ///
 /// See the following for more details:
 /// [ANSI escape code - Wikipedia](https://en.wikipedia.org/wiki/ANSI_escape_code#3-bit_and_4-bit)
@@ -21,7 +21,8 @@ use crate::{
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Ansi16 {
-    code: u8,
+    /// The ANSI 16 color code.
+    pub(crate) code: u8,
 }
 
 impl Ansi16 {
@@ -43,6 +44,26 @@ impl Ansi16 {
             code
         );
         Self { code }
+    }
+
+    /// Returns the ANSI 16 color code for foreground text.
+    ///
+    /// # Returns
+    /// The ANSI 16 color code for foreground text.
+    #[inline]
+    #[must_use]
+    pub fn foreground(&self) -> u8 {
+        self.code
+    }
+
+    /// Returns the ANSI 16 color code for background text.
+    ///
+    /// # Returns
+    /// The ANSI 16 color code for background text.
+    #[inline]
+    #[must_use]
+    pub fn background(&self) -> u8 {
+        self.code + 10
     }
 
     /// Creates a new `Ansi16` instance with the black color.
@@ -214,16 +235,16 @@ impl Display for Ansi16 {
 
 impl From<&RGB> for Ansi16 {
     fn from(rgb: &RGB) -> Self {
-        let hsv = HSV::<f64>::from(rgb);
+        let hsv = HSV::<f32>::from(rgb);
         let value = (hsv.v * 100.0 / 50.0).round().to_u8_unsafe();
         if value == 0 {
             return Ansi16::new(30);
         }
 
-        let max = RGB::max_value::<f64>();
-        let r = (rgb.r as f64 / max).round() as u8;
-        let g = (rgb.g as f64 / max).round() as u8;
-        let b = (rgb.b as f64 / max).round() as u8;
+        let max = RGB::max_value::<f32>();
+        let r = (rgb.r as f32 / max).round() as u8;
+        let g = (rgb.g as f32 / max).round() as u8;
+        let b = (rgb.b as f32 / max).round() as u8;
         let code = 30 + (b << 2 | g << 1 | r);
         Self {
             code: if value == 2 { code + 60 } else { code },
@@ -244,6 +265,8 @@ mod tests {
 
         // Assert
         assert_eq!(actual, Ansi16 { code: 30 });
+        assert_eq!(actual.foreground(), 30);
+        assert_eq!(actual.background(), 40);
     }
 
     #[test]
