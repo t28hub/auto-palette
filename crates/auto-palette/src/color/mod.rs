@@ -295,6 +295,26 @@ where
         let oklab = self.to_oklab();
         Oklch::from(&oklab)
     }
+
+    /// Converts this color to the 4-bit ANSI 16 color space.
+    ///
+    /// # Returns
+    /// The converted `Ansi16` color.
+    #[must_use]
+    pub fn to_ansi16(&self) -> Ansi16 {
+        let rgb = self.to_rgb();
+        Ansi16::from(&rgb)
+    }
+
+    /// Converts this color to the 8-bit ANSI 256 color space.
+    ///
+    /// # Returns
+    /// The converted `Ansi256` color.
+    #[must_use]
+    pub fn to_ansi256(&self) -> Ansi256 {
+        let rgb = self.to_rgb();
+        Ansi256::from(&rgb)
+    }
 }
 
 impl<T> Display for Color<T>
@@ -533,17 +553,35 @@ mod tests {
     }
 
     #[test]
-    fn test_from_lchab() {
+    fn test_to_lchab() {
         // Act
         let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.to_lchab();
-
-        println!("{:?}", actual);
 
         // Assert
         assert_eq!(actual.l, 91.1120);
         assert!((actual.c - 50.120).abs() < 1e-3);
         assert!((actual.h.to_degrees() - 196.401).abs() < 1e-3);
+    }
+
+    #[test]
+    fn test_to_anis16() {
+        // Act
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let actual = color.to_ansi16();
+
+        // Assert
+        assert_eq!(actual, Ansi16::bright_cyan());
+    }
+
+    #[test]
+    fn test_to_ansi256() {
+        // Act
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let actual = color.to_ansi256();
+
+        // Assert
+        assert_eq!(actual, Ansi256::new(51));
     }
 
     #[test]

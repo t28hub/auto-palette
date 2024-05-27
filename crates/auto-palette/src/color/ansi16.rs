@@ -1,9 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use crate::{
-    color::{HSV, RGB},
-    FloatNumber,
-};
+use crate::{color::RGB, FloatNumber};
 
 /// The 4-bit ANSI 16 color representation.
 ///
@@ -235,20 +232,37 @@ impl Display for Ansi16 {
 
 impl From<&RGB> for Ansi16 {
     fn from(rgb: &RGB) -> Self {
-        let hsv = HSV::<f32>::from(rgb);
-        let value = (hsv.v * 100.0 / 50.0).round().to_u8_unsafe();
-        if value == 0 {
-            return Ansi16::new(30);
-        }
+        let code = from_rgb::<f32>(rgb.r, rgb.g, rgb.b);
+        Self { code }
+    }
+}
 
-        let max = RGB::max_value::<f32>();
-        let r = (rgb.r as f32 / max).round() as u8;
-        let g = (rgb.g as f32 / max).round() as u8;
-        let b = (rgb.b as f32 / max).round() as u8;
-        let code = 30 + (b << 2 | g << 1 | r);
-        Self {
-            code: if value == 2 { code + 60 } else { code },
-        }
+#[inline]
+#[must_use]
+fn from_rgb<T>(r: u8, g: u8, b: u8) -> u8
+where
+    T: FloatNumber,
+{
+    let max = RGB::max_value::<T>();
+    let r = T::from_u8(r) / max;
+    let g = T::from_u8(g) / max;
+    let b = T::from_u8(b) / max;
+
+    let value = (r.max(g).max(b) * T::from_f32(100.0) / T::from_f32(50.0))
+        .round()
+        .to_u8_unsafe();
+    if value == 0 {
+        return 30;
+    }
+
+    let r = r.round().to_u8_unsafe();
+    let g = g.round().to_u8_unsafe();
+    let b = b.round().to_u8_unsafe();
+    let code = 30 + (b << 2 | g << 1 | r);
+    if value == 2 {
+        code + 60 // Bright colors
+    } else {
+        code // Normal colors
     }
 }
 

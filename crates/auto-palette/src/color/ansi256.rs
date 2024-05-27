@@ -3,7 +3,10 @@ use std::{
     fmt::{Display, Formatter},
 };
 
-use crate::color::{Ansi16, RGB};
+use crate::{
+    color::{Ansi16, RGB},
+    FloatNumber,
+};
 
 /// The 8-bit ANSI 256 color.
 ///
@@ -55,24 +58,7 @@ impl Display for Ansi256 {
 
 impl From<&RGB> for Ansi256 {
     fn from(rgb: &RGB) -> Self {
-        let r = rgb.r as f32;
-        let g = rgb.g as f32;
-        let b = rgb.b as f32;
-        let code = if (r == g) && (g == b) {
-            // Grayscale colors
-            if r < 8.0 {
-                16 // Black
-            } else if r > 248.0 {
-                231 // White
-            } else {
-                232 + ((r - 8.0) / 247.0 * 24.0).round() as u8
-            }
-        } else {
-            let r = (r / 51.0).round() as u8;
-            let g = (g / 51.0).round() as u8;
-            let b = (b / 51.0).round() as u8;
-            16 + 36 * r + 6 * g + b
-        };
+        let code = from_rgb::<f32>(rgb.r, rgb.g, rgb.b);
         Self::new(code)
     }
 }
@@ -85,6 +71,35 @@ impl From<&Ansi16> for Ansi256 {
         } else {
             Self::new(code - 82)
         }
+    }
+}
+
+#[inline]
+#[must_use]
+fn from_rgb<T>(r: u8, g: u8, b: u8) -> u8
+where
+    T: FloatNumber,
+{
+    let r = T::from_u8(r);
+    let g = T::from_u8(g);
+    let b = T::from_u8(b);
+    if (r == g) && (g == b) {
+        // Grayscale colors
+        if r < T::from_u8(8) {
+            16 // Black
+        } else if r > T::from_u8(248) {
+            231 // White
+        } else {
+            232 + ((r - T::from_u8(8)) / T::from_u8(247) * T::from_u8(24))
+                .round()
+                .to_u8_unsafe()
+        }
+    } else {
+        let denominator = T::from_u8(51);
+        let r = (r / denominator).round().to_u8_unsafe();
+        let g = (g / denominator).round().to_u8_unsafe();
+        let b = (b / denominator).round().to_u8_unsafe();
+        16 + 36 * r + 6 * g + b
     }
 }
 
