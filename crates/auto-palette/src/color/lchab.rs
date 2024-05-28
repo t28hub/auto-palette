@@ -31,7 +31,7 @@ use crate::{
 /// let lab: Lab<_> = (&lchab).into();
 /// assert_eq!(format!("{}", lab), "Lab(54.62, 81.55, 42.92)");
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LCHab<T, W = D65>
 where
     T: FloatNumber,

@@ -2,23 +2,17 @@ use std::{process, time::Instant};
 
 use auto_palette::{FloatNumber, ImageData, Palette};
 use clap::Parser;
-use colored::Colorize;
 use image::{self, imageops::FilterType};
 
-use crate::{args::Options, env::Env};
+use crate::{args::Options, color::ColorType, env::Env, style::styled};
 
 mod args;
+mod color;
 mod env;
+mod style;
 
 const MAX_IMAGE_WIDTH: f64 = 360.0;
 const MAX_IMAGE_HEIGHT: f64 = 360.0;
-
-#[derive(Debug)]
-pub enum Style {
-    TrueColor,
-    Ansi256,
-    NoColor,
-}
 
 fn main() {
     let options = Options::parse();
@@ -55,34 +49,36 @@ fn main() {
     };
 
     let env = Env::new();
-    let style = match (env.is_truecolor_enabled(), env.is_color_disabled()) {
-        (true, false) => Style::TrueColor,
-        (false, false) => Style::Ansi256,
-        (false, true) => Style::NoColor,
-        (true, true) => Style::NoColor,
-    };
     let swatches = options.theme.map_or_else(
         || palette.find_swatches(options.count),
         |theme| palette.find_swatches_with_theme(options.count, theme.into()),
     );
     for swatch in swatches {
-        let color_string = options.color.as_string(swatch.color());
-        let color = match style {
-            Style::TrueColor => {
+        let color = swatch.color();
+        let color_string = options.color.as_string(color);
+        let styled_color = match (env.is_truecolor_enabled(), env.is_color_disabled()) {
+            (true, false) => {
                 let rgb = swatch.color().to_rgb();
-                color_string.bold().on_truecolor(rgb.r, rgb.g, rgb.b)
+                styled(color_string)
+                    .bold()
+                    .background(ColorType::TrueColor(rgb))
             }
-            Style::Ansi256 => {
-                let rgb = swatch.color().to_rgb();
-                color_string.bold().on_truecolor(rgb.r, rgb.g, rgb.b)
+            (false, false) => {
+                let ansi256 = swatch.color().to_ansi256();
+                styled(color_string)
+                    .bold()
+                    .background(ColorType::Ansi256(ansi256))
             }
-            Style::NoColor => color_string.bold(),
+            _ => styled(color_string)
+                .bold()
+                .color(ColorType::NoColor)
+                .background(ColorType::NoColor),
         };
 
         let (x, y) = swatch.position();
         let unscaled_x = (x as f64 / scale).to_u32_unsafe();
         let unscaled_y = (y as f64 / scale).to_u32_unsafe();
-        println!("{} ({}, {})", color, unscaled_x, unscaled_y);
+        println!("{} ({}, {})", styled_color, unscaled_x, unscaled_y);
     }
     println!(
         "Extracted {} swatch(es) in {}.{:03} seconds",

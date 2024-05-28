@@ -22,7 +22,7 @@ use crate::{
 /// assert_eq!(ansi256.code(), 78);
 /// assert_eq!(format!("{}", ansi256), "ANSI256(78)");
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Ansi256 {
     code: u8,
 }

@@ -18,7 +18,7 @@ use crate::math::FloatNumber;
 /// assert_eq!(hue.to_radians(), 240.0 / 180.0 * PI);
 /// assert_eq!(format!("{}", hue), "240.00");
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Hue<T>(T)
 where
     T: FloatNumber;
