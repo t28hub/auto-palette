@@ -16,7 +16,7 @@ use crate::{color::RGB, FloatNumber};
 /// assert_eq!(ansi16, Ansi16::bright_green());
 /// assert_eq!(format!("{}", ansi16), "ANSI16(92)");
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Ansi16 {
     /// The ANSI 16 color code.
     pub(crate) code: u8,

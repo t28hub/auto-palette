@@ -30,7 +30,7 @@ use crate::{
 /// let oklab: Oklab<_> = (&oklch).into();
 /// assert_eq!(format!("{}", oklab), "Oklab(0.61, -0.12, 0.03)");
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Oklch<T>
 where
     T: FloatNumber,

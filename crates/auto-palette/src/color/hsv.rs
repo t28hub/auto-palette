@@ -28,7 +28,7 @@ use crate::{
 /// let hsv = HSV::<f32>::from(&rgb);
 /// assert_eq!(format!("{}", hsv), "HSV(60.00, 1.00, 1.00)");
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HSV<T>
 where
     T: FloatNumber,

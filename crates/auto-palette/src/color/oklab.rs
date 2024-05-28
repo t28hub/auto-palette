@@ -28,7 +28,7 @@ use crate::{
 /// let xyz: XYZ<_> = (&oklab).into();
 /// assert_eq!(format!("{}", xyz), "XYZ(0.15, 0.24, 0.20)");
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Oklab<T>
 where
     T: FloatNumber,

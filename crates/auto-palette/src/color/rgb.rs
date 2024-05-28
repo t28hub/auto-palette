@@ -31,7 +31,7 @@ use crate::{
 /// let xyz: XYZ<f32> = (&rgb).into();
 /// assert_eq!(format!("{}", xyz), "XYZ(0.42, 0.22, 0.07)");
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RGB {
     pub r: u8,
     pub g: u8,

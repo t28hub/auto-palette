@@ -31,7 +31,7 @@ use crate::{
 /// let lchuv: LCHuv<_> = (&luv).into();
 /// assert_eq!(format!("{}", lchuv), "LCH(uv)(53.64, 167.62, 8.29)");
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Luv<T, W = D65>
 where
     T: FloatNumber,

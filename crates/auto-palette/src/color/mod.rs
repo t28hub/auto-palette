@@ -66,7 +66,7 @@ use crate::math::FloatNumber;
 /// let lab = color.to_lab();
 /// assert_eq!(format!("{}", lab), "Lab(52.92, 13.59, -60.47)");
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Color<T, W = D65>
 where
     T: FloatNumber,

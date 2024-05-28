@@ -28,7 +28,7 @@ use crate::{
 /// let hsl = HSL::<f32>::from(&rgb);
 /// assert_eq!(format!("{}", hsl), "HSL(60.00, 1.00, 0.50)");
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HSL<T>
 where
     T: FloatNumber,
