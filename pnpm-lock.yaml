@@ -19,7 +19,7 @@ importers:
         version: 20.12.12
       '@vitest/browser':
         specifier: ^1.6.0
-        version: 1.6.0(playwright@1.44.0)(vitest@1.6.0)
+        version: 1.6.0(playwright@1.44.1)(vitest@1.6.0)
       '@vitest/coverage-v8':
         specifier: 1.6.0
         version: 1.6.0(vitest@1.6.0(@types/node@20.12.12)(@vitest/browser@1.6.0)(@vitest/ui@1.6.0))
@@ -39,8 +39,8 @@ importers:
         specifier: ^0.13.0
         version: 0.13.0
       playwright:
-        specifier: ^1.44.0
-        version: 1.44.0
+        specifier: ^1.44.1
+        version: 1.44.1
       rimraf:
         specifier: ^5.0.7
         version: 5.0.7
@@ -1328,13 +1328,13 @@ packages:
   pkg-types@1.1.0:
     resolution: {integrity: sha512-/RpmvKdxKf8uILTtoOhAgf30wYbP2Qw+L9p3Rvshx1JZVX+XQNZQFjlbmGHEGIm4CkVPlSn+NXmIM8+9oWQaSA==}
 
-  playwright-core@1.44.0:
-    resolution: {integrity: sha512-ZTbkNpFfYcGWohvTTl+xewITm7EOuqIqex0c7dNZ+aXsbrLj0qI8XlGKfPpipjm0Wny/4Lt4CJsWJk1stVS5qQ==}
+  playwright-core@1.44.1:
+    resolution: {integrity: sha512-wh0JWtYTrhv1+OSsLPgFzGzt67Y7BE/ZS3jEqgGBlp2ppp1ZDj8c+9IARNW4dwf1poq5MgHreEM2KV/GuR4cFA==}
     engines: {node: '>=16'}
     hasBin: true
 
-  playwright@1.44.0:
-    resolution: {integrity: sha512-F9b3GUCLQ3Nffrfb6dunPOkE5Mh68tR7zN32L4jCk4FjQamgesGay7/dAAe1WaMEGV04DkdJfcJzjoCKygUaRQ==}
+  playwright@1.44.1:
+    resolution: {integrity: sha512-qr/0UJ5CFAtloI3avF95Y0L1xQo6r3LQArLIg/z/PoGJ6xa+EwzrwO5lpNr/09STxdHuUoP2mvuELJS+hLdtgg==}
     engines: {node: '>=16'}
     hasBin: true
 
@@ -2156,14 +2156,14 @@ snapshots:
     dependencies:
       undici-types: 5.26.5
 
-  '@vitest/browser@1.6.0(playwright@1.44.0)(vitest@1.6.0)':
+  '@vitest/browser@1.6.0(playwright@1.44.1)(vitest@1.6.0)':
     dependencies:
       '@vitest/utils': 1.6.0
       magic-string: 0.30.10
       sirv: 2.0.4
       vitest: 1.6.0(@types/node@20.12.12)(@vitest/browser@1.6.0)(@vitest/ui@1.6.0)
     optionalDependencies:
-      playwright: 1.44.0
+      playwright: 1.44.1
 
   '@vitest/coverage-v8@1.6.0(vitest@1.6.0(@types/node@20.12.12)(@vitest/browser@1.6.0)(@vitest/ui@1.6.0))':
     dependencies:
@@ -2925,11 +2925,11 @@ snapshots:
       mlly: 1.7.0
       pathe: 1.1.2
 
-  playwright-core@1.44.0: {}
+  playwright-core@1.44.1: {}
 
-  playwright@1.44.0:
+  playwright@1.44.1:
     dependencies:
-      playwright-core: 1.44.0
+      playwright-core: 1.44.1
     optionalDependencies:
       fsevents: 2.3.2
 
@@ -3252,7 +3252,7 @@ snapshots:
       why-is-node-running: 2.2.2
     optionalDependencies:
       '@types/node': 20.12.12
-      '@vitest/browser': 1.6.0(playwright@1.44.0)(vitest@1.6.0)
+      '@vitest/browser': 1.6.0(playwright@1.44.1)(vitest@1.6.0)
       '@vitest/ui': 1.6.0(vitest@1.6.0)
     transitivePeerDependencies:
       - less

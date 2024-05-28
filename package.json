@@ -37,7 +37,7 @@
     "knip": "^5.17.2",
     "lint-staged": "^15.2.2",
     "markdownlint-cli2": "^0.13.0",
-    "playwright": "^1.44.0",
+    "playwright": "^1.44.1",
     "rimraf": "^5.0.7",
     "typescript": "^5.4.5",
     "vite": "^5.2.11",
