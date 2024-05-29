@@ -1,10 +1,9 @@
 use auto_palette::color;
 
-/// The color type for the terminal.
+/// The color mode for the terminal.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ColorType {
+pub enum ColorMode {
     /// The 4-bit ANSI color.
-    #[allow(dead_code)]
     Ansi16(color::Ansi16),
     /// The 8-bit ANSI color.
     Ansi256(color::Ansi256),
@@ -14,7 +13,7 @@ pub enum ColorType {
     NoColor,
 }
 
-impl ColorType {
+impl ColorMode {
     /// Returns the ANSI color code for background.
     ///
     /// # Returns
@@ -54,31 +53,31 @@ mod tests {
 
     #[test]
     fn test_bg_code() {
-        let color = ColorType::Ansi16(Ansi16::bright_blue());
+        let color = ColorMode::Ansi16(Ansi16::bright_blue());
         assert_eq!(color.bg_code(), "104");
 
-        let color = ColorType::Ansi256(Ansi256::new(33));
+        let color = ColorMode::Ansi256(Ansi256::new(33));
         assert_eq!(color.bg_code(), "48;5;33");
 
-        let color = ColorType::TrueColor(RGB::new(0, 102, 255));
+        let color = ColorMode::TrueColor(RGB::new(0, 102, 255));
         assert_eq!(color.bg_code(), "48;2;0;102;255");
 
-        let color = ColorType::NoColor;
+        let color = ColorMode::NoColor;
         assert_eq!(color.bg_code(), "49");
     }
 
     #[test]
     fn test_fg_code() {
-        let color = ColorType::Ansi16(Ansi16::bright_blue());
+        let color = ColorMode::Ansi16(Ansi16::bright_blue());
         assert_eq!(color.fg_code(), "94");
 
-        let color = ColorType::Ansi256(Ansi256::new(33));
+        let color = ColorMode::Ansi256(Ansi256::new(33));
         assert_eq!(color.fg_code(), "38;5;33");
 
-        let color = ColorType::TrueColor(RGB::new(0, 102, 255));
+        let color = ColorMode::TrueColor(RGB::new(0, 102, 255));
         assert_eq!(color.fg_code(), "38;2;0;102;255");
 
-        let color = ColorType::NoColor;
+        let color = ColorMode::NoColor;
         assert_eq!(color.fg_code(), "39");
     }
 }

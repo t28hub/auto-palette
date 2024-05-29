@@ -1,10 +1,20 @@
 use std::{process, time::Instant};
 
-use auto_palette::{FloatNumber, ImageData, Palette};
+use auto_palette::{
+    color::{Ansi16, Color},
+    FloatNumber,
+    ImageData,
+    Palette,
+};
 use clap::Parser;
 use image::{self, imageops::FilterType};
 
-use crate::{args::Options, color::ColorType, env::Env, style::styled};
+use crate::{
+    args::Options,
+    color::ColorMode,
+    env::Env,
+    style::{style, Style},
+};
 
 mod args;
 mod color;
@@ -48,37 +58,24 @@ fn main() {
         process::exit(1);
     };
 
-    let env = Env::new();
+    let env = Env::init();
     let swatches = options.theme.map_or_else(
         || palette.find_swatches(options.count),
         |theme| palette.find_swatches_with_theme(options.count, theme.into()),
     );
     for swatch in swatches {
         let color = swatch.color();
-        let color_string = options.color.as_string(color);
-        let styled_color = match (env.is_truecolor_enabled(), env.is_color_disabled()) {
-            (true, false) => {
-                let rgb = swatch.color().to_rgb();
-                styled(color_string)
-                    .bold()
-                    .background(ColorType::TrueColor(rgb))
-            }
-            (false, false) => {
-                let ansi256 = swatch.color().to_ansi256();
-                styled(color_string)
-                    .bold()
-                    .background(ColorType::Ansi256(ansi256))
-            }
-            _ => styled(color_string)
-                .bold()
-                .color(ColorType::NoColor)
-                .background(ColorType::NoColor),
-        };
+        let style = colored(color, &env).bold().color(if color.is_light() {
+            ColorMode::Ansi16(Ansi16::black())
+        } else {
+            ColorMode::Ansi16(Ansi16::white())
+        });
+        let styled = style.apply(options.color.as_string(color));
 
         let (x, y) = swatch.position();
         let unscaled_x = (x as f64 / scale).to_u32_unsafe();
         let unscaled_y = (y as f64 / scale).to_u32_unsafe();
-        println!("{} ({}, {})", styled_color, unscaled_x, unscaled_y);
+        println!("{} ({}, {})", styled, unscaled_x, unscaled_y);
     }
     println!(
         "Extracted {} swatch(es) in {}.{:03} seconds",
@@ -86,4 +83,32 @@ fn main() {
         instant.elapsed().as_secs(),
         instant.elapsed().subsec_millis()
     );
+}
+
+#[inline]
+#[must_use]
+fn colored<T>(color: &Color<T>, env: &Env) -> Style
+where
+    T: FloatNumber,
+{
+    if env.no_color.as_deref().is_some() {
+        return style()
+            .color(ColorMode::NoColor)
+            .background(ColorMode::NoColor);
+    }
+
+    match env.colorterm.as_deref() {
+        Some("truecolor") | Some("24bit") => {
+            let rgb = color.to_rgb();
+            style().background(ColorMode::TrueColor(rgb))
+        }
+        Some("8bit") => {
+            let ansi256 = color.to_ansi256();
+            style().background(ColorMode::Ansi256(ansi256))
+        }
+        _ => {
+            let ansi16 = color.to_ansi16();
+            style().background(ColorMode::Ansi16(ansi16))
+        }
+    }
 }
