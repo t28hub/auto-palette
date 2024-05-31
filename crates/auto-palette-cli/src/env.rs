@@ -1,7 +1,7 @@
 use std::env;
 
 /// The environment variables.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Env {
     pub colorterm: Option<String>,
     pub no_color: Option<String>,
