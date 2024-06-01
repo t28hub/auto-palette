@@ -1,33 +1,34 @@
 use std::{process, time::Instant};
 
-use auto_palette::{
-    color::{Ansi16, Color},
-    FloatNumber,
-    ImageData,
-    Palette,
-};
+use auto_palette::{color::Color, Algorithm, FloatNumber, ImageData, Palette, Theme};
 use clap::Parser;
 use image::{self, imageops::FilterType};
 
 use crate::{
-    args::Options,
+    args::{Options, OutputFormat},
     color::ColorMode,
+    context::Context,
     env::Env,
+    output::{Printer, TablePrinter, TextPrinter},
     style::{style, Style},
+    table::Table,
 };
 
 mod args;
 mod color;
+mod context;
 mod env;
+mod output;
 mod style;
+mod table;
 
 const MAX_IMAGE_WIDTH: f64 = 360.0;
 const MAX_IMAGE_HEIGHT: f64 = 360.0;
 
 fn main() {
-    let options = Options::parse();
-    let Ok(image) = image::open(&options.path) else {
-        eprintln!("Failed to open the image file {:?}", options.path);
+    let context = Context::new(Options::parse(), Env::init());
+    let Ok(image) = image::open(&context.args().path) else {
+        eprintln!("Failed to open the image file {:?}", context.args().path);
         process::exit(1);
     };
 
@@ -38,7 +39,7 @@ fn main() {
         MAX_IMAGE_HEIGHT / image_height,
     );
 
-    let resized = if options.no_resize {
+    let resized = if context.args().no_resize {
         image
     } else {
         image.resize_exact(
@@ -53,30 +54,49 @@ fn main() {
     };
 
     let instant = Instant::now();
-    let Ok(palette) = Palette::<f32>::extract_with_algorithm(&image_data, options.algorithm.into())
-    else {
+    let algorithm = Algorithm::from(context.args().algorithm);
+    let Ok(palette) = Palette::<f32>::extract_with_algorithm(&image_data, algorithm) else {
         process::exit(1);
     };
 
-    let env = Env::init();
-    let swatches = options.theme.map_or_else(
-        || palette.find_swatches(options.count),
-        |theme| palette.find_swatches_with_theme(options.count, theme.into()),
+    let swatches = context.args().theme.map_or_else(
+        || palette.find_swatches(context.args().count),
+        |option| {
+            let theme = Theme::from(option);
+            palette.find_swatches_with_theme(context.args().count, theme)
+        },
     );
+    let mut table = Table::new();
+    table
+        .add_column("Color")
+        .add_column("Position")
+        .add_column("Population");
     for swatch in swatches {
+        let mut row = vec![];
         let color = swatch.color();
-        let style = colored(color, &env).bold().color(if color.is_light() {
-            ColorMode::Ansi16(Ansi16::black())
-        } else {
-            ColorMode::Ansi16(Ansi16::white())
-        });
-        let styled = style.apply(options.color.as_string(color));
+        let style = colored(color, context.env());
+        println!("{}", style.apply("  "));
+        row.push(context.args().color.as_string(color));
 
         let (x, y) = swatch.position();
-        let unscaled_x = (x as f64 / scale).to_u32_unsafe();
-        let unscaled_y = (y as f64 / scale).to_u32_unsafe();
-        println!("{} ({}, {})", styled, unscaled_x, unscaled_y);
+        let unscaled_x = (x as f64 / scale) as u32;
+        let unscaled_y = (y as f64 / scale) as u32;
+        row.push(format!("({}, {})", unscaled_x, unscaled_y));
+
+        let population = swatch.population();
+        row.push(format!("{}", population));
+        table.add_row(&row);
     }
+
+    match context.args().output {
+        OutputFormat::Text => {
+            TextPrinter.print(&table, &mut std::io::stdout()).unwrap();
+        }
+        OutputFormat::Table => {
+            TablePrinter.print(&table, &mut std::io::stdout()).unwrap();
+        }
+    };
+
     println!(
         "Extracted {} swatch(es) in {}.{:03} seconds",
         palette.len(),

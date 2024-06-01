@@ -4,7 +4,7 @@ use auto_palette::{color::Color, Algorithm, FloatNumber, Theme};
 use clap::{crate_authors, crate_description, crate_version, Parser, ValueEnum, ValueHint};
 
 /// The command line options for the `auto-palette` command.
-#[derive(Debug, Parser)]
+#[derive(Debug, PartialEq, Eq, Parser)]
 #[command(
     name = "auto-palette",
     bin_name = "auto-palette",
@@ -59,10 +59,21 @@ pub struct Options {
         value_name = "name",
         value_enum,
         help = "Output color space for the extracted colors",
-        default_value_t = ColorOption::default(),
+        default_value_t = ColorFormat::default(),
         ignore_case = true,
     )]
-    pub color: ColorOption,
+    pub color: ColorFormat,
+
+    #[arg(
+        long,
+        short = 'o',
+        value_name = "name",
+        value_enum,
+        help = "Output format for the extracted colors",
+        default_value_t = OutputFormat::default(),
+        ignore_case = true,
+    )]
+    pub output: OutputFormat,
 
     #[arg(
         long,
@@ -73,7 +84,7 @@ pub struct Options {
 }
 
 /// The algorithm options for extracting the color palette from the image.
-#[derive(Debug, Default, Copy, Clone, ValueEnum)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, ValueEnum)]
 pub enum AlgorithmOption {
     #[default]
     #[clap(
@@ -104,7 +115,7 @@ impl From<AlgorithmOption> for Algorithm {
 }
 
 /// The theme options for selecting the swatches from the extracted color palette.
-#[derive(Debug, Copy, Clone, ValueEnum)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum)]
 pub enum ThemeOption {
     #[clap(
         name = "basic",
@@ -134,8 +145,8 @@ impl From<ThemeOption> for Theme {
 }
 
 /// The color space options for the extracted colors.
-#[derive(Debug, Default, Copy, Clone, ValueEnum)]
-pub enum ColorOption {
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, ValueEnum)]
+pub enum ColorFormat {
     #[default]
     #[clap(name = "hex", help = "Hexadecimal color representation")]
     Hex,
@@ -161,7 +172,7 @@ pub enum ColorOption {
     Xyz,
 }
 
-impl ColorOption {
+impl ColorFormat {
     /// Returns the string representation of the color space for the given color.
     ///
     /// # Arguments
@@ -174,7 +185,7 @@ impl ColorOption {
     where
         T: FloatNumber,
     {
-        match self {
+        match *self {
             Self::Hex => color.to_hex_string(),
             Self::Rgb => color.to_rgb().to_string(),
             Self::Hsl => color.to_hsl().to_string(),
@@ -188,4 +199,13 @@ impl ColorOption {
             Self::Xyz => color.to_xyz().to_string(),
         }
     }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq, ValueEnum)]
+pub enum OutputFormat {
+    #[default]
+    #[clap(name = "text", help = "Text output format")]
+    Text,
+    #[clap(name = "table", help = "Table output format")]
+    Table,
 }
