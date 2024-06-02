@@ -5,7 +5,7 @@ use clap::{crate_authors, crate_description, crate_version, Parser, ValueEnum, V
 
 use crate::{
     context::Context,
-    output::{Printer, TablePrinter, TextPrinter},
+    output::{JsonPrinter, Printer, TablePrinter, TextPrinter},
 };
 
 /// The command line options for the `auto-palette` command.
@@ -208,6 +208,8 @@ impl ColorFormat {
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, ValueEnum)]
 pub enum OutputFormat {
+    #[clap(name = "json", help = "JSON output format")]
+    Json,
     #[default]
     #[clap(name = "text", help = "Text output format")]
     Text,
@@ -229,6 +231,7 @@ impl OutputFormat {
         T: FloatNumber,
     {
         match *self {
+            OutputFormat::Json => JsonPrinter::new(context).print(swatches, &mut std::io::stdout()),
             OutputFormat::Text => TextPrinter::new(context).print(swatches, &mut std::io::stdout()),
             OutputFormat::Table => {
                 TablePrinter::new(context).print(swatches, &mut std::io::stdout())

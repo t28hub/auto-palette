@@ -26,6 +26,36 @@ impl<'a> TextPrinter<'a> {
 
     #[inline]
     #[must_use]
+    fn swatch_to_text<T>(&self, swatch: &Swatch<T>, widths: &[usize]) -> String
+    where
+        T: FloatNumber,
+    {
+        let color_mode = self.color_mode(swatch.color());
+        let sample_str = if color_mode == ColorMode::NoColor {
+            "".to_string()
+        } else {
+            let styled = style().background(color_mode).apply("  ");
+            format!("{} ", styled)
+        };
+
+        let color_format = self.context.args().color;
+        let color = color_format.fmt(swatch.color());
+        let color_str = format!("{:<width$}", color, width = widths[0]);
+
+        let (x, y) = swatch.position();
+        let position_str = format!("({}, {})", x, y);
+
+        let population = swatch.population();
+        let population_str = format!("{:<width$}", population, width = widths[2]);
+
+        format!(
+            "{}{} {} {}",
+            sample_str, color_str, position_str, population_str
+        )
+    }
+
+    #[inline]
+    #[must_use]
     fn color_mode<T>(&self, color: &Color<T>) -> ColorMode
     where
         T: FloatNumber,
@@ -75,29 +105,9 @@ impl<'a> Printer for TextPrinter<'a> {
             ]
         });
 
-        let color_format = self.context.args().color;
         for swatch in swatches {
-            // Write the sample color of the swatch.
-            let color_mode = self.color_mode(swatch.color());
-            if color_mode != ColorMode::NoColor {
-                let styled = style().background(color_mode).apply("  ");
-                let sample = format!("{}", styled);
-                write!(writer, "{} ", sample)?;
-            }
-
-            // Write the color of the swatch.
-            let color = color_format.fmt(swatch.color());
-            write!(writer, "{:<width$} ", color, width = widths[0])?;
-
-            // Write the position of the swatch.
-            let (x, y) = swatch.position();
-            let position = format!("({}, {})", x, y);
-            write!(writer, "{:<width$} ", position, width = widths[1])?;
-
-            // Write the population of the swatch.
-            let population = swatch.population();
-            write!(writer, "{:<width$}", population, width = widths[2])?;
-            writeln!(writer)?;
+            let text = self.swatch_to_text(swatch, &widths);
+            writeln!(writer, "{}", text)?;
         }
         writer.flush()
     }
