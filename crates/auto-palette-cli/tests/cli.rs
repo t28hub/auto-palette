@@ -18,6 +18,7 @@ fn test_cli() {
         .arg("dbscan")
         .arg("--count")
         .arg("6")
+        .arg("--no-resize")
         .assert()
         .stdout(
             predicate::str::contains("#FFFFFF")

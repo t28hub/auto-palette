@@ -1,7 +1,12 @@
-use std::path::PathBuf;
+use std::{io::Error, path::PathBuf};
 
-use auto_palette::{color::Color, Algorithm, FloatNumber, Theme};
+use auto_palette::{color::Color, Algorithm, FloatNumber, Swatch, Theme};
 use clap::{crate_authors, crate_description, crate_version, Parser, ValueEnum, ValueHint};
+
+use crate::{
+    context::Context,
+    output::{Printer, TablePrinter, TextPrinter},
+};
 
 /// The command line options for the `auto-palette` command.
 #[derive(Debug, PartialEq, Eq, Parser)]
@@ -15,7 +20,7 @@ use clap::{crate_authors, crate_description, crate_version, Parser, ValueEnum, V
 )]
 pub struct Options {
     #[arg(
-        value_name = "IMAGE",
+        value_name = "PATH",
         help = "Path to the image file.",
         long_help = "Path to the image file. Supported formats include PNG, JPEG, GIF, BMP, ICO, and TIFF.",
         required = true,
@@ -39,7 +44,7 @@ pub struct Options {
         short = 't',
         value_name = "name",
         value_enum,
-        help = "Theme for selecting the swatches from the extracted color palette",
+        help = "Theme for selecting the swatches.",
         ignore_case = true
     )]
     pub theme: Option<ThemeOption>,
@@ -48,7 +53,7 @@ pub struct Options {
         long,
         short = 'n',
         value_name = "number",
-        help = "Number of prominent colors to select from the extracted color palette.",
+        help = "Number of colors to extract.",
         default_value = "5"
     )]
     pub count: usize,
@@ -58,7 +63,7 @@ pub struct Options {
         short = 'c',
         value_name = "name",
         value_enum,
-        help = "Output color space for the extracted colors",
+        help = "Output color format.",
         default_value_t = ColorFormat::default(),
         ignore_case = true,
     )]
@@ -69,7 +74,7 @@ pub struct Options {
         short = 'o',
         value_name = "name",
         value_enum,
-        help = "Output format for the extracted colors",
+        help = "Output format.",
         default_value_t = OutputFormat::default(),
         ignore_case = true,
     )]
@@ -181,7 +186,7 @@ impl ColorFormat {
     /// # Returns
     /// The string representation of the color space.
     #[must_use]
-    pub fn as_string<T>(&self, color: &Color<T>) -> String
+    pub fn fmt<T>(&self, color: &Color<T>) -> String
     where
         T: FloatNumber,
     {
@@ -208,4 +213,26 @@ pub enum OutputFormat {
     Text,
     #[clap(name = "table", help = "Table output format")]
     Table,
+}
+
+impl OutputFormat {
+    /// Prints the swatches in the given output format.
+    ///
+    /// # Arguments
+    /// * `context` - The context for the command line application.
+    /// * `swatches` - The swatches to print.
+    ///
+    /// # Returns
+    /// The result of the operation.
+    pub fn print<T>(&self, context: &Context, swatches: &[Swatch<T>]) -> Result<(), Error>
+    where
+        T: FloatNumber,
+    {
+        match *self {
+            OutputFormat::Text => TextPrinter::new(context).print(swatches, &mut std::io::stdout()),
+            OutputFormat::Table => {
+                TablePrinter::new(context).print(swatches, &mut std::io::stdout())
+            }
+        }
+    }
 }
