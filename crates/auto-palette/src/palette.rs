@@ -101,27 +101,7 @@ where
     /// The swatches in the palette.
     #[must_use]
     pub fn find_swatches(&self, n: usize) -> Vec<Swatch<T>> {
-        let Some(max_population) = self
-            .swatches
-            .first()
-            .map(|swatch| T::from_usize(swatch.population()))
-        else {
-            return Vec::new();
-        };
-
-        let mut colors = Vec::with_capacity(self.swatches.len());
-        let mut weights = Vec::with_capacity(self.swatches.len());
-        for swatch in &self.swatches {
-            let color = swatch.color();
-            colors.push([color.l, color.a, color.b]);
-
-            let weight = T::from_usize(swatch.population()) / max_population;
-            weights.push(weight);
-        }
-
-        let mut swatches = self.find_swatches_with_weights(n, colors, weights);
-        swatches.sort_by_key(|swatch| Reverse(swatch.population()));
-        swatches
+        self.find_swatches_with_theme(n, Theme::default())
     }
 
     /// Finds the swatches in the palette based on the theme.
@@ -140,7 +120,7 @@ where
             let color = swatch.color();
             colors.push([color.l, color.a, color.b]);
 
-            let weight = theme.score(color);
+            let weight = theme.score(swatch);
             weights.push(weight);
         }
 
@@ -313,6 +293,7 @@ where
                 Color::new(l, a, b),
                 best_position,
                 total_population,
+                T::from_usize(total_population) / (width * height),
             ));
             acc
         })
@@ -332,12 +313,42 @@ mod tests {
         T: FloatNumber,
     {
         vec![
-            Swatch::new(Color::from_str("#FFFFFF").unwrap(), (159, 106), 61228),
-            Swatch::new(Color::from_str("#EE334E").unwrap(), (238, 89), 1080),
-            Swatch::new(Color::from_str("#0081C8").unwrap(), (82, 88), 1064),
-            Swatch::new(Color::from_str("#00A651").unwrap(), (197, 123), 1037),
-            Swatch::new(Color::from_str("#000000").unwrap(), (157, 95), 1036),
-            Swatch::new(Color::from_str("#FCB131").unwrap(), (119, 123), 1005),
+            Swatch::new(
+                Color::from_str("#FFFFFF").unwrap(),
+                (159, 106),
+                61228,
+                T::from_f64(0.9214),
+            ),
+            Swatch::new(
+                Color::from_str("#EE334E").unwrap(),
+                (238, 89),
+                1080,
+                T::from_f64(0.0163),
+            ),
+            Swatch::new(
+                Color::from_str("#0081C8").unwrap(),
+                (82, 88),
+                1064,
+                T::from_f64(0.0160),
+            ),
+            Swatch::new(
+                Color::from_str("#00A651").unwrap(),
+                (197, 123),
+                1037,
+                T::from_f64(0.0156),
+            ),
+            Swatch::new(
+                Color::from_str("#000000").unwrap(),
+                (157, 95),
+                1036,
+                T::from_f64(0.0156),
+            ),
+            Swatch::new(
+                Color::from_str("#FCB131").unwrap(),
+                (119, 123),
+                1005,
+                T::from_f64(0.0151),
+            ),
         ]
     }
 
@@ -353,9 +364,9 @@ mod tests {
     fn test_new() {
         // Act
         let swatches = vec![
-            Swatch::<f32>::new(Color::from_str("#FFFFFF").unwrap(), (5, 10), 256),
-            Swatch::<f32>::new(Color::from_str("#C8102E").unwrap(), (15, 20), 128),
-            Swatch::<f32>::new(Color::from_str("#012169").unwrap(), (30, 30), 64),
+            Swatch::<f32>::new(Color::from_str("#FFFFFF").unwrap(), (5, 10), 256, 0.5714),
+            Swatch::<f32>::new(Color::from_str("#C8102E").unwrap(), (15, 20), 128, 0.2857),
+            Swatch::<f32>::new(Color::from_str("#012169").unwrap(), (30, 30), 64, 0.1429),
         ];
         let actual = Palette::new(swatches.clone());
 
@@ -449,7 +460,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case::basic(Theme::Basic, vec ! ["#0081C8", "#FCB131"])]
+    #[case::basic(Theme::Basic, vec ! ["#FFFFFF", "#000000"])]
+    #[case::colorful(Theme::Colorful, vec ! ["#0081C8", "#FCB131"])]
     #[case::vivid(Theme::Vivid, vec ! ["#EE334E", "#00A651"])]
     #[case::muted(Theme::Muted, vec ! ["#FFFFFF", "#000000"])]
     #[case::light(Theme::Light, vec ! ["#FFFFFF", "#FCB131"])]

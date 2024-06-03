@@ -124,9 +124,11 @@ impl From<AlgorithmOption> for Algorithm {
 pub enum ThemeOption {
     #[clap(
         name = "basic",
-        help = "A general-purpose theme suitable for a wide range of images."
+        help = "Prioritize high population swatches. Ideal for selecting the most common colors."
     )]
     Basic,
+    #[clap(name = "colorful", help = "Prioritize colorful colors.")]
+    Colorful,
     #[clap(name = "vivid", help = "Prioritize saturated colors.")]
     Vivid,
     #[clap(name = "muted", help = "Prioritize desaturated colors.")]
@@ -141,6 +143,7 @@ impl From<ThemeOption> for Theme {
     fn from(option: ThemeOption) -> Self {
         match option {
             ThemeOption::Basic => Theme::Basic,
+            ThemeOption::Colorful => Theme::Colorful,
             ThemeOption::Vivid => Theme::Vivid,
             ThemeOption::Muted => Theme::Muted,
             ThemeOption::Light => Theme::Light,

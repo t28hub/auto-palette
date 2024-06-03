@@ -56,7 +56,7 @@ mod tests {
     fn test_color() {
         // Arrange
         let color = Color::from_str("#149972").unwrap();
-        let swatch = Swatch::new(color.clone(), (128, 32), 384);
+        let swatch = Swatch::new(color.clone(), (128, 32), 384, 0.25);
         let wrapper = SwatchWrapper(swatch);
 
         // Act
@@ -69,7 +69,7 @@ mod tests {
     #[wasm_bindgen_test]
     fn test_position() {
         let color = Color::from_str("#149972").unwrap();
-        let swatch = Swatch::new(color.clone(), (128, 32), 384);
+        let swatch = Swatch::new(color.clone(), (128, 32), 384, 0.25);
         let wrapper = SwatchWrapper(swatch);
 
         // Act
@@ -83,7 +83,7 @@ mod tests {
     fn test_population() {
         // Arrange
         let color = Color::from_str("#149972").unwrap();
-        let swatch = Swatch::new(color, (128, 32), 384);
+        let swatch = Swatch::new(color, (128, 32), 384, 0.25);
         let wrapper = SwatchWrapper(swatch);
 
         // Act
