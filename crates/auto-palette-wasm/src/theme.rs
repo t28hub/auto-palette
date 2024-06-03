@@ -35,6 +35,8 @@ mod tests {
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
     #[rstest]
+    #[case::basic("basic", Theme::Basic)]
+    #[case::colorful("colorful", Theme::Colorful)]
     #[case::vivid("vivid", Theme::Vivid)]
     #[case::muted("muted", Theme::Muted)]
     #[case::light("light", Theme::Light)]

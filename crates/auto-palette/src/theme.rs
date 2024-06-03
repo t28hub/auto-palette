@@ -4,9 +4,10 @@ use crate::{
     color::Color,
     math::{normalize, FloatNumber},
     Error,
+    Swatch,
 };
 
-/// The theme representation for selecting colors.
+/// The theme representation for selecting the swatches.
 ///
 /// # Examples
 /// ```
@@ -17,40 +18,53 @@ use crate::{
 /// let theme = Theme::from_str("basic").unwrap();
 /// assert_eq!(format!("{}", theme), "Basic");
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub enum Theme {
-    /// Basic theme.
+    /// The theme selects the swatches based on the population.
+    /// The high population swatches are preferred.
+    #[default]
     Basic,
-    /// Vivid theme.
+    /// The theme selects the swatches based on the population and the lightness.
+    /// The high population swatches are preferred.
+    Colorful,
+    /// The theme selects the swatches based on the chroma.
+    /// The saturated colors are preferred.
     Vivid,
-    /// Muted theme.
+    /// The theme selects the swatches based on the chroma.
+    /// The desaturated colors are preferred.
     Muted,
-    /// Light theme.
+    /// The theme selects the swatches based on the lightness.
+    /// The light colors are preferred.
     Light,
-    /// Dark theme.
+    /// The theme selects the swatches based on the lightness.
+    /// The dark colors are preferred.
     Dark,
 }
 
 impl Theme {
-    /// Scores the given color based on the theme.
+    /// Scores the swatch based on the theme.
+    ///
+    /// # Type Parameters
+    /// * `T` - The float number type.
     ///
     /// # Arguments
-    /// * `color` - The color to score.
+    /// * `swatch` - The swatch to score.
     ///
     /// # Returns
-    /// The score of the color.
+    /// The score of the swatch.
     #[inline]
     #[must_use]
-    pub(crate) fn score<T>(&self, color: &Color<T>) -> T
+    pub(crate) fn score<T>(&self, swatch: &Swatch<T>) -> T
     where
         T: FloatNumber,
     {
         match self {
-            Theme::Basic => score_basic(color),
-            Theme::Vivid => score_vivid(color),
-            Theme::Muted => score_muted(color),
-            Theme::Light => score_light(color),
-            Theme::Dark => score_dark(color),
+            Theme::Basic => score_basic(swatch),
+            Theme::Colorful => score_colorful(swatch),
+            Theme::Vivid => score_vivid(swatch),
+            Theme::Muted => score_muted(swatch),
+            Theme::Light => score_light(swatch),
+            Theme::Dark => score_dark(swatch),
         }
     }
 }
@@ -61,6 +75,7 @@ impl FromStr for Theme {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "basic" => Ok(Theme::Basic),
+            "colorful" => Ok(Theme::Colorful),
             "vivid" => Ok(Theme::Vivid),
             "muted" => Ok(Theme::Muted),
             "light" => Ok(Theme::Light),
@@ -73,23 +88,44 @@ impl FromStr for Theme {
 }
 
 #[inline]
-fn score_basic<T>(color: &Color<T>) -> T
+fn score_basic<T>(swatch: &Swatch<T>) -> T
 where
     T: FloatNumber,
 {
+    swatch.ratio()
+}
+
+#[inline]
+fn score_colorful<T>(swatch: &Swatch<T>) -> T
+where
+    T: FloatNumber,
+{
+    let color = swatch.color();
     let lightness = color.lightness();
-    if lightness <= T::from_u32(25) || lightness >= T::from_u32(85) {
+    // Ignore the dark and light colors.
+    if lightness <= T::from_u32(15) || lightness >= T::from_u32(85) {
         T::zero()
     } else {
-        T::one()
+        let score_chroma = normalize(
+            color.chroma(),
+            Color::<T>::min_chroma(),
+            Color::<T>::max_chroma(),
+        );
+        let score_lightness = normalize(
+            lightness,
+            Color::<T>::min_lightness(),
+            Color::<T>::max_lightness(),
+        );
+        swatch.ratio() * score_chroma * score_lightness
     }
 }
 
 #[inline]
-fn score_vivid<T>(color: &Color<T>) -> T
+fn score_vivid<T>(swatch: &Swatch<T>) -> T
 where
     T: FloatNumber,
 {
+    let color = swatch.color();
     let chroma = color.chroma();
     if chroma <= T::from_u32(60) {
         T::zero()
@@ -99,10 +135,11 @@ where
 }
 
 #[inline]
-fn score_muted<T>(color: &Color<T>) -> T
+fn score_muted<T>(swatch: &Swatch<T>) -> T
 where
     T: FloatNumber,
 {
+    let color = swatch.color();
     let chroma = color.chroma();
     if chroma <= T::from_u32(60) {
         T::one() - normalize(chroma, Color::<T>::min_chroma(), Color::<T>::max_chroma())
@@ -112,10 +149,11 @@ where
 }
 
 #[inline]
-fn score_light<T>(color: &Color<T>) -> T
+fn score_light<T>(swatch: &Swatch<T>) -> T
 where
     T: FloatNumber,
 {
+    let color = swatch.color();
     if color.is_light() {
         normalize(
             color.lightness(),
@@ -128,10 +166,11 @@ where
 }
 
 #[inline]
-fn score_dark<T>(color: &Color<T>) -> T
+fn score_dark<T>(swatch: &Swatch<T>) -> T
 where
     T: FloatNumber,
 {
+    let color = swatch.color();
     if color.is_dark() {
         T::one()
             - normalize(
@@ -153,19 +192,40 @@ mod tests {
     use super::*;
 
     #[rstest]
+    #[case::black("#000000")]
+    #[case::gray("#808080")]
+    #[case::white("#ffffff")]
+    #[case::red("#ff0000")]
+    #[case::green("#00ff00")]
+    #[case::blue("#0000ff")]
+    #[case::yellow("#ffff00")]
+    #[case::cyan("#00ffff")]
+    #[case::magenta("#ff00ff")]
+    fn test_score_basic(#[case] hex: &str) {
+        // Act
+        let color: Color<f64> = Color::from_str(hex).unwrap();
+        let swatch = Swatch::new(color, (32, 64), 256, 0.5);
+        let score = Theme::Basic.score(&swatch);
+
+        // Assert
+        assert_eq!(score, swatch.ratio());
+    }
+
+    #[rstest]
     #[case::black("#000000", 0.0)]
-    #[case::gray("#808080", 1.0)]
+    #[case::gray("#808080", 0.0)]
     #[case::white("#ffffff", 0.0)]
-    #[case::red("#ff0000", 1.0)]
+    #[case::red("#ff0000", 0.155)]
     #[case::green("#00ff00", 0.0)]
-    #[case::blue("#0000ff", 1.0)]
+    #[case::blue("#0000ff", 0.120)]
     #[case::yellow("#ffff00", 0.0)]
     #[case::cyan("#00ffff", 0.0)]
-    #[case::magenta("#ff00ff", 1.0)]
-    fn test_score_basic(#[case] hex: &str, #[case] expected: f32) {
+    #[case::magenta("#ff00ff", 0.194)]
+    fn test_score_colorful(#[case] hex: &str, #[case] expected: f64) {
         // Act
-        let color: Color<f32> = Color::from_str(hex).unwrap();
-        let score = Theme::Basic.score(&color);
+        let color: Color<f64> = Color::from_str(hex).unwrap();
+        let swatch = Swatch::new(color, (32, 64), 256, 0.5);
+        let score = Theme::Colorful.score(&swatch);
 
         // Assert
         assert!((score - expected).abs() < 1e-3);
@@ -184,10 +244,11 @@ mod tests {
     #[case::orange("#ff8000", 0.475)]
     #[case::purple("#8000ff", 0.694)]
     #[case::lime("#80ff00", 0.607)]
-    fn test_score_vivid(#[case] hex: &str, #[case] expected: f32) {
+    fn test_score_vivid(#[case] hex: &str, #[case] expected: f64) {
         // Act
-        let color: Color<f32> = Color::from_str(hex).unwrap();
-        let score = Theme::Vivid.score(&color);
+        let color: Color<f64> = Color::from_str(hex).unwrap();
+        let swatch = Swatch::new(color, (32, 64), 256, 0.5);
+        let score = Theme::Vivid.score(&swatch);
 
         // Assert
         assert!((score - expected).abs() < 1e-3);
@@ -206,10 +267,11 @@ mod tests {
     #[case::orange("#ff8000", 0.0)]
     #[case::purple("#8000ff", 0.0)]
     #[case::lime("#80ff00", 0.0)]
-    fn test_score_muted(#[case] hex: &str, #[case] expected: f32) {
+    fn test_score_muted(#[case] hex: &str, #[case] expected: f64) {
         // Act
-        let color: Color<f32> = Color::from_str(hex).unwrap();
-        let score = Theme::Muted.score(&color);
+        let color: Color<f64> = Color::from_str(hex).unwrap();
+        let swatch = Swatch::new(color, (32, 64), 256, 0.5);
+        let score = Theme::Muted.score(&swatch);
 
         // Assert
         assert!((score - expected).abs() < 1e-3);
@@ -225,10 +287,11 @@ mod tests {
     #[case::yellow("#ffff00", 0.971)]
     #[case::cyan("#00ffff", 0.911)]
     #[case::magenta("#ff00ff", 0.603)]
-    fn test_score_light(#[case] hex: &str, #[case] expected: f32) {
+    fn test_score_light(#[case] hex: &str, #[case] expected: f64) {
         // Act
-        let color: Color<f32> = Color::from_str(hex).unwrap();
-        let score = Theme::Light.score(&color);
+        let color: Color<f64> = Color::from_str(hex).unwrap();
+        let swatch = Swatch::new(color, (32, 64), 256, 0.5);
+        let score = Theme::Light.score(&swatch);
 
         // Assert
         assert!((score - expected).abs() < 1e-3);
@@ -244,10 +307,11 @@ mod tests {
     #[case::yellow("#ffff00", 0.0)]
     #[case::cyan("#00ffff", 0.0)]
     #[case::magenta("#ff00ff", 0.0)]
-    fn test_score_dark(#[case] hex: &str, #[case] expected: f32) {
+    fn test_score_dark(#[case] hex: &str, #[case] expected: f64) {
         // Act
-        let color: Color<f32> = Color::from_str(hex).unwrap();
-        let score = Theme::Dark.score(&color);
+        let color: Color<f64> = Color::from_str(hex).unwrap();
+        let swatch = Swatch::new(color, (32, 64), 256, 0.5);
+        let score = Theme::Dark.score(&swatch);
 
         // Assert
         assert!((score - expected).abs() < 1e-3);
@@ -255,16 +319,19 @@ mod tests {
 
     #[rstest]
     #[case::basic("basic", Theme::Basic)]
+    #[case::colorful("colorful", Theme::Colorful)]
     #[case::vivid("vivid", Theme::Vivid)]
     #[case::muted("muted", Theme::Muted)]
     #[case::light("light", Theme::Light)]
     #[case::dark("dark", Theme::Dark)]
     #[case::basic_upper("BASIC", Theme::Basic)]
+    #[case::colorful_upper("COLORFUL", Theme::Colorful)]
     #[case::vivid_upper("VIVID", Theme::Vivid)]
     #[case::muted_upper("MUTED", Theme::Muted)]
     #[case::light_upper("LIGHT", Theme::Light)]
     #[case::dark_upper("DARK", Theme::Dark)]
     #[case::basic_capitalized("Basic", Theme::Basic)]
+    #[case::colorful_capitalized("Colorful", Theme::Colorful)]
     #[case::vivid_capitalized("Vivid", Theme::Vivid)]
     #[case::muted_capitalized("Muted", Theme::Muted)]
     #[case::light_capitalized("Light", Theme::Light)]

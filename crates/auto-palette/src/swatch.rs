@@ -28,6 +28,7 @@ where
     color: Color<T>,
     position: (u32, u32),
     population: usize,
+    ratio: T,
 }
 
 impl<T> Swatch<T>
@@ -40,14 +41,17 @@ where
     /// * `color` - The color of the swatch.
     /// * `position` - The position of the swatch.
     /// * `population` - The population of the swatch.
+    /// * `ratio` - The ratio of the swatch to the total population.
+    ///
     ///
     /// # Returns
     /// A new `Swatch` instance.
-    pub fn new(color: Color<T>, position: (u32, u32), population: usize) -> Self {
+    pub fn new(color: Color<T>, position: (u32, u32), population: usize, ratio: T) -> Self {
         Self {
             color,
             position,
             population,
+            ratio,
         }
     }
 
@@ -55,6 +59,7 @@ where
     ///
     /// # Returns
     /// The color of this swatch.
+    #[inline]
     #[must_use]
     pub fn color(&self) -> &Color<T> {
         &self.color
@@ -65,6 +70,7 @@ where
     /// # Returns
     /// The position of this swatch.
     /// The position is a tuple of the x and y coordinates.
+    #[inline]
     #[must_use]
     pub fn position(&self) -> (u32, u32) {
         self.position
@@ -74,9 +80,20 @@ where
     ///
     /// # Returns
     /// The population of this swatch.
+    #[inline]
     #[must_use]
     pub fn population(&self) -> usize {
         self.population
+    }
+
+    /// Returns the ratio of this swatch to the total population.
+    ///
+    /// # Returns
+    /// The ratio of this swatch to the total population.
+    #[inline]
+    #[must_use]
+    pub fn ratio(&self) -> T {
+        self.ratio
     }
 }
 
@@ -88,7 +105,7 @@ mod tests {
     fn test_new_swatch() {
         // Act
         let color = Color::new(80.0, 0.0, 0.0);
-        let swatch = Swatch::new(color.clone(), (5, 10), 384);
+        let swatch = Swatch::new(color.clone(), (5, 10), 384, 0.25);
 
         // Assert
         assert_eq!(swatch.color(), &color);
