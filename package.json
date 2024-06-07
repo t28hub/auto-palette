@@ -29,7 +29,7 @@
   "devDependencies": {
     "@biomejs/biome": "1.7.3",
     "@taplo/cli": "^0.7.0",
-    "@types/node": "^20.12.12",
+    "@types/node": "^20.14.2",
     "@vitest/browser": "^1.6.0",
     "@vitest/coverage-v8": "1.6.0",
     "@vitest/ui": "1.6.0",
