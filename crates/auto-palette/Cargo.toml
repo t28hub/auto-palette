@@ -2,7 +2,7 @@
 name                 = "auto-palette"
 description          = "🎨 A Rust library that extracts prominent color palettes from images automatically."
 readme               = "./README.md"
-categories           = ["multimedia::images", "graphics", "algorithms"]
+categories           = ["multimedia::images", "graphics", "algorithms", "mathematics"]
 keywords             = ["palette", "color", "image", "color-palette", "color-extraction"]
 edition.workspace    = true
 version.workspace    = true
@@ -10,8 +10,11 @@ authors.workspace    = true
 license.workspace    = true
 homepage.workspace   = true
 repository.workspace = true
-# `cargo msrv` does not support `rust-version.workspace` yet.
-# https://github.com/foresterre/cargo-msrv/issues/590
+
+# `cargo msrv` does not support `rust-version.workspace` yet
+
+# <https://github.com/foresterre/cargo-msrv/issues/590>
+
 rust-version = "1.75.0"
 
 [features]

@@ -4,7 +4,7 @@ members  = ["crates/*"]
 
 [workspace.package]
 edition    = "2021"
-version    = "0.3.0"
+version    = "0.4.0"
 authors    = ["Tatsuya Maki <t28oogle@gmail.com>"]
 license    = "MIT"
 homepage   = "https://github.com/t28hub/auto-palette"
@@ -12,7 +12,7 @@ repository = "https://github.com/t28hub/auto-palette"
 
 [workspace.dependencies]
 assert_cmd               = "2.0.14"
-auto-palette             = { version = "0.3.0", path = "crates/auto-palette", default-features = false }
+auto-palette             = { version = "0.4.0", path = "crates/auto-palette", default-features = false }
 clap                     = { version = "4.5.4", features = ["cargo"] }
 getrandom                = "0.2.15"
 image                    = "0.25.1"
