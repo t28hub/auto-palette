@@ -28,7 +28,7 @@ Using `auto-palette` in your Rust project, add it to your `Cargo.toml`.
 
 ```toml
 [dependencies]
-auto-palette = "0.3.0"
+auto-palette = "0.4.0"
 ```
 
 ## Usage
@@ -44,7 +44,7 @@ fn main() {
   let image_data = ImageData::load("../../gfx/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
 
   // Extract the color palette from the image data
-  let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
+  let palette: Palette<f64> = Palette::extract(&image_data).unwrap();
   println!("Extracted {} swatches", palette.len());
 
   // Find the 5 prominent colors in the palette and print their information
@@ -56,6 +56,143 @@ fn main() {
   }
 }
 ```
+
+## API
+
+* [`ImageData`](#imagedata)
+* [`Palette`](#palette)
+* [`Swatch`](#swatch)
+
+For more information on the API, see the [documentation](https://docs.rs/auto-palette).
+
+### `ImageData`
+
+The `ImageData` struct represents the image data that is used to extract the color palette.
+
+* [`ImageData::load`](#imagedata-load)
+* [`ImageData::new`](#imagedata-new)
+
+<a id="imagedata-load"></a>
+
+#### `ImageData::load`
+
+Loads the image data from the file.  
+The supported image formats are `PNG`, `JPEG`, `GIF`, `BMP`, `TIFF`, and `WEBP`.  
+This method requires the `image` feature to be enabled. The `image` feature is enabled by default.
+
+```rust
+// Load the image data from the file
+let image_data = ImageData::load("path/to/image.jpg").unwrap();
+```
+
+<a id="imagedata-new"></a>
+
+#### `ImageData::new`
+
+Creates a new instance from the raw image data.  
+Each pixel is represented by four consecutive bytes in the order of `R`, `G`, `B`, and `A`.
+
+```rust
+// Create a new instance from the raw image data
+let pixels = [
+  255, 0, 0, 255,   // Red
+  0, 255, 0, 255,   // Green
+  0, 0, 255, 255,   // Blue
+  255, 255, 0, 255, // Yellow
+];
+let image_data = ImageData::new(2, 2, &pixels).unwrap();
+```
+
+### `Palette`
+
+The `Palette` struct represents the color palette extracted from the `ImageData`.
+
+* [`Palette::extract`](#palette-extract)
+* [`Palette::extract_with_algorithm`](#palette-extract-with-algorithm)
+* [`Palette::find_swatches`](#palette-find-swatches)
+* [`Palette::find_swatches_with_theme`](#palette-find-swatches-with-theme)
+
+<a id="palette-extract"></a>
+
+#### `Palette::extract`
+
+Extracts the color palette from the given `ImageData`.
+This method is used to extract the color palette with the default `Algorithm`(DBSCAN).
+
+```rust
+// Load the image data from the file
+let image_data = ImageData::load("path/to/image.jpg").unwrap();
+
+// Extract the color palette from the image data
+let palette: Palette<f64> = Palette::extract(&image_data).unwrap();
+```
+
+<a id="palette-extract-with-algorithm"></a>
+
+#### `Palette::extract_with_algorithm`
+
+Extracts the color palette from the given `ImageData` with the specified `Algorithm`.
+The supported algorithms are `DBSCAN`, `DBSCAN++`, and `KMeans++`.
+
+```rust
+// Load the image data from the file
+let image_data = ImageData::load("path/to/image.jpg").unwrap();
+// Extract the color palette from the image data with the specified algorithm
+let palette: Palette<f64> = Palette::extract_with_algorithm(&image_data, Algorithm::DBSCAN).unwrap();
+```
+
+<a id="palette-find-swatches"></a>
+
+#### `Palette::find_swatches`
+
+Finds the prominent colors in the palette based on the number of swatches.  
+Returned swatches are sorted by their population in descending order.
+
+```rust
+// Find the 5 prominent colors in the palette
+let swatches = palette.find_swatches(5);
+```
+
+<a id="palette-find-swatches-with-theme"></a>
+
+#### `Palette::find_swatches_with_theme`
+
+Finds the prominent colors in the palette based on the specified `Theme` and the number of swatches.
+The supported themes are `Basic`, `Colorful`, `Vivid`, `Muted`, `Light`, and `Dark`.
+
+```rust
+// Find the 5 prominent colors in the palette with the specified theme
+let swatches = palette.find_swatches_with_theme(5, Theme::Light);
+```
+
+### `Swatch`
+
+The `Swatch` struct represents the color swatch in the `Palette`.  
+It contains detailed information about the color, position, population, and ratio.
+
+```rust
+// Find the 5 prominent colors in the palette
+let swatches = palette.find_swatches(5);
+
+for swatch in swatches {
+    // Get the color, position, and population of the swatch
+    println!("Color: {:?}", swatch.color());
+    println!("Position: {:?}", swatch.position());
+    println!("Population: {}", swatch.population());
+    println!("Ratio: {}", swatch.ratio());
+}
+```
+
+> [!TIP]
+> The `Color` struct provides various methods to convert the color to different formats, such as `RGB`, `HSL`, and `CIE L*a*b*`.
+> ```rust
+> let color = swatch.color();
+> println!("Hex: {}", color.to_hex_string());
+> println!("RGB: {:?}", color.to_rgb());
+> println!("HSL: {:?}", color.to_hsl());
+> println!("CIE L*a*b*: {:?}", color.to_lab());
+> println!("Oklch: {:?}", color.to_oklch());
+> ```
 
 ## Development
 

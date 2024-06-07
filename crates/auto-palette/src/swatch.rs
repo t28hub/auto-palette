@@ -15,10 +15,11 @@ use crate::{color::Color, math::FloatNumber};
 /// };
 ///
 /// let color: Color<f32> = Color::from_str("#ff0040").unwrap();
-/// let swatch = Swatch::new(color, (5, 10), 384);
+/// let swatch = Swatch::new(color, (5, 10), 384, 0.25);
 /// assert_eq!(swatch.color().to_rgb(), RGB::new(255, 0, 64));
 /// assert_eq!(swatch.position(), (5, 10));
 /// assert_eq!(swatch.population(), 384);
+/// assert_eq!(swatch.ratio(), 0.25);
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Swatch<T>
@@ -42,7 +43,6 @@ where
     /// * `position` - The position of the swatch.
     /// * `population` - The population of the swatch.
     /// * `ratio` - The ratio of the swatch to the total population.
-    ///
     ///
     /// # Returns
     /// A new `Swatch` instance.
