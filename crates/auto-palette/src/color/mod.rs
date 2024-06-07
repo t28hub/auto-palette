@@ -1,5 +1,6 @@
 mod ansi16;
 mod ansi256;
+mod cmyk;
 mod hsl;
 mod hsv;
 mod hue;
@@ -22,6 +23,7 @@ use std::{
 
 pub use ansi16::Ansi16;
 pub use ansi256::Ansi256;
+pub use cmyk::CMYK;
 pub use hsl::HSL;
 pub use hsv::HSV;
 pub use hue::Hue;
@@ -205,6 +207,16 @@ where
     pub fn to_rgb(&self) -> RGB {
         let xyz = self.to_xyz();
         RGB::from(&xyz)
+    }
+
+    /// Converts this color to the CMYK color space.
+    ///
+    /// # Returns
+    /// The converted `CMYK` color.
+    #[must_use]
+    pub fn to_cmyk(&self) -> CMYK<T> {
+        let rgb = self.to_rgb();
+        CMYK::from(&rgb)
     }
 
     /// Converts this color to the HSL color space.
@@ -451,9 +463,17 @@ mod tests {
         let actual = color.to_rgb();
 
         // Assert
-        assert_eq!(actual.r, 0);
-        assert_eq!(actual.g, 255);
-        assert_eq!(actual.b, 255);
+        assert_eq!(actual, RGB::new(0, 255, 255));
+    }
+
+    #[test]
+    fn test_to_cmyk() {
+        // Act
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let actual = color.to_cmyk();
+
+        // Assert
+        assert_eq!(actual, CMYK::new(1.0, 0.0, 0.0, 0.0));
     }
 
     #[test]

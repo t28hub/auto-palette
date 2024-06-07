@@ -160,6 +160,8 @@ pub enum ColorFormat {
     Hex,
     #[clap(name = "rgb", help = "RGB color space")]
     Rgb,
+    #[clap(name = "cmyk", help = "CMYK color space")]
+    Cmyk,
     #[clap(name = "hsl", help = "HSL color space")]
     Hsl,
     #[clap(name = "hsv", help = "HSV color space")]
@@ -196,6 +198,7 @@ impl ColorFormat {
         match *self {
             Self::Hex => color.to_hex_string(),
             Self::Rgb => color.to_rgb().to_string(),
+            Self::Cmyk => color.to_cmyk().to_string(),
             Self::Hsl => color.to_hsl().to_string(),
             Self::Hsv => color.to_hsv().to_string(),
             Self::Lab => color.to_lab().to_string(),
