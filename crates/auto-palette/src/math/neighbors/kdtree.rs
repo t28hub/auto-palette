@@ -172,6 +172,7 @@ where
         }
     }
 
+    #[allow(dead_code)]
     #[inline]
     fn search_recursive(
         &self,
