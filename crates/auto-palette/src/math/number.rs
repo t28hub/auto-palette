@@ -35,6 +35,16 @@ pub trait FloatNumber:
     #[must_use]
     fn from_u8(value: u8) -> Self;
 
+    /// Creates a new floating point number from a `u16`.
+    ///
+    /// # Arguments
+    /// * `value` - The value to convert.
+    ///
+    /// # Returns
+    /// The floating point number.
+    #[must_use]
+    fn from_u16(value: u16) -> Self;
+
     /// Creates a new floating point number from a `u32`.
     ///
     /// # Arguments
@@ -106,6 +116,12 @@ impl FloatNumber for f32 {
 
     #[inline]
     #[must_use]
+    fn from_u16(value: u16) -> Self {
+        value as f32
+    }
+
+    #[inline]
+    #[must_use]
     fn from_u32(value: u32) -> Self {
         value as f32
     }
@@ -151,6 +167,12 @@ impl FloatNumber for f64 {
     #[inline]
     #[must_use]
     fn from_u8(value: u8) -> Self {
+        value as f64
+    }
+
+    #[inline]
+    #[must_use]
+    fn from_u16(value: u16) -> Self {
         value as f64
     }
 
@@ -256,6 +278,7 @@ mod tests {
     #[test]
     fn test_float_number_f32() {
         assert_eq!(f32::from_u8(128), 128.0);
+        assert_eq!(f32::from_u16(256), 256.0);
         assert_eq!(f32::from_u32(1024), 1024.0);
         assert_eq!(f32::from_usize(4096), 4096.0);
         assert_eq!(f32::from_f32(0.5), 0.5);
@@ -268,6 +291,7 @@ mod tests {
     #[test]
     fn test_float_number_f64() {
         assert_eq!(f64::from_u8(128), 128.0);
+        assert_eq!(f64::from_u16(256), 256.0);
         assert_eq!(f64::from_u32(1024), 1024.0);
         assert_eq!(f64::from_usize(4096), 4096.0);
         assert_eq!(f64::from_f32(0.5), 0.5);

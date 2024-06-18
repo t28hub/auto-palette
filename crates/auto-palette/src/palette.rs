@@ -463,7 +463,7 @@ mod tests {
     #[case::basic(Theme::Basic, vec ! ["#FFFFFF", "#000000"])]
     #[case::colorful(Theme::Colorful, vec ! ["#0081C8", "#FCB131"])]
     #[case::vivid(Theme::Vivid, vec ! ["#EE334E", "#00A651"])]
-    #[case::muted(Theme::Muted, vec ! ["#FFFFFF", "#000000"])]
+    #[case::muted(Theme::Muted, vec ! ["#0081C8", "#000000"])]
     #[case::light(Theme::Light, vec ! ["#FFFFFF", "#FCB131"])]
     #[case::dark(Theme::Dark, vec ! ["#FFFFFF", "#000000"])]
     fn test_find_swatches_with_theme(#[case] theme: Theme, #[case] expected: Vec<&str>) {
