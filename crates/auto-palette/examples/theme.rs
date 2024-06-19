@@ -6,7 +6,7 @@ use auto_palette::{ImageData, Palette, Theme};
 
 /// Extracts a palette from an image file and finds the dominant colors using the specified theme.
 ///
-/// The theme can be provided as a command line argument.
+/// The theme can be provided as a command line argument as follows:
 /// ```sh
 /// cargo run --example theme --release -- vivid
 /// ```
@@ -23,7 +23,7 @@ fn main() {
     };
 
     // Load the image data from the file
-    let image_data = ImageData::load("../../gfs/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
+    let image_data = ImageData::load("./gfx/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
 
     // Extract the palette from the image data
     let start = Instant::now();
@@ -38,21 +38,18 @@ fn main() {
 
     // Find the top 5 swatches in the palette
     let swatches = palette.find_swatches_with_theme(5, theme);
-    println!("#  Color\tPosition\tPopulation");
+    println!(
+        "{:>2} | {:<7} | {:<12} | {:<10} | {:<6}",
+        "#", "Color", "Position", "Population", "Ratio"
+    );
     for (i, swatch) in swatches.iter().enumerate() {
-        print!("{}  ", i + 1);
-
-        let color = swatch.color();
-        if color.is_light() {
-            print!("\x1b[1;30m");
-        } else {
-            print!("\x1b[1;37m");
-        }
-        let rgb = color.to_rgb();
-        print!("\x1b[48;2;{};{};{}m", rgb.r, rgb.g, rgb.b);
-        print!("{}", color.to_hex_string());
-        print!("\x1b[0m");
-
-        println!("\t{:?}\t{}", swatch.position(), swatch.population());
+        println!(
+            "{:>2} | {:<7} | {:>4?} | {:>10} | {:>5.2}",
+            i + 1,
+            swatch.color().to_hex_string(),
+            swatch.position(),
+            swatch.population(),
+            swatch.ratio()
+        );
     }
 }

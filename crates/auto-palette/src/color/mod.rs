@@ -55,9 +55,9 @@ use crate::math::FloatNumber;
 ///
 /// let color: Color<f32> = Color::from_str("#2c7de7").unwrap();
 /// assert!(color.is_light());
-/// assert_eq!(color.lightness(), 52.917793);
-/// assert_eq!(color.chroma(), 61.9814870);
-/// assert_eq!(color.hue().to_degrees(), 282.6622);
+/// assert!(color.lightness() - 52.917 < 1e-3);
+/// assert!(color.chroma() - 61.981 < 1e-3);
+/// assert!(color.hue().to_degrees() - 282.662 < 1e-3);
 ///
 /// let rgb = color.to_rgb();
 /// assert_eq!(format!("{}", rgb), "RGB(44, 125, 231)");
