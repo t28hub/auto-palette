@@ -7,7 +7,7 @@ use crate::{
     Swatch,
 };
 
-/// The theme representation for selecting the swatches.
+/// The theme representation for scoring the swatches.
 ///
 /// # Examples
 /// ```
@@ -16,7 +16,7 @@ use crate::{
 /// use auto_palette::Theme;
 ///
 /// let theme = Theme::from_str("basic").unwrap();
-/// assert_eq!(format!("{}", theme), "Basic");
+/// assert_eq!(theme, Theme::Basic);
 /// ```
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub enum Theme {

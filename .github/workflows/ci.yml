@@ -91,6 +91,16 @@ jobs:
       - name: Run unit tests
         run: cargo nextest run --tests --all-features --package auto-palette
 
+      - name: Run examples
+        run: |
+          cargo run --example basic
+          cargo run --example algorithm
+          cargo run --example theme
+
+      - name: Run doc tests
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo test --doc --all-features --package auto-palette
+
       - name: Run unit tests with coverage
         if: matrix.os == 'ubuntu-latest'
         run: cargo llvm-cov nextest --all-features --package auto-palette --codecov --output-path codecov.json

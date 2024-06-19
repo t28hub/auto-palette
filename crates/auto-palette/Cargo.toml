@@ -30,8 +30,7 @@ rand       = { workspace = true }
 rand_distr = { workspace = true }
 
 [dev-dependencies]
-reqwest = { workspace = true }
-rstest  = { workspace = true }
+rstest = { workspace = true }
 
 [[example]]
 name              = "basic"
@@ -46,14 +45,4 @@ required-features = ["image"]
 [[example]]
 name              = "theme"
 path              = "examples/theme.rs"
-required-features = ["image"]
-
-[[example]]
-name              = "image_url"
-path              = "examples/image_url.rs"
-required-features = ["image"]
-
-[[example]]
-name              = "image_path"
-path              = "examples/image_path.rs"
 required-features = ["image"]
