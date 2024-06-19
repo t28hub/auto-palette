@@ -101,23 +101,24 @@ where
     T: FloatNumber,
 {
     let color = swatch.color();
-    let lightness = color.lightness();
-    // Ignore the dark and light colors.
-    if lightness <= T::from_u32(15) || lightness >= T::from_u32(85) {
+    let chroma = color.chroma();
+    let score_c = if chroma <= T::from_u16(36) {
         T::zero()
     } else {
-        let score_chroma = normalize(
-            color.chroma(),
-            Color::<T>::min_chroma(),
-            Color::<T>::max_chroma(),
-        );
-        let score_lightness = normalize(
+        normalize(chroma, Color::<T>::min_chroma(), Color::<T>::max_chroma())
+    };
+
+    let lightness = color.lightness();
+    let score_l = if lightness <= T::from_u16(25) || lightness >= T::from_u16(85) {
+        T::zero()
+    } else {
+        normalize(
             lightness,
             Color::<T>::min_lightness(),
             Color::<T>::max_lightness(),
-        );
-        swatch.ratio() * score_chroma * score_lightness
-    }
+        )
+    };
+    score_c * score_l
 }
 
 #[inline]
@@ -127,11 +128,21 @@ where
 {
     let color = swatch.color();
     let chroma = color.chroma();
-    if chroma <= T::from_u32(60) {
+    let score_c = if chroma <= T::from_u32(48) {
         T::zero()
     } else {
         normalize(chroma, Color::<T>::min_chroma(), Color::<T>::max_chroma())
-    }
+    };
+
+    let score_l = {
+        let score = normalize(
+            color.lightness(),
+            Color::<T>::min_lightness(),
+            Color::<T>::max_lightness(),
+        );
+        T::one() - (score - T::from_f32(0.5)).abs()
+    };
+    score_c * score_l
 }
 
 #[inline]
@@ -141,11 +152,21 @@ where
 {
     let color = swatch.color();
     let chroma = color.chroma();
-    if chroma <= T::from_u32(60) {
+    let score_c = if chroma <= T::from_u16(60) {
         T::one() - normalize(chroma, Color::<T>::min_chroma(), Color::<T>::max_chroma())
     } else {
         T::zero()
-    }
+    };
+
+    let score_l = {
+        let score = normalize(
+            color.lightness(),
+            Color::<T>::min_lightness(),
+            Color::<T>::max_lightness(),
+        );
+        T::one() - (score - T::from_f32(0.5)).abs()
+    };
+    score_c * score_l
 }
 
 #[inline]
@@ -154,14 +175,16 @@ where
     T: FloatNumber,
 {
     let color = swatch.color();
-    if color.is_light() {
-        normalize(
+    let lightness = color.lightness();
+    if lightness <= T::from_u16(60) {
+        T::zero()
+    } else {
+        let score = normalize(
             color.lightness(),
             Color::<T>::min_lightness(),
             Color::<T>::max_lightness(),
-        )
-    } else {
-        T::zero()
+        );
+        score.powi(2)
     }
 }
 
@@ -171,15 +194,16 @@ where
     T: FloatNumber,
 {
     let color = swatch.color();
-    if color.is_dark() {
-        T::one()
-            - normalize(
-                color.lightness(),
-                Color::<T>::min_lightness(),
-                Color::<T>::max_lightness(),
-            )
-    } else {
+    let lightness = color.lightness();
+    if lightness >= T::from_u16(40) {
         T::zero()
+    } else {
+        let score = normalize(
+            color.lightness(),
+            Color::<T>::min_lightness(),
+            Color::<T>::max_lightness(),
+        );
+        T::one() - score.powi(2)
     }
 }
 
@@ -192,35 +216,35 @@ mod tests {
     use super::*;
 
     #[rstest]
-    #[case::black("#000000")]
-    #[case::gray("#808080")]
-    #[case::white("#ffffff")]
-    #[case::red("#ff0000")]
-    #[case::green("#00ff00")]
-    #[case::blue("#0000ff")]
-    #[case::yellow("#ffff00")]
-    #[case::cyan("#00ffff")]
-    #[case::magenta("#ff00ff")]
-    fn test_score_basic(#[case] hex: &str) {
+    #[case::black("#000000", 0.2)]
+    #[case::gray("#808080", 0.125)]
+    #[case::white("#ffffff", 0.5)]
+    #[case::red("#ff0000", 0.8)]
+    #[case::green("#00ff00", 0.0)]
+    #[case::blue("#0000ff", 0.4)]
+    fn test_score_basic(#[case] hex: &str, #[case] ratio: f64) {
         // Act
         let color: Color<f64> = Color::from_str(hex).unwrap();
-        let swatch = Swatch::new(color, (32, 64), 256, 0.5);
+        let swatch = Swatch::new(color, (32, 64), 256, ratio);
         let score = Theme::Basic.score(&swatch);
 
         // Assert
-        assert_eq!(score, swatch.ratio());
+        assert_eq!(score, ratio);
     }
 
     #[rstest]
     #[case::black("#000000", 0.0)]
     #[case::gray("#808080", 0.0)]
     #[case::white("#ffffff", 0.0)]
-    #[case::red("#ff0000", 0.155)]
+    #[case::red("#ff0000", 0.309)]
     #[case::green("#00ff00", 0.0)]
-    #[case::blue("#0000ff", 0.120)]
+    #[case::blue("#0000ff", 0.240)]
     #[case::yellow("#ffff00", 0.0)]
     #[case::cyan("#00ffff", 0.0)]
-    #[case::magenta("#ff00ff", 0.194)]
+    #[case::magenta("#ff00ff", 0.387)]
+    #[case::orange("#ff8000", 0.319)]
+    #[case::purple("#8000ff", 0.284)]
+    #[case::lime("#80ff00", 0.0)]
     fn test_score_colorful(#[case] hex: &str, #[case] expected: f64) {
         // Act
         let color: Color<f64> = Color::from_str(hex).unwrap();
@@ -235,15 +259,15 @@ mod tests {
     #[case::black("#000000", 0.0)]
     #[case::gray("#808080", 0.0)]
     #[case::white("#ffffff", 0.0)]
-    #[case::red("#ff0000", 0.580)]
-    #[case::green("#00ff00", 0.665)]
-    #[case::blue("#0000ff", 0.743)]
-    #[case::yellow("#ffff00", 0.538)]
-    #[case::cyan("#00ffff", 0.0)]
-    #[case::magenta("#ff00ff", 0.641)]
-    #[case::orange("#ff8000", 0.475)]
-    #[case::purple("#8000ff", 0.694)]
-    #[case::lime("#80ff00", 0.607)]
+    #[case::red("#ff0000", 0.562)]
+    #[case::green("#00ff00", 0.414)]
+    #[case::blue("#0000ff", 0.612)]
+    #[case::yellow("#ffff00", 0.285)]
+    #[case::cyan("#00ffff", 0.164)]
+    #[case::magenta("#ff00ff", 0.576)]
+    #[case::orange("#ff8000", 0.394)]
+    #[case::purple("#8000ff", 0.631)]
+    #[case::lime("#80ff00", 0.365)]
     fn test_score_vivid(#[case] hex: &str, #[case] expected: f64) {
         // Act
         let color: Color<f64> = Color::from_str(hex).unwrap();
@@ -255,14 +279,14 @@ mod tests {
     }
 
     #[rstest]
-    #[case::black("#000000", 1.0)]
-    #[case::gray("#808080", 1.0)]
-    #[case::white("#ffffff", 1.0)]
+    #[case::black("#000000", 0.5)]
+    #[case::gray("#808080", 0.964)]
+    #[case::white("#ffffff", 0.500)]
     #[case::red("#ff0000", 0.0)]
     #[case::green("#00ff00", 0.0)]
     #[case::blue("#0000ff", 0.0)]
     #[case::yellow("#ffff00", 0.0)]
-    #[case::cyan("#00ffff", 0.721)]
+    #[case::cyan("#00ffff", 0.425)]
     #[case::magenta("#ff00ff", 0.0)]
     #[case::orange("#ff8000", 0.0)]
     #[case::purple("#8000ff", 0.0)]
@@ -279,14 +303,17 @@ mod tests {
 
     #[rstest]
     #[case::black("#000000", 0.0)]
-    #[case::gray("#808080", 0.535)]
+    #[case::gray("#808080", 0.0)]
     #[case::white("#ffffff", 1.0)]
-    #[case::red("#ff0000", 0.532)]
-    #[case::green("#00ff00", 0.877)]
+    #[case::red("#ff0000", 0.0)]
+    #[case::green("#00ff00", 0.770)]
     #[case::blue("#0000ff", 0.0)]
-    #[case::yellow("#ffff00", 0.971)]
-    #[case::cyan("#00ffff", 0.911)]
-    #[case::magenta("#ff00ff", 0.603)]
+    #[case::yellow("#ffff00", 0.944)]
+    #[case::cyan("#00ffff", 0.830)]
+    #[case::magenta("#ff00ff", 0.364)]
+    #[case::orange("#ff8000", 0.450)]
+    #[case::purple("#8000ff", 0.0)]
+    #[case::lime("#80ff00", 0.808)]
     fn test_score_light(#[case] hex: &str, #[case] expected: f64) {
         // Act
         let color: Color<f64> = Color::from_str(hex).unwrap();
@@ -303,10 +330,13 @@ mod tests {
     #[case::white("#ffffff", 0.0)]
     #[case::red("#ff0000", 0.0)]
     #[case::green("#00ff00", 0.0)]
-    #[case::blue("#0000ff", 0.676)]
+    #[case::blue("#0000ff", 0.896)]
     #[case::yellow("#ffff00", 0.0)]
     #[case::cyan("#00ffff", 0.0)]
     #[case::magenta("#ff00ff", 0.0)]
+    #[case::orange("#ff8000", 0.0)]
+    #[case::purple("#8000ff", 0.0)]
+    #[case::lime("#80ff00", 0.0)]
     fn test_score_dark(#[case] hex: &str, #[case] expected: f64) {
         // Act
         let color: Color<f64> = Color::from_str(hex).unwrap();
