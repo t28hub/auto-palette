@@ -30,8 +30,8 @@ importers:
         specifier: ^9.0.11
         version: 9.0.11
       knip:
-        specifier: ^5.22.3
-        version: 5.22.3(@types/node@20.14.5)(typescript@5.4.5)
+        specifier: ^5.23.3
+        version: 5.23.3(@types/node@20.14.5)(typescript@5.4.5)
       lint-staged:
         specifier: ^15.2.7
         version: 15.2.7
@@ -1054,8 +1054,8 @@ packages:
     resolution: {integrity: sha512-N3yCS/NegsOBokc8GAdM8UcmfsKiSS8cipheD/nivzr700H+nsMOxJjQnvwOcRYVuFkdH0wGUvW2WbXGmrZGbQ==}
     engines: {node: '>=14'}
 
-  jiti@1.21.0:
-    resolution: {integrity: sha512-gFqAIbuKyyso/3G2qhiO2OM6shY6EPP/R0+mkDbyspxKazh8BXDC5FiFsUjlczgdNz/vfra0da2y+aHrusLG/Q==}
+  jiti@1.21.6:
+    resolution: {integrity: sha512-2yTgeWTWzMWkHu6Jp9NKgePDaYHbntiwvYuuJLbbN9vl7DC9DvXKOB2BC3ZZ92D3cvV/aflH0osDfwpHepQ53w==}
     hasBin: true
 
   jju@1.4.0:
@@ -1082,8 +1082,8 @@ packages:
   jsonfile@4.0.0:
     resolution: {integrity: sha512-m6F1R3z8jjlf2imQHS2Qez5sjKWQzbuuhuJ/FKYFRZvPE3PuHcSMVZzfsLhGVOkfd20obL5SWEBew5ShlquNxg==}
 
-  knip@5.22.3:
-    resolution: {integrity: sha512-aPHUMkl81WSAd1z3de7YWuPvrD7invRc5p70JGZnB/jH1O7KSqKNKwW9jTf4n5v/iGNFTM9YjnqZKTEKqsJoRw==}
+  knip@5.23.3:
+    resolution: {integrity: sha512-i0vFlpe3D9AZmp3Hlq3ZncjJQB2x21LeVrIV+9rnBavaKpTLhV/sLmE4iqTjEWedLtpfJsax68S68aqZzcXpsQ==}
     engines: {node: '>=18.6.0'}
     hasBin: true
     peerDependencies:
@@ -2654,7 +2654,7 @@ snapshots:
     optionalDependencies:
       '@pkgjs/parseargs': 0.11.0
 
-  jiti@1.21.0: {}
+  jiti@1.21.6: {}
 
   jju@1.4.0: {}
 
@@ -2674,7 +2674,7 @@ snapshots:
     optionalDependencies:
       graceful-fs: 4.2.11
 
-  knip@5.22.3(@types/node@20.14.5)(typescript@5.4.5):
+  knip@5.23.3(@types/node@20.14.5)(typescript@5.4.5):
     dependencies:
       '@ericcornelissen/bash-parser': 0.5.3
       '@nodelib/fs.walk': 2.0.0
@@ -2682,7 +2682,7 @@ snapshots:
       '@types/node': 20.14.5
       easy-table: 1.2.0
       fast-glob: 3.3.2
-      jiti: 1.21.0
+      jiti: 1.21.6
       js-yaml: 4.1.0
       minimist: 1.2.8
       picocolors: 1.0.0
