@@ -10,10 +10,13 @@
 
 <!-- What type of change does this pull request introduce? Please check the one that applies. -->
 
-- [ ] Documentation update / refactoring / dependency upgrade
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
 - [ ] Breaking change (fix or feature that would cause existing functionality to change)
+- [ ] New feature (non-breaking change which adds functionality)
+- [ ] Bug fix (non-breaking change which fixes an issue)
+- [ ] Refactoring (no functional changes, no api changes)
+- [ ] Build related changes
+- [ ] Documentation content changes
+- [ ] Other (please describe)
 
 ## Checklist
 

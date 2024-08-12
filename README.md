@@ -67,7 +67,7 @@ See the [CONTRIBUTING](CONTRIBUTING.md) guidelines.
 
 ## Contributing
 
-Contributions are welcome! For detailed information on how to contribute, please refer to [Contributing](CONTRIBUTING.md) guidelines.  
+Contributions are welcome! For detailed information on how to contribute, please refer to [CONTRIBUTING](CONTRIBUTING.md) guidelines.  
 Please note that this project is released with a [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
 
 ## License
