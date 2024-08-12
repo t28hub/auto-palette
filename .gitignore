@@ -7,19 +7,6 @@ pkg/
 Cargo.lock
 wasm-pack.log
 
-# JavaScript
-node_modules/
-build/
-dist/
-html/
-package/
-*.local
-
-logs/
-*.log
-npm-debug.log*
-pnpm-debug.log*
-
 # Coverage
 coverage/
 lcov.info
