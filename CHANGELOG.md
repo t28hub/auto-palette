@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.5.0](https://github.com/t28hub/auto-palette/releases/tag/v0.5.0)
+
+* Improve the scoring formula and criteria for better color selection.
+* Enhance documentation of `auto-palette-cli`.
+
 ## [v0.4.0](https://github.com/t28hub/auto-palette/releases/tag/v0.4.0)
 
 * Introduce support for color format conversion to `CMYK`, `ANSI16`, and `ANSI256`.
