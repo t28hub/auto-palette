@@ -16,6 +16,7 @@ mod style;
 const MAX_IMAGE_WIDTH: f64 = 360.0;
 const MAX_IMAGE_HEIGHT: f64 = 360.0;
 
+// The entry point of the CLI application.
 fn main() {
     let context = Context::new(Options::parse(), Env::init());
     let Ok(image) = image::open(&context.args().path) else {
@@ -50,6 +51,14 @@ fn main() {
         process::exit(1);
     };
 
+    let count = context.args().count;
+    if count < 1 {
+        eprintln!(
+            "error: invalid value '{}' for '--count <count>': must be a positive integer",
+            count
+        );
+        process::exit(1);
+    }
     let swatches = context.args().theme.map_or_else(
         || palette.find_swatches(context.args().count),
         |option| {
