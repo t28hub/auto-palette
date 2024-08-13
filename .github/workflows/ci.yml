@@ -188,8 +188,7 @@ jobs:
 
   build-cli:
     needs:
-      - style
-      - check
+      - test-cli
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -199,5 +198,11 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Build library in release mode
-        run: cargo build --package auto-palette --bins --release
+      - name: Build CLI in release mode
+        run: cargo build --package auto-palette-cli --bins --release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: auto-palette
+          path: target/release/auto-palette-cli
