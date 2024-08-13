@@ -34,6 +34,14 @@ To use `auto-palette` in your Rust project, add it to your `Cargo.toml`.
 auto-palette = "0.4.0"
 ```
 
+### CLI
+
+To use command-line interface, install the `auto-palette-cli` crate.
+
+```sh
+cargo install auto-palette-cli
+```
+
 ## Usage
 
 Here is a basic example that demonstrates how to extract the color palette and find the dominant colors.  

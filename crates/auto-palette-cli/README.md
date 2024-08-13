@@ -12,9 +12,8 @@
 
 ## Installation
 
-### Using Cargo
 ```sh
-
+cargo install auto-palette-cli
 ```
 
 ## Usage
