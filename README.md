@@ -44,7 +44,9 @@ cargo install auto-palette-cli
 
 ## Usage
 
-Here is a basic example that demonstrates how to extract the color palette and find the dominant colors.  
+### Rust
+
+Here is an example of extracting the color palette from an image using the Rust library.
 See the [examples](crates/auto-palette/examples) directory for more examples.
 
 ```rust
@@ -67,6 +69,24 @@ fn main() {
     println!("Ratio: {}", swatch.ratio());
   }
 }
+```
+
+### CLI
+
+Here is an example of extracting the color palette from an image using the CLI tool.
+
+```sh
+$ auto-palette path/to/your_image.jpg -n 6 -c rgb -o table
++---+--------------------+------------+------------+
+| # | Color              | Position   | Population |
++---+--------------------+------------+------------+
+| 1 | RGB(221, 226, 222) | (104, 96)  |       6778 |
+| 2 | RGB(3, 144, 149)   | (114, 201) |       5476 |
+| 3 | RGB(23, 37, 36)    | (120, 300) |       4300 |
+| 4 | RGB(36, 88, 131)   | (183, 145) |       1348 |
+| 5 | RGB(254, 29, 44)   | (183, 190) |        779 |
+| 6 | RGB(253, 213, 116) | (25, 158)  |        567 |
++---+--------------------+------------+------------+
 ```
 
 ## Development
