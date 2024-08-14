@@ -2,6 +2,10 @@
 
 > 🎨 A CLI tool to extract color palettes from images using the [`auto-palette`](https://crates.io/crates/auto-palette) crate.
 
+[![Build](https://img.shields.io/github/actions/workflow/status/t28hub/auto-palette/ci.yml?style=flat-square)](https://github.com/t28hub/auto-palette/actions/workflows/ci.yml)
+[![License](https://img.shields.io/crates/l/auto-palette-cli?style=flat-square)](https://crates.io/crates/auto-palette-cli)
+[![Version](https://img.shields.io/crates/v/auto-palette-cli?style=flat-square)](https://crates.io/crates/auto-palette-cli)
+
 ## Features
 
 - Extract prominent color palettes from images.
