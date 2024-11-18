@@ -309,7 +309,7 @@ where
     }
 }
 
-impl<'a, T, const N: usize> NeighborSearch<T, N> for KDTreeSearch<'a, T, N>
+impl<T, const N: usize> NeighborSearch<T, N> for KDTreeSearch<'_, T, N>
 where
     T: FloatNumber,
 {
