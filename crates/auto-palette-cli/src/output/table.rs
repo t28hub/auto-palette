@@ -27,7 +27,7 @@ impl<'a> TablePrinter<'a> {
     }
 }
 
-impl<'a> Printer for TablePrinter<'a> {
+impl Printer for TablePrinter<'_> {
     fn print<T, W>(&self, swatches: &[Swatch<T>], output: &mut W) -> Result<(), Error>
     where
         T: FloatNumber,
