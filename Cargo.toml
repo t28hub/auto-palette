@@ -14,7 +14,7 @@ repository = "https://github.com/t28hub/auto-palette"
 assert_cmd               = "2.0.14"
 auto-palette             = { version = "0.5.0", path = "crates/auto-palette", default-features = false }
 clap                     = { version = "4.5.4", features = ["cargo"] }
-getrandom                = "0.2.15"
+getrandom                = "0.3.0"
 image                    = "0.25.1"
 num-traits               = "0.2.18"
 predicates               = "3.1.0"
