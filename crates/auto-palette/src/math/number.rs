@@ -5,7 +5,7 @@ use std::{
 };
 
 use num_traits::Float;
-use rand_distr::weighted_alias::AliasableWeight;
+use rand_distr::weighted::AliasableWeight;
 
 /// Trait for floating point numbers.
 pub trait FloatNumber:

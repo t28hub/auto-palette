@@ -22,7 +22,6 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 auto-palette             = { workspace = true, features = ["wasm"] }
 console_error_panic_hook = { workspace = true }
-js-sys                   = { workspace = true }
 wasm-bindgen             = { workspace = true }
 
 [dev-dependencies]

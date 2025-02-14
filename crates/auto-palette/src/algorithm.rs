@@ -1,7 +1,5 @@
 use std::str::FromStr;
 
-use rand::thread_rng;
-
 use crate::{
     error::Error,
     math::{
@@ -70,7 +68,7 @@ where
         100,
         T::from_f32(1e-3),
         DistanceMetric::SquaredEuclidean,
-        thread_rng(),
+        rand::rng(),
     )
     .unwrap();
     clustering.fit(pixels)
