@@ -327,6 +327,19 @@ where
         let rgb = self.to_rgb();
         Ansi256::from(&rgb)
     }
+
+    /// Converts this color to an integer representation.
+    ///
+    /// # Returns
+    /// The integer representation of this color.
+    #[must_use]
+    pub fn to_color_int(&self) -> u32 {
+        let rgb = self.to_rgb();
+        let r = rgb.r as u32;
+        let g = rgb.g as u32;
+        let b = rgb.b as u32;
+        (r << 16) | (g << 8) | b
+    }
 }
 
 impl<T> Display for Color<T>
@@ -339,6 +352,20 @@ where
             "Color(l: {:.2}, a: {:.2}, b: {:.2})",
             self.l, self.a, self.b
         )
+    }
+}
+
+impl<T> From<u32> for Color<T>
+where
+    T: FloatNumber,
+{
+    fn from(value: u32) -> Self {
+        let r = (value >> 16) & 0xFF;
+        let g = (value >> 8) & 0xFF;
+        let b = value & 0xFF;
+        let (x, y, z) = rgb_to_xyz::<T>(r as u8, g as u8, b as u8);
+        let (l, a, b) = xyz_to_lab::<T, D65>(x, y, z);
+        Self::new(l, a, b)
     }
 }
 
@@ -605,6 +632,16 @@ mod tests {
     }
 
     #[test]
+    fn test_to_color_int() {
+        // Act
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let actual = color.to_color_int();
+
+        // Assert
+        assert_eq!(actual, 0x00FFFF);
+    }
+
+    #[test]
     fn test_fmt() {
         // Act & Assert
         let color: Color<f32> = Color::new(91.114_750, -48.080_950, -14.142_8581);
@@ -612,6 +649,17 @@ mod tests {
             format!("{}", color),
             "Color(l: 91.11, a: -48.08, b: -14.14)"
         );
+    }
+
+    #[test]
+    fn test_from_u32() {
+        // Act
+        let actual: Color<f32> = Color::from(0xFF0080);
+
+        // Assert
+        assert!((actual.l - 54.8888).abs() < 1e-3);
+        assert!((actual.a - 84.5321).abs() < 1e-3);
+        assert!((actual.b - 4.0656).abs() < 1e-3);
     }
 
     #[rstest]
