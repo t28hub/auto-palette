@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
-use rand::Rng;
-use rand_distr::{Distribution, WeightedAliasIndex};
+use rand::{distr::Distribution, Rng};
+use rand_distr::weighted::WeightedAliasIndex;
 
 use crate::math::{
     clustering::{Cluster, ClusteringAlgorithm},
@@ -83,7 +83,7 @@ where
         let mut centroids = Vec::with_capacity(k);
 
         let mut rng = self.rng.clone();
-        let index = rng.gen_range(0..points.len());
+        let index = rng.random_range(0..points.len());
         selected.insert(index);
         centroids.push(points[index]);
 
@@ -181,7 +181,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use rand::{rngs::ThreadRng, thread_rng};
+    use rand::{rng, rngs::ThreadRng};
     use rstest::rstest;
 
     use super::*;
@@ -190,8 +190,7 @@ mod tests {
     fn test_new() {
         // Act
         let metric = DistanceMetric::Euclidean;
-        let actual: KMeans<f32, ThreadRng> =
-            KMeans::new(3, 10, 1e-3, metric, thread_rng()).unwrap();
+        let actual: KMeans<f32, ThreadRng> = KMeans::new(3, 10, 1e-3, metric, rng()).unwrap();
 
         // Assert
         assert_eq!(actual.k, 3);
@@ -230,7 +229,7 @@ mod tests {
         #[case] expected: &'static str,
     ) {
         // Act
-        let actual = KMeans::new(k, max_iter, tolerance, metric, thread_rng());
+        let actual = KMeans::new(k, max_iter, tolerance, metric, rng());
 
         // Assert
         assert!(actual.is_err());
@@ -241,8 +240,7 @@ mod tests {
     fn test_fit() {
         // Arrange
         let metric = DistanceMetric::Euclidean;
-        let kmeans: KMeans<f32, ThreadRng> =
-            KMeans::new(3, 10, 1e-3, metric, thread_rng()).unwrap();
+        let kmeans: KMeans<f32, ThreadRng> = KMeans::new(3, 10, 1e-3, metric, rng()).unwrap();
 
         // Act
         let points = [
@@ -265,8 +263,7 @@ mod tests {
     fn test_fit_empty() {
         // Arrange
         let metric = DistanceMetric::Euclidean;
-        let kmeans: KMeans<f32, ThreadRng> =
-            KMeans::new(3, 10, 1e-3, metric, thread_rng()).unwrap();
+        let kmeans: KMeans<f32, ThreadRng> = KMeans::new(3, 10, 1e-3, metric, rng()).unwrap();
 
         // Act
         let points: Vec<Point<f32, 2>> = Vec::new();
@@ -280,7 +277,7 @@ mod tests {
     fn test_fit_single_cluster() {
         // Arrange
         let metric = DistanceMetric::Euclidean;
-        let kmeans = KMeans::new(3, 10, 1e-3, metric, thread_rng()).unwrap();
+        let kmeans = KMeans::new(3, 10, 1e-3, metric, rng()).unwrap();
 
         // Act
         let points = [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0]];

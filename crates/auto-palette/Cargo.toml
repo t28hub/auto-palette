@@ -18,7 +18,7 @@ rust-version = "1.75.0"
 [features]
 default = ["image"]
 image   = ["dep:image"]
-wasm    = ["getrandom/js"]
+wasm    = ["getrandom/wasm_js"]
 
 [dependencies]
 getrandom  = { workspace = true }
