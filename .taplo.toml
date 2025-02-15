@@ -2,6 +2,7 @@ include = ["./**/*.toml"]
 
 [formatting]
 align_entries  = true
+column_width   = 120
 reorder_keys   = false
 reorder_arrays = false
 

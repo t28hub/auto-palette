@@ -28,7 +28,7 @@ Using `auto-palette` in your Rust project, add it to your `Cargo.toml`.
 
 ```toml
 [dependencies]
-auto-palette = "0.5.0"
+auto-palette = "0.6.0"
 ```
 
 ## Usage
