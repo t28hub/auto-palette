@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.6.0](https://github.com/t28hub/auto-palette/releases/tag/v0.6.0)
+
+* Add methods to convert `Color` to and from `ColorInt` (integer representation).
+* Update [`rand`](https://github.com/rust-random/rand/releases/tag/0.9.0) crate and related dependencies to the latest versions.
+
 ## [v0.5.0](https://github.com/t28hub/auto-palette/releases/tag/v0.5.0)
 
 * Improve the scoring formula and criteria for better color selection.

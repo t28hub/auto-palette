@@ -1,6 +1,7 @@
 [package]
 name                 = "auto-palette-wasm"
 description          = "🎨 A WebAssembly binding for auto-palette, allowing it to automatically extract color palettes from images."
+publish              = false
 readme               = "./README.md"
 categories           = ["wasm", "multimedia::images", "graphics", "algorithms"]
 keywords             = ["palette", "color", "image", "color-palette", "webassembly"]
