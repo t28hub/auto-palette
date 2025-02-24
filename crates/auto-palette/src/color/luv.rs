@@ -1,6 +1,8 @@
 use std::{fmt::Display, marker::PhantomData};
 
 use num_traits::clamp;
+#[cfg(feature = "wasm")]
+use serde::{ser::SerializeStruct, Serialize, Serializer};
 
 use crate::{
     color::{white_point::WhitePoint, LCHuv, D65, XYZ},
@@ -71,6 +73,24 @@ where
             v: clamp(v, T::from_f32(-140.0), T::from_f32(122.0)),
             _marker: PhantomData,
         }
+    }
+}
+
+#[cfg(feature = "wasm")]
+impl<T, W> Serialize for Luv<T, W>
+where
+    T: FloatNumber + Serialize,
+    W: WhitePoint,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("Luv", 3)?;
+        state.serialize_field("l", &self.l)?;
+        state.serialize_field("u", &self.u)?;
+        state.serialize_field("v", &self.v)?;
+        state.end()
     }
 }
 
@@ -145,6 +165,7 @@ where
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
+    use serde_test::{assert_ser_tokens, Token};
 
     use super::*;
     use crate::color::RGB;
@@ -180,6 +201,31 @@ mod tests {
         assert_eq!(actual.l, expected.0);
         assert_eq!(actual.u, expected.1);
         assert_eq!(actual.v, expected.2);
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_serialize() {
+        // Act
+        let luv: Luv<f64> = Luv::new(53.64, 165.86, 24.17);
+
+        // Assert
+        assert_ser_tokens(
+            &luv,
+            &[
+                Token::Struct {
+                    name: "Luv",
+                    len: 3,
+                },
+                Token::Str("l"),
+                Token::F64(53.64),
+                Token::Str("u"),
+                Token::F64(165.86),
+                Token::Str("v"),
+                Token::F64(24.17),
+                Token::StructEnd,
+            ],
+        )
     }
 
     #[test]

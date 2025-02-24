@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
 use num_traits::clamp;
+#[cfg(feature = "wasm")]
+use serde::Serialize;
 
 use crate::{
     color::{lab::Lab, luv::Luv, rgb::RGB, white_point::WhitePoint, Oklab},
@@ -35,6 +37,7 @@ use crate::{
 /// assert_eq!(format!("{}", oklab), "Oklab(0.70, 0.27, -0.17)");
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize))]
 pub struct XYZ<T>
 where
     T: FloatNumber,
@@ -318,6 +321,7 @@ where
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
+    use serde_test::{assert_ser_tokens, Token};
 
     use super::*;
     use crate::color::D65;
@@ -331,6 +335,31 @@ mod tests {
         assert_eq!(actual.x, 0.5928);
         assert_eq!(actual.y, 0.2848);
         assert_eq!(actual.z, 0.9699);
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_serialize() {
+        // Act
+        let xyz = XYZ::new(0.5928, 0.2848, 0.9699);
+
+        // Assert
+        assert_ser_tokens(
+            &xyz,
+            &[
+                Token::Struct {
+                    name: "XYZ",
+                    len: 3,
+                },
+                Token::Str("x"),
+                Token::F64(0.5928),
+                Token::Str("y"),
+                Token::F64(0.2848),
+                Token::Str("z"),
+                Token::F64(0.9699),
+                Token::StructEnd,
+            ],
+        );
     }
 
     #[test]

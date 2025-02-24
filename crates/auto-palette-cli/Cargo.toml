@@ -13,7 +13,7 @@ repository.workspace = true
 
 # `cargo msrv` does not support `rust-version.workspace` yet.
 # https://github.com/foresterre/cargo-msrv/issues/590
-rust-version = "1.75.0"
+rust-version = "1.84.0"
 
 [dependencies]
 auto-palette = { workspace = true, features = ["image"] }

@@ -1,6 +1,8 @@
 use std::fmt::{Display, Formatter};
 
 use num_traits::clamp;
+#[cfg(feature = "wasm")]
+use serde::Serialize;
 
 use crate::{color::RGB, FloatNumber};
 
@@ -27,6 +29,7 @@ use crate::{color::RGB, FloatNumber};
 /// assert_eq!(format!("{}", cmyk), "CMYK(0.00, 0.00, 1.00, 0.00)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize))]
 pub struct CMYK<T>
 where
     T: FloatNumber,
@@ -101,6 +104,7 @@ where
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
+    use serde_test::{assert_ser_tokens, Token};
 
     use super::*;
 
@@ -139,6 +143,33 @@ mod tests {
                 k: expected.3,
             }
         );
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_serialize() {
+        // Act
+        let cmyk = CMYK::new(1.00, 0.75, 0.50, 0.25);
+
+        // Assert
+        assert_ser_tokens(
+            &cmyk,
+            &[
+                Token::Struct {
+                    name: "CMYK",
+                    len: 4,
+                },
+                Token::Str("c"),
+                Token::F64(1.00),
+                Token::Str("m"),
+                Token::F64(0.75),
+                Token::Str("y"),
+                Token::F64(0.50),
+                Token::Str("k"),
+                Token::F64(0.25),
+                Token::StructEnd,
+            ],
+        )
     }
 
     #[test]

@@ -1,5 +1,8 @@
 use std::{fmt, fmt::Display};
 
+#[cfg(feature = "wasm")]
+use serde::Serialize;
+
 use crate::{
     color::{hsl::HSL, xyz::XYZ, HSV},
     math::FloatNumber,
@@ -32,6 +35,7 @@ use crate::{
 /// assert_eq!(format!("{}", xyz), "XYZ(0.42, 0.22, 0.07)");
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize))]
 pub struct RGB {
     pub r: u8,
     pub g: u8,
@@ -193,6 +197,7 @@ where
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
+    use serde_test::{assert_ser_tokens, Token};
 
     use super::*;
 
@@ -205,6 +210,31 @@ mod tests {
         assert_eq!(actual.r, 255);
         assert_eq!(actual.g, 0);
         assert_eq!(actual.b, 64);
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_serialize() {
+        // Act
+        let rgb = RGB::new(255, 0, 64);
+
+        // Act
+        assert_ser_tokens(
+            &rgb,
+            &[
+                Token::Struct {
+                    name: "RGB",
+                    len: 3,
+                },
+                Token::Str("r"),
+                Token::U8(255),
+                Token::Str("g"),
+                Token::U8(0),
+                Token::Str("b"),
+                Token::U8(64),
+                Token::StructEnd,
+            ],
+        );
     }
 
     #[test]

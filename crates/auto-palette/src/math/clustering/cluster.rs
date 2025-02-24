@@ -107,7 +107,7 @@ mod tests {
         // Assert
         assert!(actual.is_empty());
         assert_eq!(actual.len(), 0);
-        assert_eq!(actual.members().copied().collect::<Vec<_>>(), vec![]);
+        assert_eq!(actual.members().copied().collect::<Vec<usize>>(), vec![]);
         assert_eq!(actual.centroid(), &[0.0, 0.0]);
     }
 

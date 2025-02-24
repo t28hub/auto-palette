@@ -1,4 +1,6 @@
 use num_traits::clamp;
+#[cfg(feature = "wasm")]
+use serde::{Deserialize, Serialize};
 
 use crate::{
     color::{oklch::Oklch, XYZ},
@@ -29,6 +31,7 @@ use crate::{
 /// assert_eq!(format!("{}", xyz), "XYZ(0.15, 0.24, 0.20)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
 pub struct Oklab<T>
 where
     T: FloatNumber,
@@ -116,6 +119,7 @@ where
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
+    use serde_test::{assert_tokens, Token};
 
     use super::*;
 
@@ -132,6 +136,31 @@ mod tests {
                 a: -0.118,
                 b: 0.028
             }
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_serialize() {
+        // Act
+        let oklab = Oklab::new(0.607, -0.118, 0.028);
+
+        // Assert
+        assert_tokens(
+            &oklab,
+            &[
+                Token::Struct {
+                    name: "Oklab",
+                    len: 3,
+                },
+                Token::Str("l"),
+                Token::F64(0.607),
+                Token::Str("a"),
+                Token::F64(-0.118),
+                Token::Str("b"),
+                Token::F64(0.028),
+                Token::StructEnd,
+            ],
         );
     }
 
