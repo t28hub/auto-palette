@@ -1,5 +1,8 @@
 use std::fmt::{Display, Formatter};
 
+#[cfg(feature = "wasm")]
+use serde::{Serialize, Serializer};
+
 use crate::{color::RGB, FloatNumber};
 
 /// The 4-bit ANSI 16 color representation.
@@ -224,6 +227,16 @@ impl Ansi16 {
     }
 }
 
+#[cfg(feature = "wasm")]
+impl Serialize for Ansi16 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.code.serialize(serializer)
+    }
+}
+
 impl Display for Ansi16 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "ANSI16({})", self.code)
@@ -258,7 +271,7 @@ where
     let r = r.round().to_u8_unsafe();
     let g = g.round().to_u8_unsafe();
     let b = b.round().to_u8_unsafe();
-    let code = 30 + (b << 2 | g << 1 | r);
+    let code = 30 + ((b << 2) | (g << 1) | r);
     if value == 2 {
         code + 60 // Bright colors
     } else {
@@ -269,6 +282,7 @@ where
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
+    use serde_test::{assert_ser_tokens, Token};
 
     use super::*;
 
@@ -288,6 +302,16 @@ mod tests {
     fn test_new_invalid() {
         // Act
         let _actual = Ansi16::new(29);
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_serialize() {
+        // Act
+        let ansi16 = Ansi16::new(30);
+
+        // Act
+        assert_ser_tokens(&ansi16, &[Token::U8(30)]);
     }
 
     #[test]

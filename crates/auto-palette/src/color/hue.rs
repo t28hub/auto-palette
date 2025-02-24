@@ -1,5 +1,8 @@
 use std::fmt::Display;
 
+#[cfg(feature = "wasm")]
+use serde::{Serialize, Serializer};
+
 use crate::math::FloatNumber;
 
 /// The hue component of a color.
@@ -70,6 +73,19 @@ where
     }
 }
 
+#[cfg(feature = "wasm")]
+impl<T> Serialize for Hue<T>
+where
+    T: FloatNumber + Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
 impl<T> Display for Hue<T>
 where
     T: FloatNumber,
@@ -99,6 +115,7 @@ mod tests {
     use std::f64::consts::PI;
 
     use rstest::rstest;
+    use serde_test::{assert_ser_tokens, Token};
 
     use super::*;
 
@@ -146,6 +163,16 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_degrees(), expected);
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_serialize() {
+        // Act
+        let hue = Hue::from_degrees(45.0);
+
+        // Assert
+        assert_ser_tokens(&hue, &[Token::F64(45.0)]);
     }
 
     #[test]

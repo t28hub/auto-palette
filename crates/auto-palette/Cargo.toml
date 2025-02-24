@@ -13,12 +13,12 @@ repository.workspace = true
 
 # `cargo msrv` does not support `rust-version.workspace` yet
 # https://github.com/foresterre/cargo-msrv/issues/590
-rust-version = "1.75.0"
+rust-version = "1.84.0"
 
 [features]
 default = ["image"]
 image   = ["dep:image"]
-wasm    = ["getrandom/wasm_js"]
+wasm    = ["getrandom/wasm_js", "dep:serde"]
 
 [dependencies]
 getrandom  = { workspace = true }
@@ -26,9 +26,11 @@ image      = { workspace = true, optional = true }
 num-traits = { workspace = true }
 rand       = { workspace = true }
 rand_distr = { workspace = true }
+serde      = { workspace = true, optional = true }
 
 [dev-dependencies]
-rstest = { workspace = true }
+rstest     = { workspace = true }
+serde_test = { workspace = true }
 
 [[example]]
 name              = "basic"

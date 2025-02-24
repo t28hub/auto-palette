@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
 use num_traits::clamp;
+#[cfg(feature = "wasm")]
+use serde::Serialize;
 
 use crate::{
     color::{Hue, Oklab},
@@ -31,6 +33,7 @@ use crate::{
 /// assert_eq!(format!("{}", oklab), "Oklab(0.61, -0.12, 0.03)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize))]
 pub struct Oklch<T>
 where
     T: FloatNumber,
@@ -94,6 +97,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use serde_test::{assert_ser_tokens, Token};
+
     use super::*;
     use crate::color::Oklab;
 
@@ -111,6 +116,31 @@ mod tests {
                 h: Hue::from_degrees(166.651)
             }
         );
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_serialize() {
+        // Act
+        let oklch = Oklch::new(0.607, 0.121, 166.651);
+
+        // Assert
+        assert_ser_tokens(
+            &oklch,
+            &[
+                Token::Struct {
+                    name: "Oklch",
+                    len: 3,
+                },
+                Token::Str("l"),
+                Token::F64(0.607),
+                Token::Str("c"),
+                Token::F64(0.121),
+                Token::Str("h"),
+                Token::F64(166.651),
+                Token::StructEnd,
+            ],
+        )
     }
 
     #[test]

@@ -1,6 +1,8 @@
 use std::{fmt::Display, marker::PhantomData};
 
 use num_traits::clamp;
+#[cfg(feature = "wasm")]
+use serde::{ser::SerializeStruct, Serialize, Serializer};
 
 use crate::{
     color::{white_point::WhitePoint, LCHab, D65, XYZ},
@@ -147,6 +149,23 @@ where
     }
 }
 
+#[cfg(feature = "wasm")]
+impl<T> Serialize for Lab<T>
+where
+    T: FloatNumber + Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("Lab", 3)?;
+        state.serialize_field("l", &self.l)?;
+        state.serialize_field("a", &self.a)?;
+        state.serialize_field("b", &self.b)?;
+        state.end()
+    }
+}
+
 impl<T> Display for Lab<T>
 where
     T: FloatNumber,
@@ -233,6 +252,7 @@ where
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
+    use serde_test::{assert_ser_tokens, Token};
 
     use super::*;
     use crate::color::white_point::D65;
@@ -246,6 +266,31 @@ mod tests {
         assert_eq!(actual.l, 53.2437);
         assert_eq!(actual.a, 80.09315);
         assert_eq!(actual.b, 67.2388);
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_serialize() {
+        // Act
+        let lab = Lab::<f64>::new(53.2437, 80.09315, 67.2388);
+
+        // Assert
+        assert_ser_tokens(
+            &lab,
+            &[
+                Token::Struct {
+                    name: "Lab",
+                    len: 3,
+                },
+                Token::Str("l"),
+                Token::F64(53.2437),
+                Token::Str("a"),
+                Token::F64(80.09315),
+                Token::Str("b"),
+                Token::F64(67.2388),
+                Token::StructEnd,
+            ],
+        );
     }
 
     #[test]

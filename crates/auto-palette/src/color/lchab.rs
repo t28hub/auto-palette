@@ -1,6 +1,8 @@
 use std::{fmt::Display, marker::PhantomData};
 
 use num_traits::clamp;
+#[cfg(feature = "wasm")]
+use serde::{ser::SerializeStruct, Serialize, Serializer};
 
 use crate::{
     color::{Hue, Lab, WhitePoint, D65},
@@ -68,6 +70,24 @@ where
     }
 }
 
+#[cfg(feature = "wasm")]
+impl<T, W> Serialize for LCHab<T, W>
+where
+    T: FloatNumber + Serialize,
+    W: WhitePoint,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("LCHab", 3)?;
+        state.serialize_field("l", &self.l)?;
+        state.serialize_field("c", &self.c)?;
+        state.serialize_field("h", &self.h)?;
+        state.end()
+    }
+}
+
 impl<T, W> Display for LCHab<T, W>
 where
     T: FloatNumber,
@@ -101,6 +121,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use serde_test::{assert_ser_tokens, Token};
+
     use super::*;
 
     #[test]
@@ -117,6 +139,31 @@ mod tests {
                 h: Hue::from_degrees(27.756),
                 _marker: PhantomData,
             }
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_serialize() {
+        // Act
+        let lchab = LCHab::<f64>::new(54.617, 92.151, 27.756);
+
+        // Assert
+        assert_ser_tokens(
+            &lchab,
+            &[
+                Token::Struct {
+                    name: "LCHab",
+                    len: 3,
+                },
+                Token::Str("l"),
+                Token::F64(54.617),
+                Token::Str("c"),
+                Token::F64(92.151),
+                Token::Str("h"),
+                Token::F64(27.756),
+                Token::StructEnd,
+            ],
         );
     }
 

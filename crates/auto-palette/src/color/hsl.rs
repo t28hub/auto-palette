@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
 use num_traits::clamp;
+#[cfg(feature = "wasm")]
+use serde::Serialize;
 
 use crate::{
     color::{hue::Hue, rgb::RGB},
@@ -29,6 +31,7 @@ use crate::{
 /// assert_eq!(format!("{}", hsl), "HSL(60.00, 1.00, 0.50)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize))]
 pub struct HSL<T>
 where
     T: FloatNumber,
@@ -107,6 +110,7 @@ where
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
+    use serde_test::{assert_ser_tokens, Token};
 
     use super::*;
 
@@ -140,6 +144,31 @@ mod tests {
         // Assert
         let (h, s, l) = expected;
         assert_eq!(actual, HSL::new(h, s, l));
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_serialize() {
+        // Act
+        let hsl = HSL::new(150.0, 0.3, 0.6);
+
+        // Assert
+        assert_ser_tokens(
+            &hsl,
+            &[
+                Token::Struct {
+                    name: "HSL",
+                    len: 3,
+                },
+                Token::Str("h"),
+                Token::F64(150.0),
+                Token::Str("s"),
+                Token::F64(0.3),
+                Token::Str("l"),
+                Token::F64(0.6),
+                Token::StructEnd,
+            ],
+        )
     }
 
     #[test]

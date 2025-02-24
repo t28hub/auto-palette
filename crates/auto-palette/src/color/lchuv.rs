@@ -1,6 +1,8 @@
 use std::{fmt::Display, marker::PhantomData};
 
 use num_traits::clamp;
+#[cfg(feature = "wasm")]
+use serde::{ser::SerializeStruct, Serialize, Serializer};
 
 use crate::{
     color::{Hue, Luv, WhitePoint, D65},
@@ -68,6 +70,24 @@ where
     }
 }
 
+#[cfg(feature = "wasm")]
+impl<T, W> Serialize for LCHuv<T, W>
+where
+    T: FloatNumber + Serialize,
+    W: WhitePoint,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("LCHuv", 3)?;
+        state.serialize_field("l", &self.l)?;
+        state.serialize_field("c", &self.c)?;
+        state.serialize_field("h", &self.h)?;
+        state.end()
+    }
+}
+
 impl<T, W> Display for LCHuv<T, W>
 where
     T: FloatNumber,
@@ -101,6 +121,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use serde_test::{assert_ser_tokens, Token};
+
     use super::*;
     use crate::color::Luv;
 
@@ -119,6 +141,31 @@ mod tests {
                 _marker: PhantomData,
             }
         );
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_serialize() {
+        // Act
+        let lchuv: LCHuv<f64> = LCHuv::new(56.232, 50.875, 154.710);
+
+        // Assert
+        assert_ser_tokens(
+            &lchuv,
+            &[
+                Token::Struct {
+                    name: "LCHuv",
+                    len: 3,
+                },
+                Token::Str("l"),
+                Token::F64(56.232),
+                Token::Str("c"),
+                Token::F64(50.875),
+                Token::Str("h"),
+                Token::F64(154.710),
+                Token::StructEnd,
+            ],
+        )
     }
 
     #[test]

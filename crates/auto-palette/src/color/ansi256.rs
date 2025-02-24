@@ -3,6 +3,9 @@ use std::{
     fmt::{Display, Formatter},
 };
 
+#[cfg(feature = "wasm")]
+use serde::{Serialize, Serializer};
+
 use crate::{
     color::{Ansi16, RGB},
     FloatNumber,
@@ -47,6 +50,16 @@ impl Ansi256 {
     #[must_use]
     pub fn code(&self) -> u8 {
         self.code
+    }
+}
+
+#[cfg(feature = "wasm")]
+impl Serialize for Ansi256 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.code.serialize(serializer)
     }
 }
 
@@ -106,6 +119,7 @@ where
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
+    use serde_test::{assert_ser_tokens, Token};
 
     use super::*;
 
@@ -120,6 +134,16 @@ mod tests {
         // Assert
         assert_eq!(actual, Ansi256 { code });
         assert_eq!(actual.code(), code);
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_serialize() {
+        // Act
+        let ansi256 = Ansi256::new(120);
+
+        // Assert
+        assert_ser_tokens(&ansi256, &[Token::U8(120)]);
     }
 
     #[test]

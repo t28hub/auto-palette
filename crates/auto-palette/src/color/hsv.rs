@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
 use num_traits::clamp;
+#[cfg(feature = "wasm")]
+use serde::Serialize;
 
 use crate::{
     color::{hue::Hue, RGB},
@@ -29,6 +31,7 @@ use crate::{
 /// assert_eq!(format!("{}", hsv), "HSV(60.00, 1.00, 1.00)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize))]
 pub struct HSV<T>
 where
     T: FloatNumber,
@@ -110,6 +113,7 @@ where
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
+    use serde_test::{assert_ser_tokens, Token};
 
     use super::*;
 
@@ -143,6 +147,31 @@ mod tests {
         // Assert
         let (h, s, v) = expected;
         assert_eq!(actual, HSV::new(h, s, v));
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_serialize() {
+        // Act
+        let hsv = HSV::new(60.0, 0.75, 0.5);
+
+        // Assert
+        assert_ser_tokens(
+            &hsv,
+            &[
+                Token::Struct {
+                    name: "HSV",
+                    len: 3,
+                },
+                Token::Str("h"),
+                Token::F64(60.0),
+                Token::Str("s"),
+                Token::F64(0.75),
+                Token::Str("v"),
+                Token::F64(0.5),
+                Token::StructEnd,
+            ],
+        );
     }
 
     #[test]
