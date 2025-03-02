@@ -115,6 +115,7 @@ mod tests {
     use std::f64::consts::PI;
 
     use rstest::rstest;
+    #[cfg(feature = "wasm")]
     use serde_test::{assert_ser_tokens, Token};
 
     use super::*;

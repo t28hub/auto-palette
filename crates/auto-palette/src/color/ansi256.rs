@@ -119,6 +119,7 @@ where
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
+    #[cfg(feature = "wasm")]
     use serde_test::{assert_ser_tokens, Token};
 
     use super::*;
