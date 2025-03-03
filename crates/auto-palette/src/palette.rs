@@ -136,7 +136,7 @@ where
         colors: Vec<Point<T, 3>>,
         weights: Vec<T>,
     ) -> Vec<Swatch<T>> {
-        let sampling = SamplingStrategy::WeightedFarthestPointSampling::<T>(weights);
+        let sampling = SamplingStrategy::Diversity(T::from_f32(0.5), weights);
         sampling
             .sample(&colors, n)
             .iter()
@@ -437,13 +437,14 @@ mod tests {
         let palette = Palette::new(swatches.clone());
 
         // Act
-        let actual = palette.find_swatches(3);
+        let actual = palette.find_swatches(4);
 
         // Assert
-        assert_eq!(actual.len(), 3);
+        assert_eq!(actual.len(), 4);
         assert_eq!(actual[0].color().to_hex_string(), "#FFFFFF");
         assert_eq!(actual[1].color().to_hex_string(), "#EE334E");
-        assert_eq!(actual[2].color().to_hex_string(), "#000000");
+        assert_eq!(actual[2].color().to_hex_string(), "#0081C8");
+        assert_eq!(actual[3].color().to_hex_string(), "#00A651");
     }
 
     #[test]
@@ -460,23 +461,27 @@ mod tests {
     }
 
     #[rstest]
-    #[case::basic(Theme::Basic, vec ! ["#FFFFFF", "#000000"])]
-    #[case::colorful(Theme::Colorful, vec ! ["#0081C8", "#FCB131"])]
-    #[case::vivid(Theme::Vivid, vec ! ["#EE334E", "#00A651"])]
-    #[case::muted(Theme::Muted, vec ! ["#0081C8", "#000000"])]
-    #[case::light(Theme::Light, vec ! ["#FFFFFF", "#FCB131"])]
-    #[case::dark(Theme::Dark, vec ! ["#FFFFFF", "#000000"])]
+    #[case::basic(Theme::Basic, vec ! ["#FFFFFF", "#EE334E", "#00A651"])]
+    #[case::colorful(Theme::Colorful, vec ! ["#EE334E", "#0081C8", "#FCB131"])]
+    #[case::vivid(Theme::Vivid, vec ! ["#EE334E", "#0081C8", "#00A651"])]
+    #[case::muted(Theme::Muted, vec ! ["#EE334E", "#0081C8", "#000000"])]
+    #[case::light(Theme::Light, vec ! ["#FFFFFF", "#EE334E", "#FCB131"])]
+    #[case::dark(Theme::Dark, vec ! ["#FFFFFF", "#EE334E", "#000000"])]
     fn test_find_swatches_with_theme(#[case] theme: Theme, #[case] expected: Vec<&str>) {
         // Arrange
         let swatches = sample_swatches::<f32>();
         let palette = Palette::new(swatches.clone());
 
         // Act
-        let actual = palette.find_swatches_with_theme(2, theme);
+        let actual = palette.find_swatches_with_theme(3, theme);
+        actual
+            .iter()
+            .for_each(|swatch| println!("{:?}", swatch.color().to_hex_string()));
 
         // Assert
-        assert_eq!(actual.len(), 2);
+        assert_eq!(actual.len(), 3);
         assert_eq!(actual[0].color().to_hex_string(), expected[0]);
         assert_eq!(actual[1].color().to_hex_string(), expected[1]);
+        assert_eq!(actual[2].color().to_hex_string(), expected[2]);
     }
 }
