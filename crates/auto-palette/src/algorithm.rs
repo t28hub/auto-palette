@@ -12,11 +12,12 @@ use crate::{
 
 /// The clustering algorithm to use for color palette extraction.
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub enum Algorithm {
     /// K-means clustering algorithm.
     KMeans,
     /// DBSCAN clustering algorithm.
+    #[default]
     DBSCAN,
     /// DBSCAN++ clustering algorithm.
     DBSCANpp,

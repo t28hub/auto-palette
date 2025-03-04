@@ -20,7 +20,6 @@ where
     ///
     /// # Arguments
     /// * `Vec<T>` - The weights of the points.
-    #[allow(dead_code)]
     WeightedFarthest(Vec<T>),
     /// Diversity sampling strategy.
     /// The diversity is calculated using the scores of the points.
