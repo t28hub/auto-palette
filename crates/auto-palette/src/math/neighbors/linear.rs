@@ -44,42 +44,68 @@ where
 {
     #[must_use]
     fn search(&self, query: &Point<T, N>, k: usize) -> Vec<Neighbor<T>> {
-        let mut neighbors = BinaryHeap::with_capacity(k);
-        for (index, point) in self.points.iter().enumerate() {
-            let distance = self.metric.measure(query, point);
-            let neighbor = Neighbor::new(index, distance);
-            neighbors.push(neighbor);
-            if neighbors.len() > k {
-                neighbors.pop();
-            }
+        if k == 0 || self.points.is_empty() {
+            return Vec::new();
         }
-        neighbors.into_sorted_vec()
+
+        self.points
+            .iter()
+            .enumerate()
+            .fold(
+                BinaryHeap::with_capacity(k),
+                |mut neighbors, (index, point)| {
+                    let distance = self.metric.measure(query, point);
+                    let neighbor = Neighbor::new(index, distance);
+                    neighbors.push(neighbor);
+                    if neighbors.len() > k {
+                        neighbors.pop();
+                    }
+                    neighbors
+                },
+            )
+            .into_sorted_vec()
     }
 
     #[must_use]
     fn search_nearest(&self, query: &Point<T, N>) -> Option<Neighbor<T>> {
-        let mut nearest = Neighbor::new(0, T::infinity());
-        for (index, other) in self.points.iter().enumerate() {
-            let distance = self.metric.measure(query, other);
-            if distance < nearest.distance {
-                nearest.index = index;
-                nearest.distance = distance;
-            }
+        if self.points.is_empty() {
+            return None;
         }
-        Some(nearest)
+
+        self.points
+            .iter()
+            .enumerate()
+            .fold(None, |nearest, (index, point)| {
+                let distance = self.metric.measure(query, point);
+                if let Some(best) = nearest {
+                    if distance < best.distance {
+                        Some(Neighbor::new(index, distance))
+                    } else {
+                        Some(best)
+                    }
+                } else {
+                    Some(Neighbor::new(index, distance))
+                }
+            })
     }
 
     #[must_use]
     fn search_radius(&self, query: &Point<T, N>, radius: T) -> Vec<Neighbor<T>> {
-        let mut neighbors = Vec::new();
-        for (index, point) in self.points.iter().enumerate() {
-            let distance = self.metric.measure(query, point);
-            if distance <= radius {
-                let neighbor = Neighbor::new(index, distance);
-                neighbors.push(neighbor);
-            }
+        if radius < T::zero() || self.points.is_empty() {
+            return Vec::new();
         }
-        neighbors
+
+        self.points.iter().enumerate().fold(
+            Vec::with_capacity(self.points.len()),
+            |mut neighbors, (index, point)| {
+                let distance = self.metric.measure(query, point);
+                if distance <= radius {
+                    let neighbor = Neighbor::new(index, distance);
+                    neighbors.push(neighbor);
+                }
+                neighbors
+            },
+        )
     }
 }
 
@@ -105,6 +131,11 @@ mod tests {
             [2.0, 3.0, 4.0], // 12
             [4.0, 5.0, 4.0], // 13
         ]
+    }
+
+    #[must_use]
+    fn empty_points() -> Vec<Point<f32, 3>> {
+        Vec::new()
     }
 
     #[test]
@@ -139,6 +170,34 @@ mod tests {
     }
 
     #[test]
+    fn test_search_zero() {
+        // Arrange
+        let points = sample_points();
+        let search = LinearSearch::build(&points, DistanceMetric::Euclidean);
+
+        // Act
+        let query = [2.0, 5.0, 6.0];
+        let neighbors = search.search(&query, 0);
+
+        // Assert
+        assert!(neighbors.is_empty());
+    }
+
+    #[test]
+    fn test_search_empty() {
+        // Arrange
+        let points = empty_points();
+        let search = LinearSearch::build(&points, DistanceMetric::Euclidean);
+
+        // Act
+        let query = [2.0, 5.0, 6.0];
+        let neighbors = search.search(&query, 3);
+
+        // Assert
+        assert!(neighbors.is_empty());
+    }
+
+    #[test]
     fn test_search_nearest() {
         // Arrange
         let points = sample_points();
@@ -151,6 +210,20 @@ mod tests {
         // Assert
         assert_eq!(nearest.index, 12);
         assert_eq!(nearest.distance, 8.0_f32.sqrt());
+    }
+
+    #[test]
+    fn test_search_nearest_empty() {
+        // Arrange
+        let points = empty_points();
+        let search = LinearSearch::build(&points, DistanceMetric::Euclidean);
+
+        // Act
+        let query = [2.0, 5.0, 6.0];
+        let nearest = search.search_nearest(&query);
+
+        // Assert
+        assert!(nearest.is_none());
     }
 
     #[test]
@@ -169,5 +242,33 @@ mod tests {
         assert_eq!(neighbors[0].distance, 8.0_f32.sqrt());
         assert_eq!(neighbors[1].index, 13);
         assert_eq!(neighbors[1].distance, 8.0_f32.sqrt());
+    }
+
+    #[test]
+    fn test_search_radius_zero() {
+        // Arrange
+        let points = sample_points();
+        let search = LinearSearch::build(&points, DistanceMetric::Euclidean);
+
+        // Act
+        let query = [2.0, 5.0, 6.0];
+        let neighbors = search.search_radius(&query, 0.0);
+
+        // Assert
+        assert!(neighbors.is_empty());
+    }
+
+    #[test]
+    fn test_search_radius_empty() {
+        // Arrange
+        let points = empty_points();
+        let search = LinearSearch::build(&points, DistanceMetric::Euclidean);
+
+        // Act
+        let query = [2.0, 5.0, 6.0];
+        let neighbors = search.search_radius(&query, 4.0);
+
+        // Assert
+        assert!(neighbors.is_empty());
     }
 }
