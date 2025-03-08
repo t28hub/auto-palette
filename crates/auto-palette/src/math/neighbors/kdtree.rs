@@ -146,18 +146,9 @@ where
         });
 
         let median = indices.len() / 2;
-        let left = Self::split_node(
-            points,
-            leaf_size,
-            &mut indices[..median].to_vec(),
-            depth + 1,
-        );
-        let right = Self::split_node(
-            points,
-            leaf_size,
-            &mut indices[median + 1..].to_vec(),
-            depth + 1,
-        );
+        let (left_indices, right_indices) = indices.split_at_mut(median);
+        let left = Self::split_node(points, leaf_size, left_indices, depth + 1);
+        let right = Self::split_node(points, leaf_size, &mut right_indices[1..], depth + 1);
         Some(Node::new_node(axis, indices[median], left, right))
     }
 
@@ -165,11 +156,11 @@ where
     where
         F: FnMut(usize, T),
     {
-        for &index in &node.indices {
+        node.indices.iter().for_each(|&index| {
             let point = &self.points[index];
             let distance = self.metric.measure(point, query);
             action(index, distance);
-        }
+        });
     }
 
     #[allow(dead_code)]
@@ -185,24 +176,27 @@ where
             return;
         };
 
+        let mut best_distance = neighbors
+            .peek()
+            .map(|neighbor| neighbor.distance)
+            .unwrap_or(T::infinity());
         let mut update_neighbors = |index, distance| {
-            if neighbors.len() < k {
-                neighbors.push(Neighbor::new(index, distance));
-            } else if distance
-                < neighbors
-                    .peek()
-                    .map(|neighbor| neighbor.distance)
-                    .unwrap_or(T::infinity())
-            {
-                neighbors.pop();
-                neighbors.push(Neighbor::new(index, distance));
+            if distance >= best_distance {
+                return;
             }
+
+            if neighbors.len() == k {
+                neighbors.pop();
+            }
+            neighbors.push(Neighbor::new(index, distance));
+            best_distance = neighbors
+                .peek()
+                .map(|neighbor| neighbor.distance)
+                .unwrap_or(T::infinity());
         };
 
         if node.is_leaf() {
-            self.search_leaf(node, query, &mut |index, distance| {
-                update_neighbors(index, distance);
-            });
+            self.search_leaf(node, query, &mut update_neighbors);
             return;
         }
 
@@ -212,16 +206,16 @@ where
         update_neighbors(index, distance);
 
         let axis = node.axis;
+        let delta = (query[axis] - point[axis]).abs();
         let (near, far) = if query[axis] < point[axis] {
             (&node.left, &node.right)
         } else {
             (&node.right, &node.left)
         };
+
         self.search_recursive(near, query, k, neighbors);
-        if let Some(neighbor) = neighbors.peek() {
-            if (query[axis] - point[axis]).abs() < neighbor.distance {
-                self.search_recursive(far, query, k, neighbors);
-            }
+        if delta < best_distance {
+            self.search_recursive(far, query, k, neighbors);
         }
     }
 
@@ -236,25 +230,24 @@ where
             return;
         };
 
+        let mut update_nearest = |index, distance| {
+            if distance < nearest.distance {
+                *nearest = Neighbor::new(index, distance);
+            }
+        };
+
         if node.is_leaf() {
-            self.search_leaf(node, query, &mut |index, distance| {
-                if distance < nearest.distance {
-                    nearest.index = index;
-                    nearest.distance = distance;
-                }
-            });
+            self.search_leaf(node, query, &mut update_nearest);
             return;
         }
 
         let index = node.index();
         let point = &self.points[index];
         let distance = self.metric.measure(point, query);
-        if distance < nearest.distance {
-            nearest.index = index;
-            nearest.distance = distance;
-        }
+        update_nearest(index, distance);
 
         let axis = node.axis;
+        let delta = (query[axis] - point[axis]).abs();
         let (near, far) = if query[axis] < point[axis] {
             (&node.left, &node.right)
         } else {
@@ -262,7 +255,7 @@ where
         };
 
         self.search_nearest_recursive(near, query, nearest);
-        if (query[axis] - point[axis]).abs() < nearest.distance {
+        if delta < nearest.distance {
             self.search_nearest_recursive(far, query, nearest);
         }
     }
@@ -433,7 +426,7 @@ mod tests {
         let neighbors = search.search(&query, 0);
 
         // Assert
-        assert_eq!(neighbors.len(), 0);
+        assert!(neighbors.is_empty());
     }
 
     #[test]

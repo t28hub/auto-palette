@@ -13,10 +13,10 @@ where
     ///
     /// # Arguments
     /// * `query` - The query point to search for neighbors.
-    /// * `k` - The number of neighbors to search for.
+    /// * `k` - The number of neighbors to search for. If `k == 0`, an empty vector is returned.
     ///
     /// # Returns
-    /// The k nearest neighbors.
+    /// A vector containing the k nearest neighbors in ascending order of distance.
     #[allow(dead_code)]
     fn search(&self, query: &Point<T, N>, k: usize) -> Vec<Neighbor<T>>;
 
@@ -26,16 +26,16 @@ where
     /// * `query` - The query point to search for a neighbor.
     ///
     /// # Returns
-    /// The nearest neighbor.
+    /// The nearest neighbor, or `None` if no neighbors are found.
     fn search_nearest(&self, query: &Point<T, N>) -> Option<Neighbor<T>>;
 
     /// Searches for the neighbors within a given radius of a point.
     ///
     /// # Arguments
     /// * `query` - The query point to search for neighbors.
-    /// * `radius` - The radius within which to search for neighbors.
+    /// * `radius` - The radius within which to search for neighbors. If `radius < 0`, an empty vector is returned.
     ///
     /// # Returns
-    /// The neighbors within the given radius.
+    /// A vector containing the neighbors within the specified radius.
     fn search_radius(&self, query: &Point<T, N>, radius: T) -> Vec<Neighbor<T>>;
 }

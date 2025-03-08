@@ -25,13 +25,16 @@ where
     ///
     /// # Arguments
     /// * `index` - The index of the neighbor.
-    /// * `distance` - The distance to the neighbor.
+    /// * `distance` - The distance to the neighbor. Must be non-negative.
     ///
     /// # Returns
     /// A `Neighbor` instance.
+    ///
+    /// # Panics
+    /// Panics if the distance is negative (`distance < 0`).
     #[must_use]
     pub fn new(index: usize, distance: T) -> Self {
-        debug_assert!(distance >= T::zero());
+        debug_assert!(distance >= T::zero(), "Distance must be non-negative");
         Self { index, distance }
     }
 }
@@ -61,7 +64,9 @@ where
     T: FloatNumber,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.distance.partial_cmp(&other.distance).unwrap()
+        self.distance
+            .partial_cmp(&other.distance)
+            .unwrap_or(Ordering::Equal)
     }
 }
 
@@ -80,16 +85,20 @@ mod tests {
     }
 
     #[test]
+    #[cfg(debug_assertions)]
+    #[should_panic(expected = "Distance must be non-negative")]
+    fn test_neighbor_panic() {
+        let _ = Neighbor::new(0, -2.0);
+    }
+
+    #[test]
     fn test_eq_true() {
         // Arrange
         let neighbor1 = Neighbor::new(0, 2.0);
         let neighbor2 = Neighbor::new(0, 2.0);
 
-        // Act
-        let equality = neighbor1.eq(&neighbor2);
-
-        // Assert
-        assert!(equality);
+        // Act & Assert
+        assert_eq!(neighbor1, neighbor2);
     }
 
     #[test]
@@ -98,11 +107,8 @@ mod tests {
         let neighbor1 = Neighbor::new(0, 2.0);
         let neighbor2 = Neighbor::new(1, 2.0);
 
-        // Act
-        let equality = neighbor1.eq(&neighbor2);
-
-        // Assert
-        assert!(!equality);
+        // Act & Assert
+        assert_ne!(neighbor1, neighbor2);
     }
 
     #[test]
