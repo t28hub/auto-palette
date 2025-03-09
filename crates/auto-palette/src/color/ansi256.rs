@@ -105,13 +105,13 @@ where
         } else {
             232 + ((r - T::from_u8(8)) / T::from_u8(247) * T::from_u8(24))
                 .round()
-                .to_u8_unsafe()
+                .trunc_to_u8()
         }
     } else {
         let denominator = T::from_u8(51);
-        let r = (r / denominator).round().to_u8_unsafe();
-        let g = (g / denominator).round().to_u8_unsafe();
-        let b = (b / denominator).round().to_u8_unsafe();
+        let r = (r / denominator).round().trunc_to_u8();
+        let g = (g / denominator).round().trunc_to_u8();
+        let b = (b / denominator).round().trunc_to_u8();
         16 + 36 * r + 6 * g + b
     }
 }

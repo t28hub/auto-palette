@@ -1,6 +1,10 @@
+use std::iter::zip;
+
 use crate::math::{point::Point, FloatNumber};
 
 /// DistanceMetric enum used to measure the distance between two points.
+///
+/// This enum provides different methods to calculate distance between points in an N-dimensional space.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub enum DistanceMetric {
     /// The Euclidean distance.
@@ -11,10 +15,10 @@ pub enum DistanceMetric {
 }
 
 impl DistanceMetric {
-    /// Measures the distance between two points.
+    /// Measures the distance between two points using the specified distance metric.
     ///
     /// # Type Parameters
-    /// * `T` - The floating point type.
+    /// * `T` - The floating point type used for calculating the distance.
     /// * `N` - The number of dimensions.
     ///
     /// # Arguments
@@ -30,16 +34,18 @@ impl DistanceMetric {
         T: FloatNumber,
     {
         match self {
-            DistanceMetric::Euclidean => square_euclidean(point1, point2).sqrt(),
-            DistanceMetric::SquaredEuclidean => square_euclidean(point1, point2),
+            DistanceMetric::Euclidean => measure_squared_euclidean(point1, point2).sqrt(),
+            DistanceMetric::SquaredEuclidean => measure_squared_euclidean(point1, point2),
         }
     }
 }
 
 /// Measures the squared Euclidean distance between two points.
 ///
+/// This is a helper function used by both Euclidean and SquaredEuclidean metrics.
+///
 /// # Type Parameters
-/// * `T` - The floating point type.
+/// * `T` - The floating point type used for calculating the distance.
 /// * `N` - The number of dimensions.
 ///
 /// # Arguments
@@ -50,15 +56,13 @@ impl DistanceMetric {
 /// The squared Euclidean distance between the two points.
 #[inline]
 #[must_use]
-fn square_euclidean<T, const N: usize>(point1: &Point<T, N>, point2: &Point<T, N>) -> T
+fn measure_squared_euclidean<T, const N: usize>(point1: &Point<T, N>, point2: &Point<T, N>) -> T
 where
     T: FloatNumber,
 {
-    point1
-        .iter()
-        .zip(point2.iter())
-        .map(|(value1, value2)| (*value1 - *value2).powi(2))
-        .sum()
+    zip(point1.iter(), point2.iter()).fold(T::zero(), |acc, (value1, value2)| {
+        acc + (*value1 - *value2).powi(2)
+    })
 }
 
 #[cfg(test)]
@@ -85,5 +89,40 @@ mod tests {
 
         // Assert
         assert_eq!(distance, 2.0);
+    }
+
+    #[test]
+    fn test_identical_points() {
+        let point = [1.0, 2.0];
+        assert_eq!(DistanceMetric::Euclidean.measure(&point, &point), 0.0);
+        assert_eq!(
+            DistanceMetric::SquaredEuclidean.measure(&point, &point),
+            0.0
+        );
+    }
+
+    #[test]
+    fn test_with_nan_values() {
+        let point1 = [0.0, f32::NAN];
+        let point2 = [0.0, 0.0];
+        let distance = DistanceMetric::Euclidean.measure(&point1, &point2);
+        assert!(distance.is_nan());
+    }
+
+    #[test]
+    fn test_three_dimensional_points() {
+        // Act
+        let point1 = [1.0, 2.0, 3.0];
+        let point2 = [4.0, 5.0, 6.0];
+
+        // Assert
+        assert_eq!(
+            DistanceMetric::Euclidean.measure(&point1, &point2),
+            27.0_f32.sqrt()
+        );
+        assert_eq!(
+            DistanceMetric::SquaredEuclidean.measure(&point1, &point2),
+            27.0_f32
+        );
     }
 }

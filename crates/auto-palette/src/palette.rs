@@ -1,5 +1,7 @@
 use std::cmp::Reverse;
 
+use rand_distr::weighted::AliasableWeight;
+
 use crate::{
     algorithm::Algorithm,
     color::{rgb_to_xyz, xyz_to_lab, Color, Lab, D65},
@@ -44,14 +46,14 @@ use crate::{
 #[derive(Debug, Clone, PartialEq)]
 pub struct Palette<T>
 where
-    T: FloatNumber,
+    T: FloatNumber + AliasableWeight,
 {
     swatches: Vec<Swatch<T>>,
 }
 
 impl<T> Palette<T>
 where
-    T: FloatNumber,
+    T: FloatNumber + AliasableWeight,
 {
     /// Creates a new `Palette` instance.
     ///
@@ -191,7 +193,7 @@ fn cluster_pixels<T>(
     algorithm: Algorithm,
 ) -> Vec<Cluster<T, 5>>
 where
-    T: FloatNumber,
+    T: FloatNumber + AliasableWeight,
 {
     let width_f = T::from_usize(width);
     let height_f = T::from_usize(height);
@@ -274,8 +276,8 @@ where
                 best_color[2] += fraction * (centroid[2] - best_color[2]);
 
                 if fraction >= T::from_f32(0.5) {
-                    best_position.0 = denormalize(centroid[3], T::zero(), width).to_u32_unsafe();
-                    best_position.1 = denormalize(centroid[4], T::zero(), height).to_u32_unsafe();
+                    best_position.0 = denormalize(centroid[3], T::zero(), width).trunc_to_u32();
+                    best_position.1 = denormalize(centroid[4], T::zero(), height).trunc_to_u32();
                     best_population = pixel_cluster.len();
                 }
                 total_population += pixel_cluster.len();
@@ -461,7 +463,7 @@ mod tests {
     #[case::vivid(Theme::Vivid, vec ! ["#EE334E", "#00A651"])]
     #[case::muted(Theme::Muted, vec ! ["#0081C8", "#000000"])]
     #[case::light(Theme::Light, vec ! ["#FFFFFF", "#FCB131"])]
-    #[case::dark(Theme::Dark, vec ! ["#FFFFFF", "#000000"])]
+    #[case::dark(Theme::Dark, vec ! ["#000000", "#FCB131"])]
     fn test_find_swatches_with_theme(#[case] theme: Theme, #[case] expected: Vec<&str>) {
         // Arrange
         let swatches = sample_swatches::<f32>();

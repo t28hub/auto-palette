@@ -306,7 +306,6 @@ impl<T, const N: usize> NeighborSearch<T, N> for KDTreeSearch<'_, T, N>
 where
     T: FloatNumber,
 {
-    #[must_use]
     fn search(&self, query: &Point<T, N>, k: usize) -> Vec<Neighbor<T>> {
         if k == 0 {
             return Vec::new();
@@ -317,7 +316,6 @@ where
         neighbors.into_sorted_vec()
     }
 
-    #[must_use]
     fn search_nearest(&self, query: &Point<T, N>) -> Option<Neighbor<T>> {
         let mut nearest = Neighbor::new(0, T::infinity());
         self.search_nearest_recursive(&self.root, query, &mut nearest);
@@ -328,7 +326,6 @@ where
         }
     }
 
-    #[must_use]
     fn search_radius(&self, query: &Point<T, N>, radius: T) -> Vec<Neighbor<T>> {
         if radius < T::zero() {
             return Vec::new();

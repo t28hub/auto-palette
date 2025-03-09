@@ -5,7 +5,6 @@ use std::{
 };
 
 use num_traits::Float;
-use rand_distr::weighted::AliasableWeight;
 
 /// Trait for floating point numbers.
 pub trait FloatNumber:
@@ -23,7 +22,6 @@ pub trait FloatNumber:
     + MulAssign
     + DivAssign
     + Sum
-    + AliasableWeight
 {
     /// Creates a new floating point number from a `u8`.
     ///
@@ -85,136 +83,118 @@ pub trait FloatNumber:
     #[must_use]
     fn from_f64(value: f64) -> Self;
 
-    /// Converts the floating point number to a `u8`.
+    /// Truncates the floating point number to a `u8`.
     ///
     /// # Returns
     /// The `u8` value. The value is truncated.
     #[must_use]
-    fn to_u8_unsafe(&self) -> u8;
+    fn trunc_to_u8(&self) -> u8;
 
-    /// Converts the floating point number to a `u32`.
+    /// Truncates the floating point number to a `u32`.
     ///
     /// # Returns
     /// The `u32` value. The value is truncated.
     #[must_use]
-    fn to_u32_unsafe(&self) -> u32;
+    fn trunc_to_u32(&self) -> u32;
 
-    /// Converts the floating point number to a `usize`.
+    /// Truncates the floating point number to a `usize`.
     ///
     /// # Returns
     /// The `usize` value. The value is truncated.
     #[must_use]
-    fn to_usize_unsafe(&self) -> usize;
+    fn trunc_to_usize(&self) -> usize;
 }
 
 impl FloatNumber for f32 {
     #[inline]
-    #[must_use]
     fn from_u8(value: u8) -> Self {
         value as f32
     }
 
     #[inline]
-    #[must_use]
     fn from_u16(value: u16) -> Self {
         value as f32
     }
 
     #[inline]
-    #[must_use]
     fn from_u32(value: u32) -> Self {
         value as f32
     }
 
     #[inline]
-    #[must_use]
     fn from_usize(value: usize) -> Self {
         value as f32
     }
 
     #[inline]
-    #[must_use]
     fn from_f32(value: f32) -> Self {
         value
     }
 
     #[inline]
-    #[must_use]
     fn from_f64(value: f64) -> Self {
         value as f32
     }
 
     #[inline]
-    #[must_use]
-    fn to_u8_unsafe(&self) -> u8 {
+    fn trunc_to_u8(&self) -> u8 {
         *self as u8
     }
 
     #[inline]
-    #[must_use]
-    fn to_u32_unsafe(&self) -> u32 {
+    fn trunc_to_u32(&self) -> u32 {
         *self as u32
     }
 
     #[inline]
-    #[must_use]
-    fn to_usize_unsafe(&self) -> usize {
+    fn trunc_to_usize(&self) -> usize {
         *self as usize
     }
 }
 
 impl FloatNumber for f64 {
     #[inline]
-    #[must_use]
     fn from_u8(value: u8) -> Self {
         value as f64
     }
 
     #[inline]
-    #[must_use]
     fn from_u16(value: u16) -> Self {
         value as f64
     }
 
     #[inline]
-    #[must_use]
     fn from_u32(value: u32) -> Self {
         value as f64
     }
 
     #[inline]
-    #[must_use]
     fn from_usize(value: usize) -> Self {
         value as f64
     }
 
     #[inline]
-    #[must_use]
     fn from_f32(value: f32) -> Self {
         value as f64
     }
 
     #[inline]
-    #[must_use]
     fn from_f64(value: f64) -> Self {
         value
     }
 
     #[inline]
-    #[must_use]
-    fn to_u8_unsafe(&self) -> u8 {
+    fn trunc_to_u8(&self) -> u8 {
         *self as u8
     }
 
     #[inline]
-    #[must_use]
-    fn to_u32_unsafe(&self) -> u32 {
+    fn trunc_to_u32(&self) -> u32 {
         *self as u32
     }
 
     #[inline]
-    #[must_use]
-    fn to_usize_unsafe(&self) -> usize {
+    fn trunc_to_usize(&self) -> usize {
         *self as usize
     }
 }
@@ -283,9 +263,9 @@ mod tests {
         assert_eq!(f32::from_usize(4096), 4096.0);
         assert_eq!(f32::from_f32(0.5), 0.5);
         assert_eq!(f32::from_f64(0.125), 0.125);
-        assert_eq!(0.125.to_u8_unsafe(), 0);
-        assert_eq!(12.5.to_u32_unsafe(), 12);
-        assert_eq!(10.24.to_usize_unsafe(), 10);
+        assert_eq!(0.125.trunc_to_u8(), 0);
+        assert_eq!(12.5.trunc_to_u32(), 12);
+        assert_eq!(10.24.trunc_to_usize(), 10);
     }
 
     #[test]
@@ -296,9 +276,9 @@ mod tests {
         assert_eq!(f64::from_usize(4096), 4096.0);
         assert_eq!(f64::from_f32(0.5), 0.5);
         assert_eq!(f64::from_f64(0.125), 0.125);
-        assert_eq!(0.125.to_u8_unsafe(), 0);
-        assert_eq!(12.5.to_u32_unsafe(), 12);
-        assert_eq!(10.24.to_usize_unsafe(), 10);
+        assert_eq!(0.125.trunc_to_u8(), 0);
+        assert_eq!(12.5.trunc_to_u32(), 12);
+        assert_eq!(10.24.trunc_to_usize(), 10);
     }
 
     #[rstest]

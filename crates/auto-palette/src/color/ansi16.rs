@@ -263,14 +263,14 @@ where
 
     let value = (r.max(g).max(b) * T::from_f32(100.0) / T::from_f32(50.0))
         .round()
-        .to_u8_unsafe();
+        .trunc_to_u8();
     if value == 0 {
         return 30;
     }
 
-    let r = r.round().to_u8_unsafe();
-    let g = g.round().to_u8_unsafe();
-    let b = b.round().to_u8_unsafe();
+    let r = r.round().trunc_to_u8();
+    let g = g.round().trunc_to_u8();
+    let b = b.round().trunc_to_u8();
     let code = 30 + ((b << 2) | (g << 1) | r);
     if value == 2 {
         code + 60 // Bright colors
