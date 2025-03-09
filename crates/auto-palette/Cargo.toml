@@ -20,6 +20,9 @@ default = ["image"]
 image   = ["dep:image"]
 wasm    = ["getrandom/wasm_js", "dep:serde"]
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }
+
 [dependencies]
 getrandom  = { workspace = true }
 image      = { workspace = true, optional = true }

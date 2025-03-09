@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+use rand_distr::weighted::AliasableWeight;
+
 use crate::{
     error::Error,
     math::{
@@ -34,7 +36,7 @@ impl Algorithm {
     #[must_use]
     pub(crate) fn cluster<T>(&self, pixels: &[Point<T, 5>]) -> Vec<Cluster<T, 5>>
     where
-        T: FloatNumber,
+        T: FloatNumber + AliasableWeight,
     {
         match self {
             Self::KMeans => cluster_with_kmeans(pixels),
@@ -62,7 +64,7 @@ impl FromStr for Algorithm {
 #[must_use]
 fn cluster_with_kmeans<T>(pixels: &[Point<T, 5>]) -> Vec<Cluster<T, 5>>
 where
-    T: FloatNumber,
+    T: FloatNumber + AliasableWeight,
 {
     let clustering = KMeans::new(
         32,

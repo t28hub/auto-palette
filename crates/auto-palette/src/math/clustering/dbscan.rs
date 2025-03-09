@@ -113,7 +113,6 @@ impl<T, const N: usize> ClusteringAlgorithm<T, N> for DBSCAN<T>
 where
     T: FloatNumber,
 {
-    #[must_use]
     fn fit(&self, points: &[Point<T, N>]) -> Vec<Cluster<T, N>> {
         if points.is_empty() {
             return Vec::new();

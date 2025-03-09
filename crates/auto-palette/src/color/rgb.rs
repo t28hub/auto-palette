@@ -104,9 +104,9 @@ where
 
         let max = RGB::max_value::<T>();
         RGB::new(
-            ((r + m) * max).round().to_u8_unsafe(),
-            ((g + m) * max).round().to_u8_unsafe(),
-            ((b + m) * max).round().to_u8_unsafe(),
+            ((r + m) * max).round().trunc_to_u8(),
+            ((g + m) * max).round().trunc_to_u8(),
+            ((b + m) * max).round().trunc_to_u8(),
         )
     }
 }
@@ -138,9 +138,9 @@ where
 
         let max = RGB::max_value::<T>();
         RGB::new(
-            ((r + m) * max).round().to_u8_unsafe(),
-            ((g + m) * max).round().to_u8_unsafe(),
-            ((b + m) * max).round().to_u8_unsafe(),
+            ((r + m) * max).round().trunc_to_u8(),
+            ((g + m) * max).round().trunc_to_u8(),
+            ((b + m) * max).round().trunc_to_u8(),
         )
     }
 }
@@ -188,9 +188,9 @@ where
 
     let max = RGB::max_value::<T>();
     (
-        (r * max).round().to_u8_unsafe(),
-        (g * max).round().to_u8_unsafe(),
-        (b * max).round().to_u8_unsafe(),
+        (r * max).round().trunc_to_u8(),
+        (g * max).round().trunc_to_u8(),
+        (b * max).round().trunc_to_u8(),
     )
 }
 

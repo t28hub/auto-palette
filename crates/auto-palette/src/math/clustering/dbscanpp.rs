@@ -73,7 +73,7 @@ where
     where
         NS: NeighborSearch<T, N>,
     {
-        let step = (T::one() / self.probability).round().to_usize_unsafe();
+        let step = (T::one() / self.probability).round().trunc_to_usize();
         points
             .iter()
             .step_by(step)
@@ -206,7 +206,6 @@ impl<T, const N: usize> ClusteringAlgorithm<T, N> for DBSCANPlusPlus<T>
 where
     T: FloatNumber,
 {
-    #[must_use]
     fn fit(&self, points: &[Point<T, N>]) -> Vec<Cluster<T, N>> {
         if points.is_empty() {
             return Vec::new();

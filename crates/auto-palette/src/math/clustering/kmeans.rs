@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use rand::{distr::Distribution, Rng};
-use rand_distr::weighted::WeightedAliasIndex;
+use rand_distr::weighted::{AliasableWeight, WeightedAliasIndex};
 
 use crate::math::{
     clustering::{Cluster, ClusteringAlgorithm},
@@ -76,7 +76,7 @@ where
 
     fn initialize<const N: usize>(&self, points: &[Point<T, N>], k: usize) -> Vec<Point<T, N>>
     where
-        T: FloatNumber,
+        T: FloatNumber + AliasableWeight,
         R: Rng,
     {
         let mut selected = HashSet::with_capacity(k);
@@ -146,10 +146,9 @@ where
 
 impl<T, const N: usize, R> ClusteringAlgorithm<T, N> for KMeans<T, R>
 where
-    T: FloatNumber,
+    T: FloatNumber + AliasableWeight,
     R: Rng + Clone,
 {
-    #[must_use]
     fn fit(&self, points: &[Point<T, N>]) -> Vec<Cluster<T, N>> {
         if points.is_empty() {
             return Vec::new();

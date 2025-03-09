@@ -42,7 +42,6 @@ impl<T, const N: usize> NeighborSearch<T, N> for LinearSearch<'_, T, N>
 where
     T: FloatNumber,
 {
-    #[must_use]
     fn search(&self, query: &Point<T, N>, k: usize) -> Vec<Neighbor<T>> {
         if k == 0 || self.points.is_empty() {
             return Vec::new();
@@ -66,7 +65,6 @@ where
             .into_sorted_vec()
     }
 
-    #[must_use]
     fn search_nearest(&self, query: &Point<T, N>) -> Option<Neighbor<T>> {
         if self.points.is_empty() {
             return None;
@@ -89,7 +87,6 @@ where
             })
     }
 
-    #[must_use]
     fn search_radius(&self, query: &Point<T, N>, radius: T) -> Vec<Neighbor<T>> {
         if radius < T::zero() || self.points.is_empty() {
             return Vec::new();
