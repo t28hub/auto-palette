@@ -11,6 +11,8 @@ homepage   = "https://github.com/t28hub/auto-palette"
 repository = "https://github.com/t28hub/auto-palette"
 
 [workspace.dependencies]
+anyhow                   = "1.0.97"
+arboard                  = "3.4.1"
 assert_cmd               = "2.0.14"
 auto-palette             = { version = "0.6.0", path = "crates/auto-palette", default-features = false }
 clap                     = { version = "4.5.4", features = ["cargo"] }

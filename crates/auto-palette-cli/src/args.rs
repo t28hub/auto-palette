@@ -23,10 +23,10 @@ pub struct Options {
         value_name = "PATH",
         help = "Path to the image file.",
         long_help = "Path to the image file. Supported formats include PNG, JPEG, GIF, BMP, ICO, and TIFF.",
-        required = true,
+        required = false,
         value_hint = ValueHint::FilePath,
     )]
-    pub path: PathBuf,
+    pub path: Option<PathBuf>,
 
     #[arg(
         long,
@@ -86,6 +86,9 @@ pub struct Options {
         long_help = "Disable image resizing before extracting the color palette. This potentially improve the accuracy of the results by preserving the original image resolution."
     )]
     pub no_resize: bool,
+
+    #[arg(long, help = "Get image from system clipboard")]
+    pub clipboard: bool,
 }
 
 /// The algorithm options for extracting the color palette from the image.

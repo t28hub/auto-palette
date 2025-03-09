@@ -1,12 +1,15 @@
 use std::{process, time::Instant};
 
+use anyhow::Context;
 use auto_palette::{Algorithm, ImageData, Palette, Theme};
 use clap::Parser;
+use clipboard::get_image_from_clipboard;
 use image::{self, imageops::FilterType};
 
-use crate::{args::Options, context::Context, env::Env};
+use crate::{args::Options, context::Context as CLIContext, env::Env};
 
 mod args;
+mod clipboard;
 mod color;
 mod context;
 mod env;
@@ -17,11 +20,19 @@ const MAX_IMAGE_WIDTH: f64 = 360.0;
 const MAX_IMAGE_HEIGHT: f64 = 360.0;
 
 // The entry point of the CLI application.
-fn main() {
-    let context = Context::new(Options::parse(), Env::init());
-    let Ok(image) = image::open(&context.args().path) else {
-        eprintln!("Failed to open the image file {:?}", context.args().path);
-        process::exit(1);
+fn main() -> anyhow::Result<()> {
+    let context = CLIContext::new(Options::parse(), Env::init());
+    let args = context.args();
+    let image = match (&args.path, args.clipboard) {
+        (None, false) => {
+            return Err(anyhow::anyhow!("no input source provided"));
+        }
+        (Some(_), true) => {
+            return Err(anyhow::anyhow!("only one input source can be provided"));
+        }
+        (None, true) => get_image_from_clipboard()?,
+        (Some(path), false) => image::open(path)
+            .with_context(|| format!("failed to open the image file {:?}", path))?,
     };
 
     let image_width = image.width() as f64;
@@ -53,11 +64,10 @@ fn main() {
 
     let count = context.args().count;
     if count < 1 {
-        eprintln!(
-            "error: invalid value '{}' for '--count <count>': must be a positive integer",
+        return Err(anyhow::anyhow!(
+            "invalid value '{}' for '--count <count>': must be a positive integer",
             count
-        );
-        process::exit(1);
+        ));
     }
     let swatches = context.args().theme.map_or_else(
         || palette.find_swatches(context.args().count),
@@ -74,4 +84,6 @@ fn main() {
         instant.elapsed().as_secs(),
         instant.elapsed().subsec_millis()
     );
+
+    Ok(())
 }
