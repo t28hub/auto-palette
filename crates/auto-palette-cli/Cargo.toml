@@ -16,6 +16,8 @@ repository.workspace = true
 rust-version = "1.84.0"
 
 [dependencies]
+anyhow       = { workspace = true }
+arboard      = { workspace = true }
 auto-palette = { workspace = true, features = ["image"] }
 clap         = { workspace = true, features = ["derive"] }
 image        = { workspace = true }

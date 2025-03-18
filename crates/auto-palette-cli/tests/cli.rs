@@ -1,3 +1,6 @@
+use std::{borrow::Cow, io::Cursor};
+
+use arboard::Clipboard;
 use assert_cmd::Command;
 use predicates::prelude::*;
 
@@ -34,7 +37,48 @@ fn test_cli() {
 }
 
 #[test]
-fn test_missing_path() {
+#[ignore]
+// ignored by default since it interacts with the system clipboard
+fn test_using_clipboard_as_input() {
+    let mut clipboard = Clipboard::new().expect("should've set up access to system clipboard");
+    let bytes = std::fs::read("../../gfx/olympic_logo.png").expect("should've read file contents");
+
+    let reader = image::ImageReader::new(Cursor::new(bytes))
+        .with_guessed_format()
+        .expect("should've guessed image format");
+    let image = reader.decode().expect("should've decoded image");
+    let image_data = arboard::ImageData {
+        width: image.width() as usize,
+        height: image.height() as usize,
+        bytes: Cow::from(image.as_bytes()),
+    };
+    clipboard
+        .set_image(image_data)
+        .expect("should've placed image to system clipboard");
+
+    let assert = auto_palette()
+        .arg("--clipboard")
+        .arg("--algorithm")
+        .arg("dbscan")
+        .arg("--count")
+        .arg("6")
+        .arg("--output")
+        .arg("table")
+        .arg("--no-resize")
+        .assert()
+        .stdout(
+            predicate::str::contains("#FFFFFF")
+                .and(predicate::str::contains("#0081C8"))
+                .and(predicate::str::contains("#FCB131"))
+                .and(predicate::str::contains("#EE344E"))
+                .and(predicate::str::contains("#000000"))
+                .and(predicate::str::contains("Extracted 6 swatch(es) in")),
+        );
+    assert.success();
+}
+
+#[test]
+fn test_missing_input() {
     let assert = auto_palette().assert().stderr(predicate::str::contains(
         "🎨 A CLI tool to extract prominent color palettes from images.",
     ));
@@ -47,7 +91,19 @@ fn test_invalid_path() {
         .arg("invalid.png")
         .assert()
         .stderr(predicate::str::contains(
-            "Failed to open the image file \"invalid.png\"",
+            "failed to open the image file \"invalid.png\"",
+        ));
+    assert.failure();
+}
+
+#[test]
+fn test_multiple_inputs() {
+    let assert = auto_palette()
+        .arg("../../gfx/olympic_logo.png")
+        .arg("--clipboard")
+        .assert()
+        .stderr(predicate::str::contains(
+            "only one input source can be provided",
         ));
     assert.failure();
 }
