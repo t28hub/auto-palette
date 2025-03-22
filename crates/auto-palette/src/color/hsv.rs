@@ -57,6 +57,7 @@ where
     #[must_use]
     pub fn new(h: T, s: T, v: T) -> Self {
         Self {
+            // Hue::from_degrees normalizes the hue value to the range [0, 360)
             h: Hue::from_degrees(h),
             s: clamp(s, T::zero(), T::one()),
             v: clamp(v, T::zero(), T::one()),

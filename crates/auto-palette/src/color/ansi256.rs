@@ -6,10 +6,7 @@ use std::{
 #[cfg(feature = "wasm")]
 use serde::{Serialize, Serializer};
 
-use crate::{
-    color::{Ansi16, RGB},
-    FloatNumber,
-};
+use crate::color::{Ansi16, RGB};
 
 /// The 8-bit ANSI 256 color.
 ///
@@ -22,8 +19,8 @@ use crate::{
 ///
 /// let rgb = RGB::new(30, 215, 96);
 /// let ansi256 = Ansi256::from(&rgb);
-/// assert_eq!(ansi256.code(), 78);
-/// assert_eq!(format!("{}", ansi256), "ANSI256(78)");
+/// assert_eq!(ansi256.code(), 41);
+/// assert_eq!(format!("{}", ansi256), "ANSI256(41)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Ansi256 {
@@ -71,48 +68,44 @@ impl Display for Ansi256 {
 
 impl From<&RGB> for Ansi256 {
     fn from(rgb: &RGB) -> Self {
-        let code = from_rgb::<f32>(rgb.r, rgb.g, rgb.b);
-        Self::new(code)
+        let code = from_rgb(rgb.r, rgb.g, rgb.b);
+        Self { code }
     }
 }
 
 impl From<&Ansi16> for Ansi256 {
     fn from(ansi16: &Ansi16) -> Self {
-        let code = ansi16.code;
-        if (30..=37).contains(&code) {
-            Self::new(code - 30)
-        } else {
-            Self::new(code - 82)
-        }
+        let code = match ansi16.code {
+            30..=37 => ansi16.code - 30,
+            _ => ansi16.code - 82,
+        };
+        Self { code }
     }
 }
 
+/// Converts RGB values to ANSI 256 color code.
+///
+/// This function calculates the ANSI 256 color code based on the RGB values.
+///
+/// # Arguments
+/// * `r` - The red component (0-255).
+/// * `g` - The green component (0-255).
+/// * `b` - The blue component (0-255).
+///
+/// # Returns
+/// The ANSI 256 color code.
 #[inline]
-#[must_use]
-fn from_rgb<T>(r: u8, g: u8, b: u8) -> u8
-where
-    T: FloatNumber,
-{
-    let r = T::from_u8(r);
-    let g = T::from_u8(g);
-    let b = T::from_u8(b);
-    if (r == g) && (g == b) {
-        // Grayscale colors
-        if r < T::from_u8(8) {
-            16 // Black
-        } else if r > T::from_u8(248) {
-            231 // White
+fn from_rgb(r: u8, g: u8, b: u8) -> u8 {
+    if r == g && g == b {
+        if r < 8 {
+            16
+        } else if r > 248 {
+            231
         } else {
-            232 + ((r - T::from_u8(8)) / T::from_u8(247) * T::from_u8(24))
-                .round()
-                .trunc_to_u8()
+            232 + ((r - 8) as u16 * 24 / 247) as u8
         }
     } else {
-        let denominator = T::from_u8(51);
-        let r = (r / denominator).round().trunc_to_u8();
-        let g = (g / denominator).round().trunc_to_u8();
-        let b = (b / denominator).round().trunc_to_u8();
-        16 + 36 * r + 6 * g + b
+        16 + 36 * (r / 51) + 6 * (g / 51) + (b / 51)
     }
 }
 
@@ -160,13 +153,13 @@ mod tests {
     #[rstest]
     #[case::black((0, 0, 0), 16)]
     #[case::white((255, 255, 255), 231)]
-    #[case::gray((192, 192, 192), 250)]
-    #[case::red((192, 0, 0), 160)]
-    #[case::green((0, 192, 0), 40)]
-    #[case::blue((0, 0, 192), 20)]
-    #[case::yellow((192, 192, 0), 184)]
-    #[case::cyan((0, 192, 192), 44)]
-    #[case::magenta((192, 0, 192), 164)]
+    #[case::gray((192, 192, 192), 249)]
+    #[case::red((192, 0, 0), 124)]
+    #[case::green((0, 192, 0), 34)]
+    #[case::blue((0, 0, 192), 19)]
+    #[case::yellow((255, 255, 0), 226)]
+    #[case::cyan((0, 255, 215), 50)]
+    #[case::magenta((192, 0, 192), 127)]
     fn test_from_rgb(#[case] rgb: (u8, u8, u8), #[case] expected: u8) {
         // Act
         let rgb = RGB::new(rgb.0, rgb.1, rgb.2);

@@ -43,6 +43,9 @@ pub struct RGB {
 }
 
 impl RGB {
+    /// The maximum value of the RGB color space.
+    const MAX: u8 = 255;
+
     /// Creates a new `RGB` instance.
     ///
     /// # Arguments
@@ -67,7 +70,7 @@ impl RGB {
     where
         T: FloatNumber,
     {
-        T::from_u8(u8::MAX)
+        T::from_u8(Self::MAX)
     }
 }
 
@@ -88,26 +91,13 @@ where
         let x = (T::one() - (((hue / T::from_f32(60.0)) % T::from_u8(2)) - T::one()).abs()) * c;
         let m = hsl.l - (c / T::from_u8(2));
 
-        let (r, g, b) = if hue < T::from_f32(60.0) {
-            (c, x, T::zero())
-        } else if hue < T::from_f32(120.0) {
-            (x, c, T::zero())
-        } else if hue < T::from_f32(180.0) {
-            (T::zero(), c, x)
-        } else if hue < T::from_f32(240.0) {
-            (T::zero(), x, c)
-        } else if hue < T::from_f32(300.0) {
-            (x, T::zero(), c)
-        } else {
-            (c, T::zero(), x)
-        };
+        let (r, g, b) = hue_to_rgb(hue, c, x);
 
-        let max = RGB::max_value::<T>();
-        RGB::new(
-            ((r + m) * max).round().trunc_to_u8(),
-            ((g + m) * max).round().trunc_to_u8(),
-            ((b + m) * max).round().trunc_to_u8(),
-        )
+        Self {
+            r: clamp_to_u8(r + m),
+            g: clamp_to_u8(g + m),
+            b: clamp_to_u8(b + m),
+        }
     }
 }
 
@@ -122,26 +112,13 @@ where
         let x = (T::one() - (((hue / T::from_f32(60.0)) % T::from_u8(2)) - T::one()).abs()) * c;
         let m = hsv.v - c;
 
-        let (r, g, b) = if hue < T::from_f32(60.0) {
-            (c, x, T::zero())
-        } else if hue < T::from_f32(120.0) {
-            (x, c, T::zero())
-        } else if hue < T::from_f32(180.0) {
-            (T::zero(), c, x)
-        } else if hue < T::from_f32(240.0) {
-            (T::zero(), x, c)
-        } else if hue < T::from_f32(300.0) {
-            (x, T::zero(), c)
-        } else {
-            (c, T::zero(), x)
-        };
+        let (r, g, b) = hue_to_rgb(hue, c, x);
 
-        let max = RGB::max_value::<T>();
-        RGB::new(
-            ((r + m) * max).round().trunc_to_u8(),
-            ((g + m) * max).round().trunc_to_u8(),
-            ((b + m) * max).round().trunc_to_u8(),
-        )
+        Self {
+            r: clamp_to_u8(r + m),
+            g: clamp_to_u8(g + m),
+            b: clamp_to_u8(b + m),
+        }
     }
 }
 
@@ -151,7 +128,60 @@ where
 {
     fn from(xyz: &XYZ<T>) -> Self {
         let (r, g, b) = xyz_to_rgb(xyz.x, xyz.y, xyz.z);
-        RGB::new(r, g, b)
+        Self { r, g, b }
+    }
+}
+
+/// Clamps a floating point value to the range [0, 255] and converts it to u8.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
+///
+/// # Arguments
+/// * `value` - The floating point value to clamp.
+///
+/// # Returns
+/// The clamped value as u8.
+#[inline]
+#[must_use]
+fn clamp_to_u8<T>(value: T) -> u8
+where
+    T: FloatNumber,
+{
+    let max = T::from_u8(RGB::MAX);
+    (value * max).round().trunc_to_u8()
+}
+
+/// Converts a hue value to RGB components.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
+///
+/// # Arguments
+/// * `hue` - The hue value.
+/// * `c` - The chroma value.
+/// * `x` - The intermediate value.
+///
+/// # Returns
+/// The RGB components as a tuple (r, g, b).
+#[inline]
+#[must_use]
+fn hue_to_rgb<T>(hue: T, c: T, x: T) -> (T, T, T)
+where
+    T: FloatNumber,
+{
+    if hue < T::from_f32(60.0) {
+        (c, x, T::zero())
+    } else if hue < T::from_f32(120.0) {
+        (x, c, T::zero())
+    } else if hue < T::from_f32(180.0) {
+        (T::zero(), c, x)
+    } else if hue < T::from_f32(240.0) {
+        (T::zero(), x, c)
+    } else if hue < T::from_f32(300.0) {
+        (x, T::zero(), c)
+    } else {
+        (c, T::zero(), x)
     }
 }
 
@@ -185,13 +215,7 @@ where
     let g =
         f(-T::from_f32(0.969_244) * x + T::from_f32(1.875_968) * y + T::from_f32(0.041_555) * z);
     let b = f(T::from_f32(0.055_630) * x - T::from_f32(0.203_977) * y + T::from_f32(1.056_972) * z);
-
-    let max = RGB::max_value::<T>();
-    (
-        (r * max).round().trunc_to_u8(),
-        (g * max).round().trunc_to_u8(),
-        (b * max).round().trunc_to_u8(),
-    )
+    (clamp_to_u8(r), clamp_to_u8(g), clamp_to_u8(b))
 }
 
 #[cfg(test)]

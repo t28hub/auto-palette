@@ -1,6 +1,7 @@
 mod ansi16;
 mod ansi256;
 mod cmyk;
+mod error;
 mod hsl;
 mod hsv;
 mod hue;
@@ -39,7 +40,7 @@ pub use white_point::*;
 pub(crate) use xyz::rgb_to_xyz;
 pub use xyz::XYZ;
 
-use crate::math::FloatNumber;
+use crate::{color::error::ColorError, math::FloatNumber};
 
 /// The color representation.
 ///
@@ -205,8 +206,7 @@ where
     /// The converted `RGB` color.
     #[must_use]
     pub fn to_rgb(&self) -> RGB {
-        let xyz = self.to_xyz();
-        RGB::from(&xyz)
+        RGB::from(&self.to_xyz())
     }
 
     /// Converts this color to the CMYK color space.
@@ -215,8 +215,7 @@ where
     /// The converted `CMYK` color.
     #[must_use]
     pub fn to_cmyk(&self) -> CMYK<T> {
-        let rgb = self.to_rgb();
-        CMYK::from(&rgb)
+        CMYK::from(&self.to_rgb())
     }
 
     /// Converts this color to the HSL color space.
@@ -225,8 +224,7 @@ where
     /// The converted `HSL` color.
     #[must_use]
     pub fn to_hsl(&self) -> HSL<T> {
-        let rgb = self.to_rgb();
-        HSL::from(&rgb)
+        HSL::from(&self.to_rgb())
     }
 
     /// Converts this color to the HSV color space.
@@ -235,8 +233,7 @@ where
     /// The converted `HSV` color.
     #[must_use]
     pub fn to_hsv(&self) -> HSV<T> {
-        let rgb = self.to_rgb();
-        HSV::from(&rgb)
+        HSV::from(&self.to_rgb())
     }
 
     /// Converts this color to the CIE XYZ color space.
@@ -245,8 +242,7 @@ where
     /// The converted `XYZ` color.
     #[must_use]
     pub fn to_xyz(&self) -> XYZ<T> {
-        let lab = self.to_lab();
-        XYZ::from(&lab)
+        XYZ::from(&self.to_lab())
     }
 
     /// Converts this color to the CIE L*u*v* color space.
@@ -255,8 +251,7 @@ where
     /// The converted `Luv` color.
     #[must_use]
     pub fn to_luv(&self) -> Luv<T, W> {
-        let xyz = self.to_xyz();
-        Luv::<T, W>::from(&xyz)
+        Luv::<T, W>::from(&self.to_xyz())
     }
 
     /// Converts this color to the CIE LCH(uv) color space.
@@ -265,8 +260,7 @@ where
     /// The converted `LCHuv` color.
     #[must_use]
     pub fn to_lchuv(&self) -> LCHuv<T, W> {
-        let luv = self.to_luv();
-        LCHuv::<T, W>::from(&luv)
+        LCHuv::<T, W>::from(&self.to_luv())
     }
 
     /// Converts this color to the CIE L*a*b* color space.
@@ -284,8 +278,7 @@ where
     /// The converted `LCHab` color.
     #[must_use]
     pub fn to_lchab(&self) -> LCHab<T, W> {
-        let lab = self.to_lab();
-        LCHab::<T, W>::from(&lab)
+        LCHab::<T, W>::from(&self.to_lab())
     }
 
     /// Converts this color to the CIE Oklab color space.
@@ -294,8 +287,7 @@ where
     /// The converted `Oklab` color.
     #[must_use]
     pub fn to_oklab(&self) -> Oklab<T> {
-        let xyz = self.to_xyz();
-        Oklab::from(&xyz)
+        Oklab::from(&self.to_xyz())
     }
 
     /// Converts this color to the CIE Oklch color space.
@@ -304,8 +296,7 @@ where
     /// The converted `Oklch` color.
     #[must_use]
     pub fn to_oklch(&self) -> Oklch<T> {
-        let oklab = self.to_oklab();
-        Oklch::from(&oklab)
+        Oklch::from(&self.to_oklab())
     }
 
     /// Converts this color to the 4-bit ANSI 16 color space.
@@ -314,8 +305,7 @@ where
     /// The converted `Ansi16` color.
     #[must_use]
     pub fn to_ansi16(&self) -> Ansi16 {
-        let rgb = self.to_rgb();
-        Ansi16::from(&rgb)
+        Ansi16::from(&self.to_rgb())
     }
 
     /// Converts this color to the 8-bit ANSI 256 color space.
@@ -324,21 +314,36 @@ where
     /// The converted `Ansi256` color.
     #[must_use]
     pub fn to_ansi256(&self) -> Ansi256 {
-        let rgb = self.to_rgb();
-        Ansi256::from(&rgb)
+        Ansi256::from(&self.to_rgb())
     }
 
-    /// Converts this color to an integer representation.
+    /// Converts this color to a 32-bit integer representation in RGB.
     ///
     /// # Returns
-    /// The integer representation of this color.
+    /// The converted RGB integer representation.
     #[must_use]
-    pub fn to_color_int(&self) -> u32 {
+    pub fn to_rgb_int(&self) -> u32 {
         let rgb = self.to_rgb();
         let r = rgb.r as u32;
         let g = rgb.g as u32;
         let b = rgb.b as u32;
         (r << 16) | (g << 8) | b
+    }
+
+    /// Converts this color to a 32-bit integer representation in RGBA.
+    ///
+    /// # Arguments
+    /// * `alpha` - The alpha value (0-255).
+    ///
+    /// # Returns
+    /// The converted RGBA integer representation.
+    #[must_use]
+    pub fn to_rgba_int(&self, alpha: u8) -> u32 {
+        let rgb = self.to_rgb();
+        let r = rgb.r as u32;
+        let g = rgb.g as u32;
+        let b = rgb.b as u32;
+        (r << 24) | (g << 16) | (b << 8) | alpha as u32
     }
 }
 
@@ -373,16 +378,49 @@ impl<T> FromStr for Color<T>
 where
     T: FloatNumber,
 {
-    type Err = &'static str;
+    type Err = ColorError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.len() != 7 || !s.starts_with('#') {
-            return Err("Invalid color format");
+        if !s.starts_with("#") {
+            return Err(ColorError::InvalidHexValue(s.to_string()));
         }
 
-        let r = u8::from_str_radix(&s[1..3], 16).map_err(|_| "Invalid hex value")?;
-        let g = u8::from_str_radix(&s[3..5], 16).map_err(|_| "Invalid hex value")?;
-        let b = u8::from_str_radix(&s[5..7], 16).map_err(|_| "Invalid hex value")?;
+        let (r, g, b) = match s.len() {
+            // Handle 3-digit hex color #RGB
+            4 => {
+                let r = u8::from_str_radix(&s[1..2].repeat(2), 16)
+                    .map_err(|_| ColorError::InvalidHexValue(s.to_string()))?;
+                let g = u8::from_str_radix(&s[2..3].repeat(2), 16)
+                    .map_err(|_| ColorError::InvalidHexValue(s.to_string()))?;
+                let b = u8::from_str_radix(&s[3..4].repeat(2), 16)
+                    .map_err(|_| ColorError::InvalidHexValue(s.to_string()))?;
+                (r, g, b)
+            }
+            // Handle 6-digit hex color #RRGGBB
+            7 => {
+                let r = u8::from_str_radix(&s[1..3], 16)
+                    .map_err(|_| ColorError::InvalidHexValue(s.to_string()))?;
+                let g = u8::from_str_radix(&s[3..5], 16)
+                    .map_err(|_| ColorError::InvalidHexValue(s.to_string()))?;
+                let b = u8::from_str_radix(&s[5..7], 16)
+                    .map_err(|_| ColorError::InvalidHexValue(s.to_string()))?;
+                (r, g, b)
+            }
+            // Handle 8-digit hex color #RRGGBBAA
+            9 => {
+                let r = u8::from_str_radix(&s[1..3], 16)
+                    .map_err(|_| ColorError::InvalidHexValue(s.to_string()))?;
+                let g = u8::from_str_radix(&s[3..5], 16)
+                    .map_err(|_| ColorError::InvalidHexValue(s.to_string()))?;
+                let b = u8::from_str_radix(&s[5..7], 16)
+                    .map_err(|_| ColorError::InvalidHexValue(s.to_string()))?;
+                // Check whether the alpha value is valid
+                let _ = u8::from_str_radix(&s[7..9], 16)
+                    .map_err(|_| ColorError::InvalidHexValue(s.to_string()))?;
+                (r, g, b)
+            }
+            _ => return Err(ColorError::InvalidHexValue(s.to_string())),
+        };
 
         let (x, y, z) = rgb_to_xyz::<T>(r, g, b);
         let (l, a, b) = xyz_to_lab::<T, D65>(x, y, z);
@@ -395,6 +433,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
+    use crate::assert_approx_eq;
 
     #[test]
     fn test_new() {
@@ -442,7 +481,7 @@ mod tests {
         let actual = color.lightness();
 
         // Assert
-        assert_eq!(actual, 91.1120);
+        assert_approx_eq!(actual, 91.1120);
     }
 
     #[test]
@@ -452,7 +491,7 @@ mod tests {
         let actual = color.chroma();
 
         // Assert
-        assert!((actual - 50.120_117).abs() < 1e-3);
+        assert_approx_eq!(actual, 50.120_117);
     }
 
     #[rstest]
@@ -470,7 +509,7 @@ mod tests {
         let actual = color.hue();
 
         // Assert
-        assert!((actual.to_degrees() - expected).abs() < 1e-3);
+        assert_approx_eq!(actual.to_degrees(), expected, 1e-3);
     }
 
     #[test]
@@ -510,9 +549,9 @@ mod tests {
         let actual = color.to_hsl();
 
         // Assert
-        assert!((actual.h.to_degrees() - 180.0).abs() < 1e-3);
-        assert!((actual.s - 1.0).abs() < 1e-3);
-        assert!((actual.l - 0.5).abs() < 1e-3);
+        assert_approx_eq!(actual.h.to_degrees(), 180.0, 1e-3);
+        assert_approx_eq!(actual.s, 1.0);
+        assert_approx_eq!(actual.l, 0.5);
     }
 
     #[test]
@@ -522,9 +561,9 @@ mod tests {
         let actual = color.to_hsv();
 
         // Assert
-        assert!((actual.h.to_degrees() - 180.0).abs() < 1e-3);
-        assert!((actual.s - 1.0).abs() < 1e-3);
-        assert!((actual.v - 1.0).abs() < 1e-3);
+        assert_approx_eq!(actual.h.to_degrees(), 180.0, 1e-3);
+        assert_approx_eq!(actual.s, 1.0);
+        assert_approx_eq!(actual.v, 1.0);
     }
 
     #[test]
@@ -534,9 +573,9 @@ mod tests {
         let actual: XYZ<f32> = color.to_xyz();
 
         // Assert
-        assert!((actual.x - 0.5380).abs() < 1e-3);
-        assert!((actual.y - 0.7873).abs() < 1e-3);
-        assert!((actual.z - 1.0690).abs() < 1e-3);
+        assert_approx_eq!(actual.x, 0.5380, 1e-3);
+        assert_approx_eq!(actual.y, 0.7873, 1e-3);
+        assert_approx_eq!(actual.z, 1.0690, 1e-3);
     }
 
     #[test]
@@ -546,9 +585,9 @@ mod tests {
         let actual = color.to_luv();
 
         // Assert
-        assert_eq!(actual.l, 91.1120);
-        assert!((actual.u - -70.480).abs() < 1e-3);
-        assert!((actual.v - -15.240).abs() < 1e-3);
+        assert_approx_eq!(actual.l, 91.1120);
+        assert_approx_eq!(actual.u, -70.480, 1e-3);
+        assert_approx_eq!(actual.v, -15.240, 1e-3);
     }
 
     #[test]
@@ -558,9 +597,9 @@ mod tests {
         let actual = color.to_lchuv();
 
         // Assert
-        assert_eq!(actual.l, 91.1120);
-        assert!((actual.c - 72.109).abs() < 1e-3);
-        assert!((actual.h.to_degrees() - 192.202).abs() < 1e-3);
+        assert_approx_eq!(actual.l, 91.1120);
+        assert_approx_eq!(actual.c, 72.109, 1e-3);
+        assert_approx_eq!(actual.h.to_degrees(), 192.202, 1e-3);
     }
 
     #[test]
@@ -570,9 +609,9 @@ mod tests {
         let actual = color.to_lab();
 
         // Assert
-        assert_eq!(actual.l, 91.1120);
-        assert_eq!(actual.a, -48.0806);
-        assert_eq!(actual.b, -14.1521);
+        assert_approx_eq!(actual.l, 91.1120);
+        assert_approx_eq!(actual.a, -48.0806);
+        assert_approx_eq!(actual.b, -14.1521);
     }
 
     #[test]
@@ -582,9 +621,9 @@ mod tests {
         let actual = color.to_oklab();
 
         // Assert
-        assert!((actual.l - 0.905).abs() < 1e-3);
-        assert!((actual.a + 0.149).abs() < 1e-3);
-        assert!((actual.b + 0.040).abs() < 1e-3);
+        assert_approx_eq!(actual.l, 0.905, 1e-3);
+        assert_approx_eq!(actual.a, -0.149, 1e-3);
+        assert_approx_eq!(actual.b, -0.040, 1e-3);
     }
 
     #[test]
@@ -594,9 +633,9 @@ mod tests {
         let actual = color.to_oklch();
 
         // Assert
-        assert!((actual.l - 0.905).abs() < 1e-3);
-        assert!((actual.c - 0.155).abs() < 1e-3);
-        assert!((actual.h.to_degrees() - 194.82).abs() < 1e-3);
+        assert_approx_eq!(actual.l, 0.905, 1e-3);
+        assert_approx_eq!(actual.c, 0.155, 1e-3);
+        assert_approx_eq!(actual.h.to_degrees(), 194.82, 1e-3);
     }
 
     #[test]
@@ -606,9 +645,9 @@ mod tests {
         let actual = color.to_lchab();
 
         // Assert
-        assert_eq!(actual.l, 91.1120);
-        assert!((actual.c - 50.120).abs() < 1e-3);
-        assert!((actual.h.to_degrees() - 196.401).abs() < 1e-3);
+        assert_approx_eq!(actual.l, 91.1120, 1e-3);
+        assert_approx_eq!(actual.c, 50.120, 1e-3);
+        assert_approx_eq!(actual.h.to_degrees(), 196.401, 1e-3);
     }
 
     #[test]
@@ -632,13 +671,23 @@ mod tests {
     }
 
     #[test]
-    fn test_to_color_int() {
+    fn test_to_rgb_int() {
         // Act
         let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
-        let actual = color.to_color_int();
+        let actual = color.to_rgb_int();
 
         // Assert
-        assert_eq!(actual, 0x00FFFF);
+        assert_eq!(actual, 0x00ffff);
+    }
+
+    #[test]
+    fn test_to_rgba_int() {
+        // Act
+        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let actual = color.to_rgba_int(128);
+
+        // Assert
+        assert_eq!(actual, 0x00ffff80);
     }
 
     #[test]
@@ -654,31 +703,47 @@ mod tests {
     #[test]
     fn test_from_u32() {
         // Act
-        let actual: Color<f32> = Color::from(0xFF0080);
+        let actual: Color<f32> = Color::from(0xff0080);
 
         // Assert
-        assert!((actual.l - 54.8888).abs() < 1e-3);
-        assert!((actual.a - 84.5321).abs() < 1e-3);
-        assert!((actual.b - 4.0656).abs() < 1e-3);
+        assert_approx_eq!(actual.l, 54.8888, 1e-3);
+        assert_approx_eq!(actual.a, 84.5321, 1e-3);
+        assert_approx_eq!(actual.b, 4.0656, 1e-3);
     }
 
     #[rstest]
-    #[case::black("#000000", 0.0, 0.0, 0.0)]
-    #[case::white("#FFFFFF", 100.0, - 0.002_443, 0.011_384)]
-    #[case::red("#FF0000", 53.237_144, 80.088_320, 67.199_460)]
-    #[case::green("#00FF00", 87.735_535, - 86.183_550, 83.179_924)]
-    #[case::blue("#0000FF", 32.300_800, 79.194_260, - 107.868_910)]
-    #[case::cyan("#00FFFF", 91.114_750, - 48.080_950, - 14.142_858)]
-    #[case::magenta("#FF00FF", 60.322_700, 98.235_580, - 60.842_370)]
-    #[case::yellow("#FFFF00", 97.138_580, - 21.562_368, 94.476_760)]
+    #[case::black_rgb("#000", 0.0, 0.0, 0.0)]
+    #[case::white_rgb("#fff", 100.0, - 0.002_443, 0.011_384)]
+    #[case::red_rgb("#f00", 53.237_144, 80.088_320, 67.199_460)]
+    #[case::green_rgb("#0f0", 87.735_535, - 86.183_550, 83.179_924)]
+    #[case::blue_rgb("#00f", 32.300_800, 79.194_260, - 107.868_910)]
+    #[case::cyan_rgb("#0ff", 91.114_750, - 48.080_950, - 14.142_858)]
+    #[case::magenta_rgb("#f0f", 60.322_700, 98.235_580, - 60.842_370)]
+    #[case::yellow_rgb("#ff0", 97.138_580, - 21.562_368, 94.476_760)]
+    #[case::black_rrggbb("#000000", 0.0, 0.0, 0.0)]
+    #[case::white_rrggbb("#ffffff", 100.0, - 0.002_443, 0.011_384)]
+    #[case::red_rrggbb("#ff0000", 53.237_144, 80.088_320, 67.199_460)]
+    #[case::green_rrggbb("#00ff00", 87.735_535, - 86.183_550, 83.179_924)]
+    #[case::blue_rrggbb("#0000ff", 32.300_800, 79.194_260, - 107.868_910)]
+    #[case::cyan_rrggbb("#00ffff", 91.114_750, - 48.080_950, - 14.142_858)]
+    #[case::magenta_rrggbb("#ff00ff", 60.322_700, 98.235_580, - 60.842_370)]
+    #[case::yellow_rrggbb("#ffff00", 97.138_580, - 21.562_368, 94.476_760)]
+    #[case::black_rrggbbaa("#000000ff", 0.0, 0.0, 0.0)]
+    #[case::white_rrggbbaa("#ffffffff", 100.0, - 0.002_443, 0.011_384)]
+    #[case::red_rrggbbaa("#ff0000ff", 53.237_144, 80.088_320, 67.199_460)]
+    #[case::green_rrggbbaa("#00ff00ff", 87.735_535, - 86.183_550, 83.179_924)]
+    #[case::blue_rrggbbaa("#0000ffff", 32.300_800, 79.194_260, - 107.868_910)]
+    #[case::cyan_rrggbbaa("#00ffffff", 91.114_750, - 48.080_950, - 14.142_858)]
+    #[case::magenta_rrggbbaa("#ff00ffff", 60.322_700, 98.235_580, - 60.842_370)]
+    #[case::yellow_rrggbbaa("#ffff00ff", 97.138_580, - 21.562_368, 94.476_760)]
     fn test_from_str(#[case] input: &str, #[case] l: f32, #[case] a: f32, #[case] b: f32) {
         // Act
         let actual: Color<f32> = Color::from_str(input).unwrap();
 
         // Assert
-        assert!((actual.l - l).abs() < 1e-3);
-        assert!((actual.a - a).abs() < 1e-3);
-        assert!((actual.b - b).abs() < 1e-3);
+        assert_approx_eq!(actual.l, l, 1e-3);
+        assert_approx_eq!(actual.a, a, 1e-3);
+        assert_approx_eq!(actual.b, b, 1e-3);
     }
 
     #[rstest]
@@ -686,14 +751,25 @@ mod tests {
     #[case::invalid("123456")]
     #[case::invalid_length("#12345")]
     #[case::invalid_prefix("123456")]
-    #[case::invalid_hex_red("#GGAA99")]
-    #[case::invalid_hex_green("#00GG99")]
-    #[case::invalid_hex_blue("#00AAGG")]
+    #[case::invalid_rgb_r("#g00")]
+    #[case::invalid_rgb_g("#0g0")]
+    #[case::invalid_rgb_b("#00g")]
+    #[case::invalid_rrggbb_r("#0g0000")]
+    #[case::invalid_rrggbb_g("#000g00")]
+    #[case::invalid_rrggbb_b("#00000g")]
+    #[case::invalid_rrggbbaa_r("#0g000000")]
+    #[case::invalid_rrggbbaa_g("#000g0000")]
+    #[case::invalid_rrggbbaa_b("#00000g00")]
+    #[case::invalid_rrggbbaa_a("#0000000g")]
     fn test_from_str_error(#[case] input: &str) {
         // Act
         let actual = Color::<f32>::from_str(input);
 
         // Assert
         assert!(actual.is_err());
+        assert_eq!(
+            actual.unwrap_err(),
+            ColorError::InvalidHexValue(input.to_string())
+        );
     }
 }

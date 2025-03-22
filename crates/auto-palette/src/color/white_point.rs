@@ -46,10 +46,18 @@ pub trait WhitePoint: Copy + Clone + Debug + Default + PartialEq {
 
 /// The D50 white point representation.
 ///
+/// This is commonly used in color science and is the default white point for many color spaces, including CIE L*a*b* and CIE L*C*h*.
+///
 /// See the following for more details:
 /// [Illuminant D50](https://en.wikipedia.org/wiki/Illuminant_D50)
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct D50;
+
+impl D50 {
+    const X: f64 = 0.964_22;
+    const Y: f64 = 1.0;
+    const Z: f64 = 0.825_21;
+}
 
 impl WhitePoint for D50 {
     #[inline]
@@ -57,7 +65,7 @@ impl WhitePoint for D50 {
     where
         T: FloatNumber,
     {
-        T::from_f32(0.964_22)
+        T::from_f64(Self::X)
     }
 
     #[inline]
@@ -65,7 +73,7 @@ impl WhitePoint for D50 {
     where
         T: FloatNumber,
     {
-        T::from_f32(1.0)
+        T::from_f64(Self::Y)
     }
 
     #[inline]
@@ -73,16 +81,24 @@ impl WhitePoint for D50 {
     where
         T: FloatNumber,
     {
-        T::from_f32(0.825_21)
+        T::from_f64(Self::Z)
     }
 }
 
 /// The D65 white point representation.
 ///
+/// This is commonly used in color science and is the default white point for many color spaces, including sRGB and Adobe RGB.
+///
 /// See the following for more details:
 /// [Illuminant D65](https://en.wikipedia.org/wiki/Illuminant_D65)
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct D65;
+
+impl D65 {
+    const X: f64 = 0.950_47;
+    const Y: f64 = 1.0;
+    const Z: f64 = 1.088_83;
+}
 
 impl WhitePoint for D65 {
     #[inline]
@@ -90,7 +106,7 @@ impl WhitePoint for D65 {
     where
         T: FloatNumber,
     {
-        T::from_f32(0.950_470)
+        T::from_f64(Self::X)
     }
 
     #[inline]
@@ -98,7 +114,7 @@ impl WhitePoint for D65 {
     where
         T: FloatNumber,
     {
-        T::from_f32(1.0)
+        T::from_f64(Self::Y)
     }
 
     #[inline]
@@ -106,7 +122,7 @@ impl WhitePoint for D65 {
     where
         T: FloatNumber,
     {
-        T::from_f32(1.088_83)
+        T::from_f64(Self::Z)
     }
 }
 
@@ -116,25 +132,25 @@ mod tests {
 
     #[test]
     fn test_d50() {
-        let x: f32 = D50::x();
-        assert_eq!(x, 0.964_22);
+        let x: f64 = D50::x();
+        assert_eq!(x, D50::X);
 
-        let y: f32 = D50::y();
-        assert_eq!(y, 1.0);
+        let y: f64 = D50::y();
+        assert_eq!(y, D50::Y);
 
-        let z: f32 = D50::z();
-        assert_eq!(z, 0.825_21);
+        let z: f64 = D50::z();
+        assert_eq!(z, D50::Z);
     }
 
     #[test]
     fn test_d65() {
-        let x: f32 = D65::x();
-        assert_eq!(x, 0.950_470);
+        let x: f64 = D65::x();
+        assert_eq!(x, D65::X);
 
-        let y: f32 = D65::y();
-        assert_eq!(y, 1.0);
+        let y: f64 = D65::y();
+        assert_eq!(y, D65::Y);
 
-        let z: f32 = D65::z();
-        assert_eq!(z, 1.088_83);
+        let z: f64 = D65::z();
+        assert_eq!(z, D65::Z);
     }
 }
