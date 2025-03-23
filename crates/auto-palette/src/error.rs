@@ -1,75 +1,51 @@
 #[cfg(feature = "image")]
 use image::ImageError;
+use thiserror::Error;
 
-/// The error type for the auto-palette crate.
-/// This error type is used for all errors in the crate.
-#[derive(Debug)]
+/// The `Error` enum represents the errors that can occur in the palette extraction process.
+#[derive(Debug, Error)]
 pub enum Error {
     /// The image data is empty and cannot be processed.
+    #[error("The image data is empty and cannot be processed.")]
     EmptyImageData,
 
     /// The image data contains invalid pixel data.
+    #[error("The image data contains invalid pixel data.")]
     InvalidImageData,
 
     /// The palette extraction process failed.
     /// The details provide more information about the error.
-    ExtractionFailure { details: String },
+    #[error("The palette extraction process failed with error: {0}")]
+    ExtractionFailure(String),
 
     /// The algorithm is not supported.
     /// The name provides more information about the unsupported algorithm.
-    UnsupportedAlgorithm { name: String },
+    #[error("The algorithm '{0}' is not supported.")]
+    UnsupportedAlgorithm(String),
 
     /// The theme is not supported.
     /// The name provides more information about the unsupported theme.
-    UnsupportedTheme { name: String },
+    #[error("The theme '{0}' is not supported.")]
+    UnsupportedTheme(String),
 
     /// The image loading process failed.
     /// The cause provides more information about the error.
     #[cfg(feature = "image")]
-    ImageLoadError { cause: ImageError },
+    #[error("The image loading process failed with error: {0}")]
+    ImageLoadError(#[from] ImageError),
 
     /// The color type of the image is not supported.
     #[cfg(feature = "image")]
+    #[error("The image format is not supported.")]
     UnsupportedImage,
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Error::InvalidImageData => write!(f, "The image data contains invalid pixel data."),
-            Error::EmptyImageData => {
-                write!(f, "The image data is empty and cannot be processed.")
-            }
-            Error::ExtractionFailure { details } => {
-                write!(
-                    f,
-                    "The palette extraction process failed with error: {}",
-                    details
-                )
-            }
-            Error::UnsupportedAlgorithm { name } => {
-                write!(f, "The algorithm '{}' is not supported.", name)
-            }
-            Error::UnsupportedTheme { name } => {
-                write!(f, "The theme '{}' is not supported.", name)
-            }
-            #[cfg(feature = "image")]
-            Error::ImageLoadError { cause } => {
-                write!(f, "The image loading process failed with error: {}", cause)
-            }
-            #[cfg(feature = "image")]
-            Error::UnsupportedImage => {
-                write!(f, "The image format is not supported.")
-            }
-        }
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
-    fn test_fmt_empty_image_data() {
+    fn test_empty_image_data() {
         // Act
         let actual = Error::EmptyImageData;
 
@@ -81,7 +57,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fmt_invalid_image_data() {
+    fn test_invalid_image_data() {
         // Act
         let actual = Error::InvalidImageData;
 
@@ -93,11 +69,9 @@ mod tests {
     }
 
     #[test]
-    fn test_fmt_extraction_failure() {
+    fn test_extraction_failure() {
         // Act
-        let actual = Error::ExtractionFailure {
-            details: "Failed to extract palette.".to_string(),
-        };
+        let actual = Error::ExtractionFailure("Failed to extract palette.".to_string());
 
         // Assert
         assert_eq!(
@@ -107,11 +81,9 @@ mod tests {
     }
 
     #[test]
-    fn test_fmt_unsupported_algorithm() {
+    fn test_unsupported_algorithm() {
         // Act
-        let actual = Error::UnsupportedAlgorithm {
-            name: "unknown_algorithm".to_string(),
-        };
+        let actual = Error::UnsupportedAlgorithm("unknown_algorithm".to_string());
 
         // Assert
         assert_eq!(
@@ -121,11 +93,9 @@ mod tests {
     }
 
     #[test]
-    fn test_fmt_unsupported_theme() {
+    fn test_unsupported_theme() {
         // Act
-        let actual = Error::UnsupportedTheme {
-            name: "unknown_theme".to_string(),
-        };
+        let actual = Error::UnsupportedTheme("unknown_theme".to_string());
 
         // Assert
         assert_eq!(
@@ -136,10 +106,10 @@ mod tests {
 
     #[test]
     #[cfg(feature = "image")]
-    fn test_fmt_image_load_error() {
+    fn test_image_load_error() {
         // Arrange
         let cause = ImageError::IoError(std::io::Error::from(std::io::ErrorKind::NotFound));
-        let error = Error::ImageLoadError { cause };
+        let error = Error::ImageLoadError(cause);
 
         // Act
         let actual = error.to_string();
@@ -153,7 +123,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "image")]
-    fn test_fmt_unsupported_image() {
+    fn test_unsupported_image() {
         // Act
         let actual = Error::UnsupportedImage;
 

@@ -80,9 +80,7 @@ impl FromStr for Theme {
             "muted" => Ok(Theme::Muted),
             "light" => Ok(Theme::Light),
             "dark" => Ok(Theme::Dark),
-            _ => Err(Error::UnsupportedTheme {
-                name: s.to_string(),
-            }),
+            _ => Err(Error::UnsupportedTheme(s.to_string())),
         }
     }
 }

@@ -79,7 +79,7 @@ impl<'a> ImageData<'a> {
     where
         P: AsRef<Path>,
     {
-        let image = image::open(path).map_err(|cause| Error::ImageLoadError { cause })?;
+        let image = image::open(path).map_err(Error::ImageLoadError)?;
         Self::try_from(&image)
     }
 

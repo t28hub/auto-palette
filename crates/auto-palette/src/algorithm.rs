@@ -54,9 +54,7 @@ impl FromStr for Algorithm {
             "kmeans" => Ok(Self::KMeans),
             "dbscan" => Ok(Self::DBSCAN),
             "dbscan++" => Ok(Self::DBSCANpp),
-            _ => Err(Error::UnsupportedAlgorithm {
-                name: s.to_string(),
-            }),
+            _ => Err(Error::UnsupportedAlgorithm(s.to_string())),
         }
     }
 }
