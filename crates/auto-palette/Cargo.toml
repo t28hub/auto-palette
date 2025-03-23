@@ -30,6 +30,7 @@ num-traits = { workspace = true }
 rand       = { workspace = true }
 rand_distr = { workspace = true }
 serde      = { workspace = true, optional = true }
+thiserror  = { workspace = true }
 
 [dev-dependencies]
 rstest     = { workspace = true }

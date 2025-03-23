@@ -95,6 +95,13 @@ where
     }
 }
 
+/// Normalizes the given value to the range [0, 360).
+///
+/// # Arguments
+/// * `value` - The value to normalize.
+///
+/// # Returns
+/// The normalized value in the range [0, 360).
 #[inline]
 #[must_use]
 fn normalize<T>(value: T) -> T

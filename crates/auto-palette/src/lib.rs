@@ -1,6 +1,7 @@
 #![feature(coverage_attribute)]
 
 mod algorithm;
+mod assert;
 pub mod color;
 mod error;
 mod image;

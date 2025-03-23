@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 #[cfg(feature = "wasm")]
 use serde::{Serialize, Serializer};
 
-use crate::{color::RGB, FloatNumber};
+use crate::color::{error::ColorError, RGB};
 
 /// The 4-bit ANSI 16 color representation.
 ///
@@ -16,6 +16,8 @@ use crate::{color::RGB, FloatNumber};
 ///
 /// let rgb = RGB::new(30, 215, 96);
 /// let ansi16 = Ansi16::from(&rgb);
+/// assert_eq!(ansi16.foreground(), 92);
+/// assert_eq!(ansi16.background(), 102);
 /// assert_eq!(ansi16, Ansi16::bright_green());
 /// assert_eq!(format!("{}", ansi16), "ANSI16(92)");
 /// ```
@@ -33,17 +35,11 @@ impl Ansi16 {
     ///
     /// # Returns
     /// A new `Ansi16` instance.
-    ///
-    /// # Panics
-    /// If the given code is not a valid ANSI 16 color code.
-    #[must_use]
-    fn new(code: u8) -> Self {
-        assert!(
-            (30..=37).contains(&code) || (90..=97).contains(&code),
-            "Invalid ANSI 16 color code: {}",
-            code
-        );
-        Self { code }
+    pub fn new(code: u8) -> Result<Self, ColorError> {
+        match code {
+            30..=37 | 90..=97 => Ok(Self { code }),
+            _ => Err(ColorError::InvalidColorCode(code)),
+        }
     }
 
     /// Returns the ANSI 16 color code for foreground text.
@@ -73,7 +69,7 @@ impl Ansi16 {
     #[inline]
     #[must_use]
     pub fn black() -> Self {
-        Self::new(30)
+        Self { code: 30 }
     }
 
     /// Creates a new `Ansi16` instance with the red color.
@@ -83,7 +79,7 @@ impl Ansi16 {
     #[inline]
     #[must_use]
     pub fn red() -> Self {
-        Self::new(31)
+        Self { code: 31 }
     }
 
     /// Creates a new `Ansi16` instance with the green color.
@@ -93,7 +89,7 @@ impl Ansi16 {
     #[inline]
     #[must_use]
     pub fn green() -> Self {
-        Self::new(32)
+        Self { code: 32 }
     }
 
     /// Creates a new `Ansi16` instance with the yellow color.
@@ -103,7 +99,7 @@ impl Ansi16 {
     #[inline]
     #[must_use]
     pub fn yellow() -> Self {
-        Self::new(33)
+        Self { code: 33 }
     }
 
     /// Creates a new `Ansi16` instance with the blue color.
@@ -113,7 +109,7 @@ impl Ansi16 {
     #[inline]
     #[must_use]
     pub fn blue() -> Self {
-        Self::new(34)
+        Self { code: 34 }
     }
 
     /// Creates a new `Ansi16` instance with the magenta color.
@@ -123,7 +119,7 @@ impl Ansi16 {
     #[inline]
     #[must_use]
     pub fn magenta() -> Self {
-        Self::new(35)
+        Self { code: 35 }
     }
 
     /// Creates a new `Ansi16` instance with the cyan color.
@@ -133,7 +129,7 @@ impl Ansi16 {
     #[inline]
     #[must_use]
     pub fn cyan() -> Self {
-        Self::new(36)
+        Self { code: 36 }
     }
 
     /// Creates a new `Ansi16` instance with the white color.
@@ -143,7 +139,7 @@ impl Ansi16 {
     #[inline]
     #[must_use]
     pub fn white() -> Self {
-        Self::new(37)
+        Self { code: 37 }
     }
 
     /// Creates a new `Ansi16` instance with the bright black color.
@@ -153,7 +149,7 @@ impl Ansi16 {
     #[inline]
     #[must_use]
     pub fn bright_black() -> Self {
-        Self::new(90)
+        Self { code: 90 }
     }
 
     /// Creates a new `Ansi16` instance with the bright red color.
@@ -163,7 +159,7 @@ impl Ansi16 {
     #[inline]
     #[must_use]
     pub fn bright_red() -> Self {
-        Self::new(91)
+        Self { code: 91 }
     }
 
     /// Creates a new `Ansi16` instance with the bright green color.
@@ -173,7 +169,7 @@ impl Ansi16 {
     #[inline]
     #[must_use]
     pub fn bright_green() -> Self {
-        Self::new(92)
+        Self { code: 92 }
     }
 
     /// Creates a new `Ansi16` instance with the bright yellow color.
@@ -183,7 +179,7 @@ impl Ansi16 {
     #[inline]
     #[must_use]
     pub fn bright_yellow() -> Self {
-        Self::new(93)
+        Self { code: 93 }
     }
 
     /// Creates a new `Ansi16` instance with the bright blue color.
@@ -193,7 +189,7 @@ impl Ansi16 {
     #[inline]
     #[must_use]
     pub fn bright_blue() -> Self {
-        Self::new(94)
+        Self { code: 94 }
     }
 
     /// Creates a new `Ansi16` instance with the bright magenta color.
@@ -203,7 +199,7 @@ impl Ansi16 {
     #[inline]
     #[must_use]
     pub fn bright_magenta() -> Self {
-        Self::new(95)
+        Self { code: 95 }
     }
 
     /// Creates a new `Ansi16` instance with the bright cyan color.
@@ -213,7 +209,7 @@ impl Ansi16 {
     #[inline]
     #[must_use]
     pub fn bright_cyan() -> Self {
-        Self::new(96)
+        Self { code: 96 }
     }
 
     /// Creates a new `Ansi16` instance with the bright white color.
@@ -223,7 +219,7 @@ impl Ansi16 {
     #[inline]
     #[must_use]
     pub fn bright_white() -> Self {
-        Self::new(97)
+        Self { code: 97 }
     }
 }
 
@@ -245,38 +241,28 @@ impl Display for Ansi16 {
 
 impl From<&RGB> for Ansi16 {
     fn from(rgb: &RGB) -> Self {
-        let code = from_rgb::<f32>(rgb.r, rgb.g, rgb.b);
+        let code = from_rgb(rgb.r, rgb.g, rgb.b);
         Self { code }
     }
 }
 
+/// Converts RGB values to an ANSI 16 color code.
+///
+/// This function is used internally to convert RGB values to the corresponding ANSI 16 color code.
+///
+/// # Arguments
+/// * `r` - The red component (0-255).
+/// * `g` - The green component (0-255).
+/// * `b` - The blue component (0-255).
+///
+/// # Returns
+/// The ANSI 16 color code.
 #[inline]
-#[must_use]
-fn from_rgb<T>(r: u8, g: u8, b: u8) -> u8
-where
-    T: FloatNumber,
-{
-    let max = RGB::max_value::<T>();
-    let r = T::from_u8(r) / max;
-    let g = T::from_u8(g) / max;
-    let b = T::from_u8(b) / max;
-
-    let value = (r.max(g).max(b) * T::from_f32(100.0) / T::from_f32(50.0))
-        .round()
-        .trunc_to_u8();
-    if value == 0 {
-        return 30;
-    }
-
-    let r = r.round().trunc_to_u8();
-    let g = g.round().trunc_to_u8();
-    let b = b.round().trunc_to_u8();
-    let code = 30 + ((b << 2) | (g << 1) | r);
-    if value == 2 {
-        code + 60 // Bright colors
-    } else {
-        code // Normal colors
-    }
+fn from_rgb(r: u8, g: u8, b: u8) -> u8 {
+    let max = r.max(g).max(b);
+    let brightness = if max > 128 { 60 } else { 0 };
+    let color = (((b > 127) as u8) << 2) | (((g > 127) as u8) << 1) | ((r > 127) as u8);
+    color + brightness + 30
 }
 
 #[cfg(test)]
@@ -290,7 +276,7 @@ mod tests {
     #[test]
     fn test_new() {
         // Act
-        let actual = Ansi16::new(30);
+        let actual = Ansi16::new(30).unwrap();
 
         // Assert
         assert_eq!(actual, Ansi16 { code: 30 });
@@ -299,17 +285,31 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Invalid ANSI 16 color code: 29")]
+    fn test_new_bright() {
+        // Act
+        let actual = Ansi16::new(90).unwrap();
+
+        // Assert
+        assert_eq!(actual, Ansi16 { code: 90 });
+        assert_eq!(actual.foreground(), 90);
+        assert_eq!(actual.background(), 100);
+    }
+
+    #[test]
     fn test_new_invalid() {
         // Act
-        let _actual = Ansi16::new(29);
+        let actual = Ansi16::new(29);
+
+        // Assert
+        assert!(actual.is_err());
+        assert_eq!(actual.unwrap_err(), ColorError::InvalidColorCode(29));
     }
 
     #[test]
     #[cfg(feature = "wasm")]
     fn test_serialize() {
         // Act
-        let ansi16 = Ansi16::new(30);
+        let ansi16 = Ansi16::new(30).unwrap();
 
         // Act
         assert_ser_tokens(&ansi16, &[Token::U8(30)]);
