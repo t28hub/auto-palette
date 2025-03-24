@@ -20,7 +20,7 @@ anyhow       = { workspace = true }
 arboard      = { workspace = true }
 auto-palette = { workspace = true, features = ["image"] }
 clap         = { workspace = true, features = ["derive"] }
-image        = { workspace = true }
+image        = { workspace = true, default-features = true }
 serde_json   = { workspace = true }
 
 [dev-dependencies]
