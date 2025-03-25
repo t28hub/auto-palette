@@ -26,6 +26,6 @@ console_error_panic_hook = { workspace = true }
 wasm-bindgen             = { workspace = true }
 
 [dev-dependencies]
-image             = { workspace = true }
+image             = { workspace = true, features = ["jpeg", "png"] }
 rstest            = { workspace = true }
 wasm-bindgen-test = { workspace = true }
