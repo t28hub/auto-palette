@@ -18,9 +18,9 @@
 
 * Automatically extracts prominent color palettes from images.
 * Provides detailed information on color, position, and population.
-* Supports multiple extraction algorithms, including `DBSCAN`, `DBSCAN++`, and `KMeans++`.
-* Supports multiple color spaces, including `RGB`, `HSL`, and `LAB`.
-* Supports the selection of prominent colors based on multiple themes, including `Vivid`, `Muted`, `Light`, and `Dark`.
+* Supports multiple extraction algorithms: `DBSCAN`, `DBSCAN++`, and `KMeans++`.
+* Supports numerous color spaces: `RGB`, `HSL`, `LAB` and more.
+* Theme-based swatch selection: `Basic`, `Colorful`, `Vivid`, `Muted`, `Light`, and `Dark`.
 
 ## Installation
 
@@ -28,13 +28,12 @@ Using `auto-palette` in your Rust project, add it to your `Cargo.toml`.
 
 ```toml
 [dependencies]
-auto-palette = "0.6.0"
+auto-palette = "0.7.0"
 ```
 
 ## Usage
 
 Here is a basic example that demonstrates how to extract the color palette and find the prominent colors.
-See the [examples](./examples) directory for more examples.
 
 ```rust
 use auto_palette::{ImageData, Palette};
@@ -57,13 +56,15 @@ fn main() {
 }
 ```
 
-## API
+For more advanced examples, see the [examples](./examples) directory.
+
+## Documentation
+
+See the full documentation on [docs.rs](https://docs.rs/auto-palette/latest/auto_palette/).
 
 * [`ImageData`](#imagedata)
 * [`Palette`](#palette)
 * [`Swatch`](#swatch)
-
-For more information on the API, see the [documentation](https://docs.rs/auto-palette).
 
 ### `ImageData`
 
@@ -77,8 +78,13 @@ The `ImageData` struct represents the image data that is used to extract the col
 #### `ImageData::load`
 
 Loads the image data from the file.  
-The supported image formats are `PNG`, `JPEG`, `GIF`, `BMP`, `TIFF`, and `WEBP`.  
 This method requires the `image` feature to be enabled. The `image` feature is enabled by default.
+
+```toml
+[dependencies]
+auto-palette = { version = "0.7.0", features = ["image"] }
+image        = { version = "0.25.6", features = ["jpeg"] } # if you want to load jpeg images
+```
 
 ```rust
 // Load the image data from the file
