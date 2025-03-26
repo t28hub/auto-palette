@@ -1,5 +1,15 @@
 # Changelog
 
+All notable changes to this project will be documented in this file.
+
+## [v0.7.0](https://github.com/t28hub/auto-palette/releases/tag/v0.7.0)
+
+* Introduced the ability to accept input directly from the system clipboard.(#140)
+* Modified the image crate usage to exclude default features, reducing the number of dependencies and optimizing build times.(#144)
+* Refactored the color module to optimize internal implementations and enhance color conversion accuracy.(#141)
+* Updated the find_swatches_with_theme method to employ diversity sampling strategies.(#136)
+
+
 ## [v0.6.0](https://github.com/t28hub/auto-palette/releases/tag/v0.6.0)
 
 * Add methods to convert `Color` to and from `ColorInt` (integer representation).

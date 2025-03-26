@@ -1,12 +1,21 @@
 # auto-palette
 
-> 🎨 `auto-palette` is a library that automatically extracts prominent color palettes from images, available for Rust ,Wasm and as a CLI tool.
+> 🎨 `auto-palette` is a library that automatically extracts prominent color palettes from images, available as Rust library, WebAssembly and CLI tool.
 
 [![Build](https://img.shields.io/github/actions/workflow/status/t28hub/auto-palette/ci.yml?style=flat-square)](https://github.com/t28hub/auto-palette/actions/workflows/ci.yml)
 [![License](https://img.shields.io/crates/l/auto-palette?style=flat-square)](https://crates.io/crates/auto-palette)
 [![Version](https://img.shields.io/crates/v/auto-palette?style=flat-square)](https://crates.io/crates/auto-palette)
 [![Codacy grade](https://img.shields.io/codacy/grade/5de09d1930244071a2fa39d5cfcd8633?style=flat-square)](https://app.codacy.com/gh/t28hub/auto-palette/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Codecov](https://img.shields.io/codecov/c/github/t28hub/auto-palette?style=flat-square)](https://codecov.io/gh/t28hub/auto-palette)
+
+## Overview
+`auto-palette` is a Rust project that offers color palette extraction from images. It consists of the following components:
+
+* `auto-palette`: Core library for programmatic usage.
+* `auto-palette-cli`: Command-line interface for easy usage.
+* `auto-palette-wasm`: WebAssembly version for browser usage.
+
+Perfect for developers, designers and anyone needing efficient color palette extraction.
 
 ## Features
 
@@ -17,24 +26,24 @@
 > Photo by <a href="https://unsplash.com/@laurahclugston?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Laura Clugston</a> on <a href="https://unsplash.com/photos/multi-colored-hot-air-balloon-pwW2iV9TZao?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Unsplash</a>
 
 * Automatically extracts prominent color palettes from images.
-* Provides detailed information on color, position, and population.
-* Supports multiple extraction algorithms, including `DBSCAN`, `DBSCAN++`, and `KMeans++`.
-* Supports multiple color spaces, including `RGB`, `HSL`, and `LAB`.
-* Supports the selection of prominent colors based on multiple themes, including `Vivid`, `Muted`, `Light`, and `Dark`.
+* Provides detailed color swatch information (color, position, population)
+* Supports multiple extraction algorithms: `DBSCAN`, `DBSCAN++`, and `KMeans++`.
+* Supports numerous color spaces: `RGB`, `HSL`, `LAB`, `LCHuv`, `ANSI256` and more.
+* Theme-based swatch selection: `Basic`, `Colorful`, `Vivid`, `Muted`, `Light`, and `Dark`.
 * Available as a Rust library, Wasm, and a CLI tool.
 
 ## Installation
 
-### Rust
+### Rust Library
 
 To use `auto-palette` in your Rust project, add it to your `Cargo.toml`.
 
 ```toml
 [dependencies]
-auto-palette = "0.6.0"
+auto-palette = "0.7.0"
 ```
 
-### CLI
+### CLI Tool
 
 To use command-line interface, install the `auto-palette-cli` crate.
 
@@ -44,7 +53,7 @@ cargo install auto-palette-cli
 
 ## Usage
 
-### Rust
+### Rust Example
 
 Here is an example of extracting the color palette from an image using the Rust library.
 See the [examples](crates/auto-palette/examples) directory for more examples.
@@ -71,7 +80,7 @@ fn main() {
 }
 ```
 
-### CLI
+### CLI Example
 
 Here is an example of extracting the color palette from an image using the CLI tool.
 

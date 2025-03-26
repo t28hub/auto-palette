@@ -9,10 +9,11 @@
 ## Features
 
 - Extract prominent color palettes from images.
-- Supports multiple color extraction algorithms (`dbscan`, `dbscan++`, `kmeans`). Defaults to `dbscan`.
-- Supports multiple color selection themes (`basic`, `colorful`, `vivid`, `muted`, `light`, `dark`). Defaults to `basic`.
+- Supports multiple color extraction algorithms: `dbscan`, `dbscan++`, and `kmeans`. (default: `dbscan`).
+- Flexible theme selection for color swatches: `basic`, `colorful`, `vivid`, `muted`, `light`, and `dark`. (default: `basic`).
 - Supports multiple color formats (`hex`, `rgb`, `cmyk`, `hsl`, `hsv`, `lab`, `luv`, `lchab`, `lchuv`, `oklab`, `oklch`, `xyz`). Defaults to `hex`.
-- Outputs the color palette in multiple formats (`json`, `text`, `table`). Defaults to `text`.
+- Multiple output formats: `json`, `text`, and `table`. (default: `text`).
+- Clipboard support for instant palette extraction.
 
 ## Installation
 
@@ -20,10 +21,27 @@
 cargo install auto-palette-cli
 ```
 
+## Quick Start
+
+Extract a simple 5 color palette from an image:
+```sh
+auto-palette path/to/your_image.jpg
+```
+
+Extract a 5 color palette from an image using the `vivid` theme and `rgb` color format with `table` output format:
+```sh
+auto-palette path/to/your_image.jpg -n 5 -a dbscan++ -t vivid -c rgb -o table
+```
+
+Extract a color palette from clipboard image:
+```sh
+auto-palette --clipboard
+```
+
 ## Usage
 
 ```sh
-$ auto-palette --help
+$ auto-palette -h
 🎨 A CLI tool to extract prominent color palettes from images.
 
 Usage: auto-palette [OPTIONS] <PATH>
@@ -38,6 +56,7 @@ Options:
   -c, --color <name>      Output color format. [default: hex] [possible values: hex, rgb, cmyk, hsl, hsv, lab, luv, lchab, lchuv, oklab, oklch, xyz]
   -o, --output <name>     Output format. [default: text] [possible values: json, text, table]
       --no-resize         Disable image resizing before extracting the color palette.
+      --clipboard         Get image from system clipboard
   -h, --help              Print help (see more with '--help')
   -V, --version           Print version
 ```
