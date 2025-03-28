@@ -172,9 +172,8 @@ where
         let width = image_data.width();
         let height = image_data.height();
         let pixel_clusters = cluster_pixels(width as usize, height as usize, pixels, algorithm);
-        let color_clusters = cluster_colors(&pixel_clusters);
-
-        let mut swatches = convert_to_swatches(
+        let color_clusters = cluster_to_color_groups(&pixel_clusters)?;
+        let mut swatches = convert_swatches_from_clusters(
             T::from_u32(width),
             T::from_u32(height),
             &color_clusters,
@@ -185,6 +184,19 @@ where
     }
 }
 
+/// Clusters the pixels in the image data using the specified algorithm.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
+///
+/// # Arguments
+/// * `width` - The width of the image data.
+/// * `height` - The height of the image data.
+/// * `data` - The pixel data of the image data.
+/// * `algorithm` - The clustering algorithm to use.
+///
+/// # Returns
+/// The pixel clusters containing the color information and pixel positions.
 #[must_use]
 fn cluster_pixels<T>(
     width: usize,
@@ -222,8 +234,17 @@ where
     algorithm.cluster::<T>(&points)
 }
 
-#[must_use]
-fn cluster_colors<T>(pixel_clusters: &[Cluster<T, 5>]) -> Vec<Cluster<T, 3>>
+/// Clusters the color groups from the pixel clusters.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
+///
+/// # Arguments
+/// * `pixel_clusters` - The pixel clusters containing the color information and pixel positions.
+///
+/// # Returns
+/// The color clusters containing the color information.
+fn cluster_to_color_groups<T>(pixel_clusters: &[Cluster<T, 5>]) -> Result<Vec<Cluster<T, 3>>, Error>
 where
     T: FloatNumber,
 {
@@ -238,12 +259,30 @@ where
             ]
         })
         .collect::<Vec<_>>();
-    let algorithm = DBSCAN::new(1, T::from_f32(2.5), DistanceMetric::Euclidean).unwrap();
-    algorithm.fit(&colors)
+    let algorithm = DBSCAN::new(1, T::from_f32(2.5), DistanceMetric::Euclidean).map_err(|_| {
+        Error::PaletteExtractionFailed {
+            details: "Failed to initialize DBSCAN algorithm".to_string(),
+        }
+    })?;
+    let clusters = algorithm.fit(&colors);
+    Ok(clusters)
 }
 
+/// Converts the color clusters and pixel clusters into swatches.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
+///
+/// # Arguments
+/// * `width` - The width of the image data.
+/// * `height` - The height of the image data.
+/// * `color_clusters` - The color clusters containing the color information.
+/// * `pixel_clusters` - The pixel clusters containing the color information and pixel positions.
+///
+/// # Returns
+/// The swatches created from the color clusters and pixel clusters.
 #[must_use]
-fn convert_to_swatches<T>(
+fn convert_swatches_from_clusters<T>(
     width: T,
     height: T,
     color_clusters: &[Cluster<T, 3>],
@@ -254,11 +293,12 @@ where
 {
     color_clusters
         .iter()
-        .fold(Vec::new(), |mut acc, color_cluster| {
+        .filter_map(|color_cluster| {
             let mut best_color = [T::zero(); 3];
-            let mut best_position = (0, 0);
+            let mut best_position = None;
             let mut best_population = 0;
             let mut total_population = 0;
+
             for &member in color_cluster.members() {
                 let Some(pixel_cluster) = pixel_clusters.get(member) else {
                     continue;
@@ -271,29 +311,35 @@ where
                 let fraction = T::from_usize(pixel_cluster.len())
                     / T::from_usize(pixel_cluster.len() + best_population);
                 let centroid = pixel_cluster.centroid();
-                best_color[0] += fraction * (centroid[0] - best_color[0]);
-                best_color[1] += fraction * (centroid[1] - best_color[1]);
-                best_color[2] += fraction * (centroid[2] - best_color[2]);
+                best_color.iter_mut().enumerate().for_each(|(i, color)| {
+                    *color += fraction * (centroid[i] - *color);
+                });
 
-                if fraction >= T::from_f32(0.5) {
-                    best_position.0 = denormalize(centroid[3], T::zero(), width).trunc_to_u32();
-                    best_position.1 = denormalize(centroid[4], T::zero(), height).trunc_to_u32();
+                if fraction >= T::from_f32(0.5) || best_population == 0 {
+                    best_position = Some((
+                        denormalize(centroid[3], T::zero(), width).trunc_to_u32(),
+                        denormalize(centroid[4], T::zero(), height).trunc_to_u32(),
+                    ));
                     best_population = pixel_cluster.len();
                 }
                 total_population += pixel_cluster.len();
             }
 
-            let l = denormalize(best_color[0], Lab::<T>::min_l(), Lab::<T>::max_l());
-            let a = denormalize(best_color[1], Lab::<T>::min_a(), Lab::<T>::max_a());
-            let b = denormalize(best_color[2], Lab::<T>::min_b(), Lab::<T>::max_b());
-            acc.push(Swatch::new(
-                Color::new(l, a, b),
-                best_position,
-                total_population,
-                T::from_usize(total_population) / (width * height),
-            ));
-            acc
+            if let Some(position) = best_position {
+                let l = denormalize(best_color[0], Lab::<T>::min_l(), Lab::<T>::max_l());
+                let a = denormalize(best_color[1], Lab::<T>::min_a(), Lab::<T>::max_a());
+                let b = denormalize(best_color[2], Lab::<T>::min_b(), Lab::<T>::max_b());
+                Some(Swatch::new(
+                    Color::new(l, a, b),
+                    position,
+                    total_population,
+                    T::from_usize(total_population) / (width * height),
+                ))
+            } else {
+                None
+            }
         })
+        .collect()
 }
 
 #[cfg(test)]
@@ -423,7 +469,7 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err().to_string(),
-            "The image data is empty and cannot be processed."
+            "Image data is empty: no pixels to process"
         );
     }
 

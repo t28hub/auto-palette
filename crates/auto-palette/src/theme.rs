@@ -105,7 +105,9 @@ impl FromStr for Theme {
             "muted" => Ok(Theme::Muted),
             "light" => Ok(Theme::Light),
             "dark" => Ok(Theme::Dark),
-            _ => Err(Error::UnsupportedTheme(s.to_string())),
+            _ => Err(Error::UnsupportedTheme {
+                name: s.to_string(),
+            }),
         }
     }
 }
@@ -309,7 +311,7 @@ mod tests {
         assert!(actual.is_err());
         assert_eq!(
             actual.unwrap_err().to_string(),
-            format!("The theme '{}' is not supported.", str)
+            format!("Unsupported theme specified: '{}'", str),
         );
     }
 

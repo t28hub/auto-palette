@@ -79,7 +79,7 @@ impl<'a> ImageData<'a> {
     where
         P: AsRef<Path>,
     {
-        let image = image::open(path).map_err(Error::ImageLoadError)?;
+        let image = image::open(path).map_err(|cause| Error::ImageLoadError { cause })?;
         Self::try_from(&image)
     }
 
@@ -121,7 +121,7 @@ impl TryFrom<&DynamicImage> for ImageData<'_> {
         match image {
             DynamicImage::ImageRgb8(image) => Ok(Self::from(image)),
             DynamicImage::ImageRgba8(image) => Ok(Self::from(image)),
-            _ => Err(Error::UnsupportedImage),
+            _ => Err(Error::UnsupportedImageFormat),
         }
     }
 }

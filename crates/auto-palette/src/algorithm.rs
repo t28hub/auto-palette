@@ -54,12 +54,13 @@ impl FromStr for Algorithm {
             "kmeans" => Ok(Self::KMeans),
             "dbscan" => Ok(Self::DBSCAN),
             "dbscan++" => Ok(Self::DBSCANpp),
-            _ => Err(Error::UnsupportedAlgorithm(s.to_string())),
+            _ => Err(Error::UnsupportedAlgorithm {
+                name: s.to_string(),
+            }),
         }
     }
 }
 
-#[must_use]
 fn cluster_with_kmeans<T>(pixels: &[Point<T, 5>]) -> Vec<Cluster<T, 5>>
 where
     T: FloatNumber + AliasableWeight,
@@ -134,7 +135,7 @@ mod tests {
         assert!(actual.is_err());
         assert_eq!(
             actual.unwrap_err().to_string(),
-            format!("The algorithm '{}' is not supported.", input)
+            format!("Unsupported algorithm specified: '{}'", input)
         );
     }
 }
