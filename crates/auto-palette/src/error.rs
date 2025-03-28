@@ -2,42 +2,51 @@
 use image::ImageError;
 use thiserror::Error;
 
-/// The `Error` enum represents the errors that can occur in the palette extraction process.
+/// Represents specific errors encountered during the palette extraction process.
 #[derive(Debug, Error)]
 pub enum Error {
-    /// The image data is empty and cannot be processed.
-    #[error("The image data is empty and cannot be processed.")]
+    /// Error when provided image data is empty and contains no pixel information.
+    #[error("Image data is empty: no pixels to process")]
     EmptyImageData,
 
-    /// The image data contains invalid pixel data.
-    #[error("The image data contains invalid pixel data.")]
+    /// Error when the provided image data contains invalid pixel information.
+    #[error("Image data is invalid: contains invalid pixel data")]
     InvalidImageData,
 
-    /// The palette extraction process failed.
-    /// The details provide more information about the error.
-    #[error("The palette extraction process failed with error: {0}")]
-    ExtractionFailure(String),
+    /// Error when the palette extraction process fails, providing the underlying details.
+    #[error("Palette extraction process failed with error: {details}")]
+    PaletteExtractionFailed {
+        /// The underlying cause of the palette extraction failure.
+        details: String,
+    },
 
-    /// The algorithm is not supported.
-    /// The name provides more information about the unsupported algorithm.
-    #[error("The algorithm '{0}' is not supported.")]
-    UnsupportedAlgorithm(String),
+    /// Error when an unsupported algorithm is specified.
+    #[error("Unsupported algorithm specified: '{name}'")]
+    UnsupportedAlgorithm {
+        /// The name of the unsupported algorithm.
+        name: String,
+    },
 
-    /// The theme is not supported.
-    /// The name provides more information about the unsupported theme.
-    #[error("The theme '{0}' is not supported.")]
-    UnsupportedTheme(String),
+    /// Error when an unsupported theme is specified.
+    #[error("Unsupported theme specified: '{name}'")]
+    UnsupportedTheme {
+        /// The name of the unsupported theme.
+        name: String,
+    },
 
-    /// The image loading process failed.
-    /// The cause provides more information about the error.
+    /// Error when the image fails to load, providing the underlying cause.
     #[cfg(feature = "image")]
-    #[error("The image loading process failed with error: {0}")]
-    ImageLoadError(#[from] ImageError),
+    #[error("Image loading process failed with error: {cause}")]
+    ImageLoadError {
+        /// The underlying cause of the image loading failure.
+        #[from]
+        cause: ImageError,
+    },
 
-    /// The color type of the image is not supported.
+    /// Error when the image format or color type is not supported.
     #[cfg(feature = "image")]
-    #[error("The image format is not supported.")]
-    UnsupportedImage,
+    #[error("Image format or color type is not supported")]
+    UnsupportedImageFormat,
 }
 
 #[cfg(test)]
@@ -52,7 +61,7 @@ mod tests {
         // Assert
         assert_eq!(
             actual.to_string(),
-            "The image data is empty and cannot be processed."
+            "Image data is empty: no pixels to process"
         );
     }
 
@@ -64,44 +73,47 @@ mod tests {
         // Assert
         assert_eq!(
             actual.to_string(),
-            "The image data contains invalid pixel data."
+            "Image data is invalid: contains invalid pixel data"
         );
     }
 
     #[test]
-    fn test_extraction_failure() {
+    fn test_palette_extraction_failed() {
         // Act
-        let actual = Error::ExtractionFailure("Failed to extract palette.".to_string());
+        let actual = Error::PaletteExtractionFailed {
+            details: "Details about the failure.".to_string(),
+        };
 
         // Assert
         assert_eq!(
             actual.to_string(),
-            "The palette extraction process failed with error: Failed to extract palette."
+            "Palette extraction process failed with error: Details about the failure."
         );
     }
 
     #[test]
     fn test_unsupported_algorithm() {
         // Act
-        let actual = Error::UnsupportedAlgorithm("unknown_algorithm".to_string());
+        let actual = Error::UnsupportedAlgorithm {
+            name: "xmeans".to_string(),
+        };
 
         // Assert
         assert_eq!(
             actual.to_string(),
-            "The algorithm 'unknown_algorithm' is not supported."
+            "Unsupported algorithm specified: 'xmeans'"
         );
     }
 
     #[test]
     fn test_unsupported_theme() {
         // Act
-        let actual = Error::UnsupportedTheme("unknown_theme".to_string());
+        let actual = Error::UnsupportedTheme {
+            name: "pastel".to_string(),
+        };
 
         // Assert
-        assert_eq!(
-            actual.to_string(),
-            "The theme 'unknown_theme' is not supported."
-        );
+        assert_eq!(actual.to_string(), "Unsupported theme specified: 'pastel'");
     }
 
     #[test]
@@ -109,7 +121,7 @@ mod tests {
     fn test_image_load_error() {
         // Arrange
         let cause = ImageError::IoError(std::io::Error::from(std::io::ErrorKind::NotFound));
-        let error = Error::ImageLoadError(cause);
+        let error = Error::ImageLoadError { cause };
 
         // Act
         let actual = error.to_string();
@@ -117,7 +129,7 @@ mod tests {
         // Assert
         assert_eq!(
             actual,
-            "The image loading process failed with error: entity not found"
+            "Image loading process failed with error: entity not found"
         );
     }
 
@@ -125,9 +137,12 @@ mod tests {
     #[cfg(feature = "image")]
     fn test_unsupported_image() {
         // Act
-        let actual = Error::UnsupportedImage;
+        let actual = Error::UnsupportedImageFormat;
 
         // Assert
-        assert_eq!(actual.to_string(), "The image format is not supported.");
+        assert_eq!(
+            actual.to_string(),
+            "Image format or color type is not supported"
+        );
     }
 }
