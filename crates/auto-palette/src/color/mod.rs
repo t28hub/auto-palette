@@ -104,46 +104,6 @@ where
         }
     }
 
-    /// Returns the minimum value of the chroma component.
-    ///
-    /// # Returns
-    /// The minimum value of the chroma component.
-    #[inline]
-    #[must_use]
-    pub(crate) fn min_chroma() -> T {
-        T::zero()
-    }
-
-    /// Returns the maximum value of the chroma component.
-    ///
-    /// # Returns
-    /// The maximum value of the chroma component.
-    #[inline]
-    #[must_use]
-    pub(crate) fn max_chroma() -> T {
-        T::from_f32(180.0)
-    }
-
-    /// Returns the minimum value of the lightness component.
-    ///
-    /// # Returns
-    /// The minimum value of the lightness component.
-    #[inline]
-    #[must_use]
-    pub(crate) fn min_lightness() -> T {
-        T::zero()
-    }
-
-    /// Returns the maximum value of the lightness component.
-    ///
-    /// # Returns
-    /// The maximum value of the lightness component.
-    #[inline]
-    #[must_use]
-    pub(crate) fn max_lightness() -> T {
-        T::from_f32(100.0)
-    }
-
     /// Returns whether this color is light.
     ///
     /// # Returns
