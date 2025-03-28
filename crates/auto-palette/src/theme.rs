@@ -1,13 +1,10 @@
 use std::str::FromStr;
 
-use crate::{
-    color::Color,
-    math::{normalize, FloatNumber},
-    Error,
-    Swatch,
-};
+use crate::{math::FloatNumber, Error, Swatch};
 
 /// The theme representation for scoring the swatches.
+/// The definition of the themes is based on the PCCS (Practical Color Co-ordinate System) color theory.
+/// @see [Practical Color Coordinate System - Wikipedia](https://en.wikipedia.org/wiki/Practical_Color_Coordinate_System)
 ///
 /// # Examples
 /// ```
@@ -20,24 +17,29 @@ use crate::{
 /// ```
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub enum Theme {
-    /// The theme selects the swatches based on the population.
-    /// The high population swatches are preferred.
+    /// The theme selects the swatches based on the ratio of the swatch.
+    /// The swatches with the highest ratio are selected.
     #[default]
     Basic,
-    /// The theme selects the swatches based on the population and the lightness.
-    /// The high population swatches are preferred.
+    /// The theme selects the swatches based on the moderate chroma and lightness.
+    /// The high chroma and lightness swatches are scored higher.
+    /// Gaussian parameters: chroma = 60, lightness = 50, sigma = 15.
     Colorful,
-    /// The theme selects the swatches based on the chroma.
-    /// The saturated colors are preferred.
+    /// The theme selects the swatches based on the high chroma and moderate lightness.
+    /// The high chroma and lightness swatches are scored higher.
+    /// Gaussian parameters: chroma = 75, lightness = 50, sigma = 15.
     Vivid,
-    /// The theme selects the swatches based on the chroma.
-    /// The desaturated colors are preferred.
+    /// The theme selects the swatches based on the low chroma and moderate lightness.
+    /// The low chroma and lightness swatches are scored higher.
+    /// Gaussian parameters: chroma = 20, lightness = 40, sigma = 15.
     Muted,
-    /// The theme selects the swatches based on the lightness.
-    /// The light colors are preferred.
+    /// The theme selects the swatches based on the moderate chroma and high lightness.
+    /// The moderate chroma and high lightness swatches are scored higher.
+    /// Gaussian parameters: chroma = 40, lightness = 75, sigma = 15.
     Light,
-    /// The theme selects the swatches based on the lightness.
-    /// The dark colors are preferred.
+    /// The theme selects the swatches based on the low chroma and low lightness.
+    /// The low chroma and lightness swatches are scored higher.
+    /// Gaussian parameters: chroma = 20, lightness = 25, sigma = 15.
     Dark,
 }
 
@@ -58,13 +60,36 @@ impl Theme {
     where
         T: FloatNumber,
     {
+        let color = swatch.color();
+        let chroma = color.chroma();
+        let lightness = color.lightness();
         match self {
-            Theme::Basic => score_basic(swatch),
-            Theme::Colorful => score_colorful(swatch),
-            Theme::Vivid => score_vivid(swatch),
-            Theme::Muted => score_muted(swatch),
-            Theme::Light => score_light(swatch),
-            Theme::Dark => score_dark(swatch),
+            Theme::Basic => swatch.ratio(),
+            Theme::Colorful => {
+                let score_c = gaussian_score(chroma, T::from_u16(60), T::from_u16(15));
+                let score_l = gaussian_score(lightness, T::from_u16(50), T::from_u16(15));
+                score_c * score_l
+            }
+            Theme::Vivid => {
+                let score_c = gaussian_score(chroma, T::from_u16(75), T::from_u16(15));
+                let score_l = gaussian_score(lightness, T::from_u16(50), T::from_u16(15));
+                score_c * score_l
+            }
+            Theme::Muted => {
+                let score_c = gaussian_score(chroma, T::from_u16(20), T::from_u16(15));
+                let score_l = gaussian_score(lightness, T::from_u16(40), T::from_u16(15));
+                score_c * score_l
+            }
+            Theme::Light => {
+                let score_c = gaussian_score(chroma, T::from_u16(40), T::from_u16(15));
+                let score_l = gaussian_score(lightness, T::from_u16(75), T::from_u16(15));
+                score_c * score_l
+            }
+            Theme::Dark => {
+                let score_c = gaussian_score(chroma, T::from_u16(20), T::from_u16(15));
+                let score_l = gaussian_score(lightness, T::from_u16(25), T::from_u16(15));
+                score_c * score_l
+            }
         }
     }
 }
@@ -85,124 +110,24 @@ impl FromStr for Theme {
     }
 }
 
+/// Calculates the score based on the Gaussian function.
+///
+/// # Arguments
+/// * `value` - The value to score.
+/// * `center` - The center of the Gaussian function.
+/// * `sigma` - The standard deviation of the Gaussian function.
+///
+/// # Returns
+/// The score of the value.
 #[inline]
-fn score_basic<T>(swatch: &Swatch<T>) -> T
+fn gaussian_score<T>(value: T, center: T, sigma: T) -> T
 where
     T: FloatNumber,
 {
-    swatch.ratio()
-}
-
-#[inline]
-fn score_colorful<T>(swatch: &Swatch<T>) -> T
-where
-    T: FloatNumber,
-{
-    let color = swatch.color();
-    let chroma = color.chroma();
-    let score_c = if chroma <= T::from_u16(36) {
-        T::zero()
-    } else {
-        normalize(chroma, Color::<T>::min_chroma(), Color::<T>::max_chroma())
-    };
-
-    let lightness = color.lightness();
-    let score_l = if lightness <= T::from_u16(25) || lightness >= T::from_u16(85) {
-        T::zero()
-    } else {
-        normalize(
-            lightness,
-            Color::<T>::min_lightness(),
-            Color::<T>::max_lightness(),
-        )
-    };
-    score_c * score_l
-}
-
-#[inline]
-fn score_vivid<T>(swatch: &Swatch<T>) -> T
-where
-    T: FloatNumber,
-{
-    let color = swatch.color();
-    let chroma = color.chroma();
-    let score_c = if chroma <= T::from_u32(48) {
-        T::zero()
-    } else {
-        normalize(chroma, Color::<T>::min_chroma(), Color::<T>::max_chroma())
-    };
-
-    let score_l = {
-        let score = normalize(
-            color.lightness(),
-            Color::<T>::min_lightness(),
-            Color::<T>::max_lightness(),
-        );
-        T::one() - (score - T::from_f32(0.5)).abs()
-    };
-    score_c * score_l
-}
-
-#[inline]
-fn score_muted<T>(swatch: &Swatch<T>) -> T
-where
-    T: FloatNumber,
-{
-    let color = swatch.color();
-    let chroma = color.chroma();
-    let score_c = if chroma <= T::from_u16(60) {
-        T::one() - normalize(chroma, Color::<T>::min_chroma(), Color::<T>::max_chroma())
-    } else {
-        T::zero()
-    };
-
-    let score_l = {
-        let score = normalize(
-            color.lightness(),
-            Color::<T>::min_lightness(),
-            Color::<T>::max_lightness(),
-        );
-        T::one() - (score - T::from_f32(0.5)).abs()
-    };
-    score_c * score_l
-}
-
-#[inline]
-fn score_light<T>(swatch: &Swatch<T>) -> T
-where
-    T: FloatNumber,
-{
-    let color = swatch.color();
-    let lightness = color.lightness();
-    if lightness <= T::from_u16(60) {
-        T::zero()
-    } else {
-        let score = normalize(
-            color.lightness(),
-            Color::<T>::min_lightness(),
-            Color::<T>::max_lightness(),
-        );
-        score.powi(2)
+    if sigma.is_zero() {
+        return T::zero();
     }
-}
-
-#[inline]
-fn score_dark<T>(swatch: &Swatch<T>) -> T
-where
-    T: FloatNumber,
-{
-    let color = swatch.color();
-    let lightness = color.lightness();
-    if lightness >= T::from_u16(40) {
-        T::zero()
-    } else {
-        let score = normalize(
-            color.lightness(),
-            Color::<T>::min_lightness(),
-            Color::<T>::max_lightness(),
-        );
-        T::one() - score.powi(2)
-    }
+    (-(value - center).powi(2) / (T::from_u16(2) * sigma.powi(2))).exp()
 }
 
 #[cfg(test)]
@@ -212,6 +137,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
+    use crate::{assert_approx_eq, color::Color};
 
     #[rstest]
     #[case::black("#000000", 0.2)]
@@ -231,18 +157,18 @@ mod tests {
     }
 
     #[rstest]
-    #[case::black("#000000", 0.0)]
-    #[case::gray("#808080", 0.0)]
-    #[case::white("#ffffff", 0.0)]
-    #[case::red("#ff0000", 0.309)]
-    #[case::green("#00ff00", 0.0)]
-    #[case::blue("#0000ff", 0.240)]
-    #[case::yellow("#ffff00", 0.0)]
-    #[case::cyan("#00ffff", 0.0)]
-    #[case::magenta("#ff00ff", 0.387)]
-    #[case::orange("#ff8000", 0.319)]
-    #[case::purple("#8000ff", 0.284)]
-    #[case::lime("#80ff00", 0.0)]
+    #[case::black("#000000", 0.000001)]
+    #[case::gray("#808080", 0.000326)]
+    #[case::white("#ffffff", 0.000001)]
+    #[case::red("#ff0000", 0.011879)]
+    #[case::green("#00ff00", 0.000015)]
+    #[case::blue("#0000ff", 0.000002)]
+    #[case::yellow("#ffff00", 0.000347)]
+    #[case::cyan("#00ffff", 0.018807)]
+    #[case::magenta("#ff00ff", 0.000829)]
+    #[case::orange("#ff8000", 0.123426)]
+    #[case::purple("#8000ff", 0.000069)]
+    #[case::lime("#80ff00", 0.000129)]
     fn test_score_colorful(#[case] hex: &str, #[case] expected: f64) {
         // Act
         let color: Color<f64> = Color::from_str(hex).unwrap();
@@ -250,22 +176,22 @@ mod tests {
         let score = Theme::Colorful.score(&swatch);
 
         // Assert
-        assert!((score - expected).abs() < 1e-3);
+        assert_approx_eq!(score, expected);
     }
 
     #[rstest]
     #[case::black("#000000", 0.0)]
-    #[case::gray("#808080", 0.0)]
+    #[case::gray("#808080", 0.000003)]
     #[case::white("#ffffff", 0.0)]
-    #[case::red("#ff0000", 0.562)]
-    #[case::green("#00ff00", 0.414)]
-    #[case::blue("#0000ff", 0.612)]
-    #[case::yellow("#ffff00", 0.285)]
-    #[case::cyan("#00ffff", 0.164)]
-    #[case::magenta("#ff00ff", 0.576)]
-    #[case::orange("#ff8000", 0.394)]
-    #[case::purple("#8000ff", 0.631)]
-    #[case::lime("#80ff00", 0.365)]
+    #[case::red("#ff0000", 0.140403)]
+    #[case::green("#00ff00", 0.000490)]
+    #[case::blue("#0000ff", 0.000228)]
+    #[case::yellow("#ffff00", 0.002468)]
+    #[case::cyan("#00ffff", 0.005902)]
+    #[case::magenta("#ff00ff", 0.020425)]
+    #[case::orange("#ff8000", 0.410010)]
+    #[case::purple("#8000ff", 0.003222)]
+    #[case::lime("#80ff00", 0.002103)]
     fn test_score_vivid(#[case] hex: &str, #[case] expected: f64) {
         // Act
         let color: Color<f64> = Color::from_str(hex).unwrap();
@@ -273,20 +199,20 @@ mod tests {
         let score = Theme::Vivid.score(&swatch);
 
         // Assert
-        assert!((score - expected).abs() < 1e-3);
+        assert_approx_eq!(score, expected);
     }
 
     #[rstest]
-    #[case::black("#000000", 0.5)]
-    #[case::gray("#808080", 0.964)]
-    #[case::white("#ffffff", 0.500)]
+    #[case::black("#000000", 0.011743)]
+    #[case::gray("#808080", 0.273009)]
+    #[case::white("#ffffff", 0.000138)]
     #[case::red("#ff0000", 0.0)]
     #[case::green("#00ff00", 0.0)]
     #[case::blue("#0000ff", 0.0)]
     #[case::yellow("#ffff00", 0.0)]
-    #[case::cyan("#00ffff", 0.425)]
+    #[case::cyan("#00ffff", 0.000400)]
     #[case::magenta("#ff00ff", 0.0)]
-    #[case::orange("#ff8000", 0.0)]
+    #[case::orange("#ff8000", 0.000014)]
     #[case::purple("#8000ff", 0.0)]
     #[case::lime("#80ff00", 0.0)]
     fn test_score_muted(#[case] hex: &str, #[case] expected: f64) {
@@ -296,22 +222,22 @@ mod tests {
         let score = Theme::Muted.score(&swatch);
 
         // Assert
-        assert!((score - expected).abs() < 1e-3);
+        assert_approx_eq!(score, expected);
     }
 
     #[rstest]
     #[case::black("#000000", 0.0)]
-    #[case::gray("#808080", 0.0)]
-    #[case::white("#ffffff", 1.0)]
-    #[case::red("#ff0000", 0.0)]
-    #[case::green("#00ff00", 0.770)]
+    #[case::gray("#808080", 0.010325)]
+    #[case::white("#ffffff", 0.007137)]
+    #[case::red("#ff0000", 0.000033)]
+    #[case::green("#00ff00", 0.0)]
     #[case::blue("#0000ff", 0.0)]
-    #[case::yellow("#ffff00", 0.944)]
-    #[case::cyan("#00ffff", 0.830)]
-    #[case::magenta("#ff00ff", 0.364)]
-    #[case::orange("#ff8000", 0.450)]
+    #[case::yellow("#ffff00", 0.000252)]
+    #[case::cyan("#00ffff", 0.447280)]
+    #[case::magenta("#ff00ff", 0.000001)]
+    #[case::orange("#ff8000", 0.008716)]
     #[case::purple("#8000ff", 0.0)]
-    #[case::lime("#80ff00", 0.808)]
+    #[case::lime("#80ff00", 0.000013)]
     fn test_score_light(#[case] hex: &str, #[case] expected: f64) {
         // Act
         let color: Color<f64> = Color::from_str(hex).unwrap();
@@ -319,20 +245,20 @@ mod tests {
         let score = Theme::Light.score(&swatch);
 
         // Assert
-        assert!((score - expected).abs() < 1e-3);
+        assert_approx_eq!(score, expected);
     }
 
     #[rstest]
-    #[case::black("#000000", 1.0)]
-    #[case::gray("#808080", 0.0)]
-    #[case::white("#ffffff", 0.0)]
+    #[case::black("#000000", 0.102511)]
+    #[case::gray("#808080", 0.066942)]
+    #[case::white("#ffffff", 0.000001)]
     #[case::red("#ff0000", 0.0)]
     #[case::green("#00ff00", 0.0)]
-    #[case::blue("#0000ff", 0.896)]
+    #[case::blue("#0000ff", 0.0)]
     #[case::yellow("#ffff00", 0.0)]
-    #[case::cyan("#00ffff", 0.0)]
+    #[case::cyan("#00ffff", 0.000008)]
     #[case::magenta("#ff00ff", 0.0)]
-    #[case::orange("#ff8000", 0.0)]
+    #[case::orange("#ff8000", 0.000001)]
     #[case::purple("#8000ff", 0.0)]
     #[case::lime("#80ff00", 0.0)]
     fn test_score_dark(#[case] hex: &str, #[case] expected: f64) {
@@ -342,7 +268,7 @@ mod tests {
         let score = Theme::Dark.score(&swatch);
 
         // Assert
-        assert!((score - expected).abs() < 1e-3);
+        assert_approx_eq!(score, expected);
     }
 
     #[rstest]
@@ -385,5 +311,37 @@ mod tests {
             actual.unwrap_err().to_string(),
             format!("The theme '{}' is not supported.", str)
         );
+    }
+
+    #[rstest]
+    #[case(0.0, 0.0, 1.0, 1.0)]
+    #[case(0.0, 1.0, 1.0, 0.606530)]
+    #[case(1.0, 0.0, 1.0, 0.606530)]
+    #[case(1.0, 1.0, 1.0, 1.0)]
+    #[case(0.0, 0.5, 1.0, 0.882496)]
+    #[case(0.5, 0.0, 1.0, 0.882496)]
+    #[case(16.0, 60.0, 15.0, 0.013538)]
+    #[case(64.0, 60.0, 15.0, 0.965069)]
+    #[case(104.0, 60.0, 15.0, 0.013538)]
+    fn test_gaussian_score(
+        #[case] x: f64,
+        #[case] mean: f64,
+        #[case] std_dev: f64,
+        #[case] expected: f64,
+    ) {
+        // Act
+        let actual = gaussian_score(x, mean, std_dev);
+
+        // Assert
+        assert_approx_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_gaussian_score_zero_sigma() {
+        // Act
+        let actual = gaussian_score(0.5, 1.0, 0.0);
+
+        // Assert
+        assert_eq!(actual, 0.0);
     }
 }
