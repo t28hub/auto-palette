@@ -11,10 +11,10 @@ use crate::{
         clustering::{Cluster, ClusteringAlgorithm, DBSCAN},
         denormalize,
         normalize,
+        sampling::SamplingStrategy,
         DistanceMetric,
         FloatNumber,
         Point,
-        SamplingStrategy,
     },
     theme::Theme,
     Swatch,
@@ -36,7 +36,7 @@ use crate::{
 ///     assert!(!palette.is_empty());
 ///     assert!(palette.len() >= 6);
 ///
-///     let mut swatches = palette.find_swatches(3);
+///     let mut swatches = palette.find_swatches(3).unwrap();
 ///
 ///     assert_eq!(swatches[0].color().to_hex_string(), "#007749");
 ///     assert_eq!(swatches[1].color().to_hex_string(), "#001489");
@@ -101,8 +101,7 @@ where
     ///
     /// # Returns
     /// The swatches in the palette.
-    #[must_use]
-    pub fn find_swatches(&self, n: usize) -> Vec<Swatch<T>> {
+    pub fn find_swatches(&self, n: usize) -> Result<Vec<Swatch<T>>, Error> {
         self.find_swatches_with_theme(n, Theme::default())
     }
 
@@ -114,8 +113,11 @@ where
     ///
     /// # Returns
     /// The swatches in the palette based on the theme.
-    #[must_use]
-    pub fn find_swatches_with_theme(&self, n: usize, theme: Theme) -> Vec<Swatch<T>> {
+    pub fn find_swatches_with_theme(
+        &self,
+        n: usize,
+        theme: Theme,
+    ) -> Result<Vec<Swatch<T>>, Error> {
         let (colors, scores): (Vec<Point<T, 3>>, Vec<T>) = self
             .swatches
             .iter()
@@ -132,13 +134,14 @@ where
             SamplingStrategy::WeightedFarthest(scores)
         };
 
-        let mut found: Vec<_> = sampling
+        let sampled = sampling
             .sample(&colors, n)
-            .iter()
-            .map(|&index| self.swatches[index])
-            .collect();
+            .map_err(|_| Error::SwatchSelectionError {
+                details: "Failed to sample swatches".to_string(),
+            })?;
+        let mut found: Vec<_> = sampled.iter().map(|&index| self.swatches[index]).collect();
         found.sort_by_key(|swatch| Reverse(swatch.population()));
-        found
+        Ok(found)
     }
 
     /// Extracts the palette from the image data. The default clustering algorithm is DBSCAN.
@@ -260,7 +263,7 @@ where
         })
         .collect::<Vec<_>>();
     let algorithm = DBSCAN::new(1, T::from_f32(2.5), DistanceMetric::Euclidean).map_err(|_| {
-        Error::PaletteExtractionFailed {
+        Error::PaletteExtractionError {
             details: "Failed to initialize DBSCAN algorithm".to_string(),
         }
     })?;
@@ -483,6 +486,8 @@ mod tests {
         let actual = palette.find_swatches(4);
 
         // Assert
+        assert!(actual.is_ok());
+        let actual = actual.unwrap();
         assert_eq!(actual.len(), 4);
         assert_eq!(actual[0].color().to_hex_string(), "#FFFFFF");
         assert_eq!(actual[1].color().to_hex_string(), "#EE334E");
@@ -500,7 +505,8 @@ mod tests {
         let actual = palette.find_swatches(10);
 
         // Assert
-        assert!(actual.is_empty());
+        assert!(actual.is_ok());
+        assert!(actual.unwrap().is_empty(), "Expected empty swatches");
     }
 
     #[rstest]
@@ -516,7 +522,7 @@ mod tests {
         let palette = Palette::new(swatches.clone());
 
         // Act
-        let actual = palette.find_swatches_with_theme(2, theme);
+        let actual = palette.find_swatches_with_theme(2, theme).unwrap();
         actual
             .iter()
             .for_each(|swatch| println!("{:?}", swatch.color().to_hex_string()));

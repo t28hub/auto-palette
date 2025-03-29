@@ -2,6 +2,7 @@
 
 use std::{str::FromStr, time::Instant};
 
+use anyhow::{Context, Error};
 use auto_palette::{Algorithm, ImageData, Palette};
 
 /// Extracts a palette from an image file using the specified algorithm.
@@ -10,7 +11,7 @@ use auto_palette::{Algorithm, ImageData, Palette};
 /// ```sh
 /// cargo run --example algorithm -- 'dbscan++'
 /// ```
-fn main() {
+fn main() -> Result<(), Error> {
     // Read the algorithm from the command line arguments
     let algorithm = match std::env::args().nth(1) {
         Some(name) => Algorithm::from_str(&name)
@@ -23,11 +24,13 @@ fn main() {
     };
 
     // Load the image data from the file
-    let image_data = ImageData::load("./gfx/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
+    let image_data = ImageData::load("./gfx/holly-booth-hLZWGXy5akM-unsplash.jpg")
+        .with_context(|| "Failed to load the image data from the file")?;
 
     // Extract the palette from the image data
     let start = Instant::now();
-    let palette: Palette<f32> = Palette::extract_with_algorithm(&image_data, algorithm).unwrap();
+    let palette: Palette<f32> = Palette::extract_with_algorithm(&image_data, algorithm)
+        .with_context(|| "Failed to extract the palette from the image data")?;
     let duration = start.elapsed();
     println!(
         "Extracted {} swatch(es) in {}.{:03} seconds",
@@ -37,7 +40,9 @@ fn main() {
     );
 
     // Find the top 5 swatches in the palette
-    let swatches = palette.find_swatches(5);
+    let swatches = palette
+        .find_swatches(5)
+        .with_context(|| "Failed to find swatches in the palette")?;
     println!(
         "{:>2} | {:<7} | {:<12} | {:<10} | {:<6}",
         "#", "Color", "Position", "Population", "Ratio"
@@ -52,4 +57,5 @@ fn main() {
             swatch.ratio()
         );
     }
+    Ok(())
 }

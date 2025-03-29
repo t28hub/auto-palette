@@ -1,8 +1,6 @@
 use std::{cmp::Ordering, collections::HashSet};
 
-use num_traits::clamp;
-
-use crate::math::{DistanceMetric, FloatNumber, Point};
+use crate::math::{sampling::error::SamplingError, DistanceMetric, FloatNumber, Point};
 
 /// Strategy for sampling points from a set of points.
 ///
@@ -55,33 +53,41 @@ where
     ///
     /// # Returns
     /// The indices of the sampled points.
-    pub fn sample<const N: usize>(&self, points: &[Point<T, N>], n: usize) -> HashSet<usize> {
+    pub fn sample<const N: usize>(
+        &self,
+        points: &[Point<T, N>],
+        n: usize,
+    ) -> Result<HashSet<usize>, SamplingError<T>> {
         if n == 0 || points.is_empty() {
-            return HashSet::new();
+            return Ok(HashSet::new());
         }
 
         if points.len() <= n {
-            return (0..points.len()).collect();
+            return Ok((0..points.len()).collect());
         }
 
         match self {
-            SamplingStrategy::Farthest => sample_farthest_point(points, n),
+            SamplingStrategy::Farthest => Ok(sample_farthest_point(points, n)),
             SamplingStrategy::WeightedFarthest(weights) => {
-                debug_assert_eq!(
-                    points.len(),
-                    weights.len(),
-                    "The number of points and weights must be equal."
-                );
-                sample_weighted_farthest_point(points, weights, n)
+                if points.len() != weights.len() {
+                    return Err(SamplingError::WeightsLengthMismatch {
+                        points_len: points.len(),
+                        weights_len: weights.len(),
+                    });
+                }
+                Ok(sample_weighted_farthest_point(points, weights, n))
             }
             SamplingStrategy::Diversity(weight, scores) => {
-                debug_assert_eq!(
-                    points.len(),
-                    scores.len(),
-                    "The number of points and scores must be equal."
-                );
-                let normalized_weight = clamp(*weight, T::zero(), T::one());
-                sample_diversity(points, scores, normalized_weight, n)
+                if *weight < T::zero() || *weight > T::one() {
+                    return Err(SamplingError::InvalidDiversity { diversity: *weight });
+                }
+                if points.len() != scores.len() {
+                    return Err(SamplingError::WeightsLengthMismatch {
+                        points_len: points.len(),
+                        weights_len: scores.len(),
+                    });
+                }
+                Ok(sample_diversity(points, scores, *weight, n))
             }
         }
     }
@@ -458,21 +464,23 @@ mod tests {
     fn test_sample_farthest_point_sampling(#[case] n: usize, #[case] expected: Vec<usize>) {
         // Act
         let points = sample_points();
-        let sampled = SamplingStrategy::Farthest.sample(&points, n);
+        let actual = SamplingStrategy::Farthest.sample(&points, n);
 
         // Assert
-        assert_eq!(sampled, expected.into_iter().collect());
+        assert!(actual.is_ok());
+        assert_eq!(actual.unwrap(), expected.into_iter().collect());
     }
 
     #[test]
     fn test_sample_farthest_point_sampling_empty() {
         // Act
         let points = empty_points();
-        let sampled = SamplingStrategy::Farthest.sample(&points, 2);
+        let actual = SamplingStrategy::Farthest.sample(&points, 2);
 
         // Assert
+        assert!(actual.is_ok());
         assert!(
-            sampled.is_empty(),
+            actual.unwrap().is_empty(),
             "Sampling from empty points should return empty set"
         );
     }
@@ -497,7 +505,8 @@ mod tests {
         let actual = sampling.sample(&points, n);
 
         // Assert
-        assert_eq!(actual, expected.into_iter().collect());
+        assert!(actual.is_ok());
+        assert_eq!(actual.unwrap(), expected.into_iter().collect());
     }
 
     #[test]
@@ -511,15 +520,14 @@ mod tests {
         let actual = sampling.sample(&points, 2);
 
         // Assert
+        assert!(actual.is_ok());
         assert!(
-            actual.is_empty(),
+            actual.unwrap().is_empty(),
             "Sampling from empty points should return empty set"
         );
     }
 
-    #[cfg(debug_assertions)]
     #[test]
-    #[should_panic(expected = "The number of points and weights must be equal.")]
     fn test_sample_weighted_farthest_point_sampling_invalid() {
         // Arrange
         let weights = vec![1.0, 2.0];
@@ -527,7 +535,17 @@ mod tests {
 
         // Act
         let points = sample_points();
-        let _ = sampling.sample(&points, 2);
+        let actual = sampling.sample(&points, 2);
+
+        // Assert
+        assert!(actual.is_err());
+        assert_eq!(
+            actual.unwrap_err(),
+            SamplingError::WeightsLengthMismatch {
+                points_len: points.len(),
+                weights_len: 2
+            }
+        );
     }
 
     #[rstest]
@@ -548,7 +566,8 @@ mod tests {
         let actual = sampling.sample(&points, n);
 
         // Assert
-        assert_eq!(actual, expected.into_iter().collect());
+        assert!(actual.is_ok());
+        assert_eq!(actual.unwrap(), expected.into_iter().collect());
     }
 
     #[test]
@@ -563,21 +582,53 @@ mod tests {
         let actual = sampling.sample(&points, 3);
 
         // Assert
-        assert!(actual.is_empty());
+        assert!(actual.is_ok());
+        assert!(
+            actual.unwrap().is_empty(),
+            "Sampling from empty points should return empty set"
+        );
     }
 
-    #[cfg(debug_assertions)]
-    #[test]
-    #[should_panic]
-    fn test_sample_diversity_sampling_invalid() {
+    #[rstest]
+    #[case::less_than_zero(-0.1)]
+    #[case::greater_than_one(1.1)]
+    fn test_sample_diversity_sampling_invalid_weight(#[case] weight: f32) {
         // Arrange
-        let weight = 0.5;
         let scores = vec![1.0, 2.0, 3.0];
         let sampling = SamplingStrategy::Diversity(weight, scores);
 
         // Act
         let points = sample_points();
-        let _ = sampling.sample(&points, 2);
+        let actual = sampling.sample(&points, 2);
+
+        // Assert
+        assert!(actual.is_err());
+        assert_eq!(
+            actual.unwrap_err(),
+            SamplingError::InvalidDiversity { diversity: weight }
+        );
+    }
+
+    #[test]
+    fn test_sample_diversity_sampling_invalid_scores() {
+        // Arrange
+        let weight = 0.5;
+        let scores = vec![1.0, 2.0, 3.0];
+        let sampling = SamplingStrategy::Diversity(weight, scores.clone());
+
+        // Act
+        let points = sample_points();
+        let actual = sampling.sample(&points, 2);
+
+        // Assert
+        assert!(actual.is_err());
+        assert_eq!(
+            actual.unwrap_err(),
+            SamplingError::WeightsLengthMismatch {
+                points_len: points.len(),
+                weights_len: scores.len()
+            }
+        );
     }
 
     #[test]

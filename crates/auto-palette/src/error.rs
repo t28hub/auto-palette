@@ -15,8 +15,15 @@ pub enum Error {
 
     /// Error when the palette extraction process fails, providing the underlying details.
     #[error("Palette extraction process failed with error: {details}")]
-    PaletteExtractionFailed {
+    PaletteExtractionError {
         /// The underlying cause of the palette extraction failure.
+        details: String,
+    },
+
+    /// Error when the swatch selection process fails, providing the underlying details.
+    #[error("Swatch selection process failed with error: {details}")]
+    SwatchSelectionError {
+        /// The underlying cause of the swatch selection failure.
         details: String,
     },
 
@@ -78,9 +85,9 @@ mod tests {
     }
 
     #[test]
-    fn test_palette_extraction_failed() {
+    fn test_palette_extraction_error() {
         // Act
-        let actual = Error::PaletteExtractionFailed {
+        let actual = Error::PaletteExtractionError {
             details: "Details about the failure.".to_string(),
         };
 
@@ -88,6 +95,20 @@ mod tests {
         assert_eq!(
             actual.to_string(),
             "Palette extraction process failed with error: Details about the failure."
+        );
+    }
+
+    #[test]
+    fn test_swatches_selection_error() {
+        // Act
+        let actual = Error::SwatchSelectionError {
+            details: "Details about the failure.".to_string(),
+        };
+
+        // Assert
+        assert_eq!(
+            actual.to_string(),
+            "Swatch selection process failed with error: Details about the failure."
         );
     }
 

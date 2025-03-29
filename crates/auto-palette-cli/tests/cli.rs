@@ -2,6 +2,7 @@ use std::{borrow::Cow, io::Cursor};
 
 use arboard::Clipboard;
 use assert_cmd::Command;
+use image::io::Reader as ImageReader;
 use predicates::prelude::*;
 
 /// Returns the auto-palette command.
@@ -43,7 +44,7 @@ fn test_using_clipboard_as_input() {
     let mut clipboard = Clipboard::new().expect("should've set up access to system clipboard");
     let bytes = std::fs::read("../../gfx/olympic_logo.png").expect("should've read file contents");
 
-    let reader = image::ImageReader::new(Cursor::new(bytes))
+    let reader = ImageReader::new(Cursor::new(bytes))
         .with_guessed_format()
         .expect("should've guessed image format");
     let image = reader.decode().expect("should've decoded image");

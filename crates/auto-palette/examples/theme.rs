@@ -2,6 +2,7 @@
 
 use std::{str::FromStr, time::Instant};
 
+use anyhow::{Context, Error};
 use auto_palette::{ImageData, Palette, Theme};
 
 /// Extracts a palette from an image file and finds the dominant colors using the specified theme.
@@ -10,7 +11,7 @@ use auto_palette::{ImageData, Palette, Theme};
 /// ```sh
 /// cargo run --example theme --release -- vivid
 /// ```
-fn main() {
+fn main() -> Result<(), Error> {
     // Read the theme from the command line arguments
     let theme = match std::env::args().nth(1) {
         Some(name) => Theme::from_str(&name)
@@ -23,11 +24,13 @@ fn main() {
     };
 
     // Load the image data from the file
-    let image_data = ImageData::load("./gfx/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
+    let image_data = ImageData::load("./gfx/holly-booth-hLZWGXy5akM-unsplash.jpg")
+        .with_context(|| "failed to load the image file".to_string())?;
 
     // Extract the palette from the image data
     let start = Instant::now();
-    let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
+    let palette: Palette<f32> = Palette::extract(&image_data)
+        .with_context(|| "failed to extract the palette".to_string())?;
     let duration = start.elapsed();
     println!(
         "Extracted {} swatch(es) in {}.{:03} seconds",
@@ -37,7 +40,9 @@ fn main() {
     );
 
     // Find the top 5 swatches in the palette
-    let swatches = palette.find_swatches_with_theme(5, theme);
+    let swatches = palette
+        .find_swatches_with_theme(5, theme)
+        .with_context(|| format!("failed to find swatches with theme {:?}", theme))?;
     println!(
         "{:>2} | {:<7} | {:<12} | {:<10} | {:<6}",
         "#", "Color", "Position", "Population", "Ratio"
@@ -52,4 +57,5 @@ fn main() {
             swatch.ratio()
         );
     }
+    Ok(())
 }
