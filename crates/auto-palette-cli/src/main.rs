@@ -69,13 +69,22 @@ fn main() -> anyhow::Result<()> {
             count
         ));
     }
-    let swatches = context.args().theme.map_or_else(
-        || palette.find_swatches(context.args().count),
-        |option| {
-            let theme = Theme::from(option);
-            palette.find_swatches_with_theme(context.args().count, theme)
-        },
-    );
+    let swatches = context
+        .args()
+        .theme
+        .map_or_else(
+            || palette.find_swatches(context.args().count),
+            |option| {
+                let theme = Theme::from(option);
+                palette.find_swatches_with_theme(context.args().count, theme)
+            },
+        )
+        .with_context(|| {
+            format!(
+                "failed to find swatches with theme {:?}",
+                context.args().theme
+            )
+        })?;
     context.args().output.print(&context, &swatches).unwrap();
 
     println!(

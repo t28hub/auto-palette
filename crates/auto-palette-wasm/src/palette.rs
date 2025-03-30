@@ -1,5 +1,5 @@
 use auto_palette::Palette;
-use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 use crate::{swatch::SwatchWrapper, theme::ThemeWrapper};
 
@@ -39,12 +39,19 @@ impl PaletteWrapper {
     /// # Returns
     /// The best swatches in this palette.
     #[wasm_bindgen(js_name = findSwatches)]
-    pub fn find_swatches(&self, n: usize, theme: ThemeWrapper) -> Vec<SwatchWrapper> {
-        self.0
+    pub fn find_swatches(
+        &self,
+        n: usize,
+        theme: ThemeWrapper,
+    ) -> Result<Vec<SwatchWrapper>, JsValue> {
+        let swatches = self
+            .0
             .find_swatches_with_theme(n, theme.0)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?
             .into_iter()
             .map(SwatchWrapper)
-            .collect()
+            .collect::<Vec<_>>();
+        Ok(swatches)
     }
 }
 
@@ -87,6 +94,7 @@ mod tests {
         let actual = wrapper.find_swatches(3, theme);
 
         // Assert
-        assert_eq!(actual.len(), 3);
+        assert!(actual.is_ok());
+        assert_eq!(actual.unwrap().len(), 3);
     }
 }
