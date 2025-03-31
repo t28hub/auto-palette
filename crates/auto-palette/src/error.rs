@@ -2,6 +2,8 @@
 use image::ImageError;
 use thiserror::Error;
 
+use crate::math::sampling::SamplingError;
+
 /// Represents specific errors encountered during the palette extraction process.
 #[derive(Debug, Error)]
 pub enum Error {
@@ -21,10 +23,10 @@ pub enum Error {
     },
 
     /// Error when the swatch selection process fails, providing the underlying details.
-    #[error("Swatch selection process failed with error: {details}")]
+    #[error("Swatch selection process failed with error: {cause}")]
     SwatchSelectionError {
-        /// The underlying cause of the swatch selection failure.
-        details: String,
+        #[from]
+        cause: SamplingError,
     },
 
     /// Error when an unsupported algorithm is specified.
@@ -101,14 +103,13 @@ mod tests {
     #[test]
     fn test_swatches_selection_error() {
         // Act
-        let actual = Error::SwatchSelectionError {
-            details: "Details about the failure.".to_string(),
-        };
+        let cause = SamplingError::InvalidDiversity;
+        let actual = Error::SwatchSelectionError { cause };
 
         // Assert
         assert_eq!(
             actual.to_string(),
-            "Swatch selection process failed with error: Details about the failure."
+            "Swatch selection process failed with error: Invalid diversity: Diversity score must be between 0.0 and 1.0."
         );
     }
 

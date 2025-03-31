@@ -19,50 +19,49 @@ use crate::{
 /// # Type Parameters
 /// * `T` - The floating point type.
 #[derive(Debug, PartialEq)]
-pub struct DiversitySampling<'a, T>
+pub struct DiversitySampling<T>
 where
     T: FloatNumber,
 {
-    diversity: T,
-    ranked: RankedScores<'a, T>,
+    diversity_factor: T,
+    ranked: RankedScores<T>,
     metric: DistanceMetric,
 }
 
-impl<'a, T> DiversitySampling<'a, T>
+impl<T> DiversitySampling<T>
 where
     T: FloatNumber,
 {
     /// Creates a new `DiversitySampling` instance.
     ///
     /// # Arguments
-    /// * `diversity` - The diversity score (0.0, 1.0). Higher value means more diversity.
+    /// * `diversity_factor` - The diversity factor (between 0 and 1). Higher values mean more diversity.
     /// * `weights` - The weights of the points. Must be the same length as the points.
     /// * `metric` - The distance metric to use for sampling.
     ///
     /// # Returns
     /// A new `DiversitySampling` instance.
-    #[allow(dead_code)]
     pub fn new(
-        diversity: T,
-        weights: &'a [T],
+        diversity_factor: T,
+        weights: Vec<T>,
         metric: DistanceMetric,
-    ) -> Result<Self, SamplingError<T>> {
-        if diversity < T::zero() || diversity > T::one() {
-            return Err(SamplingError::InvalidDiversity { diversity });
+    ) -> Result<Self, SamplingError> {
+        if diversity_factor < T::zero() || diversity_factor > T::one() {
+            return Err(SamplingError::InvalidDiversity);
         }
         if weights.is_empty() {
             return Err(SamplingError::EmptyWeights);
         }
 
         Ok(Self {
-            diversity,
+            diversity_factor,
             ranked: RankedScores::new(weights),
             metric,
         })
     }
 }
 
-impl<T> SamplingAlgorithm<T> for DiversitySampling<'_, T>
+impl<T> SamplingAlgorithm<T> for DiversitySampling<T>
 where
     T: FloatNumber,
 {
@@ -70,7 +69,7 @@ where
         &self,
         points: &[Point<T, N>],
         num_samples: usize,
-    ) -> Result<HashSet<usize>, SamplingError<T>> {
+    ) -> Result<HashSet<usize>, SamplingError> {
         if points.is_empty() {
             return Err(SamplingError::EmptyPoints);
         }
@@ -107,12 +106,12 @@ where
                 }
             }
 
-            let dissimilarity_rankings = RankedScores::new(&similarities);
+            let dissimilarity_rankings = RankedScores::new(similarities.clone());
             let best_index = find_best_index(
                 &self.ranked.rankings,
                 &dissimilarity_rankings.rankings,
                 &selected,
-                self.diversity,
+                self.diversity_factor,
             );
             match best_index {
                 Some(index) => {
@@ -134,19 +133,19 @@ where
 /// # Type Parameters
 /// * `T` - The floating point type.
 #[derive(Debug, PartialEq)]
-struct RankedScores<'a, T>
+struct RankedScores<T>
 where
     T: FloatNumber,
 {
     /// The original scores of the items
-    scores: &'a [T],
+    scores: Vec<T>,
     /// The rank of each item (lower is better)
     rankings: Vec<usize>,
     /// The indices of items sorted by their score (best first)
     indices: Vec<usize>,
 }
 
-impl<'a, T> RankedScores<'a, T>
+impl<T> RankedScores<T>
 where
     T: FloatNumber,
 {
@@ -158,7 +157,7 @@ where
     /// # Returns
     /// A new `RankedScores` instance.
     #[must_use]
-    fn new(scores: &'a [T]) -> Self {
+    fn new(scores: Vec<T>) -> Self {
         let mut indices: Vec<usize> = (0..scores.len()).collect();
         indices.sort_by(|&index1, &index2| {
             scores[index2]
@@ -267,16 +266,16 @@ mod tests {
     #[test]
     fn test_new() {
         // Arrange
-        let scores = vec![1.0, 2.0, 3.0];
+        let weights = vec![1.0, 2.0, 3.0];
         let actual =
-            DiversitySampling::new(0.5, &scores, DistanceMetric::SquaredEuclidean).unwrap();
+            DiversitySampling::new(0.5, weights.clone(), DistanceMetric::SquaredEuclidean).unwrap();
 
         // Assert
         assert_eq!(
             actual,
             DiversitySampling {
-                diversity: 0.5,
-                ranked: RankedScores::new(&scores),
+                diversity_factor: 0.5,
+                ranked: RankedScores::new(weights),
                 metric: DistanceMetric::SquaredEuclidean,
             }
         );
@@ -287,22 +286,19 @@ mod tests {
     #[case::diversity_gt_1(1.1)]
     fn test_new_invalid_diversity(#[case] diversity: f32) {
         // Act
-        let scores = vec![1.0, 2.0, 3.0];
-        let actual = DiversitySampling::new(diversity, &scores, DistanceMetric::SquaredEuclidean);
+        let weights = vec![1.0, 2.0, 3.0];
+        let actual = DiversitySampling::new(diversity, weights, DistanceMetric::SquaredEuclidean);
 
         // Assert
         assert!(actual.is_err());
-        assert_eq!(
-            actual.unwrap_err(),
-            SamplingError::InvalidDiversity { diversity }
-        );
+        assert_eq!(actual.unwrap_err(), SamplingError::InvalidDiversity,);
     }
 
     #[test]
     fn test_new_empty_weights() {
         // Act
-        let scores = vec![];
-        let actual = DiversitySampling::new(0.5, &scores, DistanceMetric::SquaredEuclidean);
+        let weights = vec![];
+        let actual = DiversitySampling::new(0.5, weights, DistanceMetric::SquaredEuclidean);
 
         // Assert
         assert!(actual.is_err());
@@ -318,9 +314,9 @@ mod tests {
     #[case(10, vec ! [0, 1, 2, 3, 4, 5, 6, 7, 8])]
     fn test_sample(#[case] num_samples: usize, #[case] expected: Vec<usize>) {
         // Arrange
-        let scores = vec![1.0, 1.0, 2.0, 3.0, 5.0, 8.0, 13.0, 21.0, 34.0];
+        let weights = vec![1.0, 1.0, 2.0, 3.0, 5.0, 8.0, 13.0, 21.0, 34.0];
         let algorithm =
-            DiversitySampling::new(0.8, &scores, DistanceMetric::SquaredEuclidean).unwrap();
+            DiversitySampling::new(0.8, weights, DistanceMetric::SquaredEuclidean).unwrap();
 
         // Act
         let points = sample_points();
@@ -334,9 +330,9 @@ mod tests {
     #[test]
     fn test_sample_empty_points() {
         // Arrange
-        let scores = vec![1.0, 1.0, 2.0, 3.0, 5.0, 8.0, 13.0, 21.0, 34.0];
+        let weights = vec![1.0, 1.0, 2.0, 3.0, 5.0, 8.0, 13.0, 21.0, 34.0];
         let algorithm =
-            DiversitySampling::new(0.8, &scores, DistanceMetric::SquaredEuclidean).unwrap();
+            DiversitySampling::new(0.8, weights, DistanceMetric::SquaredEuclidean).unwrap();
 
         // Act
         let points = empty_points();
@@ -352,7 +348,7 @@ mod tests {
         // Arrange
         let weights = vec![1.0, 2.0, 3.0];
         let algorithm =
-            DiversitySampling::new(0.8, &weights, DistanceMetric::SquaredEuclidean).unwrap();
+            DiversitySampling::new(0.8, weights.clone(), DistanceMetric::SquaredEuclidean).unwrap();
 
         // Act
         let points = sample_points();

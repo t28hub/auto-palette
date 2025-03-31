@@ -17,15 +17,15 @@ use crate::{
 /// # Type Parameters
 /// * `T` - The floating point type.
 #[derive(Debug, Clone, PartialEq)]
-pub struct WeightedFarthestSampling<'a, T>
+pub struct WeightedFarthestSampling<T>
 where
     T: FloatNumber,
 {
-    weights: &'a [T],
+    weights: Vec<T>,
     metric: DistanceMetric,
 }
 
-impl<'a, T> WeightedFarthestSampling<'a, T>
+impl<T> WeightedFarthestSampling<T>
 where
     T: FloatNumber,
 {
@@ -37,8 +37,7 @@ where
     ///
     /// # Returns
     /// A new `WeightedFarthestSampling` instance.
-    #[allow(dead_code)]
-    pub fn new(weights: &'a [T], metric: DistanceMetric) -> Result<Self, SamplingError<T>> {
+    pub fn new(weights: Vec<T>, metric: DistanceMetric) -> Result<Self, SamplingError> {
         if weights.is_empty() {
             return Err(SamplingError::EmptyWeights);
         }
@@ -75,7 +74,7 @@ where
 
 const DEFAULT_INITIAL_INDEX: usize = 0;
 
-impl<T> SamplingAlgorithm<T> for WeightedFarthestSampling<'_, T>
+impl<T> SamplingAlgorithm<T> for WeightedFarthestSampling<T>
 where
     T: FloatNumber,
 {
@@ -83,7 +82,7 @@ where
         &self,
         points: &[Point<T, N>],
         num_samples: usize,
-    ) -> Result<HashSet<usize>, SamplingError<T>> {
+    ) -> Result<HashSet<usize>, SamplingError> {
         if points.is_empty() {
             return Err(SamplingError::EmptyPoints);
         }
@@ -180,14 +179,14 @@ mod tests {
         // Act
         let weights = vec![1.0, 1.0, 2.0, 3.0, 5.0, 8.0, 13.0, 21.0, 34.0];
         let metric = DistanceMetric::Euclidean;
-        let actual = WeightedFarthestSampling::new(&weights, metric);
+        let actual = WeightedFarthestSampling::new(weights.clone(), metric);
 
         // Assert
         assert!(actual.is_ok());
         assert_eq!(
             actual.unwrap(),
             WeightedFarthestSampling {
-                weights: &weights,
+                weights,
                 metric: DistanceMetric::Euclidean,
             }
         );
@@ -198,7 +197,7 @@ mod tests {
         // Act
         let weights: Vec<f64> = Vec::new();
         let metric = DistanceMetric::Euclidean;
-        let actual = WeightedFarthestSampling::new(&weights, metric);
+        let actual = WeightedFarthestSampling::new(weights, metric);
 
         // Assert
         assert!(actual.is_err());
@@ -216,7 +215,8 @@ mod tests {
         // Arrange
         let weights = sample_weights();
         let algorithm =
-            WeightedFarthestSampling::new(&weights, DistanceMetric::SquaredEuclidean).unwrap();
+            WeightedFarthestSampling::new(weights.clone(), DistanceMetric::SquaredEuclidean)
+                .unwrap();
 
         // Act
         let points = sample_points();
@@ -232,7 +232,7 @@ mod tests {
     fn test_sample_empty_points() {
         // Arrange
         let weights = vec![1.0, 1.0, 2.0, 3.0, 5.0, 8.0, 13.0, 21.0, 34.0];
-        let algorithm = WeightedFarthestSampling::new(&weights, DistanceMetric::Euclidean).unwrap();
+        let algorithm = WeightedFarthestSampling::new(weights, DistanceMetric::Euclidean).unwrap();
 
         // Act
         let actual = algorithm.sample(&empty_points(), 2);
@@ -246,7 +246,8 @@ mod tests {
     fn test_sample_weights_length_mismatch() {
         // Arrange
         let weights = vec![1.0, 2.0, 3.0];
-        let algorithm = WeightedFarthestSampling::new(&weights, DistanceMetric::Euclidean).unwrap();
+        let algorithm =
+            WeightedFarthestSampling::new(weights.clone(), DistanceMetric::Euclidean).unwrap();
 
         // Act
         let points = sample_points();

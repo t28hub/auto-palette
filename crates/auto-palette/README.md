@@ -20,7 +20,7 @@
 * Provides detailed information on color, position, and population.
 * Supports multiple extraction algorithms: `DBSCAN`, `DBSCAN++`, and `KMeans++`.
 * Supports numerous color spaces: `RGB`, `HSL`, `LAB` and more.
-* Theme-based swatch selection: `Basic`, `Colorful`, `Vivid`, `Muted`, `Light`, and `Dark`.
+* Theme-based swatch selection: `Colorful`, `Vivid`, `Muted`, `Light`, and `Dark`.
 
 ## Installation
 
@@ -164,7 +164,7 @@ let swatches = palette.find_swatches(5);
 #### `Palette::find_swatches_with_theme`
 
 Finds the prominent colors in the palette based on the specified `Theme` and the number of swatches.
-The supported themes are `Basic`, `Colorful`, `Vivid`, `Muted`, `Light`, and `Dark`.
+The supported themes are `Colorful`, `Vivid`, `Muted`, `Light`, and `Dark`.
 
 ```rust
 // Find the 5 prominent colors in the palette with the specified theme

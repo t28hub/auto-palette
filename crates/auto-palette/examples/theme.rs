@@ -13,15 +13,10 @@ use auto_palette::{ImageData, Palette, Theme};
 /// ```
 fn main() -> Result<(), Error> {
     // Read the theme from the command line arguments
-    let theme = match std::env::args().nth(1) {
-        Some(name) => Theme::from_str(&name)
-            .map_err(|_| format!("Failed to parse the them '{}'", name))
-            .unwrap(),
-        None => {
-            println!("No theme provided, using the default theme");
-            Theme::Basic
-        }
-    };
+    let theme = std::env::args()
+        .nth(1)
+        .map(|name| Theme::from_str(&name).ok())
+        .flatten();
 
     // Load the image data from the file
     let image_data = ImageData::load("./gfx/holly-booth-hLZWGXy5akM-unsplash.jpg")
@@ -40,9 +35,14 @@ fn main() -> Result<(), Error> {
     );
 
     // Find the top 5 swatches in the palette
-    let swatches = palette
-        .find_swatches_with_theme(5, theme)
-        .with_context(|| format!("failed to find swatches with theme {:?}", theme))?;
+    let swatches = match theme {
+        Some(theme) => palette
+            .find_swatches_with_theme(5, theme)
+            .with_context(|| format!("failed to find swatches with theme {:?}", theme))?,
+        None => palette
+            .find_swatches(5)
+            .with_context(|| "failed to find swatches in the palette".to_string())?,
+    };
     println!(
         "{:>2} | {:<7} | {:<12} | {:<10} | {:<6}",
         "#", "Color", "Position", "Population", "Ratio"
