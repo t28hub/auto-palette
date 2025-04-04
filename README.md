@@ -20,7 +20,15 @@ Perfect for developers, designers and anyone needing efficient color palette ext
 ## Features
 
 <img src="gfx/laura-clugston-pwW2iV9TZao-unsplash.jpg" alt="Hot air balloon on blue sky" width="480">
-<img src="gfx/palette.png" alt="Extracted Color Palette" width="480">
+
+| Theme       | Color Palette                          |
+|-------------|----------------------------------------|
+| `(Default)` | ![Default](gfx/palettes/default.png)   |
+| `Colorful`  | ![Colorful](gfx/palettes/colorful.png) |
+| `Vivid`     | ![Vivid](gfx/palettes/vivid.png)       |
+| `Muted`     | ![Muted](gfx/palettes/muted.png)       |
+| `Light`     | ![Light](gfx/palettes/light.png)       |
+| `Dark`      | ![Dark](gfx/palettes/dark.png)         |
 
 > [!NOTE]
 > Photo by <a href="https://unsplash.com/@laurahclugston?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Laura Clugston</a> on <a href="https://unsplash.com/photos/multi-colored-hot-air-balloon-pwW2iV9TZao?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Unsplash</a>
@@ -70,7 +78,7 @@ fn main() {
   println!("Extracted {} swatches", palette.len());
 
   // Find the 5 dominant colors in the palette and print their information
-  let swatches = palette.find_swatches(5);
+  let swatches = palette.find_swatches(5).unwrap();
   for swatch in swatches {
     println!("Color: {}", swatch.color().to_hex_string());
     println!("Position: {:?}", swatch.position());
