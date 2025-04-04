@@ -125,11 +125,6 @@ impl From<AlgorithmOption> for Algorithm {
 /// The theme options for selecting the swatches from the extracted color palette.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum)]
 pub enum ThemeOption {
-    #[clap(
-        name = "basic",
-        help = "Prioritize high population swatches. Ideal for selecting the most common colors."
-    )]
-    Basic,
     #[clap(name = "colorful", help = "Prioritize colorful colors.")]
     Colorful,
     #[clap(name = "vivid", help = "Prioritize saturated colors.")]
@@ -145,7 +140,6 @@ pub enum ThemeOption {
 impl From<ThemeOption> for Theme {
     fn from(option: ThemeOption) -> Self {
         match option {
-            ThemeOption::Basic => Theme::Basic,
             ThemeOption::Colorful => Theme::Colorful,
             ThemeOption::Vivid => Theme::Vivid,
             ThemeOption::Muted => Theme::Muted,

@@ -89,7 +89,7 @@ where
         &self,
         points: &[Point<T, N>],
         num_samples: usize,
-    ) -> Result<HashSet<usize>, SamplingError<T>> {
+    ) -> Result<HashSet<usize>, SamplingError> {
         if points.is_empty() {
             return Err(SamplingError::EmptyPoints);
         }

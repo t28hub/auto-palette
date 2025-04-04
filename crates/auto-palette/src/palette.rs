@@ -11,7 +11,7 @@ use crate::{
         clustering::{Cluster, ClusteringAlgorithm, DBSCAN},
         denormalize,
         normalize,
-        sampling::SamplingStrategy,
+        sampling::{DiversitySampling, SamplingAlgorithm, SamplingError, WeightedFarthestSampling},
         DistanceMetric,
         FloatNumber,
         Point,
@@ -97,48 +97,79 @@ where
     /// Finds the swatches in the palette based on the theme.
     ///
     /// # Arguments
-    /// * `n` - The number of swatches to find.
+    /// * `num_swatches` - The number of swatches to find.
     ///
     /// # Returns
     /// The swatches in the palette.
-    pub fn find_swatches(&self, n: usize) -> Result<Vec<Swatch<T>>, Error> {
-        self.find_swatches_with_theme(n, Theme::default())
+    pub fn find_swatches(&self, num_swatches: usize) -> Result<Vec<Swatch<T>>, Error> {
+        self.find_swatches_internal(
+            num_swatches,
+            |swatch| swatch.ratio(),
+            |scores| {
+                DiversitySampling::new(T::from_f64(0.6), scores, DistanceMetric::SquaredEuclidean)
+            },
+        )
     }
 
     /// Finds the swatches in the palette based on the theme.
     ///
     /// # Arguments
-    /// * `n` - The number of swatches to find.
+    /// * `num_swatches` - The number of swatches to find.
     /// * `theme` - The theme to use.
     ///
     /// # Returns
     /// The swatches in the palette based on the theme.
     pub fn find_swatches_with_theme(
         &self,
-        n: usize,
+        num_swatches: usize,
         theme: Theme,
     ) -> Result<Vec<Swatch<T>>, Error> {
+        self.find_swatches_internal(
+            num_swatches,
+            |swatch| theme.score(swatch),
+            |scores| WeightedFarthestSampling::new(scores, DistanceMetric::SquaredEuclidean),
+        )
+    }
+
+    /// Finds the swatches in the palette using a custom sampling algorithm.
+    ///
+    /// # Arguments
+    /// * `num_swatches` - The number of swatches to find.
+    /// * `score_fn` - The function to score the swatches.
+    /// * `sampling_factory` - The function to create the sampling algorithm.
+    ///
+    /// # Returns
+    /// The swatches in the palette. If the palette is empty, an empty vector is returned.
+    pub fn find_swatches_internal<S, F1, F2>(
+        &self,
+        num_swatches: usize,
+        score_fn: F1,
+        sampling_factory: F2,
+    ) -> Result<Vec<Swatch<T>>, Error>
+    where
+        S: SamplingAlgorithm<T>,
+        F1: Fn(&Swatch<T>) -> T,
+        F2: FnOnce(Vec<T>) -> Result<S, SamplingError>,
+    {
+        if self.swatches.is_empty() {
+            return Ok(vec![]);
+        }
+
         let (colors, scores): (Vec<Point<T, 3>>, Vec<T>) = self
             .swatches
             .iter()
             .map(|swatch| {
                 let color = swatch.color();
-                let score = theme.score(swatch);
+                let score = score_fn(swatch);
                 ([color.l, color.a, color.b], score)
             })
             .unzip();
 
-        let sampling = if theme == Theme::Basic {
-            SamplingStrategy::Diversity(T::from_f32(0.6), scores)
-        } else {
-            SamplingStrategy::WeightedFarthest(scores)
-        };
+        let sampled = sampling_factory(scores)
+            .map_err(|cause| Error::SwatchSelectionError { cause })?
+            .sample(&colors, num_swatches)
+            .map_err(|cause| Error::SwatchSelectionError { cause })?;
 
-        let sampled = sampling
-            .sample(&colors, n)
-            .map_err(|_| Error::SwatchSelectionError {
-                details: "Failed to sample swatches".to_string(),
-            })?;
         let mut found: Vec<_> = sampled.iter().map(|&index| self.swatches[index]).collect();
         found.sort_by_key(|swatch| Reverse(swatch.population()));
         Ok(found)
@@ -510,7 +541,6 @@ mod tests {
     }
 
     #[rstest]
-    #[case::basic(Theme::Basic, vec ! ["#FFFFFF", "#EE334E"])]
     #[case::colorful(Theme::Colorful, vec ! ["#EE334E", "#00A651"])]
     #[case::vivid(Theme::Vivid, vec ! ["#EE334E", "#00A651"])]
     #[case::muted(Theme::Muted, vec ! ["#0081C8", "#000000"])]

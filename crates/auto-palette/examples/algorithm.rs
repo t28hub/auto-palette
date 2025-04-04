@@ -13,15 +13,11 @@ use auto_palette::{Algorithm, ImageData, Palette};
 /// ```
 fn main() -> Result<(), Error> {
     // Read the algorithm from the command line arguments
-    let algorithm = match std::env::args().nth(1) {
-        Some(name) => Algorithm::from_str(&name)
-            .map_err(|_| println!("Failed to parse the algorithm '{}'", name))
-            .unwrap(),
-        None => {
-            println!("No algorithm provided, using the default algorithm");
-            Algorithm::DBSCAN
-        }
-    };
+    let algorithm = std::env::args()
+        .nth(1)
+        .map(|name| Algorithm::from_str(&name).ok())
+        .flatten()
+        .unwrap_or(Algorithm::DBSCAN);
 
     // Load the image data from the file
     let image_data = ImageData::load("./gfx/holly-booth-hLZWGXy5akM-unsplash.jpg")

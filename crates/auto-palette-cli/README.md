@@ -10,8 +10,8 @@
 
 - Extract prominent color palettes from images.
 - Supports multiple color extraction algorithms: `dbscan`, `dbscan++`, and `kmeans`. (default: `dbscan`).
-- Flexible theme selection for color swatches: `basic`, `colorful`, `vivid`, `muted`, `light`, and `dark`. (default: `basic`).
-- Supports multiple color formats (`hex`, `rgb`, `cmyk`, `hsl`, `hsv`, `lab`, `luv`, `lchab`, `lchuv`, `oklab`, `oklch`, `xyz`). Defaults to `hex`.
+- Flexible theme selection for color swatches: `colorful`, `vivid`, `muted`, `light`, and `dark`.
+- Supports multiple color formats (`hex`, `rgb`, `cmyk`, `hsl`, `hsv`, `lab`, `luv`, `lchab`, `lchuv`, `oklab`, `oklch`, `xyz`). (default: `hex`).
 - Multiple output formats: `json`, `text`, and `table`. (default: `text`).
 - Clipboard support for instant palette extraction.
 
@@ -51,7 +51,7 @@ Arguments:
 
 Options:
   -a, --algorithm <name>  Algorithm for extracting the color palette. [default: dbscan] [possible values: dbscan, dbscan++, kmeans]
-  -t, --theme <name>      Theme for selecting the swatches. [possible values: basic, colorful, vivid, muted, light, dark]
+  -t, --theme <name>      Theme for selecting the swatches. [possible values: colorful, vivid, muted, light, dark]
   -n, --count <number>    Number of colors to extract. [default: 5]
   -c, --color <name>      Output color format. [default: hex] [possible values: hex, rgb, cmyk, hsl, hsv, lab, luv, lchab, lchuv, oklab, oklch, xyz]
   -o, --output <name>     Output format. [default: text] [possible values: json, text, table]

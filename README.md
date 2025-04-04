@@ -29,7 +29,7 @@ Perfect for developers, designers and anyone needing efficient color palette ext
 * Provides detailed color swatch information (color, position, population)
 * Supports multiple extraction algorithms: `DBSCAN`, `DBSCAN++`, and `KMeans++`.
 * Supports numerous color spaces: `RGB`, `HSL`, `LAB`, `LCHuv`, `ANSI256` and more.
-* Theme-based swatch selection: `Basic`, `Colorful`, `Vivid`, `Muted`, `Light`, and `Dark`.
+* Theme-based swatch selection: `Colorful`, `Vivid`, `Muted`, `Light`, and `Dark`.
 * Available as a Rust library, Wasm, and a CLI tool.
 
 ## Installation
