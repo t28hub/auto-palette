@@ -12,6 +12,13 @@ coverage/
 lcov.info
 codecov.json
 
+# Node.js
+node_modules/
+dist/
+pnpm-debug.log*
+.pnp
+.pnp.js
+
 # IntelliJ IDEA
 .idea/
 .idea_modules/

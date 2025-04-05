@@ -1,0 +1,35 @@
+import init from '@auto-palette/core';
+
+export {
+  type AlgorithmWrapper as Algorithm,
+  type ThemeWrapper as Theme,
+  type Position,
+  type Lab,
+  type RGB,
+  type XYZ,
+  ColorWrapper as Color,
+  PaletteWrapper as Palette,
+  SwatchWrapper as Swatch,
+} from '@auto-palette/core';
+
+/**
+ * The input type for the WASM module.
+ */
+export type Module =
+  | RequestInfo
+  | URL
+  | Response
+  | BufferSource
+  | WebAssembly.Module;
+
+/**
+ * Initialize the `@auto-palette/wasm` module
+ *
+ * @param module - The WASM module or path to the WASM module.
+ * @returns The Promise that resolves when the WASM module is initialized.
+ */
+export async function initialize(
+  module: Module | Promise<Module>,
+): Promise<void> {
+  await init({ module_or_path: module });
+}
