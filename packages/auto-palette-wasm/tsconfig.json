@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "strict": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "lib": ["ESNext", "DOM"],
+    "useDefineForClassFields": true,
+    "noEmit": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "types": ["vitest/globals"],
+    "paths": {
+      "@auto-palette/core": ["../../crates/auto-palette-wasm/dist"],
+      "@auto-palette/wasm": ["./src/index.ts"]
+    }
+  },
+  "include": ["src", "test/**/*.ts", "../../crates/auto-palette-wasm/dist"],
+  "exclude": ["node_modules", "dist"]
+}

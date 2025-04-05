@@ -1,0 +1,27 @@
+{
+  "name": "@auto-palette/wasm",
+  "description": "WebAssembly module for auto-palette, extract prominent color palette from your image automatically",
+  "version": "0.1.0",
+  "license": "MIT",
+  "homepage": "https://github.com/t28hub/auto-palette",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/t28hub/auto-palette.git",
+    "directory": "packages/auto-palette-wasm"
+  },
+  "bugs": "https://github.com/t28hub/auto-palette/issues",
+  "author": {
+    "name": "Tatsuya Maki",
+    "url": "https://github.com/t28hub"
+  },
+  "keywords": ["color", "palette", "canvas", "image", "wasm", "webassembly"],
+  "scripts": {
+    "dev": "wasm-pack build --target web --dev --out-name auto_palette --out-dir ./dist ../../crates/auto-palette-wasm",
+    "build": "pnpm build:wasm",
+    "build:wasm": "wasm-pack build --target web --release --out-name auto_palette --out-dir ./dist ../../crates/auto-palette-wasm",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "wasm-pack": "^0.13.1"
+  }
+}
