@@ -206,3 +206,36 @@ jobs:
         with:
           name: auto-palette
           path: target/release/auto-palette-cli
+
+  build-wasm:
+    needs:
+      - test-wasm
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        node:
+          - 22.x
+        pnpm:
+          - 10.7.1
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm with ${{ matrix.pnpm }} version
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ matrix.pnpm }}
+
+      - name: Setup Node.js with ${{ matrix.node }} version
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the wasm package
+        working-directory: ./packages/auto-palette-wasm
+        run: pnpm build
