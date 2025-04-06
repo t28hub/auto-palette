@@ -14,14 +14,36 @@
     "name": "Tatsuya Maki",
     "url": "https://github.com/t28hub"
   },
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    "./auto-palette_bg.wasm": "./dist/auto-palette_bg.wasm",
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
   "keywords": ["color", "palette", "canvas", "image", "wasm", "webassembly"],
   "scripts": {
-    "dev": "wasm-pack build --target web --dev --out-name auto_palette --out-dir ./dist ../../crates/auto-palette-wasm",
-    "build": "pnpm build:wasm",
-    "build:wasm": "wasm-pack build --target web --release --out-name auto_palette --out-dir ./dist ../../crates/auto-palette-wasm",
+    "clean": "rimraf dist",
+    "dev": "tsup --no-dts --watch",
+    "dev:wasm": "wasm-pack build --dev --target web --out-name auto_palette --out-dir ./dist ../../crates/auto-palette-wasm",
+    "build": "pnpm build:wasm && pnpm build:ts",
+    "build:ts": "tsup",
+    "build:wasm": "wasm-pack build --release --target web --out-name auto_palette --out-dir ./dist ../../crates/auto-palette-wasm",
     "test": "vitest run"
   },
   "devDependencies": {
+    "esbuild-plugin-copy": "^2.1.1",
+    "tsup": "^8.4.0",
     "wasm-pack": "^0.13.1"
   }
 }
