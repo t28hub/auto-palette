@@ -2,7 +2,9 @@ use std::{fmt::Display, marker::PhantomData};
 
 use num_traits::clamp;
 #[cfg(feature = "wasm")]
-use serde::{ser::SerializeStruct, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "wasm")]
+use tsify::Tsify;
 
 use crate::{
     color::{white_point::WhitePoint, LCHuv, D65, XYZ},
@@ -34,14 +36,20 @@ use crate::{
 /// assert_eq!(format!("{}", lchuv), "LCH(uv)(53.64, 167.62, 8.29)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub struct Luv<T, W = D65>
 where
     T: FloatNumber,
     W: WhitePoint,
 {
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub l: T,
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub u: T,
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub v: T,
+    #[cfg_attr(feature = "wasm", serde(skip))]
     _marker: PhantomData<W>,
 }
 
@@ -73,24 +81,6 @@ where
             v: clamp(v, T::from_f32(-140.0), T::from_f32(122.0)),
             _marker: PhantomData,
         }
-    }
-}
-
-#[cfg(feature = "wasm")]
-impl<T, W> Serialize for Luv<T, W>
-where
-    T: FloatNumber + Serialize,
-    W: WhitePoint,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("Luv", 3)?;
-        state.serialize_field("l", &self.l)?;
-        state.serialize_field("u", &self.u)?;
-        state.serialize_field("v", &self.v)?;
-        state.end()
     }
 }
 
@@ -166,15 +156,15 @@ where
 mod tests {
     use rstest::rstest;
     #[cfg(feature = "wasm")]
-    use serde_test::{assert_ser_tokens, Token};
+    use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
-    use crate::color::RGB;
+    use crate::{assert_approx_eq, color::RGB};
 
     #[test]
     fn test_new() {
         // Act
-        let actual: Luv<f32> = Luv::new(53.64, 165.86, 24.17);
+        let actual = Luv::<_>::new(53.64, 165.86, 24.17);
 
         // Assert
         assert_eq!(
@@ -196,7 +186,7 @@ mod tests {
         #[case] expected: (f32, f32, f32),
     ) {
         // Act
-        let actual: Luv<f32> = Luv::new(input.0, input.1, input.2);
+        let actual = Luv::<_>::new(input.0, input.1, input.2);
 
         // Assert
         assert_eq!(actual.l, expected.0);
@@ -208,7 +198,7 @@ mod tests {
     #[cfg(feature = "wasm")]
     fn test_serialize() {
         // Act
-        let luv: Luv<f64> = Luv::new(53.64, 165.86, 24.17);
+        let luv = Luv::<_>::new(53.64, 165.86, 24.17);
 
         // Assert
         assert_ser_tokens(
@@ -230,6 +220,31 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "wasm")]
+    fn test_deserialize() {
+        // Act
+        let luv = Luv::<_>::new(66.48, 36.71, 44.73);
+
+        // Assert
+        assert_de_tokens(
+            &luv,
+            &[
+                Token::Struct {
+                    name: "Luv",
+                    len: 3,
+                },
+                Token::Str("l"),
+                Token::F64(66.48),
+                Token::Str("u"),
+                Token::F64(36.71),
+                Token::Str("v"),
+                Token::F64(44.73),
+                Token::StructEnd,
+            ],
+        )
+    }
+
+    #[test]
     fn test_fmt() {
         // Act
         let luv = Luv::<_, D65>::new(53.64, 165.86, 24.17);
@@ -240,38 +255,35 @@ mod tests {
     }
 
     #[rstest]
-    #[case::black((0, 0, 0), (0.00, 0.00, 0.00))]
-    #[case::white((255, 255, 255), (100.0, 0.00, 0.01))]
-    #[case::red((255, 0, 0), (53.24, 175.00, 37.75))]
-    #[case::green((0, 255, 0), (87.74, -83.08, 107.40))]
-    #[case::blue((0, 0, 255), (32.30, -9.41, -130.36))]
-    #[case::yellow((255, 255, 0), (97.14, 7.69, 106.79))]
-    #[case::cyan((0, 255, 255), (91.11, -70.48, -15.22))]
-    #[case::magenta((255, 0, 255), (60.32, 84.05, -108.71))]
+    #[case::black((0, 0, 0), (0.0, 0.0, 0.0))]
+    #[case::white((255, 255, 255), (100.0, 0.003, 0.018))]
+    #[case::red((255, 0, 0), (53.237, 175.003, 37.753))]
+    #[case::green((0, 255, 0), (87.735, -83.078, 107.40))]
+    #[case::blue((0, 0, 255), (32.300, -9.406, -130.357))]
+    #[case::yellow((255, 255, 0), (97.138, 7.691, 106.787))]
+    #[case::cyan((0, 255, 255), (91.114, -70.476, -15.224))]
+    #[case::magenta((255, 0, 255), (60.322, 84.048, -108.71))]
     fn test_from_xyz(#[case] rgb: (u8, u8, u8), #[case] expected: (f32, f32, f32)) {
         // Act
         let rgb = RGB::new(rgb.0, rgb.1, rgb.2);
-        let xyz: XYZ<f32> = XYZ::from(&rgb);
+        let xyz = XYZ::<f32>::from(&rgb);
         let actual = Luv::<_, D65>::from(&xyz);
 
         // Assert
-        let (l, u, v) = expected;
-        assert!((actual.l - l).abs() < 1e-2);
-        assert!((actual.u - u).abs() < 1e-2);
-        assert!((actual.v - v).abs() < 1e-2);
+        assert_approx_eq!(actual.l, expected.0, 1e-3);
+        assert_approx_eq!(actual.u, expected.1, 1e-3);
+        assert_approx_eq!(actual.v, expected.2, 1e-3);
     }
 
     #[test]
     fn test_from_lchuv() {
         // Act
-        let lchuv: LCHuv<f32> = LCHuv::new(53.640, 167.622, 8.291);
+        let lchuv = LCHuv::<f32>::new(53.640, 167.622, 8.291);
         let actual = Luv::from(&lchuv);
 
-        println!("{:?}", actual);
-
         // Assert
-        assert_eq!(actual.l, 53.640);
-        assert!((actual.u - 165.870).abs() < 1e-3);
-        assert!((actual.v - 24.171).abs() < 1e-3);
+        assert_approx_eq!(actual.l, 53.640);
+        assert_approx_eq!(actual.u, 165.870086);
+        assert_approx_eq!(actual.v, 24.171220);
     }
 }

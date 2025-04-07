@@ -2,7 +2,9 @@ use std::fmt::Display;
 
 use num_traits::clamp;
 #[cfg(feature = "wasm")]
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "wasm")]
+use tsify::Tsify;
 
 use crate::{
     color::{hue::Hue, RGB},
@@ -31,13 +33,16 @@ use crate::{
 /// assert_eq!(format!("{}", hsv), "HSV(60.00, 1.00, 1.00)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize))]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub struct HSV<T>
 where
     T: FloatNumber,
 {
     pub h: Hue<T>,
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub s: T,
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub v: T,
 }
 
@@ -113,9 +118,10 @@ where
 
 #[cfg(test)]
 mod tests {
+    use indoc::indoc;
     use rstest::rstest;
     #[cfg(feature = "wasm")]
-    use serde_test::{assert_ser_tokens, Token};
+    use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
 
@@ -174,6 +180,46 @@ mod tests {
                 Token::StructEnd,
             ],
         );
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_deserialize() {
+        // Act
+        let hsv = HSV::new(30.0, 0.5, 0.75);
+
+        // Assert
+        assert_de_tokens(
+            &hsv,
+            &[
+                Token::Struct {
+                    name: "HSV",
+                    len: 3,
+                },
+                Token::Str("h"),
+                Token::F64(30.0),
+                Token::Str("s"),
+                Token::F64(0.5),
+                Token::Str("v"),
+                Token::F64(0.75),
+                Token::StructEnd,
+            ],
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_tsify() {
+        // Assert
+        let expected = indoc! {
+            // language=ts
+            "export interface HSV<T> {
+                h: Hue<T>;
+                s: number;
+                v: number;
+            }"
+        };
+        assert_eq!(HSV::<f64>::DECL, expected);
     }
 
     #[test]

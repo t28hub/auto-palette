@@ -356,6 +356,19 @@ where
                     .map_err(|_| ColorError::InvalidHexValue(s.to_string()))?;
                 (r, g, b)
             }
+            // Handle 4-digit hex color #RGBA
+            5 => {
+                let r = u8::from_str_radix(&s[1..2].repeat(2), 16)
+                    .map_err(|_| ColorError::InvalidHexValue(s.to_string()))?;
+                let g = u8::from_str_radix(&s[2..3].repeat(2), 16)
+                    .map_err(|_| ColorError::InvalidHexValue(s.to_string()))?;
+                let b = u8::from_str_radix(&s[3..4].repeat(2), 16)
+                    .map_err(|_| ColorError::InvalidHexValue(s.to_string()))?;
+                // Check whether the alpha value is valid
+                let _ = u8::from_str_radix(&s[4..5].repeat(2), 16)
+                    .map_err(|_| ColorError::InvalidHexValue(s.to_string()))?;
+                (r, g, b)
+            }
             // Handle 6-digit hex color #RRGGBB
             7 => {
                 let r = u8::from_str_radix(&s[1..3], 16)
@@ -680,6 +693,14 @@ mod tests {
     #[case::cyan_rgb("#0ff", 91.114_750, - 48.080_950, - 14.142_858)]
     #[case::magenta_rgb("#f0f", 60.322_700, 98.235_580, - 60.842_370)]
     #[case::yellow_rgb("#ff0", 97.138_580, - 21.562_368, 94.476_760)]
+    #[case::black_rgba("#0000", 0.0, 0.0, 0.0)]
+    #[case::white_rgba("#ffff", 100.0, - 0.002_443, 0.011_384)]
+    #[case::red_rgba("#f00f", 53.237_144, 80.088_320, 67.199_460)]
+    #[case::green_rgba("#0f0f", 87.735_535, - 86.183_550, 83.179_924)]
+    #[case::blue_rgba("#00ff", 32.300_800, 79.194_260, - 107.868_910)]
+    #[case::cyan_rgba("#0fff", 91.114_750, - 48.080_950, - 14.142_858)]
+    #[case::magenta_rgba("#f0ff", 60.322_700, 98.235_580, - 60.842_370)]
+    #[case::yellow_rgba("#ff0f", 97.138_580, - 21.562_368, 94.476_760)]
     #[case::black_rrggbb("#000000", 0.0, 0.0, 0.0)]
     #[case::white_rrggbb("#ffffff", 100.0, - 0.002_443, 0.011_384)]
     #[case::red_rrggbb("#ff0000", 53.237_144, 80.088_320, 67.199_460)]

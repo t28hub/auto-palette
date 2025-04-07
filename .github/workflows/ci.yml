@@ -154,22 +154,19 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
-      - name: Install cargo-nextest
+      - name: Add wasm target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install cargo-binstall
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-nextest
+          tool: cargo-binstall
 
-      - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Install wasm-bindgen-cli
+        run: cargo binstall wasm-bindgen-cli --no-confirm
 
       - name: Run unit tests
-        run: cargo nextest run --tests --package auto-palette-wasm
-
-      - name: Run wasm-pack test on Chrome
-        run: wasm-pack test --headless --chrome ./crates/auto-palette-wasm
-
-      - name: Run wasm-pack test on Firefox
-        run: wasm-pack test --headless --firefox ./crates/auto-palette-wasm
+        run: cargo test --tests --package auto-palette-wasm --target wasm32-unknown-unknown
 
   build-lib:
     needs:
@@ -239,3 +236,7 @@ jobs:
       - name: Build the wasm package
         working-directory: ./packages/auto-palette-wasm
         run: pnpm build
+
+      - name: Test the wasm package
+        working-directory: ./packages/auto-palette-wasm
+        run: pnpm test

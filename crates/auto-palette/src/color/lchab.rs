@@ -2,17 +2,19 @@ use std::{fmt::Display, marker::PhantomData};
 
 use num_traits::clamp;
 #[cfg(feature = "wasm")]
-use serde::{ser::SerializeStruct, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "wasm")]
+use tsify::Tsify;
 
 use crate::{
     color::{Hue, Lab, WhitePoint, D65},
     math::FloatNumber,
 };
 
-/// The CIE L*C*h°(ab) color representation.
+/// The LCHab color representation.
 ///
 /// See the following for more details:
-/// [CIE LAB | Cylindrical model](https://en.wikipedia.org/wiki/CIELAB_color_space#Cylindrical_model)
+/// [CIE LCHab color space - Wikipedia](https://en.wikipedia.org/wiki/CIELAB#Cylindrical_representation_(CIELCh))
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
@@ -34,14 +36,19 @@ use crate::{
 /// assert_eq!(format!("{}", lab), "Lab(54.62, 81.55, 42.92)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub struct LCHab<T, W = D65>
 where
     T: FloatNumber,
     W: WhitePoint,
 {
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub l: T,
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub c: T,
     pub h: Hue<T>,
+    #[cfg_attr(feature = "wasm", serde(skip))]
     _marker: PhantomData<W>,
 }
 
@@ -67,24 +74,6 @@ where
             h: Hue::from_degrees(h),
             _marker: PhantomData,
         }
-    }
-}
-
-#[cfg(feature = "wasm")]
-impl<T, W> Serialize for LCHab<T, W>
-where
-    T: FloatNumber + Serialize,
-    W: WhitePoint,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("LCHab", 3)?;
-        state.serialize_field("l", &self.l)?;
-        state.serialize_field("c", &self.c)?;
-        state.serialize_field("h", &self.h)?;
-        state.end()
     }
 }
 
@@ -122,9 +111,10 @@ where
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "wasm")]
-    use serde_test::{assert_ser_tokens, Token};
+    use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
+    use crate::assert_approx_eq;
 
     #[test]
     fn test_new() {
@@ -169,6 +159,31 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "wasm")]
+    fn test_deserialize() {
+        // Act
+        let lchab = LCHab::<f64>::new(54.617, 92.151, 27.756);
+
+        // Assert
+        assert_de_tokens(
+            &lchab,
+            &[
+                Token::Struct {
+                    name: "LCHab",
+                    len: 3,
+                },
+                Token::Str("l"),
+                Token::F64(54.617),
+                Token::Str("c"),
+                Token::F64(92.151),
+                Token::Str("h"),
+                Token::F64(27.756),
+                Token::StructEnd,
+            ],
+        );
+    }
+
+    #[test]
     fn test_fmt() {
         // Act
         let lchab = LCHab::<f32>::new(54.617, 92.151, 27.756);
@@ -185,8 +200,8 @@ mod tests {
         let actual = LCHab::from(&lab);
 
         // Assert
-        assert_eq!(actual.l, 54.617);
-        assert!((actual.c - 92.151).abs() < 1e-3);
-        assert!((actual.h.to_degrees() - 27.756).abs() < 1e-3);
+        assert_approx_eq!(actual.l, 54.617);
+        assert_approx_eq!(actual.c, 92.151710);
+        assert_approx_eq!(actual.h.to_degrees(), 27.755500);
     }
 }

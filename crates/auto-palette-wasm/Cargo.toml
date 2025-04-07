@@ -16,16 +16,15 @@ repository.workspace = true
 # https://github.com/foresterre/cargo-msrv/issues/590
 rust-version = "1.84.0"
 
-
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-auto-palette             = { workspace = true, features = ["wasm"] }
-console_error_panic_hook = { workspace = true }
-wasm-bindgen             = { workspace = true }
+auto-palette = { workspace = true, features = ["wasm"] }
+serde        = { workspace = true, features = ["derive"] }
+tsify        = { workspace = true }
+wasm-bindgen = { workspace = true }
 
 [dev-dependencies]
 image             = { workspace = true, features = ["jpeg", "png"] }
-rstest            = { workspace = true }
 wasm-bindgen-test = { workspace = true }

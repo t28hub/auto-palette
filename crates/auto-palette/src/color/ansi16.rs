@@ -1,7 +1,9 @@
 use std::fmt::{Display, Formatter};
 
 #[cfg(feature = "wasm")]
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "wasm")]
+use tsify::Tsify;
 
 use crate::color::{error::ColorError, RGB};
 
@@ -22,6 +24,8 @@ use crate::color::{error::ColorError, RGB};
 /// assert_eq!(format!("{}", ansi16), "ANSI16(92)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub struct Ansi16 {
     /// The ANSI 16 color code.
     pub(crate) code: u8,
@@ -223,16 +227,6 @@ impl Ansi16 {
     }
 }
 
-#[cfg(feature = "wasm")]
-impl Serialize for Ansi16 {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.code.serialize(serializer)
-    }
-}
-
 impl Display for Ansi16 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "ANSI16({})", self.code)
@@ -269,7 +263,7 @@ fn from_rgb(r: u8, g: u8, b: u8) -> u8 {
 mod tests {
     use rstest::rstest;
     #[cfg(feature = "wasm")]
-    use serde_test::{assert_ser_tokens, Token};
+    use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
 
@@ -312,7 +306,39 @@ mod tests {
         let ansi16 = Ansi16::new(30).unwrap();
 
         // Act
-        assert_ser_tokens(&ansi16, &[Token::U8(30)]);
+        assert_ser_tokens(
+            &ansi16,
+            &[
+                Token::Struct {
+                    name: "Ansi16",
+                    len: 1,
+                },
+                Token::Str("code"),
+                Token::U8(30),
+                Token::StructEnd,
+            ],
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_deserialize() {
+        // Act
+        let ansi16 = Ansi16::new(30).unwrap();
+
+        // Act
+        assert_de_tokens(
+            &ansi16,
+            &[
+                Token::Struct {
+                    name: "Ansi16",
+                    len: 1,
+                },
+                Token::Str("code"),
+                Token::U8(30),
+                Token::StructEnd,
+            ],
+        );
     }
 
     #[test]

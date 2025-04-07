@@ -2,7 +2,9 @@ use std::{fmt::Display, marker::PhantomData};
 
 use num_traits::clamp;
 #[cfg(feature = "wasm")]
-use serde::{ser::SerializeStruct, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "wasm")]
+use tsify::Tsify;
 
 use crate::{
     color::{white_point::WhitePoint, LCHab, D65, XYZ},
@@ -35,14 +37,20 @@ use crate::{
 /// assert_eq!(format!("{}", lchab), "LCH(ab)(87.74, 119.78, 136.02)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub struct Lab<T, W = D65>
 where
     T: FloatNumber,
     W: WhitePoint,
 {
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub l: T,
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub a: T,
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub b: T,
+    #[cfg_attr(feature = "wasm", serde(skip))]
     _marker: PhantomData<W>,
 }
 
@@ -149,23 +157,6 @@ where
     }
 }
 
-#[cfg(feature = "wasm")]
-impl<T> Serialize for Lab<T>
-where
-    T: FloatNumber + Serialize,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("Lab", 3)?;
-        state.serialize_field("l", &self.l)?;
-        state.serialize_field("a", &self.a)?;
-        state.serialize_field("b", &self.b)?;
-        state.end()
-    }
-}
-
 impl<T> Display for Lab<T>
 where
     T: FloatNumber,
@@ -253,10 +244,10 @@ where
 mod tests {
     use rstest::rstest;
     #[cfg(feature = "wasm")]
-    use serde_test::{assert_ser_tokens, Token};
+    use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
-    use crate::color::white_point::D65;
+    use crate::{assert_approx_eq, color::white_point::D65};
 
     #[test]
     fn test_new() {
@@ -273,7 +264,7 @@ mod tests {
     #[cfg(feature = "wasm")]
     fn test_serialize() {
         // Act
-        let lab = Lab::<f64>::new(53.2437, 80.09315, 67.2388);
+        let lab = Lab::<_>::new(53.2437, 80.09315, 67.2388);
 
         // Assert
         assert_ser_tokens(
@@ -289,6 +280,31 @@ mod tests {
                 Token::F64(80.09315),
                 Token::Str("b"),
                 Token::F64(67.2388),
+                Token::StructEnd,
+            ],
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_deserialize() {
+        // Act
+        let lab = Lab::<_>::new(66.48, -29.16, 20.62);
+
+        // Assert
+        assert_de_tokens(
+            &lab,
+            &[
+                Token::Struct {
+                    name: "Lab",
+                    len: 3,
+                },
+                Token::Str("l"),
+                Token::F64(66.48),
+                Token::Str("a"),
+                Token::F64(-29.16),
+                Token::Str("b"),
+                Token::F64(20.62),
                 Token::StructEnd,
             ],
         );
@@ -311,9 +327,9 @@ mod tests {
         let actual: Lab<f64> = Lab::<_>::from(&xyz);
 
         // Assert
-        assert!((actual.l - 87.7376).abs() < 1e-3);
-        assert!((actual.a + 86.1846).abs() < 1e-3);
-        assert!((actual.b - 83.1813).abs() < 1e-3);
+        assert_approx_eq!(actual.l, 87.737033);
+        assert_approx_eq!(actual.a, -86.184636);
+        assert_approx_eq!(actual.b, 83.181164);
     }
 
     #[test]
@@ -323,9 +339,9 @@ mod tests {
         let actual = Lab::from(&lchab);
 
         // Assert
-        assert_eq!(actual.l, 54.617);
-        assert!((actual.a - 81.549).abs() < 1e-3);
-        assert!((actual.b - 42.915).abs() < 1e-3);
+        assert_approx_eq!(actual.l, 54.617);
+        assert_approx_eq!(actual.a, 81.548002);
+        assert_approx_eq!(actual.b, 42.915383);
     }
 
     #[rstest]
@@ -342,8 +358,8 @@ mod tests {
         let (l, a, b) = xyz_to_lab::<f32, D65>(xyz.0, xyz.1, xyz.2);
 
         // Assert
-        assert!((l - lab.0).abs() < 1e-3);
-        assert!((a - lab.1).abs() < 1e-3);
-        assert!((b - lab.2).abs() < 1e-3);
+        assert_approx_eq!(l, lab.0, 1e-3);
+        assert_approx_eq!(a, lab.1, 1e-3);
+        assert_approx_eq!(b, lab.2, 1e-3);
     }
 }

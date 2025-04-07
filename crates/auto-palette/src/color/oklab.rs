@@ -1,6 +1,8 @@
 use num_traits::clamp;
 #[cfg(feature = "wasm")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "wasm")]
+use tsify::Tsify;
 
 use crate::{
     color::{oklch::Oklch, XYZ},
@@ -31,13 +33,17 @@ use crate::{
 /// assert_eq!(format!("{}", xyz), "XYZ(0.15, 0.24, 0.20)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub struct Oklab<T>
 where
     T: FloatNumber,
 {
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub l: T,
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub a: T,
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub b: T,
 }
 
@@ -120,9 +126,10 @@ where
 mod tests {
     use rstest::rstest;
     #[cfg(feature = "wasm")]
-    use serde_test::{assert_tokens, Token};
+    use serde_test::{assert_de_tokens, assert_tokens, Token};
 
     use super::*;
+    use crate::assert_approx_eq;
 
     #[test]
     fn test_new() {
@@ -166,6 +173,31 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "wasm")]
+    fn test_deserialize() {
+        // Act
+        let oklab = Oklab::new(0.70, -0.08, 0.05);
+
+        // Assert
+        assert_de_tokens(
+            &oklab,
+            &[
+                Token::Struct {
+                    name: "Oklab",
+                    len: 3,
+                },
+                Token::Str("l"),
+                Token::F64(0.70),
+                Token::Str("a"),
+                Token::F64(-0.08),
+                Token::Str("b"),
+                Token::F64(0.05),
+                Token::StructEnd,
+            ],
+        );
+    }
+
+    #[test]
     fn test_fmt() {
         // Act
         let oklab: Oklab<f32> = Oklab::new(0.607, -0.118, 0.028);
@@ -187,9 +219,9 @@ mod tests {
         let actual = Oklab::from(&xyz);
 
         // Assert
-        assert!((actual.l - expected.0).abs() < 1e-3);
-        assert!((actual.a - expected.1).abs() < 1e-3);
-        assert!((actual.b - expected.2).abs() < 1e-3);
+        assert_approx_eq!(actual.l, expected.0, 1e-3);
+        assert_approx_eq!(actual.a, expected.1, 1e-3);
+        assert_approx_eq!(actual.b, expected.2, 1e-3);
     }
 
     #[test]
@@ -199,8 +231,8 @@ mod tests {
         let actual = Oklab::from(&oklch);
 
         // Assert
-        assert_eq!(actual.l, 0.607);
-        assert!((actual.a + 0.117).abs() < 1e-3);
-        assert!((actual.b - 0.028).abs() < 1e-3);
+        assert_approx_eq!(actual.l, 0.607);
+        assert_approx_eq!(actual.a, -0.117730);
+        assert_approx_eq!(actual.b, 0.0279367);
     }
 }

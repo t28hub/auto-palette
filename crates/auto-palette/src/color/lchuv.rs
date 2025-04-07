@@ -2,17 +2,19 @@ use std::{fmt::Display, marker::PhantomData};
 
 use num_traits::clamp;
 #[cfg(feature = "wasm")]
-use serde::{ser::SerializeStruct, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "wasm")]
+use tsify::Tsify;
 
 use crate::{
     color::{Hue, Luv, WhitePoint, D65},
     math::FloatNumber,
 };
 
-/// The CIE L*u*v* color representation.
+/// The LCHuv color representation.
 ///
 /// See the following for more details:
-/// [CIE LUV | Cylindrical representation (CIELCh)](https://en.wikipedia.org/wiki/CIELUV#Cylindrical_representation_(CIELCh))
+/// [CIE LCHuv color space - Wikipedia](https://en.wikipedia.org/wiki/CIELUV#Cylindrical_representation_(CIELCh))
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
@@ -34,14 +36,19 @@ use crate::{
 /// assert_eq!(format!("{}", luv), "Luv(56.23, -46.00, 21.73)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub struct LCHuv<T, W = D65>
 where
     T: FloatNumber,
     W: WhitePoint,
 {
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub l: T,
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub c: T,
     pub h: Hue<T>,
+    #[cfg_attr(feature = "wasm", serde(skip))]
     _marker: PhantomData<W>,
 }
 
@@ -67,24 +74,6 @@ where
             h: Hue::from_degrees(h),
             _marker: PhantomData,
         }
-    }
-}
-
-#[cfg(feature = "wasm")]
-impl<T, W> Serialize for LCHuv<T, W>
-where
-    T: FloatNumber + Serialize,
-    W: WhitePoint,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("LCHuv", 3)?;
-        state.serialize_field("l", &self.l)?;
-        state.serialize_field("c", &self.c)?;
-        state.serialize_field("h", &self.h)?;
-        state.end()
     }
 }
 
@@ -122,10 +111,10 @@ where
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "wasm")]
-    use serde_test::{assert_ser_tokens, Token};
+    use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
-    use crate::color::Luv;
+    use crate::{assert_approx_eq, color::Luv};
 
     #[test]
     fn test_new() {
@@ -170,6 +159,31 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "wasm")]
+    fn test_deserialize() {
+        // Act
+        let lchuv: LCHuv<f64> = LCHuv::new(56.232, 50.875, 154.710);
+
+        // Assert
+        assert_de_tokens(
+            &lchuv,
+            &[
+                Token::Struct {
+                    name: "LCHuv",
+                    len: 3,
+                },
+                Token::Str("l"),
+                Token::F64(56.232),
+                Token::Str("c"),
+                Token::F64(50.875),
+                Token::Str("h"),
+                Token::F64(154.710),
+                Token::StructEnd,
+            ],
+        )
+    }
+
+    #[test]
     fn test_fmt() {
         // Act
         let lchuv: LCHuv<_> = LCHuv::new(56.232, 50.875, 154.710);
@@ -186,8 +200,8 @@ mod tests {
         let actual = LCHuv::from(&luv);
 
         // Assert
-        assert_eq!(actual.l, 56.232);
-        assert!((actual.c - 50.875).abs() < 1e-3);
-        assert!((actual.h.to_degrees() - 154.710).abs() < 1e-3);
+        assert_approx_eq!(actual.l, 56.231998);
+        assert_approx_eq!(actual.c, 50.875087);
+        assert_approx_eq!(actual.h.to_degrees(), 154.709808);
     }
 }

@@ -2,7 +2,9 @@ use std::fmt::Display;
 
 use num_traits::clamp;
 #[cfg(feature = "wasm")]
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "wasm")]
+use tsify::Tsify;
 
 use crate::{
     color::{Hue, Oklab},
@@ -33,12 +35,15 @@ use crate::{
 /// assert_eq!(format!("{}", oklab), "Oklab(0.61, -0.12, 0.03)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize))]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub struct Oklch<T>
 where
     T: FloatNumber,
 {
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub l: T,
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub c: T,
     pub h: Hue<T>,
 }
@@ -98,10 +103,10 @@ where
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "wasm")]
-    use serde_test::{assert_ser_tokens, Token};
+    use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
-    use crate::color::Oklab;
+    use crate::{assert_approx_eq, color::Oklab};
 
     #[test]
     fn test_new() {
@@ -145,6 +150,31 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "wasm")]
+    fn test_deserialize() {
+        // Act
+        let oklch = Oklch::new(0.70, 0.10, 148.0);
+
+        // Assert
+        assert_de_tokens(
+            &oklch,
+            &[
+                Token::Struct {
+                    name: "Oklch",
+                    len: 3,
+                },
+                Token::Str("l"),
+                Token::F64(0.70),
+                Token::Str("c"),
+                Token::F64(0.10),
+                Token::Str("h"),
+                Token::F64(148.0),
+                Token::StructEnd,
+            ],
+        );
+    }
+
+    #[test]
     fn test_fmt() {
         // Act
         let oklch = Oklch::new(0.607, 0.121, 166.651);
@@ -161,8 +191,8 @@ mod tests {
         let actual = Oklch::from(&oklab);
 
         // Assert
-        assert_eq!(actual.l, 0.607);
-        assert!((actual.c - 0.121).abs() < 1e-3);
-        assert!((actual.h.to_degrees() - 166.651).abs() < 1e-3);
+        assert_approx_eq!(actual.l, 0.607);
+        assert_approx_eq!(actual.c, 0.121276);
+        assert_approx_eq!(actual.h.to_degrees(), 166.651275);
     }
 }
