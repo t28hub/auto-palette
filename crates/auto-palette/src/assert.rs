@@ -10,7 +10,6 @@
 /// assert_approx_eq!(1.0, 1.0001, 0.0002);  // This will pass
 /// assert_approx_eq!(1.0, 1.0001, 0.00005); // This will fail
 /// ```
-#[cfg(test)]
 #[macro_export]
 macro_rules! assert_approx_eq {
     ($a:expr, $b:expr) => {

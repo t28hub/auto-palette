@@ -1,7 +1,9 @@
 use std::fmt::Display;
 
 #[cfg(feature = "wasm")]
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+#[cfg(feature = "wasm")]
+use tsify::Tsify;
 
 use crate::math::FloatNumber;
 
@@ -22,7 +24,9 @@ use crate::math::FloatNumber;
 /// assert_eq!(format!("{}", hue), "240.00");
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Hue<T>(T)
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
+pub struct Hue<T>(#[cfg_attr(feature = "wasm", tsify(type = "number"))] T)
 where
     T: FloatNumber;
 
@@ -86,6 +90,20 @@ where
     }
 }
 
+#[cfg(feature = "wasm")]
+impl<'de, T> Deserialize<'de> for Hue<T>
+where
+    T: FloatNumber + Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = T::deserialize(deserializer)?;
+        Ok(Hue::from_degrees(value))
+    }
+}
+
 impl<T> Display for Hue<T>
 where
     T: FloatNumber,
@@ -121,9 +139,10 @@ where
 mod tests {
     use std::f64::consts::PI;
 
+    use indoc::indoc;
     use rstest::rstest;
     #[cfg(feature = "wasm")]
-    use serde_test::{assert_ser_tokens, Token};
+    use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
 
@@ -181,6 +200,27 @@ mod tests {
 
         // Assert
         assert_ser_tokens(&hue, &[Token::F64(45.0)]);
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_deserialize() {
+        // Act
+        let hue = Hue::from_degrees(60.0);
+
+        // Assert
+        assert_de_tokens(&hue, &[Token::F64(60.0)]);
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_tsify() {
+        // Assert
+        let expected = indoc! {
+            // language=ts
+            "export type Hue<T> = number;"
+        };
+        assert_eq!(Hue::<f64>::DECL, expected);
     }
 
     #[test]

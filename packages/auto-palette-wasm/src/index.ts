@@ -1,16 +1,6 @@
 import init from '@auto-palette/core';
 
-export {
-  type AlgorithmWrapper as Algorithm,
-  type ThemeWrapper as Theme,
-  type Position,
-  type Lab,
-  type RGB,
-  type XYZ,
-  ColorWrapper as Color,
-  PaletteWrapper as Palette,
-  SwatchWrapper as Swatch,
-} from '@auto-palette/core';
+export { Color } from '@auto-palette/core';
 
 /**
  * The input type for the WASM module.

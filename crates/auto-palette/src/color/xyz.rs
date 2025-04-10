@@ -2,7 +2,9 @@ use std::fmt::Display;
 
 use num_traits::clamp;
 #[cfg(feature = "wasm")]
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "wasm")]
+use tsify::Tsify;
 
 use crate::{
     color::{lab::Lab, luv::Luv, rgb::RGB, white_point::WhitePoint, Oklab},
@@ -37,7 +39,8 @@ use crate::{
 /// assert_eq!(format!("{}", oklab), "Oklab(0.70, 0.27, -0.17)");
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize))]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub struct XYZ<T>
 where
     T: FloatNumber,
@@ -322,10 +325,10 @@ where
 mod tests {
     use rstest::rstest;
     #[cfg(feature = "wasm")]
-    use serde_test::{assert_ser_tokens, Token};
+    use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
-    use crate::color::D65;
+    use crate::{assert_approx_eq, color::D65};
 
     #[test]
     fn test_new() {
@@ -364,6 +367,31 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "wasm")]
+    fn test_deserialize() {
+        // Act
+        let xyz = XYZ::new(0.5928, 0.2848, 0.9699);
+
+        // Assert
+        assert_de_tokens(
+            &xyz,
+            &[
+                Token::Struct {
+                    name: "XYZ",
+                    len: 3,
+                },
+                Token::Str("x"),
+                Token::F64(0.5928),
+                Token::Str("y"),
+                Token::F64(0.2848),
+                Token::Str("z"),
+                Token::F64(0.9699),
+                Token::StructEnd,
+            ],
+        );
+    }
+
+    #[test]
     fn test_fmt() {
         // Act
         let xyz = XYZ::new(0.5928, 0.2848, 0.9699);
@@ -380,9 +408,9 @@ mod tests {
         let actual: XYZ<f32> = XYZ::from(&rgb);
 
         // Assert
-        assert!((actual.x - 0.5928).abs() < 1e-3);
-        assert!((actual.y - 0.2848).abs() < 1e-3);
-        assert!((actual.z - 0.9699).abs() < 1e-3);
+        assert_approx_eq!(actual.x, 0.592872);
+        assert_approx_eq!(actual.y, 0.284830);
+        assert_approx_eq!(actual.z, 0.969862);
     }
 
     #[test]
@@ -392,9 +420,9 @@ mod tests {
         let actual: XYZ<f64> = XYZ::from(&lab);
 
         // Assert
-        assert!((actual.x - 0.5928).abs() < 1e-3);
-        assert!((actual.y - 0.2848).abs() < 1e-3);
-        assert!((actual.z - 0.9699).abs() < 1e-3);
+        assert_approx_eq!(actual.x, 0.5928);
+        assert_approx_eq!(actual.y, 0.2848);
+        assert_approx_eq!(actual.z, 0.9699);
     }
 
     #[rstest]
@@ -413,9 +441,9 @@ mod tests {
         let actual = XYZ::from(&luv);
 
         // Assert
-        assert!((actual.x - expected.0).abs() < 1e-3);
-        assert!((actual.y - expected.1).abs() < 1e-3);
-        assert!((actual.z - expected.2).abs() < 1e-3);
+        assert_approx_eq!(actual.x, expected.0, 1e-3);
+        assert_approx_eq!(actual.y, expected.1, 1e-3);
+        assert_approx_eq!(actual.z, expected.2, 1e-3);
     }
 
     #[rstest]
@@ -433,9 +461,9 @@ mod tests {
         let actual = XYZ::from(&oklab);
 
         // Assert
-        assert!((actual.x - expected.0).abs() < 1e-3);
-        assert!((actual.y - expected.1).abs() < 1e-3);
-        assert!((actual.z - expected.2).abs() < 1e-3);
+        assert_approx_eq!(actual.x, expected.0, 1e-3);
+        assert_approx_eq!(actual.y, expected.1, 1e-3);
+        assert_approx_eq!(actual.z, expected.2, 1e-3);
     }
 
     #[rstest]
@@ -452,9 +480,9 @@ mod tests {
         let (x, y, z) = rgb_to_xyz::<f32>(rgb.0, rgb.1, rgb.2);
 
         // Assert
-        assert!((x - xyz.0).abs() < 1e-3);
-        assert!((y - xyz.1).abs() < 1e-3);
-        assert!((z - xyz.2).abs() < 1e-3);
+        assert_approx_eq!(x, xyz.0, 1e-3);
+        assert_approx_eq!(y, xyz.1, 1e-3);
+        assert_approx_eq!(z, xyz.2, 1e-3);
     }
 
     #[rstest]
@@ -471,8 +499,8 @@ mod tests {
         let (x, y, z) = lab_to_xyz::<f32, D65>(lab.0, lab.1, lab.2);
 
         // Assert
-        assert!((x - xyz.0).abs() < 1e-3);
-        assert!((y - xyz.1).abs() < 1e-3);
-        assert!((z - xyz.2).abs() < 1e-3);
+        assert_approx_eq!(x, xyz.0, 1e-3);
+        assert_approx_eq!(y, xyz.1, 1e-3);
+        assert_approx_eq!(z, xyz.2, 1e-3);
     }
 }

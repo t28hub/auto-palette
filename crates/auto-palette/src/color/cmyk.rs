@@ -2,7 +2,9 @@ use std::fmt::{Display, Formatter};
 
 use num_traits::clamp;
 #[cfg(feature = "wasm")]
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "wasm")]
+use tsify::Tsify;
 
 use crate::{color::RGB, FloatNumber};
 
@@ -29,14 +31,19 @@ use crate::{color::RGB, FloatNumber};
 /// assert_eq!(format!("{}", cmyk), "CMYK(0.00, 0.00, 1.00, 0.00)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize))]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub struct CMYK<T>
 where
     T: FloatNumber,
 {
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub c: T,
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub m: T,
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub y: T,
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub k: T,
 }
 
@@ -103,9 +110,10 @@ where
 
 #[cfg(test)]
 mod tests {
+    use indoc::indoc;
     use rstest::rstest;
     #[cfg(feature = "wasm")]
-    use serde_test::{assert_ser_tokens, Token};
+    use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
 
@@ -171,6 +179,49 @@ mod tests {
                 Token::StructEnd,
             ],
         )
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_deserialize() {
+        // Act
+        let cmyk = CMYK::new(0.50, 0.25, 1.00, 0.50);
+
+        // Assert
+        assert_de_tokens(
+            &cmyk,
+            &[
+                Token::Struct {
+                    name: "CMYK",
+                    len: 4,
+                },
+                Token::Str("c"),
+                Token::F64(0.50),
+                Token::Str("m"),
+                Token::F64(0.25),
+                Token::Str("y"),
+                Token::F64(1.00),
+                Token::Str("k"),
+                Token::F64(0.50),
+                Token::StructEnd,
+            ],
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_tsify() {
+        // Assert
+        let expected = indoc! {
+            // language=ts
+            "export interface CMYK<T> {
+                c: number;
+                m: number;
+                y: number;
+                k: number;
+            }"
+        };
+        assert_eq!(CMYK::<f64>::DECL, expected);
     }
 
     #[test]

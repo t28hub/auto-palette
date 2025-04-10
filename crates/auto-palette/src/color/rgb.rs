@@ -1,7 +1,9 @@
 use std::{fmt, fmt::Display};
 
 #[cfg(feature = "wasm")]
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "wasm")]
+use tsify::Tsify;
 
 use crate::{
     color::{hsl::HSL, xyz::XYZ, HSV},
@@ -35,7 +37,8 @@ use crate::{
 /// assert_eq!(format!("{}", xyz), "XYZ(0.42, 0.22, 0.07)");
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize))]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub struct RGB {
     pub r: u8,
     pub g: u8,
@@ -220,9 +223,10 @@ where
 
 #[cfg(test)]
 mod tests {
+    use indoc::indoc;
     use rstest::rstest;
     #[cfg(feature = "wasm")]
-    use serde_test::{assert_ser_tokens, Token};
+    use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
 
@@ -260,6 +264,46 @@ mod tests {
                 Token::StructEnd,
             ],
         );
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_deserialize() {
+        // Act
+        let rgb = RGB::new(64, 255, 0);
+
+        // Act
+        assert_de_tokens(
+            &rgb,
+            &[
+                Token::Struct {
+                    name: "RGB",
+                    len: 3,
+                },
+                Token::Str("r"),
+                Token::U8(64),
+                Token::Str("g"),
+                Token::U8(255),
+                Token::Str("b"),
+                Token::U8(0),
+                Token::StructEnd,
+            ],
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_tsify() {
+        // Assert
+        let expected = indoc! {
+            // language=ts
+            "export interface RGB {
+                r: number;
+                g: number;
+                b: number;
+            }"
+        };
+        assert_eq!(RGB::DECL, expected);
     }
 
     #[test]

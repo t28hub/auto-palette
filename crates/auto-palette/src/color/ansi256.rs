@@ -4,7 +4,9 @@ use std::{
 };
 
 #[cfg(feature = "wasm")]
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "wasm")]
+use tsify::Tsify;
 
 use crate::color::{Ansi16, RGB};
 
@@ -23,6 +25,8 @@ use crate::color::{Ansi16, RGB};
 /// assert_eq!(format!("{}", ansi256), "ANSI256(41)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 pub struct Ansi256 {
     code: u8,
 }
@@ -47,16 +51,6 @@ impl Ansi256 {
     #[must_use]
     pub fn code(&self) -> u8 {
         self.code
-    }
-}
-
-#[cfg(feature = "wasm")]
-impl Serialize for Ansi256 {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.code.serialize(serializer)
     }
 }
 
@@ -113,7 +107,7 @@ fn from_rgb(r: u8, g: u8, b: u8) -> u8 {
 mod tests {
     use rstest::rstest;
     #[cfg(feature = "wasm")]
-    use serde_test::{assert_ser_tokens, Token};
+    use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
 
@@ -137,7 +131,39 @@ mod tests {
         let ansi256 = Ansi256::new(120);
 
         // Assert
-        assert_ser_tokens(&ansi256, &[Token::U8(120)]);
+        assert_ser_tokens(
+            &ansi256,
+            &[
+                Token::Struct {
+                    name: "Ansi256",
+                    len: 1,
+                },
+                Token::Str("code"),
+                Token::U8(120),
+                Token::StructEnd,
+            ],
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_deserialize() {
+        // Act
+        let ansi256 = Ansi256::new(120);
+
+        // Assert
+        assert_de_tokens(
+            &ansi256,
+            &[
+                Token::Struct {
+                    name: "Ansi256",
+                    len: 1,
+                },
+                Token::Str("code"),
+                Token::U8(120),
+                Token::StructEnd,
+            ],
+        );
     }
 
     #[test]
