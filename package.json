@@ -32,5 +32,11 @@
     "node": ">=18.0.0",
     "pnpm": "10.7.1"
   },
-  "packageManager": "pnpm@10.7.1"
+  "packageManager": "pnpm@10.7.1",
+  "pnpm": {
+    "overrides": {
+      "axios@>=0.8.1 <0.28.0": ">=0.28.0",
+      "axios@<0.30.0": ">=0.30.0"
+    }
+  }
 }
