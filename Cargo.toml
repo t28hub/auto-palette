@@ -31,6 +31,7 @@ thiserror         = "2.0.12"
 tsify             = "0.4.5"
 wasm-bindgen-test = "0.3.50"
 wasm-bindgen      = "0.2.100"
+web-sys           = "0.3.77"
 
 [profile.dev]
 opt-level = 3
