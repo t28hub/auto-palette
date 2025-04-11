@@ -1,6 +1,6 @@
 import init from '@auto-palette/core';
 
-export { Color } from '@auto-palette/core';
+export { Color, Swatch } from '@auto-palette/core';
 
 /**
  * The input type for the WASM module.

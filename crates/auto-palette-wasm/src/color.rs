@@ -17,11 +17,11 @@ use auto_palette::color::{
     RGB,
     XYZ,
 };
-use wasm_bindgen::{prelude::wasm_bindgen, JsError, JsValue};
+use wasm_bindgen::{prelude::wasm_bindgen, JsError};
 
 /// `JsColor` is a struct for wrapping `Color<f64>` to expose it to JavaScript.
 /// This struct is used to wrap the `Color` type from the auto-palette crate so that it can be used in JavaScript.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 #[wasm_bindgen(js_name = Color)]
 pub struct JsColor(pub(crate) Color<f64>);
 
@@ -203,9 +203,8 @@ impl JsColor {
     /// # Returns
     /// A string representing the color in hex format.
     #[wasm_bindgen(js_name = toHexString)]
-    pub fn to_hex_string(&self) -> JsValue {
-        let value = self.0.to_hex_string();
-        JsValue::from_str(&value)
+    pub fn to_hex_string(&self) -> String {
+        self.0.to_hex_string()
     }
 
     /// Creates a new `Color` instance with the given RGB integer value.
@@ -478,8 +477,7 @@ mod tests {
         let actual = color.to_hex_string();
 
         // Assert
-        assert!(actual.is_string(), "Expected a string");
-        assert_eq!(actual.as_string().unwrap(), "#FF8000");
+        assert_eq!(actual, "#FF8000");
     }
 
     #[wasm_bindgen_test]

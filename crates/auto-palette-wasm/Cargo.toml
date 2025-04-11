@@ -27,4 +27,6 @@ wasm-bindgen = { workspace = true }
 
 [dev-dependencies]
 image             = { workspace = true, features = ["jpeg", "png"] }
+indoc             = { workspace = true }
+serde_test        = { workspace = true }
 wasm-bindgen-test = { workspace = true }
