@@ -37,7 +37,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
-pub struct Oklch<T>
+pub struct Oklch<T = f64>
 where
     T: FloatNumber,
 {
@@ -45,6 +45,7 @@ where
     pub l: T,
     #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub c: T,
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub h: Hue<T>,
 }
 
@@ -102,6 +103,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "wasm")]
+    use indoc::indoc;
     #[cfg(feature = "wasm")]
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
@@ -172,6 +175,21 @@ mod tests {
                 Token::StructEnd,
             ],
         );
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_tsify() {
+        // Act & Assert
+        let expected = indoc! {
+            // language=ts
+            "export interface Oklch<T> {
+                l: number;
+                c: number;
+                h: number;
+            }"
+        };
+        assert_eq!(Oklch::<f64>::DECL, expected);
     }
 
     #[test]

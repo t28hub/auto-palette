@@ -223,6 +223,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "wasm")]
     use indoc::indoc;
     use rstest::rstest;
     #[cfg(feature = "wasm")]
@@ -294,7 +295,7 @@ mod tests {
     #[test]
     #[cfg(feature = "wasm")]
     fn test_tsify() {
-        // Assert
+        // Act & Assert
         let expected = indoc! {
             // language=ts
             "export interface RGB {

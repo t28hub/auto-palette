@@ -35,10 +35,11 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
-pub struct HSL<T>
+pub struct HSL<T = f64>
 where
     T: FloatNumber,
 {
+    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub h: Hue<T>,
     #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub s: T,
@@ -115,6 +116,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "wasm")]
     use indoc::indoc;
     use rstest::rstest;
     #[cfg(feature = "wasm")]
@@ -210,9 +212,9 @@ mod tests {
     fn test_tsify() {
         // Assert
         let expected = indoc! {
-            // language=ts
+            // language=typescript
             "export interface HSL<T> {
-                h: Hue<T>;
+                h: number;
                 s: number;
                 l: number;
             }"

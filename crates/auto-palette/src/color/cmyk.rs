@@ -33,7 +33,7 @@ use crate::{color::RGB, FloatNumber};
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
-pub struct CMYK<T>
+pub struct CMYK<T = f64>
 where
     T: FloatNumber,
 {
@@ -110,6 +110,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "wasm")]
     use indoc::indoc;
     use rstest::rstest;
     #[cfg(feature = "wasm")]
@@ -213,7 +214,7 @@ mod tests {
     fn test_tsify() {
         // Assert
         let expected = indoc! {
-            // language=ts
+            // language=typescript
             "export interface CMYK<T> {
                 c: number;
                 m: number;
