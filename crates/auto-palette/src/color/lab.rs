@@ -39,7 +39,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
-pub struct Lab<T, W = D65>
+pub struct Lab<T = f64, W = D65>
 where
     T: FloatNumber,
     W: WhitePoint,
@@ -242,6 +242,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "wasm")]
+    use indoc::indoc;
     use rstest::rstest;
     #[cfg(feature = "wasm")]
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
@@ -308,6 +310,21 @@ mod tests {
                 Token::StructEnd,
             ],
         );
+    }
+
+    #[test]
+    #[cfg(feature = "wasm")]
+    fn test_tsify() {
+        // Act & Assert
+        let expected = indoc! {
+            // language=typescript
+            "export interface Lab<T> {
+                l: number;
+                a: number;
+                b: number;
+            }"
+        };
+        assert_eq!(Lab::<f64>::DECL, expected);
     }
 
     #[test]

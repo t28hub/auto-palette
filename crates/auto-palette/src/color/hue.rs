@@ -26,7 +26,7 @@ use crate::math::FloatNumber;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
-pub struct Hue<T>(#[cfg_attr(feature = "wasm", tsify(type = "number"))] T)
+pub struct Hue<T = f64>(#[cfg_attr(feature = "wasm", tsify(type = "number"))] T)
 where
     T: FloatNumber;
 
@@ -139,6 +139,7 @@ where
 mod tests {
     use std::f64::consts::PI;
 
+    #[cfg(feature = "wasm")]
     use indoc::indoc;
     use rstest::rstest;
     #[cfg(feature = "wasm")]
@@ -217,7 +218,7 @@ mod tests {
     fn test_tsify() {
         // Assert
         let expected = indoc! {
-            // language=ts
+            // language=typescript
             "export type Hue<T> = number;"
         };
         assert_eq!(Hue::<f64>::DECL, expected);
