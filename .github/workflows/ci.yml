@@ -214,7 +214,7 @@ jobs:
         node:
           - 22.x
         pnpm:
-          - 10.7.1
+          - 10.8.0
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
