@@ -1,3 +1,4 @@
+use auto_palette::Swatch;
 use wasm_bindgen::{prelude::wasm_bindgen, JsError};
 
 use crate::{color::JsColor, position::JsPosition};
@@ -77,8 +78,30 @@ impl JsSwatch {
     }
 }
 
+impl From<Swatch<f64>> for JsSwatch {
+    fn from(swatch: Swatch<f64>) -> Self {
+        let color = JsColor(*swatch.color());
+        let position = JsPosition {
+            x: swatch.position().0,
+            y: swatch.position().1,
+        };
+        let population = swatch.population();
+        let ratio = swatch.ratio();
+
+        JsSwatch {
+            color,
+            position,
+            population,
+            ratio,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
+    use auto_palette::color::Color;
     use wasm_bindgen_test::{wasm_bindgen_test, wasm_bindgen_test_configure};
 
     use super::*;
@@ -96,6 +119,23 @@ mod tests {
 
         // Assert
         assert_eq!(actual.color(), color);
+        assert_eq!(actual.position(), position);
+        assert_eq!(actual.population(), population);
+        assert_eq!(actual.ratio(), ratio);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_from_swatch() {
+        // Act
+        let color = Color::from_str("#ff8000").unwrap();
+        let position = JsPosition { x: 10, y: 20 };
+        let population = 256;
+        let ratio = 0.25;
+        let swatch = Swatch::new(color.clone(), (position.x, position.y), population, ratio);
+        let actual = JsSwatch::from(swatch);
+
+        // Assert
+        assert_eq!(actual.color(), JsColor::from_hex_string("#ff8000").unwrap());
         assert_eq!(actual.position(), position);
         assert_eq!(actual.population(), population);
         assert_eq!(actual.ratio(), ratio);

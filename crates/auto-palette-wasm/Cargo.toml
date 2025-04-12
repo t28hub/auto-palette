@@ -24,9 +24,9 @@ auto-palette = { workspace = true, features = ["wasm"] }
 serde        = { workspace = true, features = ["derive"] }
 tsify        = { workspace = true }
 wasm-bindgen = { workspace = true }
+web-sys      = { workspace = true, features = ["ImageData"] }
 
 [dev-dependencies]
-image             = { workspace = true, features = ["jpeg", "png"] }
 indoc             = { workspace = true }
 serde_test        = { workspace = true }
 wasm-bindgen-test = { workspace = true }
