@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import {
   type Algorithm,
   Color,
@@ -6,7 +7,9 @@ import {
   type Theme,
 } from '@auto-palette/core';
 import { describe, expect } from 'vitest';
-import { loadImageData } from './image';
+import { loadImageData } from './utils/image';
+
+const IMAGE_PATH = resolve(process.cwd(), '../../gfx/flags/za.png');
 
 describe('@auto-palette/wasm/palette', () => {
   describe('constructor', () => {
@@ -141,9 +144,9 @@ describe('@auto-palette/wasm/palette', () => {
 
       // Assert
       expect(actual).toHaveLength(3);
-      expect(actual[0].color.toHexString()).toEqual('#FF6F61');
-      expect(actual[1].color.toHexString()).toEqual('#FFD63A');
-      expect(actual[2].color.toHexString()).toEqual('#6DE1D2');
+      expect(actual[0].color).toBeSameColor('#FF6F61');
+      expect(actual[1].color).toBeSameColor('#FFD63A');
+      expect(actual[2].color).toBeSameColor('#6DE1D2');
     });
 
     it.each([
@@ -164,9 +167,9 @@ describe('@auto-palette/wasm/palette', () => {
 
         // Assert
         expect(actual).toHaveLength(3);
-        expect(actual[0].color.toHexString()).toEqual(expected[0]);
-        expect(actual[1].color.toHexString()).toEqual(expected[1]);
-        expect(actual[2].color.toHexString()).toEqual(expected[2]);
+        expect(actual[0].color).toBeSameColor(expected[0]);
+        expect(actual[1].color).toBeSameColor(expected[1]);
+        expect(actual[2].color).toBeSameColor(expected[2]);
       },
     );
 
@@ -188,56 +191,67 @@ describe('@auto-palette/wasm/palette', () => {
     });
   });
 
-  describe('extract', () => {
-    let imageData: ImageData;
-    beforeAll(async () => {
-      imageData = await loadImageData('../../gfx/flags/za.png');
-    });
-
-    it('should extract a palette from an image', () => {
-      // Act
-      const actual = Palette.extract(imageData);
-
-      // Assert
-      expect(actual.isEmpty()).toBeFalsy();
-      expect(actual.length).toBeGreaterThanOrEqual(6);
-
-      const swatches = actual.findSwatches(5, 'vivid');
-      expect(swatches.length).toBe(5);
-      swatches.forEach((swatch) => {
-        console.info('Swatch color: %s', swatch.color.toHexString());
+  describe(
+    'extract',
+    () => {
+      let imageData: ImageData;
+      beforeAll(async () => {
+        imageData = await loadImageData(IMAGE_PATH);
       });
-    });
 
-    it('should extract a palette from an image with the given algorithm', () => {
-      // Act
-      const actual = Palette.extract(imageData, 'dbscan++');
+      it('should extract a palette from an image', () => {
+        // Act
+        const actual = Palette.extract(imageData);
 
-      // Assert
-      expect(actual.isEmpty()).toBeFalsy();
-      expect(actual.length).toBeGreaterThanOrEqual(6);
+        // Assert
+        expect(actual.isEmpty()).toBeFalsy();
+        expect(actual.length).toBeGreaterThanOrEqual(6);
 
-      const swatches = actual.findSwatches(5, 'vivid');
-      expect(swatches.length).toBe(5);
-      swatches.forEach((swatch) => {
-        console.info('Swatch color: %s', swatch.color.toHexString());
+        const swatches = actual.findSwatches(6);
+        expect(swatches.length).toBe(6);
+        expect(swatches[0].color).toBeSimilarColor('#007847');
+        expect(swatches[1].color).toBeSimilarColor('#000C8A');
+        expect(swatches[2].color).toBeSimilarColor('#E1392D');
+        expect(swatches[3].color).toBeSimilarColor('#FFFFFF');
+        expect(swatches[4].color).toBeSimilarColor('#000000');
+        expect(swatches[5].color).toBeSimilarColor('#FFB916');
       });
-    });
 
-    it('should throw an error if the image data is empty', () => {
-      // Act & Assert
-      expect(() => {
-        const imageData = new ImageData(0, 0);
-        Palette.extract(imageData);
-      }).toThrowError('ImageData is not defined');
-    });
+      it.each([
+        { algorithm: 'dbscan' },
+        { algorithm: 'dbscan++' },
+        { algorithm: 'kmeans' },
+      ])(
+        'should extract a palette from an image with the $algorithm algorithm',
+        ({ algorithm }) => {
+          // Act
+          const actual = Palette.extract(imageData, algorithm as Algorithm);
 
-    it('should throw an error if the algorithm is not supported', () => {
-      // Act & Assert
-      expect(() => {
-        const algorithm = 'unsupported' as Algorithm;
-        Palette.extract(imageData, algorithm);
-      }).toThrowError('Unknown algorithm name: unsupported');
-    });
-  });
+          // Assert
+          expect(actual.isEmpty()).toBeFalsy();
+          expect(actual.length).toBeGreaterThanOrEqual(6);
+
+          const swatches = actual.findSwatches(6);
+          expect(swatches.length).toBe(6);
+        },
+      );
+
+      it('should throw an error if the image data is empty', () => {
+        // Act & Assert
+        expect(() => {
+          const imageData = new ImageData(0, 0);
+          Palette.extract(imageData);
+        }).toThrowError('ImageData is not defined');
+      });
+
+      it('should throw an error if the algorithm is not supported', () => {
+        // Act & Assert
+        expect(() => {
+          const algorithm = 'unsupported' as Algorithm;
+          Palette.extract(imageData, algorithm);
+        }).toThrowError('Unknown algorithm name: unsupported');
+      });
+    },
+    { timeout: 10_000 },
+  );
 });
