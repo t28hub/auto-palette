@@ -7,9 +7,6 @@ export default defineConfig({
   test: {
     globals: true,
     dir: 'test',
-    include: ['**/*.test.ts'],
-    setupFiles: ['test/setup.ts'],
-    environment: 'node',
     alias: {
       '@auto-palette/core': resolve(
         __dirname,
@@ -17,11 +14,6 @@ export default defineConfig({
       ),
       '@auto-palette/wasm': resolve(__dirname, 'src/index.ts'),
     },
-    benchmark: {
-      include: ['**/*.bench.ts'],
-    },
-    testTimeout: 60_000,
-    retry: 0,
     coverage: {
       all: false,
       provider: 'v8',

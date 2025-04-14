@@ -1,8 +1,8 @@
+import { resolve } from 'node:path';
 import * as AutoPaletteWasm from '@auto-palette/wasm';
 import * as AutoPaletteTs from 'auto-palette';
 import { bench, describe, expect } from 'vitest';
-import { resolve } from 'node:path';
-import { loadImageData } from './image';
+import { loadImageData } from './utils/image';
 
 const IMAGE_PATH = resolve(
   process.cwd(),

@@ -11,7 +11,7 @@ export {
 /**
  * The input type for the WASM module.
  */
-export type Module =
+export type ModuleInput =
   | RequestInfo
   | URL
   | Response
@@ -25,7 +25,7 @@ export type Module =
  * @returns The Promise that resolves when the WASM module is initialized.
  */
 export async function initialize(
-  module: Module | Promise<Module>,
+  module: ModuleInput | Promise<ModuleInput>,
 ): Promise<void> {
   await init({ module_or_path: module });
 }
