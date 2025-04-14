@@ -11,6 +11,8 @@ permissions:
   contents: read
 
 env:
+  NODE_VERSION: 22.x
+  PNPM_VERSION: 10.8.0
   CARGO_TERM_COLOR: always
 
 jobs:
@@ -209,26 +211,20 @@ jobs:
       - test-wasm
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    strategy:
-      matrix:
-        node:
-          - 22.x
-        pnpm:
-          - 10.8.0
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup pnpm with ${{ matrix.pnpm }} version
+      - name: Setup pnpm with ${{ env.PNPM_VERSION }} version
         uses: pnpm/action-setup@v4
         with:
-          version: ${{ matrix.pnpm }}
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: Setup Node.js with ${{ matrix.node }} version
+      - name: Setup Node.js with ${{ env.NODE_VERSION }} version
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
           cache: 'pnpm'
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
