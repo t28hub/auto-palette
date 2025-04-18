@@ -3,8 +3,6 @@ use std::fmt::Display;
 use num_traits::clamp;
 #[cfg(feature = "wasm")]
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "wasm")]
-use tsify::Tsify;
 
 use crate::{
     color::{lab::Lab, luv::Luv, rgb::RGB, white_point::WhitePoint, Oklab},
@@ -39,17 +37,13 @@ use crate::{
 /// assert_eq!(format!("{}", oklab), "Oklab(0.70, 0.27, -0.17)");
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
-#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
 pub struct XYZ<T = f64>
 where
     T: FloatNumber,
 {
-    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub x: T,
-    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub y: T,
-    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub z: T,
 }
 
@@ -326,8 +320,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "wasm")]
-    use indoc::indoc;
     use rstest::rstest;
     #[cfg(feature = "wasm")]
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
@@ -394,21 +386,6 @@ mod tests {
                 Token::StructEnd,
             ],
         );
-    }
-
-    #[test]
-    #[cfg(feature = "wasm")]
-    fn test_tsify() {
-        // Act & Assert
-        let expected = indoc! {
-            // language=ts
-            "export interface XYZ<T> {
-                x: number;
-                y: number;
-                z: number;
-            }"
-        };
-        assert_eq!(XYZ::<f64>::DECL, expected);
     }
 
     #[test]

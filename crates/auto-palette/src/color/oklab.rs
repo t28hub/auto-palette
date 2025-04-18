@@ -1,8 +1,6 @@
 use num_traits::clamp;
 #[cfg(feature = "wasm")]
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "wasm")]
-use tsify::Tsify;
 
 use crate::{
     color::{oklch::Oklch, XYZ},
@@ -33,17 +31,13 @@ use crate::{
 /// assert_eq!(format!("{}", xyz), "XYZ(0.15, 0.24, 0.20)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
-#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
 pub struct Oklab<T = f64>
 where
     T: FloatNumber,
 {
-    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub l: T,
-    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub a: T,
-    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub b: T,
 }
 
@@ -124,8 +118,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "wasm")]
-    use indoc::indoc;
     use rstest::rstest;
     #[cfg(feature = "wasm")]
     use serde_test::{assert_de_tokens, assert_tokens, Token};
@@ -197,21 +189,6 @@ mod tests {
                 Token::StructEnd,
             ],
         );
-    }
-
-    #[test]
-    #[cfg(feature = "wasm")]
-    fn test_tsify() {
-        // Act & Assert
-        let expected = indoc! {
-            // language=typescript
-            "export interface Oklab<T> {
-                l: number;
-                a: number;
-                b: number;
-            }"
-        };
-        assert_eq!(Oklab::<f64>::DECL, expected);
     }
 
     #[test]

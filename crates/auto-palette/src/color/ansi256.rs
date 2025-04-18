@@ -5,8 +5,6 @@ use std::{
 
 #[cfg(feature = "wasm")]
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "wasm")]
-use tsify::Tsify;
 
 use crate::color::{Ansi16, RGB};
 
@@ -25,8 +23,7 @@ use crate::color::{Ansi16, RGB};
 /// assert_eq!(format!("{}", ansi256), "ANSI256(41)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
-#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
 pub struct Ansi256 {
     code: u8,
 }
@@ -105,8 +102,6 @@ fn from_rgb(r: u8, g: u8, b: u8) -> u8 {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "wasm")]
-    use indoc::indoc;
     use rstest::rstest;
     #[cfg(feature = "wasm")]
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
@@ -166,18 +161,6 @@ mod tests {
                 Token::StructEnd,
             ],
         );
-    }
-
-    #[test]
-    #[cfg(feature = "wasm")]
-    fn test_tsify() {
-        // Act & Assert
-        let expected = indoc! {
-            "export interface Ansi256 {
-                code: number;
-            }"
-        };
-        assert_eq!(Ansi256::DECL, expected);
     }
 
     #[test]

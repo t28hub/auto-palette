@@ -2,8 +2,6 @@ use std::{fmt, fmt::Display};
 
 #[cfg(feature = "wasm")]
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "wasm")]
-use tsify::Tsify;
 
 use crate::{
     color::{hsl::HSL, xyz::XYZ, HSV},
@@ -37,8 +35,7 @@ use crate::{
 /// assert_eq!(format!("{}", xyz), "XYZ(0.42, 0.22, 0.07)");
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
-#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
 pub struct RGB {
     pub r: u8,
     pub g: u8,
@@ -223,8 +220,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "wasm")]
-    use indoc::indoc;
     use rstest::rstest;
     #[cfg(feature = "wasm")]
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
@@ -290,21 +285,6 @@ mod tests {
                 Token::StructEnd,
             ],
         );
-    }
-
-    #[test]
-    #[cfg(feature = "wasm")]
-    fn test_tsify() {
-        // Act & Assert
-        let expected = indoc! {
-            // language=ts
-            "export interface RGB {
-                r: number;
-                g: number;
-                b: number;
-            }"
-        };
-        assert_eq!(RGB::DECL, expected);
     }
 
     #[test]
