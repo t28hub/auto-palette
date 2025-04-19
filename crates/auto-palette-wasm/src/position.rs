@@ -1,20 +1,37 @@
 use serde::{Deserialize, Serialize};
-use tsify::Tsify;
+use wasm_bindgen::prelude::wasm_bindgen;
 
-/// The position representation of a swatch.
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize, Tsify)]
+#[wasm_bindgen(typescript_custom_section)]
+const TYPE_DEFINITION: &'static str = r#"
+/**
+ * The position representation in an image.
+ */
+export interface Position {
+    /**
+     * The x-coordinate of the position.
+     */
+    readonly x: number;
+
+    /**
+     * The y-coordinate of the position.
+     */
+    readonly y: number;
+}
+"#;
+
+/// The position of a color in the image.
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(rename = "Position")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
+#[wasm_bindgen(js_name = Position, skip_typescript)]
 pub struct JsPosition {
-    /// The x coordinate of the swatch.
+    /// The x-coordinate of the position.
     pub x: u32,
-    /// The y coordinate of the swatch.
+    /// The y-coordinate of the position.
     pub y: u32,
 }
 
 #[cfg(test)]
 mod tests {
-    use indoc::indoc;
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
     use wasm_bindgen_test::{wasm_bindgen_test, wasm_bindgen_test_configure};
 
@@ -22,6 +39,7 @@ mod tests {
 
     wasm_bindgen_test_configure!(run_in_browser);
 
+    #[test]
     #[wasm_bindgen_test]
     fn test_serialize() {
         // Act
@@ -44,6 +62,7 @@ mod tests {
         );
     }
 
+    #[test]
     #[wasm_bindgen_test]
     fn test_deserialize() {
         // Act
@@ -64,27 +83,5 @@ mod tests {
                 Token::StructEnd,
             ],
         );
-    }
-
-    #[wasm_bindgen_test]
-    fn test_tsify() {
-        // Assert
-        let expected = indoc! {
-            // language=TypeScript
-            "/**
-              * The position representation of a swatch.
-              */
-             export interface JsPosition {
-                 /**
-                  * The x coordinate of the swatch.
-                  */
-                 x: number;
-                 /**
-                  * The y coordinate of the swatch.
-                  */
-                 y: number;
-             }"
-        };
-        assert_eq!(JsPosition::DECL, expected);
     }
 }

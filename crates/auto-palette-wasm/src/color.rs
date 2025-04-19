@@ -1,12 +1,11 @@
 use std::str::FromStr;
 
 use auto_palette::color::Color;
-use tsify::JsValueSerdeExt;
+use serde_wasm_bindgen::to_value;
 use wasm_bindgen::{prelude::wasm_bindgen, JsError, JsValue};
 
 /// This section contains the TypeScript definition for the `Color` class.
 #[wasm_bindgen(typescript_custom_section)]
-// language=TypeScript
 const TYPE_DEFINITION: &'static str = r#"
 /**
  * The hue representation.
@@ -19,114 +18,114 @@ export type Hue = number;
  * The RGB representation.
  */
 export interface RGB {
-    r: number;
-    g: number;
-    b: number;
+    readonly r: number;
+    readonly g: number;
+    readonly b: number;
 }
 
 /**
  * The CMYK representation.
  */
 export interface CMYK {
-    c: number;
-    m: number;
-    y: number;
-    k: number;
+    readonly c: number;
+    readonly m: number;
+    readonly y: number;
+    readonly k: number;
 }
 
 /**
  * The HSL representation.
  */
 export interface HSL {
-    h: Hue;
-    s: number;
-    l: number;
+    readonly h: Hue;
+    readonly s: number;
+    readonly l: number;
 }
 
 /**
  * The HSV representation.
  */
 export interface HSV {
-    h: Hue;
-    s: number;
-    v: number;
+    readonly h: Hue;
+    readonly s: number;
+    readonly v: number;
 }
 
 /**
  * The XYZ representation.
  */
 export interface XYZ {
-    x: number;
-    y: number;
-    z: number;
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
 }
 
 /**
  * The CIE L*a*b* representation.
  */
 export interface Lab {
-    l: number;
-    a: number;
-    b: number;
+    readonly l: number;
+    readonly a: number;
+    readonly b: number;
 }
 
 /**
  * The Oklab representation.
  */
 export interface Oklab {
-    l: number;
-    a: number;
-    b: number;
+    readonly l: number;
+    readonly a: number;
+    readonly b: number;
 }
 
 /**
  * The CIE LCHab representation.
  */
 export interface LCHab {
-    l: number;
-    c: number;
-    h: Hue;
+    readonly l: number;
+    readonly c: number;
+    readonly h: Hue;
 }
 
 /**
  * The CIE L*u*v* representation.
  */
 export interface Luv {
-    l: number;
-    u: number;
-    v: number;
+    readonly l: number;
+    readonly u: number;
+    readonly v: number;
 }
 
 /**
  * The Oklch representation.
  */
 export interface Oklch {
-    l: number;
-    c: number;
-    h: Hue;
+    readonly l: number;
+    readonly c: number;
+    readonly h: Hue;
 }
 
 /**
  * The CIE LCHuv representation.
  */
 export interface LCHuv {
-    l: number;
-    c: number;
-    h: Hue;
+    readonly l: number;
+    readonly c: number;
+    readonly h: Hue;
 }
 
 /**
  * The ANSI 16 representation.
  */
 export interface Ansi16 {
-    code: number;
+    readonly code: number;
 }
 
 /**
  * The ANSI 256 representation.
  */
 export interface Ansi256 {
-    code: number;
+    readonly code: number;
 }
 
 /**
@@ -349,7 +348,7 @@ impl JsColor {
     #[wasm_bindgen]
     pub fn hue(&self) -> Result<JsValue, JsError> {
         let hue = self.0.hue();
-        JsValue::from_serde(&hue).map_err(|cause| JsError::new(&cause.to_string()))
+        to_value(&hue).map_err(|cause| JsError::new(&cause.to_string()))
     }
 
     /// Converts the color to RGB format.
@@ -359,7 +358,7 @@ impl JsColor {
     #[wasm_bindgen(js_name = "toRGB")]
     pub fn to_rgb(&self) -> Result<JsValue, JsError> {
         let rgb = self.0.to_rgb();
-        JsValue::from_serde(&rgb).map_err(|cause| JsError::new(&cause.to_string()))
+        to_value(&rgb).map_err(|cause| JsError::new(&cause.to_string()))
     }
 
     /// Converts the color to CMYK format.
@@ -369,7 +368,7 @@ impl JsColor {
     #[wasm_bindgen(js_name = "toCMYK")]
     pub fn to_cmyk(&self) -> Result<JsValue, JsError> {
         let cmyk = self.0.to_cmyk();
-        JsValue::from_serde(&cmyk).map_err(|cause| JsError::new(&cause.to_string()))
+        to_value(&cmyk).map_err(|cause| JsError::new(&cause.to_string()))
     }
 
     /// Converts the color to HSL format.
@@ -379,7 +378,7 @@ impl JsColor {
     #[wasm_bindgen(js_name = "toHSL")]
     pub fn to_hsl(&self) -> Result<JsValue, JsError> {
         let hsl = self.0.to_hsl();
-        JsValue::from_serde(&hsl).map_err(|cause| JsError::new(&cause.to_string()))
+        to_value(&hsl).map_err(|cause| JsError::new(&cause.to_string()))
     }
 
     /// Converts the color to HSV format.
@@ -389,7 +388,7 @@ impl JsColor {
     #[wasm_bindgen(js_name = "toHSV")]
     pub fn to_hsv(&self) -> Result<JsValue, JsError> {
         let hsv = self.0.to_hsv();
-        JsValue::from_serde(&hsv).map_err(|cause| JsError::new(&cause.to_string()))
+        to_value(&hsv).map_err(|cause| JsError::new(&cause.to_string()))
     }
 
     /// Converts the color to XYZ format.
@@ -399,7 +398,7 @@ impl JsColor {
     #[wasm_bindgen(js_name = "toXYZ")]
     pub fn to_xyz(&self) -> Result<JsValue, JsError> {
         let xyz = self.0.to_xyz();
-        JsValue::from_serde(&xyz).map_err(|cause| JsError::new(&cause.to_string()))
+        to_value(&xyz).map_err(|cause| JsError::new(&cause.to_string()))
     }
 
     /// Converts the color to CIE L*a*b* format.
@@ -409,7 +408,7 @@ impl JsColor {
     #[wasm_bindgen(js_name = "toLab")]
     pub fn to_lab(&self) -> Result<JsValue, JsError> {
         let lab = self.0.to_lab();
-        JsValue::from_serde(&lab).map_err(|cause| JsError::new(&cause.to_string()))
+        to_value(&lab).map_err(|cause| JsError::new(&cause.to_string()))
     }
 
     /// Converts the color to Oklab format.
@@ -419,7 +418,7 @@ impl JsColor {
     #[wasm_bindgen(js_name = "toOklab")]
     pub fn to_oklab(&self) -> Result<JsValue, JsError> {
         let oklab = self.0.to_oklab();
-        JsValue::from_serde(&oklab).map_err(|cause| JsError::new(&cause.to_string()))
+        to_value(&oklab).map_err(|cause| JsError::new(&cause.to_string()))
     }
 
     /// Converts the color to CIE LCHab format.
@@ -429,7 +428,7 @@ impl JsColor {
     #[wasm_bindgen(js_name = "toLCHab")]
     pub fn to_lchab(&self) -> Result<JsValue, JsError> {
         let lchab = self.0.to_lchab();
-        JsValue::from_serde(&lchab).map_err(|cause| JsError::new(&cause.to_string()))
+        to_value(&lchab).map_err(|cause| JsError::new(&cause.to_string()))
     }
 
     /// Converts the color to CIE L*u*v* format.
@@ -439,7 +438,7 @@ impl JsColor {
     #[wasm_bindgen(js_name = "toLuv")]
     pub fn to_luv(&self) -> Result<JsValue, JsError> {
         let luv = self.0.to_luv();
-        JsValue::from_serde(&luv).map_err(|cause| JsError::new(&cause.to_string()))
+        to_value(&luv).map_err(|cause| JsError::new(&cause.to_string()))
     }
 
     /// Converts the color to Oklch format.
@@ -449,7 +448,7 @@ impl JsColor {
     #[wasm_bindgen(js_name = "toOklch")]
     pub fn to_oklch(&self) -> Result<JsValue, JsError> {
         let oklch = self.0.to_oklch();
-        JsValue::from_serde(&oklch).map_err(|cause| JsError::new(&cause.to_string()))
+        to_value(&oklch).map_err(|cause| JsError::new(&cause.to_string()))
     }
 
     /// Converts the color to CIE LCHuv format.
@@ -459,7 +458,7 @@ impl JsColor {
     #[wasm_bindgen(js_name = "toLCHuv")]
     pub fn to_lchuv(&self) -> Result<JsValue, JsError> {
         let lchuv = self.0.to_lchuv();
-        JsValue::from_serde(&lchuv).map_err(|cause| JsError::new(&cause.to_string()))
+        to_value(&lchuv).map_err(|cause| JsError::new(&cause.to_string()))
     }
 
     /// Converts the color to ANSI 16 format.
@@ -469,7 +468,7 @@ impl JsColor {
     #[wasm_bindgen(js_name = "toAnsi16")]
     pub fn to_ansi16(&self) -> Result<JsValue, JsError> {
         let ansi16 = self.0.to_ansi16();
-        JsValue::from_serde(&ansi16).map_err(|cause| JsError::new(&cause.to_string()))
+        to_value(&ansi16).map_err(|cause| JsError::new(&cause.to_string()))
     }
 
     /// Converts the color to ANSI 256 format.
@@ -479,7 +478,7 @@ impl JsColor {
     #[wasm_bindgen(js_name = "toAnsi256")]
     pub fn to_ansi256(&self) -> Result<JsValue, JsError> {
         let ansi256 = self.0.to_ansi256();
-        JsValue::from_serde(&ansi256).map_err(|cause| JsError::new(&cause.to_string()))
+        to_value(&ansi256).map_err(|cause| JsError::new(&cause.to_string()))
     }
 
     /// Converts the color to RGB integer format.
@@ -513,7 +512,7 @@ impl JsColor {
         Self(color)
     }
 
-    /// Creates a new `Color` instance with the given hex string.
+    /// Creates a new `JsColor` instance with the given hex string.
     ///
     /// Acceptable formats are:
     /// - `#RGB` (e.g., `#f80`)
@@ -555,7 +554,8 @@ mod tests {
             XYZ,
         },
     };
-    use wasm_bindgen_test::*;
+    use serde_wasm_bindgen::from_value;
+    use wasm_bindgen_test::{wasm_bindgen_test, wasm_bindgen_test_configure};
 
     use super::*;
 
@@ -608,7 +608,7 @@ mod tests {
         // Arrange
         let color = JsColor::from_int(0xff8000);
         let value = color.hue().unwrap();
-        let actual = value.into_serde::<Hue>().unwrap();
+        let actual: Hue = from_value(value).unwrap();
 
         // Assert
         assert_approx_eq!(actual.to_degrees(), 59.950111);
@@ -619,17 +619,12 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff8000);
         let value = color.to_rgb().unwrap();
-        let actual = value.into_serde::<RGB>().unwrap();
+        let actual: RGB = from_value(value).unwrap();
 
         // Assert
-        assert_eq!(
-            actual,
-            RGB {
-                r: 255,
-                g: 128,
-                b: 0
-            }
-        );
+        assert_eq!(actual.r, 255);
+        assert_eq!(actual.g, 128);
+        assert_eq!(actual.b, 0);
     }
 
     #[wasm_bindgen_test]
@@ -637,7 +632,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff8000);
         let value = color.to_cmyk().unwrap();
-        let actual = value.into_serde::<CMYK>().unwrap();
+        let actual: CMYK = from_value(value).unwrap();
 
         // Assert
         assert_approx_eq!(actual.c, 0.0, 0.1);
@@ -651,7 +646,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff0080);
         let value = color.to_hsl().unwrap();
-        let actual = value.into_serde::<HSL>().unwrap();
+        let actual: HSL = from_value(value).unwrap();
 
         // Assert
         assert_approx_eq!(actual.h.to_degrees(), 329.882352);
@@ -664,7 +659,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff0080);
         let value = color.to_hsv().unwrap();
-        let actual = value.into_serde::<HSV>().unwrap();
+        let actual: HSV = from_value(value).unwrap();
 
         // Assert
         assert_approx_eq!(actual.h.to_degrees(), 329.882352);
@@ -677,7 +672,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff8000);
         let value = color.to_xyz().unwrap();
-        let actual = value.into_serde::<XYZ>().unwrap();
+        let actual: XYZ = from_value(value).unwrap();
 
         // Assert
         assert_approx_eq!(actual.x, 0.489579);
@@ -690,7 +685,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff8000);
         let value = color.to_lab().unwrap();
-        let actual = value.into_serde::<Lab>().unwrap();
+        let actual: Lab = from_value(value).unwrap();
 
         // Assert
         assert_approx_eq!(actual.l, 67.052536);
@@ -703,7 +698,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff8000);
         let value = color.to_oklab().unwrap();
-        let actual = value.into_serde::<Oklab>().unwrap();
+        let actual: Oklab = from_value(value).unwrap();
 
         // Assert
         assert_approx_eq!(actual.l, 0.731893);
@@ -716,7 +711,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff8000);
         let value = color.to_lchab().unwrap();
-        let actual = value.into_serde::<LCHab>().unwrap();
+        let actual: LCHab = from_value(value).unwrap();
 
         // Assert
         assert_approx_eq!(actual.l, 67.052536);
@@ -729,7 +724,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff8000);
         let value = color.to_luv().unwrap();
-        let actual = value.into_serde::<Luv>().unwrap();
+        let actual: Luv = from_value(value).unwrap();
 
         // Assert
         assert_approx_eq!(actual.l, 67.052536);
@@ -742,7 +737,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff8000);
         let value = color.to_oklch().unwrap();
-        let actual = value.into_serde::<Oklch>().unwrap();
+        let actual: Oklch = from_value(value).unwrap();
 
         // Assert
         assert_approx_eq!(actual.l, 0.731893);
@@ -755,7 +750,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff8000);
         let value = color.to_lchuv().unwrap();
-        let actual = value.into_serde::<LCHuv>().unwrap();
+        let actual: LCHuv = from_value(value).unwrap();
 
         // Assert
         assert_approx_eq!(actual.l, 67.052536);
@@ -768,7 +763,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff8000);
         let value = color.to_ansi16().unwrap();
-        let actual = value.into_serde::<Ansi16>().unwrap();
+        let actual: Ansi16 = from_value(value).unwrap();
 
         // Assert
         assert_eq!(actual, Ansi16::bright_yellow());
@@ -779,7 +774,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff8000);
         let value = color.to_ansi256().unwrap();
-        let actual = value.into_serde::<Ansi256>().unwrap();
+        let actual: Ansi256 = from_value(value).unwrap();
 
         // Assert
         assert_eq!(actual, Ansi256::new(208));

@@ -20,13 +20,12 @@ rust-version = "1.84.0"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-auto-palette = { workspace = true, features = ["wasm"] }
-serde        = { workspace = true, features = ["derive"] }
-tsify        = { workspace = true }
-wasm-bindgen = { workspace = true }
-web-sys      = { workspace = true, features = ["ImageData"] }
+auto-palette       = { workspace = true, features = ["wasm"] }
+serde              = { workspace = true, features = ["derive"] }
+serde-wasm-bindgen = { workspace = true }
+wasm-bindgen       = { workspace = true }
+web-sys            = { workspace = true, features = ["ImageData"] }
 
 [dev-dependencies]
-indoc             = { workspace = true }
 serde_test        = { workspace = true }
 wasm-bindgen-test = { workspace = true }
