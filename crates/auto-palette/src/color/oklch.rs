@@ -3,8 +3,6 @@ use std::fmt::Display;
 use num_traits::clamp;
 #[cfg(feature = "wasm")]
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "wasm")]
-use tsify::Tsify;
 
 use crate::{
     color::{Hue, Oklab},
@@ -35,17 +33,13 @@ use crate::{
 /// assert_eq!(format!("{}", oklab), "Oklab(0.61, -0.12, 0.03)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
-#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
 pub struct Oklch<T = f64>
 where
     T: FloatNumber,
 {
-    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub l: T,
-    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub c: T,
-    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub h: Hue<T>,
 }
 
@@ -103,8 +97,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "wasm")]
-    use indoc::indoc;
     #[cfg(feature = "wasm")]
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
@@ -175,21 +167,6 @@ mod tests {
                 Token::StructEnd,
             ],
         );
-    }
-
-    #[test]
-    #[cfg(feature = "wasm")]
-    fn test_tsify() {
-        // Act & Assert
-        let expected = indoc! {
-            // language=ts
-            "export interface Oklch<T> {
-                l: number;
-                c: number;
-                h: number;
-            }"
-        };
-        assert_eq!(Oklch::<f64>::DECL, expected);
     }
 
     #[test]

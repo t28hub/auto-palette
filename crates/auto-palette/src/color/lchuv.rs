@@ -3,8 +3,6 @@ use std::{fmt::Display, marker::PhantomData};
 use num_traits::clamp;
 #[cfg(feature = "wasm")]
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "wasm")]
-use tsify::Tsify;
 
 use crate::{
     color::{Hue, Luv, WhitePoint, D65},
@@ -36,18 +34,14 @@ use crate::{
 /// assert_eq!(format!("{}", luv), "Luv(56.23, -46.00, 21.73)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
-#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
 pub struct LCHuv<T = f64, W = D65>
 where
     T: FloatNumber,
     W: WhitePoint,
 {
-    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub l: T,
-    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub c: T,
-    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub h: Hue<T>,
     #[cfg_attr(feature = "wasm", serde(skip))]
     _marker: PhantomData<W>,
@@ -111,8 +105,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "wasm")]
-    use indoc::indoc;
     #[cfg(feature = "wasm")]
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
@@ -184,21 +176,6 @@ mod tests {
                 Token::StructEnd,
             ],
         )
-    }
-
-    #[test]
-    #[cfg(feature = "wasm")]
-    fn test_tsify() {
-        // Act & Assert
-        let expected = indoc! {
-            // language=typescript
-            "export interface LCHuv<T> {
-                l: number;
-                c: number;
-                h: number;
-            }"
-        };
-        assert_eq!(LCHuv::<f64>::DECL, expected);
     }
 
     #[test]

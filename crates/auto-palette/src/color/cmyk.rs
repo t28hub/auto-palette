@@ -3,8 +3,6 @@ use std::fmt::{Display, Formatter};
 use num_traits::clamp;
 #[cfg(feature = "wasm")]
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "wasm")]
-use tsify::Tsify;
 
 use crate::{color::RGB, FloatNumber};
 
@@ -31,19 +29,14 @@ use crate::{color::RGB, FloatNumber};
 /// assert_eq!(format!("{}", cmyk), "CMYK(0.00, 0.00, 1.00, 0.00)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize, Tsify))]
-#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
+#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
 pub struct CMYK<T = f64>
 where
     T: FloatNumber,
 {
-    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub c: T,
-    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub m: T,
-    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub y: T,
-    #[cfg_attr(feature = "wasm", tsify(type = "number"))]
     pub k: T,
 }
 
@@ -110,8 +103,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "wasm")]
-    use indoc::indoc;
     use rstest::rstest;
     #[cfg(feature = "wasm")]
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
@@ -207,22 +198,6 @@ mod tests {
                 Token::StructEnd,
             ],
         );
-    }
-
-    #[test]
-    #[cfg(feature = "wasm")]
-    fn test_tsify() {
-        // Assert
-        let expected = indoc! {
-            // language=typescript
-            "export interface CMYK<T> {
-                c: number;
-                m: number;
-                y: number;
-                k: number;
-            }"
-        };
-        assert_eq!(CMYK::<f64>::DECL, expected);
     }
 
     #[test]

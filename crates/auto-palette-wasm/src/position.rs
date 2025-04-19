@@ -70,10 +70,20 @@ mod tests {
     fn test_tsify() {
         // Assert
         let expected = indoc! {
-            "export interface Position {
-                x: number;
-                y: number;
-            }"
+            // language=TypeScript
+            "/**
+              * The position representation of a swatch.
+              */
+             export interface JsPosition {
+                 /**
+                  * The x coordinate of the swatch.
+                  */
+                 x: number;
+                 /**
+                  * The y coordinate of the swatch.
+                  */
+                 y: number;
+             }"
         };
         assert_eq!(JsPosition::DECL, expected);
     }
