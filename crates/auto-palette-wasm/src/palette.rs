@@ -1,15 +1,62 @@
 use auto_palette::{Algorithm, ImageData, Palette, Swatch, Theme};
+use serde_wasm_bindgen::from_value;
 use wasm_bindgen::{prelude::wasm_bindgen, JsError};
 use web_sys::ImageData as ImageSource;
 
 use crate::{
+    position::JsPosition,
     swatch::JsSwatch,
     types::{JsAlgorithm, JsTheme},
 };
 
+#[wasm_bindgen(typescript_custom_section)]
+const TYPE_DEFINITION: &'static str = r#"
+/**
+ * The palette representation in an image.
+ */
+export class Palette {
+    /**
+     * The number of swatches in this palette.
+     */
+    readonly length: number;
+
+    /**
+     * Creates a new `Palette` instance.
+     *
+     * @param swatches The swatches in the palette.
+     * @returns A new `Palette` instance.
+     */
+    constructor(swatches: Swatch[]);
+
+    /**
+     * Whether this palette is empty.
+     */
+    isEmpty(): boolean;
+
+    /**
+     * Finds the best `n` swatches in this palette.
+     *
+     * @param n The number of swatches to find.
+     * @param theme The theme to use when finding the swatches.
+     * @returns The best swatches in this palette.
+     */
+    findSwatches(n: number, theme?: Theme): Swatch[];
+
+    /**
+     * Extracts a color palette from the given image.
+     *
+     * @param image The image to extract the palette from.
+     * @param algorithm The algorithm to use for palette extraction. Defaults to 'dbscan'.
+     * @returns A new `Palette` instance.
+     * @throws Error if the image is invalid or the palette extraction fails.
+     */
+    static extract(image: ImageData, algorithm?: Algorithm): Palette;
+}
+"#;
+
 /// The `Palette` class represents a color palette extracted from an image.
 #[derive(Debug)]
-#[wasm_bindgen(js_name = Palette)]
+#[wasm_bindgen(js_name = Palette, skip_typescript)]
 pub struct JsPalette(Palette<f64>);
 
 #[wasm_bindgen(js_class = Palette)]
@@ -19,22 +66,27 @@ impl JsPalette {
     /// @param swatches The swatches in the palette.
     /// @returns A new `Palette` instance.
     #[wasm_bindgen(constructor)]
-    pub fn new(swatches: Vec<JsSwatch>) -> Self {
+    pub fn new(swatches: Vec<JsSwatch>) -> Result<Self, JsError> {
         let swatches = swatches
             .into_iter()
-            .map(|swatch| {
+            .filter_map(|swatch| {
                 let color = swatch.color();
-                let position = swatch.position();
-                Swatch::new(
+                let position = swatch
+                    .position()
+                    .map(|value| from_value::<JsPosition>(value).map(|p| (p.x, p.y)).ok())
+                    .ok()
+                    .flatten()?;
+
+                Some(Swatch::new(
                     color.0,
-                    (position.x, position.y),
+                    position,
                     swatch.population(),
                     swatch.ratio(),
-                )
+                ))
             })
             .collect();
         let palette = Palette::new(swatches);
-        Self(palette)
+        Ok(Self(palette))
     }
 
     /// Returns the number of swatches in this palette.
