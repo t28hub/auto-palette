@@ -1,4 +1,6 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, fmt::Display};
+
+use thiserror::Error;
 
 use crate::math::{
     clustering::{Cluster, ClusteringAlgorithm},
@@ -7,6 +9,24 @@ use crate::math::{
     FloatNumber,
     Point,
 };
+
+#[derive(Debug, PartialEq, Error)]
+pub enum DBSCANError<T>
+where
+    T: FloatNumber + Display,
+{
+    /// Error when the minimum number of points is invalid.
+    #[error("Invalid minimum points: The minimum number of points must be greater than zero: {0}")]
+    InvalidMinPoints(usize),
+
+    /// Error when the epsilon is invalid.
+    #[error("Invalid epsilon: The epsilon must be greater than zero: {0}")]
+    InvalidEpsilon(T),
+
+    /// Error when the distance metric is invalid.
+    #[error("Empty points: The points must be non-empty.")]
+    EmptyPoints,
+}
 
 const OUTLIER: i32 = -1;
 const MARKED: i32 = -2;
@@ -44,12 +64,12 @@ where
         min_points: usize,
         epsilon: T,
         metric: DistanceMetric,
-    ) -> Result<Self, &'static str> {
+    ) -> Result<Self, DBSCANError<T>> {
         if min_points == 0 {
-            return Err("The minimum number of points must be greater than zero.");
+            return Err(DBSCANError::InvalidMinPoints(min_points));
         }
         if epsilon <= T::zero() {
-            return Err("The epsilon must be greater than zero.");
+            return Err(DBSCANError::InvalidEpsilon(epsilon));
         }
         Ok(Self {
             min_points,
@@ -113,15 +133,17 @@ impl<T, const N: usize> ClusteringAlgorithm<T, N> for DBSCAN<T>
 where
     T: FloatNumber,
 {
-    fn fit(&self, points: &[Point<T, N>]) -> Vec<Cluster<T, N>> {
+    type Err = DBSCANError<T>;
+
+    fn fit(&self, points: &[Point<T, N>]) -> Result<Vec<Cluster<T, N>>, Self::Err> {
         if points.is_empty() {
-            return Vec::new();
+            return Err(DBSCANError::EmptyPoints);
         }
 
-        let mut label = 0;
         let mut labels = vec![UNCLASSIFIED; points.len()];
         let mut clusters = Vec::new();
-        let neighbor_search = KDTreeSearch::build(points, self.metric.clone(), 16);
+        let mut current_label = 0;
+        let neighbor_search = KDTreeSearch::build(points, self.metric, 16);
         for (index, point) in points.iter().enumerate() {
             if labels[index] != UNCLASSIFIED {
                 continue;
@@ -141,14 +163,19 @@ where
                 labels[neighbor.index] = MARKED;
             }
 
-            let cluster =
-                self.expand_cluster(label, &mut labels, points, neighbors, &neighbor_search);
+            let cluster = self.expand_cluster(
+                current_label,
+                &mut labels,
+                points,
+                neighbors,
+                &neighbor_search,
+            );
             if cluster.len() >= self.min_points {
                 clusters.push(cluster);
             }
-            label += 1;
+            current_label += 1;
         }
-        clusters
+        Ok(clusters)
     }
 }
 
@@ -203,19 +230,14 @@ mod tests {
         0,
         1e-3,
         DistanceMetric::Euclidean,
-        "The minimum number of points must be greater than zero."
+        DBSCANError::InvalidMinPoints(0)
     )]
-    #[case::invalid_epsilon(
-        5,
-        0.0,
-        DistanceMetric::Euclidean,
-        "The epsilon must be greater than zero."
-    )]
+    #[case::invalid_epsilon(5, 0.0, DistanceMetric::Euclidean, DBSCANError::InvalidEpsilon(0.0))]
     fn test_new_error(
         #[case] min_points: usize,
         #[case] epsilon: f32,
         #[case] metric: DistanceMetric,
-        #[case] expected: &'static str,
+        #[case] expected: DBSCANError<f32>,
     ) {
         // Act
         let actual = DBSCAN::new(min_points, epsilon, metric);
@@ -231,7 +253,7 @@ mod tests {
         let points = sample_points();
         let dbscan = DBSCAN::new(4, 2.0, DistanceMetric::Euclidean).unwrap();
 
-        let mut actual = dbscan.fit(&points);
+        let mut actual = dbscan.fit(&points).unwrap();
         actual.sort_by(|cluster1, cluster2| cluster2.len().cmp(&cluster1.len()));
 
         // Assert
@@ -252,6 +274,7 @@ mod tests {
         let actual = dbscan.fit(&points);
 
         // Assert
-        assert!(actual.is_empty());
+        assert!(actual.is_err());
+        assert_eq!(actual.unwrap_err(), DBSCANError::EmptyPoints);
     }
 }

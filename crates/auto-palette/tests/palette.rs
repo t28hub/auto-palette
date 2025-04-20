@@ -16,9 +16,12 @@ where
 {
     // Act
     let image_data = ImageData::load(path).unwrap();
-    let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
+    let actual: Result<Palette<f64>, _> = Palette::extract(&image_data);
 
     // Assert
+    assert!(actual.is_ok());
+
+    let palette = actual.unwrap();
     assert_eq!(palette.len(), 1);
 
     let swatches = palette.swatches();
@@ -29,19 +32,28 @@ where
 fn test_extract_empty() {
     // Act
     let image_data = ImageData::load("../../gfx/colors/transparent.png").unwrap();
-    let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
+    let actual: Result<Palette<f64>, _> = Palette::extract(&image_data);
 
     // Assert
-    assert_eq!(palette.len(), 0);
+    assert!(actual.is_err());
+
+    let error = actual.err().unwrap();
+    assert_eq!(
+        error.to_string(),
+        "Image data is empty: no pixels to process"
+    );
 }
 
 #[test]
 fn test_extract_multiple_colors() {
     // Act
     let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
-    let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
+    let actual: Result<Palette<f64>, _> = Palette::extract(&image_data);
 
     // Assert
+    assert!(actual.is_ok());
+
+    let palette = actual.unwrap();
     assert_eq!(palette.len(), 6);
 }
 
@@ -55,9 +67,12 @@ fn test_extract_with_algorithm(#[case] name: &str) {
     let algorithm = Algorithm::from_str(name).unwrap();
 
     // Act
-    let palette: Palette<f32> = Palette::extract_with_algorithm(&image_data, algorithm).unwrap();
+    let actual: Result<Palette<f64>, _> = Palette::extract_with_algorithm(&image_data, algorithm);
 
     // Assert
+    assert!(actual.is_ok());
+
+    let palette = actual.unwrap();
     assert!(!palette.is_empty());
     assert!(palette.len() >= 6);
 }
@@ -74,11 +89,13 @@ where
 {
     // Act
     let image_data = ImageData::load(path).unwrap();
-    let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
-    let swatches = palette.find_swatches(n).unwrap();
+    let palette: Palette<f64> = Palette::extract(&image_data).unwrap();
+    let actual = palette.find_swatches(n);
 
     // Assert
-    assert!(!palette.is_empty());
+    assert!(actual.is_ok());
+
+    let swatches = actual.unwrap();
     assert_eq!(swatches.len(), n);
 
     let colors: Vec<_> = swatches
@@ -88,16 +105,4 @@ where
     for expected_color in expected {
         assert!(colors.contains(&expected_color.to_string()));
     }
-}
-
-#[test]
-fn test_find_swatches_with_empty_palette() {
-    // Act
-    let image_data = ImageData::load("../../gfx/colors/transparent.png").unwrap();
-    let palette: Palette<f32> = Palette::extract(&image_data).unwrap();
-    let swatches = palette.find_swatches(5).unwrap();
-
-    // Assert
-    assert!(palette.is_empty());
-    assert!(swatches.is_empty());
 }

@@ -1,5 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 
+use thiserror::Error;
+
 use crate::math::{
     clustering::{Cluster, ClusteringAlgorithm},
     neighbors::{kdtree::KDTreeSearch, neighbor::Neighbor, search::NeighborSearch},
@@ -8,9 +10,37 @@ use crate::math::{
     Point,
 };
 
+/// DBSCAN++ clustering algorithm error type.
+#[derive(Debug, PartialEq, Error)]
+pub enum DBSCANPlusPlusError<T>
+where
+    T: FloatNumber,
+{
+    /// Error when the probability is invalid.
+    #[error("Invalid probability: The probability must be in the range (0, 1]: {0}")]
+    InvalidProbability(T),
+
+    /// Error when the minimum number of points is invalid.
+    #[error("Invalid minimum points: The minimum number of points must be greater than zero: {0}")]
+    InvalidMinPoints(usize),
+
+    /// Error when the epsilon is invalid.
+    #[error("Invalid epsilon: The epsilon must be greater than zero: {0}")]
+    InvalidEpsilon(T),
+
+    /// Error when the points are empty.
+    #[error("Empty points: The points must be non-empty.")]
+    EmptyPoints,
+}
+
+/// Labels for the points in the clustering process.
+const INITIAL_LABEL: i32 = 0;
 const OUTLIER: i32 = -1;
 const MARKED: i32 = -2;
 const UNCLASSIFIED: i32 = -3;
+
+/// Default number of leaves for the KDTree.
+const DEFAULT_KDTREE_LEAVES: usize = 16;
 
 /// DBSCAN++ clustering algorithm.
 ///
@@ -46,15 +76,15 @@ where
         min_points: usize,
         epsilon: T,
         metric: DistanceMetric,
-    ) -> Result<Self, &'static str> {
+    ) -> Result<Self, DBSCANPlusPlusError<T>> {
         if (probability <= T::zero()) || (probability > T::one()) {
-            return Err("The probability must be in the range (0, 1].");
+            return Err(DBSCANPlusPlusError::InvalidProbability(probability));
         }
         if min_points == 0 {
-            return Err("The minimum number of points must be greater than zero.");
+            return Err(DBSCANPlusPlusError::InvalidMinPoints(min_points));
         }
         if epsilon <= T::zero() {
-            return Err("The epsilon must be greater than zero.");
+            return Err(DBSCANPlusPlusError::InvalidEpsilon(epsilon));
         }
         Ok(Self {
             probability,
@@ -65,7 +95,7 @@ where
     }
 
     #[must_use]
-    fn find_core_points<const N: usize, NS>(
+    fn select_core_points<const N: usize, NS>(
         &self,
         points: &[Point<T, N>],
         points_search: &NS,
@@ -73,18 +103,18 @@ where
     where
         NS: NeighborSearch<T, N>,
     {
-        let step = (T::one() / self.probability).round().trunc_to_usize();
+        let step = (T::one() / self.probability)
+            .round()
+            .trunc_to_usize()
+            .max(1);
         points
             .iter()
             .step_by(step)
-            .filter_map(|point| {
+            .filter(|point| {
                 let neighbors = points_search.search_radius(point, self.epsilon);
-                if neighbors.len() >= self.min_points {
-                    Some(*point)
-                } else {
-                    None
-                }
+                neighbors.len() >= self.min_points
             })
+            .copied()
             .collect()
     }
 
@@ -94,8 +124,8 @@ where
         core_points: &[Point<T, N>],
         core_points_search: &KDTreeSearch<T, N>,
     ) -> Vec<i32> {
-        let mut label = 0;
         let mut labels = vec![UNCLASSIFIED; core_points.len()];
+        let mut current_label = INITIAL_LABEL;
         for (index, core_point) in core_points.iter().enumerate() {
             if labels[index] != UNCLASSIFIED {
                 continue;
@@ -115,13 +145,13 @@ where
             }
 
             self.expand_cluster(
-                label,
+                current_label,
                 &mut labels,
                 core_points,
                 neighbors,
                 core_points_search,
             );
-            label += 1;
+            current_label += 1;
         }
         labels
     }
@@ -141,7 +171,7 @@ where
         while let Some(neighbor) = queue.pop_front() {
             let index = neighbor.index;
             // Skip if the point is already assigned to a cluster.
-            if labels[index] >= 0 {
+            if labels[index] >= INITIAL_LABEL {
                 continue;
             }
 
@@ -171,7 +201,7 @@ where
     }
 
     #[must_use]
-    fn assign_clusters<const N: usize, NS>(
+    fn build_clusters<const N: usize, NS>(
         &self,
         points: &[Point<T, N>],
         core_labels: &[i32],
@@ -182,21 +212,22 @@ where
     {
         let mut clusters = HashMap::new();
         for (index, point) in points.iter().enumerate() {
-            let nearest = core_points_search
-                .search_nearest(point)
-                .expect("No nearest core point found.");
+            let nearest = match core_points_search.search_nearest(point) {
+                Some(nearest) => nearest,
+                None => continue,
+            };
 
             if nearest.distance > self.epsilon {
                 continue;
             }
 
             let core_label = core_labels[nearest.index];
-            if core_label < 0 {
-                continue;
+            if core_label >= INITIAL_LABEL {
+                clusters
+                    .entry(core_label)
+                    .or_insert_with(Cluster::new)
+                    .add_member(index, point);
             }
-
-            let cluster = clusters.entry(core_label).or_insert_with(Cluster::new);
-            cluster.add_member(index, point);
         }
         clusters.into_values().collect()
     }
@@ -206,16 +237,24 @@ impl<T, const N: usize> ClusteringAlgorithm<T, N> for DBSCANPlusPlus<T>
 where
     T: FloatNumber,
 {
-    fn fit(&self, points: &[Point<T, N>]) -> Vec<Cluster<T, N>> {
+    type Err = DBSCANPlusPlusError<T>;
+
+    fn fit(&self, points: &[Point<T, N>]) -> Result<Vec<Cluster<T, N>>, DBSCANPlusPlusError<T>> {
         if points.is_empty() {
-            return Vec::new();
+            return Err(DBSCANPlusPlusError::EmptyPoints);
         }
 
-        let points_search = KDTreeSearch::build(points, self.metric.clone(), 16);
-        let core_points = self.find_core_points(points, &points_search);
-        let core_points_search = KDTreeSearch::build(&core_points, self.metric.clone(), 16);
+        let points_search = KDTreeSearch::build(points, self.metric, DEFAULT_KDTREE_LEAVES);
+        let core_points = self.select_core_points(points, &points_search);
+        if core_points.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let core_points_search =
+            KDTreeSearch::build(&core_points, self.metric, DEFAULT_KDTREE_LEAVES);
         let core_labels = self.label_core_points(&core_points, &core_points_search);
-        self.assign_clusters(points, &core_labels, &core_points_search)
+        let clusters = self.build_clusters(points, &core_labels, &core_points_search);
+        Ok(clusters)
     }
 }
 
@@ -275,35 +314,35 @@ mod tests {
         5,
         0.1,
         DistanceMetric::Euclidean,
-        "The probability must be in the range (0, 1]."
+        DBSCANPlusPlusError::InvalidProbability(0.0)
     )]
     #[case::invalid_min_points(
         0.5,
         0,
         0.1,
         DistanceMetric::Euclidean,
-        "The minimum number of points must be greater than zero."
+        DBSCANPlusPlusError::InvalidMinPoints(0)
     )]
     #[case::invalid_epsilon(
         0.5,
         5,
         0.0,
         DistanceMetric::Euclidean,
-        "The epsilon must be greater than zero."
+        DBSCANPlusPlusError::InvalidEpsilon(0.0)
     )]
     fn test_new_error(
         #[case] probability: f64,
         #[case] min_points: usize,
         #[case] epsilon: f64,
         #[case] metric: DistanceMetric,
-        #[case] expected: &'static str,
+        #[case] expected: DBSCANPlusPlusError<f64>,
     ) {
         // Act
         let actual = DBSCANPlusPlus::new(probability, min_points, epsilon, metric);
 
         // Assert
         assert!(actual.is_err());
-        assert_eq!(actual, Err(expected));
+        assert_eq!(actual.unwrap_err(), expected);
     }
 
     #[test]
@@ -312,11 +351,24 @@ mod tests {
         let dbscanpp = DBSCANPlusPlus::new(0.5, 3, 2.0, DistanceMetric::Euclidean).unwrap();
         let points = sample_points();
 
-        let mut actual = dbscanpp.fit(&points);
+        let mut actual = dbscanpp.fit(&points).unwrap();
         actual.sort_by(|cluster1, cluster2| cluster2.len().cmp(&cluster1.len()));
 
         // Assert
         assert_eq!(actual.len(), 3);
+    }
+
+    #[test]
+    fn test_fit_core_points_empty() {
+        // Arrange
+        let dbscanpp = DBSCANPlusPlus::new(0.5, 8, 2.0, DistanceMetric::Euclidean).unwrap();
+        let points = sample_points();
+
+        // Act
+        let actual = dbscanpp.fit(&points).unwrap();
+
+        // Assert
+        assert_eq!(actual.len(), 0);
     }
 
     #[test]
@@ -327,6 +379,7 @@ mod tests {
         let actual = dbscanpp.fit(&points);
 
         // Assert
-        assert!(actual.is_empty());
+        assert!(actual.is_err());
+        assert_eq!(actual.unwrap_err(), DBSCANPlusPlusError::EmptyPoints);
     }
 }
