@@ -33,8 +33,7 @@ impl Algorithm {
     ///
     /// # Returns
     /// The clusters found by the algorithm.
-    #[must_use]
-    pub(crate) fn cluster<T>(&self, pixels: &[Point<T, 5>]) -> Vec<Cluster<T, 5>>
+    pub(crate) fn cluster<T>(&self, pixels: &[Point<T, 5>]) -> Result<Vec<Cluster<T, 5>>, Error>
     where
         T: FloatNumber + AliasableWeight,
     {
@@ -61,43 +60,75 @@ impl FromStr for Algorithm {
     }
 }
 
-fn cluster_with_kmeans<T>(pixels: &[Point<T, 5>]) -> Vec<Cluster<T, 5>>
+const KMEANS_CLUSTER_COUNT: usize = 32;
+const KMEANS_MAX_ITER: usize = 100;
+const KMEANS_TOLERANCE: f64 = 1e-3;
+
+fn cluster_with_kmeans<T>(pixels: &[Point<T, 5>]) -> Result<Vec<Cluster<T, 5>>, Error>
 where
     T: FloatNumber + AliasableWeight,
 {
     let clustering = KMeans::new(
-        32,
-        100,
-        T::from_f32(1e-3),
+        KMEANS_CLUSTER_COUNT,
+        KMEANS_MAX_ITER,
+        T::from_f64(KMEANS_TOLERANCE),
         DistanceMetric::SquaredEuclidean,
         rand::rng(),
     )
-    .unwrap();
-    clustering.fit(pixels)
+    .map_err(|e| Error::PaletteExtractionError {
+        details: e.to_string(),
+    })?;
+    clustering
+        .fit(pixels)
+        .map_err(|e| Error::PaletteExtractionError {
+            details: e.to_string(),
+        })
 }
 
-#[must_use]
-fn cluster_with_dbscan<T>(pixels: &[Point<T, 5>]) -> Vec<Cluster<T, 5>>
+const DBSCAN_MIN_POINTS: usize = 16;
+const DBSCAN_EPSILON: f64 = 16e-4;
+
+fn cluster_with_dbscan<T>(pixels: &[Point<T, 5>]) -> Result<Vec<Cluster<T, 5>>, Error>
 where
     T: FloatNumber,
 {
-    let clustering = DBSCAN::new(16, T::from_f32(16e-4), DistanceMetric::SquaredEuclidean).unwrap();
-    clustering.fit(pixels)
+    let clustering = DBSCAN::new(
+        DBSCAN_MIN_POINTS,
+        T::from_f64(DBSCAN_EPSILON),
+        DistanceMetric::SquaredEuclidean,
+    )
+    .map_err(|e| Error::PaletteExtractionError {
+        details: e.to_string(),
+    })?;
+    clustering
+        .fit(pixels)
+        .map_err(|e| Error::PaletteExtractionError {
+            details: e.to_string(),
+        })
 }
 
-#[must_use]
-fn cluster_with_dbscanpp<T>(pixels: &[Point<T, 5>]) -> Vec<Cluster<T, 5>>
+const DBSCANPP_PROBABILITY: f64 = 0.1;
+const DBSCANPP_MIN_POINTS: usize = 16;
+const DBSCANPP_EPSILON: f64 = 16e-4;
+
+fn cluster_with_dbscanpp<T>(pixels: &[Point<T, 5>]) -> Result<Vec<Cluster<T, 5>>, Error>
 where
     T: FloatNumber,
 {
     let clustering = DBSCANPlusPlus::new(
-        T::from_f32(0.1),
-        16,
-        T::from_f32(16e-4),
+        T::from_f64(DBSCANPP_PROBABILITY),
+        DBSCANPP_MIN_POINTS,
+        T::from_f64(DBSCANPP_EPSILON),
         DistanceMetric::SquaredEuclidean,
     )
-    .unwrap();
-    clustering.fit(pixels)
+    .map_err(|e| Error::PaletteExtractionError {
+        details: e.to_string(),
+    })?;
+    clustering
+        .fit(pixels)
+        .map_err(|e| Error::PaletteExtractionError {
+            details: e.to_string(),
+        })
 }
 
 #[cfg(test)]
@@ -137,5 +168,41 @@ mod tests {
             actual.unwrap_err().to_string(),
             format!("Unsupported algorithm specified: '{}'", input)
         );
+    }
+
+    #[test]
+    fn test_cluster_with_dbscan_empty() {
+        // Arrange
+        let pixels: Vec<Point<f32, 5>> = vec![];
+
+        // Act
+        let actual = cluster_with_dbscan(&pixels);
+
+        // Assert
+        assert!(actual.is_err());
+    }
+
+    #[test]
+    fn test_cluster_with_dbscanpp_empty() {
+        // Arrange
+        let pixels: Vec<Point<f32, 5>> = vec![];
+
+        // Act
+        let actual = cluster_with_dbscanpp(&pixels);
+
+        // Assert
+        assert!(actual.is_err());
+    }
+
+    #[test]
+    fn test_cluster_with_kmeans_empty() {
+        // Arrange
+        let pixels: Vec<Point<f32, 5>> = vec![];
+
+        // Act
+        let actual = cluster_with_kmeans(&pixels);
+
+        // Assert
+        assert!(actual.is_err());
     }
 }

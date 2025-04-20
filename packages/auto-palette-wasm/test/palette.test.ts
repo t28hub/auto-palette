@@ -144,20 +144,20 @@ describe('@auto-palette/wasm/palette', () => {
 
       // Assert
       expect(actual).toHaveLength(3);
-      expect(actual[0].color).toBeSameColor('#FF6F61');
+      expect(actual[0].color).toBeSameColor('#6DE1D2');
       expect(actual[1].color).toBeSameColor('#FFD63A');
-      expect(actual[2].color).toBeSameColor('#6DE1D2');
+      expect(actual[2].color).toBeSameColor('#FF6F61');
     });
 
     it.each([
-      { theme: 'vivid', count: 3, expected: ['#4F1C51', '#FFD63A', '#FF6F61'] },
-      { theme: 'muted', count: 3, expected: ['#A27B5C', '#3F4F44', '#604652'] },
-      { theme: 'light', count: 3, expected: ['#6DE1D2', '#F7CFD8', '#FF6F61'] },
-      { theme: 'dark', count: 3, expected: ['#604652', '#210F37', '#3F4F44'] },
+      { theme: 'vivid', count: 3, expected: ['#FFD63A', '#4F1C51', '#FF6F61'] },
+      { theme: 'muted', count: 3, expected: ['#604652', '#A27B5C', '#3F4F44'] },
+      { theme: 'light', count: 3, expected: ['#6DE1D2', '#FF6F61', '#F7CFD8'] },
+      { theme: 'dark', count: 3, expected: ['#210F37', '#3F4F44', '#604652'] },
       {
         theme: 'colorful',
         count: 3,
-        expected: ['#FF6F61', '#6DE1D2', '#4F1C51'],
+        expected: ['#4F1C51', '#FF6F61', '#6DE1D2'],
       },
     ])(
       'should find the swatches from the palette with $theme theme',

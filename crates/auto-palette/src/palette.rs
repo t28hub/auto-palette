@@ -155,18 +155,19 @@ where
             return Ok(vec![]);
         }
 
+        let num_swatches = num_swatches.min(self.swatches.len());
         let (colors, scores): (Vec<Point<T, 3>>, Vec<T>) = self
             .swatches
             .iter()
             .map(|swatch| {
                 let color = swatch.color();
-                let score = score_fn(swatch);
-                ([color.l, color.a, color.b], score)
+                ([color.l, color.a, color.b], score_fn(swatch))
             })
             .unzip();
 
-        let sampled = sampling_factory(scores)
-            .map_err(|cause| Error::SwatchSelectionError { cause })?
+        let sampler =
+            sampling_factory(scores).map_err(|cause| Error::SwatchSelectionError { cause })?;
+        let sampled = sampler
             .sample(&colors, num_swatches)
             .map_err(|cause| Error::SwatchSelectionError { cause })?;
 
@@ -205,7 +206,7 @@ where
 
         let width = image_data.width();
         let height = image_data.height();
-        let pixel_clusters = cluster_pixels(width as usize, height as usize, pixels, algorithm);
+        let pixel_clusters = cluster_pixels(width as usize, height as usize, pixels, algorithm)?;
         let color_clusters = cluster_to_color_groups(&pixel_clusters)?;
         let mut swatches = convert_swatches_from_clusters(
             T::from_u32(width),
@@ -231,19 +232,18 @@ where
 ///
 /// # Returns
 /// The pixel clusters containing the color information and pixel positions.
-#[must_use]
 fn cluster_pixels<T>(
     width: usize,
     height: usize,
     data: &[u8],
     algorithm: Algorithm,
-) -> Vec<Cluster<T, 5>>
+) -> Result<Vec<Cluster<T, 5>>, Error>
 where
     T: FloatNumber + AliasableWeight,
 {
     let width_f = T::from_usize(width);
     let height_f = T::from_usize(height);
-    let points = data
+    let points: Vec<_> = data
         .chunks(4)
         .enumerate()
         .filter_map(|(index, pixel)| {
@@ -264,9 +264,16 @@ where
                 ])
             }
         })
-        .collect::<Vec<_>>();
+        .collect();
+
+    if points.is_empty() {
+        return Err(Error::EmptyImageData);
+    }
     algorithm.cluster::<T>(&points)
 }
+
+const COLOR_GROUP_DBSCAN_MIN_POINTS: usize = 1;
+const COLOR_GROUP_DBSCAN_EPSILON: f64 = 2.5;
 
 /// Clusters the color groups from the pixel clusters.
 ///
@@ -282,7 +289,7 @@ fn cluster_to_color_groups<T>(pixel_clusters: &[Cluster<T, 5>]) -> Result<Vec<Cl
 where
     T: FloatNumber,
 {
-    let colors = pixel_clusters
+    let colors: Vec<_> = pixel_clusters
         .iter()
         .map(|cluster| -> Point<T, 3> {
             let centroid = cluster.centroid();
@@ -292,14 +299,21 @@ where
                 denormalize(centroid[2], Lab::<T>::min_b(), Lab::<T>::max_b()),
             ]
         })
-        .collect::<Vec<_>>();
-    let algorithm = DBSCAN::new(1, T::from_f32(2.5), DistanceMetric::Euclidean).map_err(|_| {
-        Error::PaletteExtractionError {
-            details: "Failed to initialize DBSCAN algorithm".to_string(),
-        }
+        .collect();
+
+    let dbscan = DBSCAN::new(
+        COLOR_GROUP_DBSCAN_MIN_POINTS,
+        T::from_f64(COLOR_GROUP_DBSCAN_EPSILON),
+        DistanceMetric::Euclidean,
+    )
+    .map_err(|e| Error::PaletteExtractionError {
+        details: e.to_string(),
     })?;
-    let clusters = algorithm.fit(&colors);
-    Ok(clusters)
+    dbscan
+        .fit(&colors)
+        .map_err(|e| Error::PaletteExtractionError {
+            details: e.to_string(),
+        })
 }
 
 /// Converts the color clusters and pixel clusters into swatches.
@@ -495,9 +509,24 @@ mod tests {
     #[test]
     fn test_extract_empty_image_data() {
         // Act
-        let data = Vec::<u8>::new();
+        let data: Vec<u8> = Vec::new();
         let image_data = ImageData::new(0, 0, &data).unwrap();
-        let result = Palette::<f32>::extract(&image_data);
+        let result: Result<Palette<f64>, _> = Palette::extract(&image_data);
+
+        // Assert
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Image data is empty: no pixels to process"
+        );
+    }
+
+    #[test]
+    fn test_extract_transparent_image() {
+        // Act
+        let data: Vec<u8> = vec![0; 4 * 10 * 10]; // 10x10 transparent image
+        let image_data = ImageData::new(10, 10, &data).unwrap();
+        let result: Result<Palette<f64>, _> = Palette::extract(&image_data);
 
         // Assert
         assert!(result.is_err());

@@ -9,6 +9,9 @@ pub trait ClusteringAlgorithm<T, const N: usize>
 where
     T: FloatNumber,
 {
+    /// The error type for the clustering algorithm.
+    type Err;
+
     /// Fits the clustering algorithm to the given points.
     ///
     /// # Arguments
@@ -16,5 +19,5 @@ where
     ///
     /// # Returns
     /// The clusters of the points.
-    fn fit(&self, points: &[Point<T, N>]) -> Vec<Cluster<T, N>>;
+    fn fit(&self, points: &[Point<T, N>]) -> Result<Vec<Cluster<T, N>>, Self::Err>;
 }

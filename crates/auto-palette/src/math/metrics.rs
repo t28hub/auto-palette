@@ -5,7 +5,7 @@ use crate::math::{point::Point, FloatNumber};
 /// DistanceMetric enum used to measure the distance between two points.
 ///
 /// This enum provides different methods to calculate distance between points in an N-dimensional space.
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum DistanceMetric {
     /// The Euclidean distance, used to measure the straight-line distance between two points.
     #[default]
@@ -34,8 +34,8 @@ impl DistanceMetric {
         T: FloatNumber,
     {
         match self {
-            DistanceMetric::Euclidean => measure_squared_euclidean(point1, point2).sqrt(),
-            DistanceMetric::SquaredEuclidean => measure_squared_euclidean(point1, point2),
+            DistanceMetric::Euclidean => squared_euclidean(point1, point2).sqrt(),
+            DistanceMetric::SquaredEuclidean => squared_euclidean(point1, point2),
         }
     }
 }
@@ -56,7 +56,7 @@ impl DistanceMetric {
 /// The squared Euclidean distance between the two points.
 #[inline]
 #[must_use]
-fn measure_squared_euclidean<T, const N: usize>(point1: &Point<T, N>, point2: &Point<T, N>) -> T
+fn squared_euclidean<T, const N: usize>(point1: &Point<T, N>, point2: &Point<T, N>) -> T
 where
     T: FloatNumber,
 {
