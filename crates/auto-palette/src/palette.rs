@@ -1,4 +1,4 @@
-use std::cmp::Reverse;
+use std::{cmp::Reverse, marker::PhantomData};
 
 use rand_distr::weighted::AliasableWeight;
 
@@ -176,6 +176,15 @@ where
         Ok(found)
     }
 
+    /// Creates a new `PaletteBuilder` instance.
+    ///
+    /// # Returns
+    /// A new `PaletteBuilder` instance.
+    #[must_use]
+    pub fn builder() -> PaletteBuilder<T> {
+        PaletteBuilder::new()
+    }
+
     /// Extracts the palette from the image data. The default clustering algorithm is DBSCAN.
     ///
     /// # Arguments
@@ -184,7 +193,7 @@ where
     /// # Returns
     /// The extracted palette.
     pub fn extract(image_data: &ImageData) -> Result<Self, Error> {
-        Self::extract_with_algorithm(image_data, Algorithm::default())
+        Self::builder().build(image_data)
     }
 
     /// Extracts the palette from the image data with the given algorithm.
@@ -195,18 +204,151 @@ where
     ///
     /// # Returns
     /// The extracted palette.
+    #[deprecated(
+        since = "0.8.0",
+        note = "Use `Palette::extract` or `Palette::builder` instead."
+    )]
     pub fn extract_with_algorithm(
         image_data: &ImageData,
         algorithm: Algorithm,
     ) -> Result<Self, Error> {
+        Self::builder().algorithm(algorithm).build(image_data)
+    }
+}
+
+const PIXEL_SIZE: usize = 4;
+
+/// The pixel representation in the image data.
+/// This is a 4-byte array representing the RGBA values of a pixel.
+pub type Pixel = [u8; PIXEL_SIZE];
+
+/// A filter function type for filtering pixels.
+type DynFilterFn = Box<dyn Fn(&Pixel) -> bool + Send + Sync + 'static>;
+
+/// The builder for creating a `Palette` instance.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
+///
+/// # Examples
+/// ```
+/// #[cfg(feature = "image")]
+/// {
+///     use auto_palette::{Algorithm, ImageData, Palette};
+///
+///     let image_data = ImageData::load("../../gfx/flags/za.png").unwrap();
+///     let palette: Palette<f64> = Palette::builder()
+///         .algorithm(Algorithm::KMeans)
+///         .filter(|pixel| pixel[3] == 0)
+///         .build(&image_data)
+///         .unwrap();
+///
+///     assert!(!palette.is_empty());
+///     assert!(palette.len() >= 6);
+/// }
+/// ```
+pub struct PaletteBuilder<T>
+where
+    T: FloatNumber + AliasableWeight,
+{
+    algorithm: Algorithm,
+    filters: Vec<DynFilterFn>,
+    max_swatches: usize,
+    _marker: PhantomData<T>,
+}
+
+impl<T> PaletteBuilder<T>
+where
+    T: FloatNumber + AliasableWeight,
+{
+    /// The default maximum number of swatches to extract.
+    const DEFAULT_MAX_SWATCHES: usize = 256;
+
+    /// Creates a new `PaletteBuilder` instance.
+    ///
+    /// # Returns
+    /// A new `PaletteBuilder` instance.
+    #[must_use]
+    fn new() -> PaletteBuilder<T> {
+        PaletteBuilder {
+            algorithm: Algorithm::default(),
+            filters: vec![
+                Box::new(|pixel: &Pixel| pixel[3] == 0), // Ignore transparent pixel
+            ],
+            max_swatches: Self::DEFAULT_MAX_SWATCHES,
+            _marker: PhantomData,
+        }
+    }
+
+    /// Sets the clustering algorithm to use.
+    ///
+    /// # Arguments
+    /// * `algorithm` - The clustering algorithm to use.
+    ///
+    /// # Returns
+    /// A mutable reference to the `PaletteBuilder`.
+    pub fn algorithm(mut self, algorithm: Algorithm) -> Self {
+        self.algorithm = algorithm;
+        self
+    }
+
+    /// Sets the filter to use.
+    ///
+    /// # Arguments
+    /// * `filter` - The filter to use.
+    ///
+    /// # Returns
+    /// A mutable reference to the `PaletteBuilder`.
+    #[must_use]
+    pub fn filter<F>(mut self, filter: F) -> Self
+    where
+        F: Fn(&Pixel) -> bool + Send + Sync + 'static,
+    {
+        self.filters.push(Box::new(filter));
+        self
+    }
+
+    /// Sets the maximum number of swatches to extract.
+    ///
+    /// # Arguments
+    /// * `max_swatches` - The maximum number of swatches to extract.
+    ///
+    /// # Returns
+    /// A mutable reference to the `PaletteBuilder`.
+    #[must_use]
+    pub fn max_swatches(mut self, max_swatches: usize) -> Self {
+        self.max_swatches = max_swatches;
+        self
+    }
+
+    /// Builds the palette from the image data.
+    ///
+    /// # Type Parameters
+    /// * `T` - The floating point type.
+    ///
+    /// # Arguments
+    /// * `image_data` - The image data to extract the palette from.
+    ///
+    /// # Returns
+    /// The `Palette` instance built from the image data.
+    pub fn build(self, image_data: &ImageData) -> Result<Palette<T>, Error> {
         let pixels = image_data.data();
         if pixels.is_empty() {
             return Err(Error::EmptyImageData);
         }
 
+        // 1. Convert the pixel data to feature points (Lab color space + pixel coordinates).
         let width = image_data.width();
         let height = image_data.height();
-        let pixel_clusters = cluster_pixels(width as usize, height as usize, pixels, algorithm)?;
+        let points = to_feature_points::<T>(width as usize, height as usize, pixels, &self.filters);
+        if points.is_empty() {
+            return Err(Error::EmptyImageData);
+        }
+
+        // 2. Group the points into clusters using the specified algorithm.
+        let pixel_clusters = self.algorithm.cluster(&points)?;
+
+        // 3. Merge similar color clusters and create swatches.
         let color_clusters = cluster_to_color_groups(&pixel_clusters)?;
         let mut swatches = convert_swatches_from_clusters(
             T::from_u32(width),
@@ -215,61 +357,57 @@ where
             &pixel_clusters,
         );
         swatches.sort_by_key(|swatch| Reverse(swatch.population()));
-        Ok(Self { swatches })
+
+        let palette = Palette::new(swatches.into_iter().take(self.max_swatches).collect());
+        Ok(palette)
     }
 }
 
-/// Clusters the pixels in the image data using the specified algorithm.
+/// Converts the pixel data to feature points (Lab color space + pixel coordinates) for clustering.
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
+/// * `F` - The filter function type.
 ///
 /// # Arguments
 /// * `width` - The width of the image data.
 /// * `height` - The height of the image data.
-/// * `data` - The pixel data of the image data.
-/// * `algorithm` - The clustering algorithm to use.
+/// * `data` - The pixel data of the image.
+/// * `filters` - The filters to apply to the pixel data.
 ///
 /// # Returns
-/// The pixel clusters containing the color information and pixel positions.
-fn cluster_pixels<T>(
+/// The pixel data converted to Lab color space + pixel coordinates.
+fn to_feature_points<T>(
     width: usize,
     height: usize,
     data: &[u8],
-    algorithm: Algorithm,
-) -> Result<Vec<Cluster<T, 5>>, Error>
+    filters: &[DynFilterFn],
+) -> Vec<Point<T, 5>>
 where
     T: FloatNumber + AliasableWeight,
 {
     let width_f = T::from_usize(width);
     let height_f = T::from_usize(height);
-    let points: Vec<_> = data
-        .chunks(4)
+    data.array_chunks::<PIXEL_SIZE>()
         .enumerate()
-        .filter_map(|(index, pixel)| {
-            // Ignore transparent pixels.
-            if pixel[3] == 0 {
-                None
-            } else {
-                let (x, y, z) = rgb_to_xyz::<T>(pixel[0], pixel[1], pixel[2]);
-                let (l, a, b) = xyz_to_lab::<T, D65>(x, y, z);
-                let x = T::from_usize(index % width);
-                let y = T::from_usize(index / width);
-                Some([
-                    normalize(l, Lab::<T>::min_l(), Lab::<T>::max_l()),
-                    normalize(a, Lab::<T>::min_a(), Lab::<T>::max_a()),
-                    normalize(b, Lab::<T>::min_b(), Lab::<T>::max_b()),
-                    normalize(x, T::zero(), width_f),
-                    normalize(y, T::zero(), height_f),
-                ])
+        .filter_map(|(index, chunk)| {
+            if filters.iter().any(|filter| filter(chunk)) {
+                return None;
             }
-        })
-        .collect();
 
-    if points.is_empty() {
-        return Err(Error::EmptyImageData);
-    }
-    algorithm.cluster::<T>(&points)
+            let (x, y, z) = rgb_to_xyz::<T>(chunk[0], chunk[1], chunk[2]);
+            let (l, a, b) = xyz_to_lab::<T, D65>(x, y, z);
+            let x = T::from_usize(index % width);
+            let y = T::from_usize(index / width);
+            Some([
+                normalize(l, Lab::<T>::min_l(), Lab::<T>::max_l()),
+                normalize(a, Lab::<T>::min_a(), Lab::<T>::max_a()),
+                normalize(b, Lab::<T>::min_b(), Lab::<T>::max_b()),
+                normalize(x, T::zero(), width_f),
+                normalize(y, T::zero(), height_f),
+            ])
+        })
+        .collect()
 }
 
 const COLOR_GROUP_DBSCAN_MIN_POINTS: usize = 1;
@@ -478,40 +616,69 @@ mod tests {
         assert_eq!(actual.len(), 0);
     }
 
-    #[test]
-    #[cfg(feature = "image")]
-    fn test_extract() {
-        // Act
-        let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
-        let actual: Palette<f32> = Palette::extract(&image_data).unwrap();
-
-        // Assert
-        assert!(!actual.is_empty());
-        assert!(actual.len() >= 3);
-    }
-
     #[cfg(feature = "image")]
     #[rstest]
     #[case::kmeans("kmeans")]
     #[case::dbscan("dbscan")]
     #[case::dbscanpp("dbscan++")]
-    fn test_extract_with_algorithm(#[case] name: &str) {
+    fn test_builder_with_algorithm(#[case] name: &str) {
         // Act
         let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
         let algorithm = Algorithm::from_str(name).unwrap();
-        let actual: Palette<f32> = Palette::extract_with_algorithm(&image_data, algorithm).unwrap();
+        let actual: Palette<f32> = Palette::builder()
+            .algorithm(algorithm)
+            .build(&image_data)
+            .unwrap();
 
         // Assert
         assert!(!actual.is_empty());
         assert!(actual.len() >= 5);
     }
 
+    #[cfg(feature = "image")]
     #[test]
-    fn test_extract_empty_image_data() {
+    fn test_builder_with_filter() {
+        // Arrange
+        let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
+        let actual: Palette<f32> = Palette::builder()
+            .filter(|pixel| pixel[3] == 0x00)
+            .filter(|pixel| pixel[0] == 0xff || pixel[1] == 0xff || pixel[2] == 0xff)
+            .build(&image_data)
+            .unwrap();
+
+        // Assert
+        assert!(!actual.is_empty());
+        assert_eq!(actual.len(), 5);
+        assert_eq!(actual.swatches[0].color().to_hex_string(), "#0081C8");
+        assert_eq!(actual.swatches[1].color().to_hex_string(), "#EE334E");
+        assert_eq!(actual.swatches[2].color().to_hex_string(), "#000000");
+        assert_eq!(actual.swatches[3].color().to_hex_string(), "#01A651");
+        assert_eq!(actual.swatches[4].color().to_hex_string(), "#FCB131");
+    }
+
+    #[cfg(feature = "image")]
+    #[test]
+    fn test_builder_max_swatches() {
+        // Arrange
+        let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
+
+        // Act
+        let actual: Palette<f32> = Palette::builder()
+            .max_swatches(3)
+            .build(&image_data)
+            .unwrap();
+
+        // Assert
+        assert!(!actual.is_empty());
+        assert_eq!(actual.len(), 3);
+    }
+
+    #[test]
+    fn test_builder_empty_image_data() {
         // Act
         let data: Vec<u8> = Vec::new();
         let image_data = ImageData::new(0, 0, &data).unwrap();
-        let result: Result<Palette<f64>, _> = Palette::extract(&image_data);
+        let result: Result<Palette<f64>, _> = Palette::builder().build(&image_data);
 
         // Assert
         assert!(result.is_err());
@@ -526,7 +693,7 @@ mod tests {
         // Act
         let data: Vec<u8> = vec![0; 4 * 10 * 10]; // 10x10 transparent image
         let image_data = ImageData::new(10, 10, &data).unwrap();
-        let result: Result<Palette<f64>, _> = Palette::extract(&image_data);
+        let result: Result<Palette<f64>, _> = Palette::builder().build(&image_data);
 
         // Assert
         assert!(result.is_err());
@@ -534,6 +701,32 @@ mod tests {
             result.unwrap_err().to_string(),
             "Image data is empty: no pixels to process"
         );
+    }
+
+    #[test]
+    #[cfg(feature = "image")]
+    fn test_extract() {
+        // Act
+        let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
+        let actual: Palette<f64> = Palette::extract(&image_data).unwrap();
+
+        // Assert
+        assert!(!actual.is_empty());
+        assert!(actual.len() >= 3);
+    }
+
+    #[warn(deprecated)]
+    #[test]
+    #[cfg(feature = "image")]
+    fn test_extract_with_algorithm() {
+        // Act
+        let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
+        let actual: Palette<f64> =
+            Palette::extract_with_algorithm(&image_data, Algorithm::DBSCANpp).unwrap();
+
+        // Assert
+        assert!(!actual.is_empty());
+        assert!(actual.len() >= 3);
     }
 
     #[test]

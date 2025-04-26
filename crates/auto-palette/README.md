@@ -135,16 +135,20 @@ let palette: Palette<f64> = Palette::extract(&image_data).unwrap();
 
 <a id="palette-extract-with-algorithm"></a>
 
-#### `Palette::extract_with_algorithm`
+#### `Palette::builder`
 
-Extracts the color palette from the given `ImageData` with the specified `Algorithm`.
-The supported algorithms are `DBSCAN`, `DBSCAN++`, and `KMeans++`.
+Creates a new `PaletteBuilder` instance to customize the palette extraction process.
+This method allows you to specify the algorithm, color filter, and other options.
 
 ```rust
 // Load the image data from the file
 let image_data = ImageData::load("path/to/image.jpg").unwrap();
 // Extract the color palette from the image data with the specified algorithm
-let palette: Palette<f64> = Palette::extract_with_algorithm(&image_data, Algorithm::DBSCAN).unwrap();
+let palette: Palette<f64> = Palette::builder()
+    .algorithm(Algorithm::DBSCANpp)
+    .color_filter(|pixel| pixel[0] > 128 && pixel[1] > 128 && pixel[2] > 128)
+    .build(&image_data)
+    .unwrap();
 ```
 
 <a id="palette-find-swatches"></a>

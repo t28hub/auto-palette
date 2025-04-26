@@ -25,7 +25,10 @@ fn main() -> Result<(), Error> {
 
     // Extract the palette from the image data
     let start = Instant::now();
-    let palette: Palette<f32> = Palette::extract_with_algorithm(&image_data, algorithm)
+    let palette: Palette<f32> = Palette::builder()
+        .algorithm(algorithm)
+        .filter(|pixel| pixel[3] == 0)
+        .build(&image_data)
         .with_context(|| "Failed to extract the palette from the image data")?;
     let duration = start.elapsed();
     println!(
