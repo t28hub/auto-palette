@@ -58,7 +58,11 @@ fn main() -> anyhow::Result<()> {
 
     let instant = Instant::now();
     let algorithm = Algorithm::from(context.args().algorithm);
-    let Ok(palette) = Palette::<f32>::extract_with_algorithm(&image_data, algorithm) else {
+    let Ok(palette) = Palette::<f32>::builder()
+        .algorithm(algorithm)
+        .filter(|pixel| pixel[3] == 0)
+        .build(&image_data)
+    else {
         process::exit(1);
     };
 

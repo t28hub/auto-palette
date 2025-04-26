@@ -151,7 +151,10 @@ impl JsPalette {
             .map(Algorithm::try_from)
             .unwrap_or(Ok(Algorithm::DBSCAN))?;
 
-        let palette = Palette::extract_with_algorithm(&image_data, algorithm)
+        let palette = Palette::builder()
+            .algorithm(algorithm)
+            .filter(|pixel| pixel[3] == 0)
+            .build(&image_data)
             .map_err(|e| JsError::new(&format!("Failed to extract palette from image: {}", e)))?;
         Ok(Self(palette))
     }

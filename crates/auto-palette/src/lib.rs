@@ -1,4 +1,4 @@
-#![feature(coverage_attribute)]
+#![feature(array_chunks, coverage_attribute)]
 
 mod algorithm;
 mod assert;

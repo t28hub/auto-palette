@@ -29,22 +29,6 @@ where
 }
 
 #[test]
-fn test_extract_empty() {
-    // Act
-    let image_data = ImageData::load("../../gfx/colors/transparent.png").unwrap();
-    let actual: Result<Palette<f64>, _> = Palette::extract(&image_data);
-
-    // Assert
-    assert!(actual.is_err());
-
-    let error = actual.err().unwrap();
-    assert_eq!(
-        error.to_string(),
-        "Image data is empty: no pixels to process"
-    );
-}
-
-#[test]
 fn test_extract_multiple_colors() {
     // Act
     let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
@@ -61,13 +45,14 @@ fn test_extract_multiple_colors() {
 #[case::kmeans("kmeans")]
 #[case::dbscan("dbscan")]
 #[case::dbscanpp("dbscan++")]
-fn test_extract_with_algorithm(#[case] name: &str) {
+fn test_builder_with_algorithm(#[case] name: &str) {
     // Arrange
     let image_data = ImageData::load("../../gfx/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
     let algorithm = Algorithm::from_str(name).unwrap();
 
     // Act
-    let actual: Result<Palette<f64>, _> = Palette::extract_with_algorithm(&image_data, algorithm);
+    let actual: Result<Palette<f64>, _> =
+        Palette::builder().algorithm(algorithm).build(&image_data);
 
     // Assert
     assert!(actual.is_ok());
@@ -75,6 +60,58 @@ fn test_extract_with_algorithm(#[case] name: &str) {
     let palette = actual.unwrap();
     assert!(!palette.is_empty());
     assert!(palette.len() >= 6);
+}
+
+#[test]
+fn test_builder_with_filter() {
+    // Arrange
+    let image_data = ImageData::load("../../gfx/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
+
+    // Act
+    let actual: Result<Palette<f64>, _> = Palette::builder()
+        .filter(|pixel| pixel[3] == 0)
+        .build(&image_data);
+
+    // Assert
+    assert!(actual.is_ok());
+
+    let palette = actual.unwrap();
+    assert!(!palette.is_empty());
+    assert!(palette.len() >= 6);
+}
+
+#[test]
+fn test_builder_with_max_swatches() {
+    // Arrange
+    let image_data = ImageData::load("../../gfx/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
+
+    // Act
+    let actual: Result<Palette<f64>, _> = Palette::builder().max_swatches(16).build(&image_data);
+
+    // Assert
+    assert!(actual.is_ok());
+
+    let palette = actual.unwrap();
+    assert!(!palette.is_empty());
+    assert_eq!(palette.len(), 16);
+}
+
+#[test]
+fn test_builder_transparent() {
+    // Act
+    let image_data = ImageData::load("../../gfx/colors/transparent.png").unwrap();
+    let actual: Result<Palette<f64>, _> = Palette::builder()
+        .filter(|pixel| pixel[3] != 0)
+        .build(&image_data);
+
+    // Assert
+    assert!(actual.is_err());
+
+    let error = actual.err().unwrap();
+    assert_eq!(
+        error.to_string(),
+        "Image data is empty: no pixels to process"
+    );
 }
 
 #[rstest]
