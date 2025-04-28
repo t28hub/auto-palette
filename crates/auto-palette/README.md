@@ -1,6 +1,6 @@
 # auto-palette
 
-> 🎨 A Rust library for automatically extracting prominent color palettes from images.
+🎨 A Rust library for automatically extracting prominent color palettes from images.
 
 [![Build](https://img.shields.io/github/actions/workflow/status/t28hub/auto-palette/ci.yml?style=flat-square)](https://github.com/t28hub/auto-palette/actions/workflows/ci.yml)
 [![License](https://img.shields.io/crates/l/auto-palette?style=flat-square)](https://crates.io/crates/auto-palette)
@@ -11,7 +11,14 @@
 ## Features
 
 <img src="../../gfx/laura-clugston-pwW2iV9TZao-unsplash.jpg" alt="Hot air balloon on blue sky" width="480">
-<img src="../../gfx/palette.png" alt="Extracted Color Palette" width="480">
+
+| Theme       | Color Palette                           |
+|-------------|-----------------------------------------|
+| `(Default)` | ![Default](/gfx/palettes/default.png)   |
+| `Colorful`  | ![Colorful](/gfx/palettes/colorful.png) |
+| `Vivid`     | ![Vivid](/gfx/palettes/vivid.png)       |
+| `Muted`     | ![Muted](/gfx/palettes/muted.png)       |
+| `Light`     | ![Light](/gfx/palettes/light.png)       |
 
 > [!NOTE]
 > Photo by <a href="https://unsplash.com/@laurahclugston?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Laura Clugston</a> on <a href="https://unsplash.com/photos/multi-colored-hot-air-balloon-pwW2iV9TZao?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Unsplash</a>
@@ -28,8 +35,11 @@ Using `auto-palette` in your Rust project, add it to your `Cargo.toml`.
 
 ```toml
 [dependencies]
-auto-palette = "0.7.0"
+auto-palette = "0.8.0"
 ```
+
+> [!WARNING]
+> This project is currently in version is pre-1.0.0. While the API is stable for general use, breaking changes may still occur in future updates.
 
 ## Usage
 
@@ -114,7 +124,7 @@ let image_data = ImageData::new(2, 2, &pixels).unwrap();
 The `Palette` struct represents the color palette extracted from the `ImageData`.
 
 * [`Palette::extract`](#palette-extract)
-* [`Palette::extract_with_algorithm`](#palette-extract-with-algorithm)
+* [`Palette::builder`](#palette-extract-with-algorithm)
 * [`Palette::find_swatches`](#palette-find-swatches)
 * [`Palette::find_swatches_with_theme`](#palette-find-swatches-with-theme)
 
@@ -145,9 +155,10 @@ This method allows you to specify the algorithm, color filter, and other options
 let image_data = ImageData::load("path/to/image.jpg").unwrap();
 // Extract the color palette from the image data with the specified algorithm
 let palette: Palette<f64> = Palette::builder()
-    .algorithm(Algorithm::DBSCANpp)
-    .color_filter(|pixel| pixel[0] > 128 && pixel[1] > 128 && pixel[2] > 128)
-    .build(&image_data)
+    .algorithm(Algorithm::DBSCANpp) // Use DBSCAN++ algorithm for extraction
+    .filter(|pixel| pixel[3] < 64) // Filter out pixels with alpha < 64
+    .max_swatches(128) // Limit the maximum number of swatches to 128
+    .build(&image_data) // Build the palette from the image data
     .unwrap();
 ```
 
