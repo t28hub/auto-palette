@@ -4,29 +4,37 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/t28hub/auto-palette/compare/v0.7.0...HEAD)
+## [Unreleased](https://github.com/t28hub/auto-palette/compare/v0.8.0...HEAD)
+### Added
+### Changed
+### Deprecated
+### Removed 
+### Fixed
+### Security
+
+## [v0.8.0](https://github.com/t28hub/auto-palette/compare/v0.7.0...v0.8.0) - 2025-04-28
 ### Added
 - Add diverse sampling algorithms (Farthest, Weighted Farthest, Diversity) to improve swatch selection. (#149)
-- Add predefined **theme-based color-palette presets** and update the Rust example accordingly. (#151)
-- Add **WebAssembly support** via the new `auto-palette-wasm` npm package, exposing `Palette`, `Swatch`, and `JsColor` to JavaScript/TypeScript users. (#158, #157, #155, #154, #152)
-- Ship ready-to-use **TypeScript type declarations** for `JsColor`, `JsPalette`, and `JsSwatch`. (#166, #165)
-- Add `PaletteBuilder` for easy, chainable configuration of palette extraction (algorithms, filters, swatch limits). (#170)
+- Add theme-based palette presets and update the Rust example. (#151)
+- Add WebAssembly support via `auto-palette-wasm` npm package (exposes `Palette`, `Swatch`, `Color`). (#158, #157, #155, #154, #152)
+- Add bundled TypeScript typings for `JsColor`, `JsPalette`, and `JsSwatch`. (#165, #166)
+- Add `PaletteBuilder` for chainable palette extraction (algorithms, filters, swatch limits). (#170)
 
 ### Changed
-- Replaced all `unwrap`/`expect` calls in clustering and palette code with `Result` based handling for greater safety and readability. (#169, #148)
-- Optimised palette implementation and consolidated error handling. (#148)
-- Adopted a Gaussian function for theme scoring, improving accuracy and consistency. (#147)
-
-### Removed
-
-### Fixed
-- Corrected generated TypeScript type definitions for colour structs and added unit tests to guard against regressions. (#159)
-
-### Security
-- Patched Vite `server.fs.deny` bypass that allowed invalid request-target traversal. (#168)
-- Upgraded `axios` to resolve known vulnerabilities in transitive dependencies. (#156)
+- Replace all `unwrap`/`expect` with `Result` based handling for safety error handling. (#148, #169)
+- Optimize palette internals and unified error handling. (#148)
+- Adopt Gaussian scoring for theme scoring, improving accuracy and consistency. (#147)
 
 ### Deprecated
+- Deprecate `Palette::extract_with_algorithm`, use `Palette::builder` instead. (#170)
+- Deprecate `Theme::Basic` theme, use `Palette::find_swatches` instead. (#150, #173)
+
+### Fixed
+- Fix generated TypeScript definitions for color structs and added regression tests. (#159)
+
+### Security
+- Upgrade `axios` to resolve upstream CVEs. (#156)
+- Patch Vite `server.fs.deny` traversal vulnerability. (#168)
 
 
 ## [v0.7.0](https://github.com/t28hub/auto-palette/compare/v0.6.0...v0.7.0) - 2025-03-26
@@ -45,6 +53,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 - Upgrade [`rand`](https://github.com/rust-random/rand/releases/tag/0.9.0) and related dependencies to `0.9.0`. (#129)
+
 
 ## [v0.5.0](https://github.com/t28hub/auto-palette/compare/v0.4.0...v0.5.0) - 2024-08-13
 ### Changed
@@ -93,12 +102,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Initial release.
 
 
-[Unreleased]: https://github.com/t28hub/auto-palette/compare/v0.7.0...HEAD
-[0.7.0]: https://github.com/t28hub/auto-palette/compare/v0.6.0...v0.7.0
-[0.6.0]: https://github.com/t28hub/auto-palette/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/t28hub/auto-palette/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/t28hub/auto-palette/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/t28hub/auto-palette/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/t28hub/auto-palette/compare/v0.1.1...v0.2.0
-[0.1.1]: https://github.com/t28hub/auto-palette/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/t28hub/auto-palette/releases/tag/v0.1.0
+[Unreleased]: https://github.com/t28hub/auto-palette/compare/v0.8.0...HEAD
+[v0.8.0]: https://github.com/t28hub/auto-palette/compare/v0.7.0...v0.8.0
+[v0.7.0]: https://github.com/t28hub/auto-palette/compare/v0.6.0...v0.7.0
+[v0.6.0]: https://github.com/t28hub/auto-palette/compare/v0.5.0...v0.6.0
+[v0.5.0]: https://github.com/t28hub/auto-palette/compare/v0.4.0...v0.5.0
+[v0.4.0]: https://github.com/t28hub/auto-palette/compare/v0.3.0...v0.4.0
+[v0.3.0]: https://github.com/t28hub/auto-palette/compare/v0.2.0...v0.3.0
+[v0.2.0]: https://github.com/t28hub/auto-palette/compare/v0.1.1...v0.2.0
+[v0.1.1]: https://github.com/t28hub/auto-palette/compare/v0.1.0...v0.1.1
+[v0.1.0]: https://github.com/t28hub/auto-palette/releases/tag/v0.1.0

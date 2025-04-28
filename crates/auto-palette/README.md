@@ -82,7 +82,7 @@ This method requires the `image` feature to be enabled. The `image` feature is e
 
 ```toml
 [dependencies]
-auto-palette = { version = "0.7.0", features = ["image"] }
+auto-palette = { version = "0.8.0", features = ["image"] }
 image        = { version = "0.25.6", features = ["jpeg"] } # if you want to load jpeg images
 ```
 
