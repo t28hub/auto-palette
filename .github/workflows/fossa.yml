@@ -5,6 +5,9 @@ on:
     - cron: '0 0 * * *' # At the end of every day
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   fossa:
     runs-on: ubuntu-latest
