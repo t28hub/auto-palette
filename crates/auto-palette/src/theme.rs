@@ -21,6 +21,10 @@ use crate::{
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Theme {
+    /// The theme selects the swatches based on the population of the swatches.
+    /// The swatches are scored based on the population of the swatches.
+    #[deprecated(since = "0.8.0", note = "Use Palette::find_swatches() instead.")]
+    Basic,
     /// The theme selects the swatches based on the moderate chroma and lightness.
     /// The high chroma and lightness swatches are scored higher.
     Colorful,
@@ -39,30 +43,8 @@ pub enum Theme {
 }
 
 impl Theme {
-    /// Gaussian parameters for the themes.
-    /// The parameters are based on the PCCS color theory.
-    ///
-    /// The parameters are:
-    /// * `center_c`: The center chroma value.
-    /// * `center_l`: The center lightness value.
-    /// * `sigma`: The standard deviation of the Gaussian function.
-    ///
-    /// The parameters are used to score the swatches based on their chroma and lightness values.
-    ///
-    /// The parameters are:
-    /// * `COLORFUL_CHROMA_GAUSSIAN`: The Gaussian parameters for the colorful theme.
-    /// * `VIVID_CHROMA_GAUSSIAN`: The Gaussian parameters for the vivid theme.
-    /// * `MUTED_CHROMA_GAUSSIAN`: The Gaussian parameters for the muted theme.
-    /// * `LIGHT_CHROMA_GAUSSIAN`: The Gaussian parameters for the light theme.
-    /// * `DARK_CHROMA_GAUSSIAN`: The Gaussian parameters for the dark theme.
-    const COLORFUL_CHROMA_GAUSSIAN: (f64, f64, f64) = (60.0, 50.0, 15.0);
-    const VIVID_CHROMA_GAUSSIAN: (f64, f64, f64) = (75.0, 50.0, 15.0);
-    const MUTED_CHROMA_GAUSSIAN: (f64, f64, f64) = (20.0, 40.0, 15.0);
-    const LIGHT_CHROMA_GAUSSIAN: (f64, f64, f64) = (40.0, 75.0, 15.0);
-    const DARK_CHROMA_GAUSSIAN: (f64, f64, f64) = (20.0, 25.0, 15.0);
-
     /// The maximum score for the swatch.
-    const MAX_SCORE: f64 = 1.0;
+    const DEFAULT_SCORE: f64 = 1.0;
 
     /// Scores the swatch based on the theme.
     ///
@@ -80,20 +62,48 @@ impl Theme {
     where
         T: FloatNumber,
     {
-        let (center_c, center_l, sigma) = match self {
-            Theme::Colorful => Self::COLORFUL_CHROMA_GAUSSIAN,
-            Theme::Vivid => Self::VIVID_CHROMA_GAUSSIAN,
-            Theme::Muted => Self::MUTED_CHROMA_GAUSSIAN,
-            Theme::Light => Self::LIGHT_CHROMA_GAUSSIAN,
-            Theme::Dark => Self::DARK_CHROMA_GAUSSIAN,
-        };
-
         let color = swatch.color();
-        let score_c = gaussian(color.chroma(), T::from_f64(center_c), T::from_f64(sigma))
-            .unwrap_or(T::from_f64(Self::MAX_SCORE));
-        let score_l = gaussian(color.lightness(), T::from_f64(center_l), T::from_f64(sigma))
-            .unwrap_or(T::from_f64(Self::MAX_SCORE));
-        score_c * score_l
+        let ratio = swatch.ratio();
+        let default_score = T::from_f64(Self::DEFAULT_SCORE);
+        match self {
+            #[allow(deprecated)]
+            Theme::Basic => ratio,
+            Theme::Colorful => {
+                let score_c = gaussian(color.chroma(), T::from_f64(60.0), T::from_f64(15.0))
+                    .unwrap_or(default_score);
+                let score_l = gaussian(color.lightness(), T::from_f64(50.0), T::from_f64(15.0))
+                    .unwrap_or(default_score);
+                score_c * score_l
+            }
+            Theme::Vivid => {
+                let score_c = gaussian(color.chroma(), T::from_f64(75.0), T::from_f64(15.0))
+                    .unwrap_or(default_score);
+                let score_l = gaussian(color.lightness(), T::from_f64(50.0), T::from_f64(15.0))
+                    .unwrap_or(default_score);
+                score_c * score_l
+            }
+            Theme::Muted => {
+                let score_c = gaussian(color.chroma(), T::from_f64(20.0), T::from_f64(15.0))
+                    .unwrap_or(default_score);
+                let score_l = gaussian(color.lightness(), T::from_f64(40.0), T::from_f64(15.0))
+                    .unwrap_or(default_score);
+                score_c * score_l
+            }
+            Theme::Light => {
+                let score_c = gaussian(color.chroma(), T::from_f64(40.0), T::from_f64(15.0))
+                    .unwrap_or(default_score);
+                let score_l = gaussian(color.lightness(), T::from_f64(75.0), T::from_f64(15.0))
+                    .unwrap_or(default_score);
+                score_c * score_l
+            }
+            Theme::Dark => {
+                let score_c = gaussian(color.chroma(), T::from_f64(20.0), T::from_f64(15.0))
+                    .unwrap_or(default_score);
+                let score_l = gaussian(color.lightness(), T::from_f64(25.0), T::from_f64(15.0))
+                    .unwrap_or(default_score);
+                score_c * score_l
+            }
+        }
     }
 }
 
@@ -102,6 +112,8 @@ impl FromStr for Theme {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
+            #[allow(deprecated)]
+            "basic" => Ok(Theme::Basic),
             "colorful" => Ok(Theme::Colorful),
             "vivid" => Ok(Theme::Vivid),
             "muted" => Ok(Theme::Muted),
@@ -123,6 +135,17 @@ mod tests {
     use super::*;
     use crate::{assert_approx_eq, color::Color};
 
+    #[test]
+    fn test_score_basic() {
+        // Act
+        let color: Color<f64> = Color::from_str("#ff0080").unwrap();
+        let swatch = Swatch::new(color, (32, 64), 256, 0.25);
+        let actual = Theme::Basic.score(&swatch);
+
+        // Assert
+        assert_approx_eq!(actual, 0.25);
+    }
+
     #[rstest]
     #[case::black("#000000", 0.000001)]
     #[case::gray("#808080", 0.000326)]
@@ -140,10 +163,10 @@ mod tests {
         // Act
         let color: Color<f64> = Color::from_str(hex).unwrap();
         let swatch = Swatch::new(color, (32, 64), 256, 0.5);
-        let score = Theme::Colorful.score(&swatch);
+        let actual = Theme::Colorful.score(&swatch);
 
         // Assert
-        assert_approx_eq!(score, expected);
+        assert_approx_eq!(actual, expected);
     }
 
     #[rstest]
@@ -163,10 +186,10 @@ mod tests {
         // Act
         let color: Color<f64> = Color::from_str(hex).unwrap();
         let swatch = Swatch::new(color, (32, 64), 256, 0.5);
-        let score = Theme::Vivid.score(&swatch);
+        let actual = Theme::Vivid.score(&swatch);
 
         // Assert
-        assert_approx_eq!(score, expected);
+        assert_approx_eq!(actual, expected);
     }
 
     #[rstest]
@@ -186,10 +209,10 @@ mod tests {
         // Act
         let color: Color<f64> = Color::from_str(hex).unwrap();
         let swatch = Swatch::new(color, (32, 64), 256, 0.5);
-        let score = Theme::Muted.score(&swatch);
+        let actual = Theme::Muted.score(&swatch);
 
         // Assert
-        assert_approx_eq!(score, expected);
+        assert_approx_eq!(actual, expected);
     }
 
     #[rstest]
@@ -209,10 +232,10 @@ mod tests {
         // Act
         let color: Color<f64> = Color::from_str(hex).unwrap();
         let swatch = Swatch::new(color, (32, 64), 256, 0.5);
-        let score = Theme::Light.score(&swatch);
+        let actual = Theme::Light.score(&swatch);
 
         // Assert
-        assert_approx_eq!(score, expected);
+        assert_approx_eq!(actual, expected);
     }
 
     #[rstest]
@@ -232,23 +255,26 @@ mod tests {
         // Act
         let color: Color<f64> = Color::from_str(hex).unwrap();
         let swatch = Swatch::new(color, (32, 64), 256, 0.5);
-        let score = Theme::Dark.score(&swatch);
+        let actual = Theme::Dark.score(&swatch);
 
         // Assert
-        assert_approx_eq!(score, expected);
+        assert_approx_eq!(actual, expected);
     }
 
     #[rstest]
+    #[case::basic("basic", Theme::Basic)]
     #[case::colorful("colorful", Theme::Colorful)]
     #[case::vivid("vivid", Theme::Vivid)]
     #[case::muted("muted", Theme::Muted)]
     #[case::light("light", Theme::Light)]
     #[case::dark("dark", Theme::Dark)]
+    #[case::basic_upper("BASIC", Theme::Basic)]
     #[case::colorful_upper("COLORFUL", Theme::Colorful)]
     #[case::vivid_upper("VIVID", Theme::Vivid)]
     #[case::muted_upper("MUTED", Theme::Muted)]
     #[case::light_upper("LIGHT", Theme::Light)]
     #[case::dark_upper("DARK", Theme::Dark)]
+    #[case::basic_capitalized("Basic", Theme::Basic)]
     #[case::colorful_capitalized("Colorful", Theme::Colorful)]
     #[case::vivid_capitalized("Vivid", Theme::Vivid)]
     #[case::muted_capitalized("Muted", Theme::Muted)]
@@ -256,10 +282,11 @@ mod tests {
     #[case::dark_capitalized("Dark", Theme::Dark)]
     fn test_from_str(#[case] str: &str, #[case] expected: Theme) {
         // Act
-        let actual = Theme::from_str(str).unwrap();
+        let actual = Theme::from_str(str);
 
         // Assert
-        assert_eq!(actual, expected);
+        assert!(actual.is_ok());
+        assert_eq!(actual.unwrap(), expected);
     }
 
     #[rstest]
