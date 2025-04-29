@@ -5,7 +5,7 @@ use rand_distr::weighted::AliasableWeight;
 use crate::{
     error::Error,
     math::{
-        clustering::{Cluster, ClusteringAlgorithm, DBSCANPlusPlus, KMeans, DBSCAN},
+        clustering::{Cluster, ClusteringAlgorithm, DBSCANPlusPlus, KMeans, DBSCAN, SLIC},
         DistanceMetric,
         FloatNumber,
         Point,
@@ -18,22 +18,34 @@ use crate::{
 pub enum Algorithm {
     /// K-means clustering algorithm.
     KMeans,
+
     /// DBSCAN clustering algorithm.
     #[default]
     DBSCAN,
+
     /// DBSCAN++ clustering algorithm.
     DBSCANpp,
+
+    /// SLIC algorithm.
+    SLIC,
 }
 
 impl Algorithm {
     /// Clusters the given pixels using the algorithm.
     ///
     /// # Arguments
+    /// * `width` - The width of the image.
+    /// * `height` - The height of the image.
     /// * `pixels` - The pixels to cluster.
     ///
     /// # Returns
     /// The clusters found by the algorithm.
-    pub(crate) fn cluster<T>(&self, pixels: &[Point<T, 5>]) -> Result<Vec<Cluster<T, 5>>, Error>
+    pub(crate) fn cluster<T>(
+        &self,
+        width: u32,
+        height: u32,
+        pixels: &[Point<T, 5>],
+    ) -> Result<Vec<Cluster<T, 5>>, Error>
     where
         T: FloatNumber + AliasableWeight,
     {
@@ -41,6 +53,7 @@ impl Algorithm {
             Self::KMeans => cluster_with_kmeans(pixels),
             Self::DBSCAN => cluster_with_dbscan(pixels),
             Self::DBSCANpp => cluster_with_dbscanpp(pixels),
+            Self::SLIC => cluster_with_slic(width as usize, height as usize, pixels),
         }
     }
 }
@@ -53,6 +66,7 @@ impl FromStr for Algorithm {
             "kmeans" => Ok(Self::KMeans),
             "dbscan" => Ok(Self::DBSCAN),
             "dbscan++" => Ok(Self::DBSCANpp),
+            "slic" => Ok(Self::SLIC),
             _ => Err(Error::UnsupportedAlgorithm {
                 name: s.to_string(),
             }),
@@ -131,22 +145,61 @@ where
         })
 }
 
+const SLIC_SEGMENTS: usize = 128;
+const SLIC_COMPACTNESS: f64 = 0.0225; // 0.15^2
+const SLIC_MAX_ITER: usize = 10;
+const SLIC_TOLERANCE: f64 = 1e-3;
+
+fn cluster_with_slic<T>(
+    width: usize,
+    height: usize,
+    pixels: &[Point<T, 5>],
+) -> Result<Vec<Cluster<T, 5>>, Error>
+where
+    T: FloatNumber,
+{
+    let clustering = SLIC::new(
+        (width, height),
+        SLIC_SEGMENTS,
+        T::from_f64(SLIC_COMPACTNESS),
+        SLIC_MAX_ITER,
+        T::from_f64(SLIC_TOLERANCE),
+        DistanceMetric::SquaredEuclidean,
+    )
+    .map_err(|e| Error::PaletteExtractionError {
+        details: e.to_string(),
+    })?;
+    clustering
+        .fit(pixels)
+        .map_err(|e| Error::PaletteExtractionError {
+            details: e.to_string(),
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
 
     use super::*;
 
+    #[must_use]
+    fn empty_points() -> Vec<Point<f64, 5>> {
+        Vec::new()
+    }
+
     #[rstest]
     #[case::kmeans("kmeans", Algorithm::KMeans)]
     #[case::dbscan("dbscan", Algorithm::DBSCAN)]
     #[case::dbscanpp("dbscan++", Algorithm::DBSCANpp)]
+    #[case::slic("slic", Algorithm::SLIC)]
     #[case::kmeans_upper("KMEANS", Algorithm::KMeans)]
     #[case::dbscan_upper("DBSCAN", Algorithm::DBSCAN)]
     #[case::dbscanpp_upper("DBSCAN++", Algorithm::DBSCANpp)]
+    #[case::slic_upper("SLIC", Algorithm::SLIC)]
     #[case::kmeans_capitalized("Kmeans", Algorithm::KMeans)]
     #[case::dbscan_capitalized("Dbscan", Algorithm::DBSCAN)]
     #[case::dbscanpp_capitalized("Dbscan++", Algorithm::DBSCANpp)]
+    #[case::slic_capitalized("Slic", Algorithm::SLIC)]
     fn test_from_str(#[case] input: &str, #[case] expected: Algorithm) {
         // Act
         let actual = Algorithm::from_str(input).unwrap();
@@ -173,7 +226,7 @@ mod tests {
     #[test]
     fn test_cluster_with_dbscan_empty() {
         // Arrange
-        let pixels: Vec<Point<f32, 5>> = vec![];
+        let pixels = empty_points();
 
         // Act
         let actual = cluster_with_dbscan(&pixels);
@@ -185,7 +238,7 @@ mod tests {
     #[test]
     fn test_cluster_with_dbscanpp_empty() {
         // Arrange
-        let pixels: Vec<Point<f32, 5>> = vec![];
+        let pixels = empty_points();
 
         // Act
         let actual = cluster_with_dbscanpp(&pixels);
@@ -197,10 +250,22 @@ mod tests {
     #[test]
     fn test_cluster_with_kmeans_empty() {
         // Arrange
-        let pixels: Vec<Point<f32, 5>> = vec![];
+        let pixels = empty_points();
 
         // Act
         let actual = cluster_with_kmeans(&pixels);
+
+        // Assert
+        assert!(actual.is_err());
+    }
+
+    #[test]
+    fn test_cluster_with_slic_empty() {
+        // Arrange
+        let pixels = empty_points();
+
+        // Act
+        let actual = cluster_with_slic(0, 0, &pixels);
 
         // Assert
         assert!(actual.is_err());
