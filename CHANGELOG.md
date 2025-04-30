@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased](https://github.com/t28hub/auto-palette/compare/v0.8.0...HEAD)
 ### Added
+- Implement SLIC (Simple Linear Iterative Clustering) algorithm for color palette extraction. (#176)
+
 ### Changed
 ### Deprecated
 ### Removed 

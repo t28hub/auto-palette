@@ -346,7 +346,7 @@ where
         }
 
         // 2. Group the points into clusters using the specified algorithm.
-        let pixel_clusters = self.algorithm.cluster(&points)?;
+        let pixel_clusters = self.algorithm.cluster(width, height, &points)?;
 
         // 3. Merge similar color clusters and create swatches.
         let color_clusters = cluster_to_color_groups(&pixel_clusters)?;
