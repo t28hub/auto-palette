@@ -1,10 +1,11 @@
-use std::{collections::HashSet, fmt::Display};
+use std::fmt::Display;
 
 use thiserror::Error;
 
 use crate::{
     math::{
-        clustering::{Cluster, ClusteringAlgorithm},
+        clustering::{helper::gradient, Cluster, ClusteringAlgorithm, Initializer},
+        matrix::{MatrixError, MatrixView},
         neighbors::{kdtree::KDTreeSearch, search::NeighborSearch},
         DistanceMetric,
         Point,
@@ -46,8 +47,8 @@ where
     EmptyPoints,
 
     /// Error when the points are not equal to the dimensions.
-    #[error("Invalid Points Length: The number of points are not equal to the dimensions: {0}")]
-    InvalidPointsLength(usize),
+    #[error("Invalid Points: The points slice is not in the expected shape: {0}")]
+    InvalidPoints(#[from] MatrixError),
 }
 
 /// SLIC (Simple Linear Iterative Clustering) algorithm.
@@ -121,145 +122,42 @@ where
         })
     }
 
-    /// Initializes the SLIC algorithm by selecting seed points.
+    /// Finds the lowest gradient point in the neighborhood of the given index.
     ///
     /// # Type Parameters
     /// * `N` - The number of dimensions.
     ///
     /// # Arguments
-    /// * `matrix` - The matrix of points to cluster.
-    ///
-    /// # Returns
-    /// A set of indices representing the seed points.
-    #[must_use]
-    fn initialize<const N: usize>(&self, matrix: &MatrixView<'_, T, N>) -> HashSet<usize> {
-        let step = (T::from_usize(matrix.size()) / T::from_usize(self.segments))
-            .sqrt()
-            .round()
-            .trunc_to_usize()
-            .max(1); // Ensure step is at least 1
-        let offset = step / 2;
-
-        let (cols, rows) = matrix.shape();
-        let mut seeds = HashSet::with_capacity(self.segments);
-        'outer: for i in (offset..cols).step_by(step) {
-            'inner: for j in (offset..rows).step_by(step) {
-                let col = i.min(cols - 1);
-                let row = j.min(rows - 1);
-                let index = match matrix.index(col, row) {
-                    Some(index) => index,
-                    None => continue 'inner,
-                };
-
-                seeds.insert(index);
-                if seeds.len() >= self.segments {
-                    break 'outer;
-                }
-            }
-        }
-        seeds
-    }
-
-    /// Finds the index of the point with the lowest gradient in the 3x3 neighborhood.
-    ///
-    /// # Type Parameters
-    /// * `N` - The number of dimensions.
-    ///
-    /// # Arguments
-    /// * `points` - The points to cluster.
+    /// * `matrix` - The matrix of points.
     /// * `index` - The index of the point to check.
     ///
     /// # Returns
-    /// The index of the point with the lowest gradient in the neighborhood.
+    /// The lowest gradient point in the neighborhood if it exists.
     #[inline]
     #[must_use]
-    fn find_lowest_gradient_index<const N: usize>(
+    fn find_lowest_gradient_point<const N: usize>(
         &self,
         matrix: &MatrixView<'_, T, N>,
         index: usize,
-    ) -> usize {
-        let (cols, rows) = matrix.shape();
-        let col = index % cols;
-        let row = index / cols;
+    ) -> Option<Point<T, N>> {
+        let col = index % matrix.cols;
+        let row = index / matrix.cols;
 
-        let col_range = col.saturating_sub(1)..=(col + 1).min(cols - 1);
-        let row_range = row.saturating_sub(1)..=(row + 1).min(rows - 1);
-
-        let mut lowest_score = self.gradient(matrix, col, row);
-        let mut lowest_index = index;
-        for i in col_range {
-            for j in row_range.clone() {
-                let score = self.gradient(matrix, i, j);
-                if score >= lowest_score {
-                    continue;
-                }
-
-                if let Some(index) = matrix.index(i, j) {
-                    lowest_index = index;
+        let mut lowest_score = T::max_value();
+        let mut lowest_point = None;
+        matrix
+            .neighbor_indices(col, row)
+            .iter()
+            .for_each(|neighbor_index| {
+                let neighbor_col = neighbor_index % matrix.cols;
+                let neighbor_row = neighbor_index / matrix.cols;
+                let score = gradient(matrix, neighbor_col, neighbor_row, self.metric);
+                if score < lowest_score {
                     lowest_score = score;
-                } else {
-                    continue;
+                    lowest_point = matrix.get(neighbor_col, neighbor_row);
                 }
-            }
-        }
-        lowest_index
-    }
-
-    /// Measures the gradient at a given point.
-    ///
-    /// # Type Parameters
-    /// * `N` - The number of dimensions.
-    ///
-    /// # Arguments
-    /// * `matrix` - The matrix of points.
-    /// * `col` - The column of the point.
-    /// * `row` - The row of the point.
-    ///
-    /// # Returns
-    /// The gradient at the given point. If the point is out of bounds, returns `T::max_value()`.
-    #[inline]
-    #[must_use]
-    fn gradient<const N: usize>(&self, matrix: &MatrixView<'_, T, N>, col: usize, row: usize) -> T {
-        if col == 0 || col == matrix.cols - 1 {
-            return T::max_value();
-        }
-        if row == 0 || row == matrix.rows - 1 {
-            return T::max_value();
-        }
-
-        let dx = self.axis_gradient(matrix, col - 1, row, col + 1, row);
-        let dy = self.axis_gradient(matrix, col, row - 1, col, row + 1);
-        dx + dy
-    }
-
-    /// Measures the gradient of the axis between two points.
-    ///
-    /// # Type Parameters
-    /// * `N` - The number of dimensions.
-    ///
-    /// # Arguments
-    /// * `matrix` - The matrix of points.
-    /// * `col1` - The column of the first point.
-    /// * `row1` - The row of the first point.
-    /// * `col2` - The column of the second point.
-    /// * `row2` - The row of the second point.
-    ///
-    /// # Returns
-    /// The gradient of the axis between the two points. If either point is out of bounds, returns `T::max_value()`.
-    #[inline]
-    #[must_use]
-    fn axis_gradient<const N: usize>(
-        &self,
-        matrix: &MatrixView<'_, T, N>,
-        col1: usize,
-        row1: usize,
-        col2: usize,
-        row2: usize,
-    ) -> T {
-        match (matrix.get(col1, row1), matrix.get(col2, row2)) {
-            (Some(point1), Some(point2)) => self.metric.measure(point1, point2),
-            _ => T::max_value(),
-        }
+            });
+        lowest_point.copied()
     }
 
     /// Iterates over the points and updates the centroids and clusters.
@@ -318,15 +216,17 @@ where
             return Err(SLICError::EmptyPoints);
         }
 
-        let matrix = MatrixView::new(self.shape.0, self.shape.1, points)?;
-        let mut centroids: Vec<Point<T, N>> = self
-            .initialize(&matrix)
+        let (cols, rows) = self.shape;
+        let matrix = MatrixView::new(cols, rows, points).map_err(SLICError::InvalidPoints)?;
+
+        let mut centroids = Initializer::Grid
+            .initialize(&matrix, self.segments)
             .into_iter()
-            .map(|index| {
-                let best_index = self.find_lowest_gradient_index(&matrix, index);
-                points[best_index]
+            .map(|seed_index| {
+                let found = self.find_lowest_gradient_point(&matrix, seed_index);
+                found.unwrap_or(points[seed_index])
             })
-            .collect();
+            .collect::<Vec<_>>();
 
         let mut clusters = vec![Cluster::new(); centroids.len()];
         for _ in 0..self.max_iter {
@@ -338,132 +238,21 @@ where
     }
 }
 
-/// Lightweight, read-only view over a matrix of points.
-///
-/// `MatrixView` does NOT own the points, it only keeps a slice reference to them, making it cheap to copy.
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
-/// * `N` - The number of dimensions.
-#[derive(Debug, PartialEq)]
-struct MatrixView<'a, T, const N: usize>
-where
-    T: FloatNumber,
-{
-    /// The number of columns in the matrix.
-    cols: usize,
-
-    /// The number of rows in the matrix.
-    rows: usize,
-
-    /// The points in the matrix.
-    points: &'a [Point<T, N>],
-}
-
-impl<'a, T, const N: usize> MatrixView<'a, T, N>
-where
-    T: FloatNumber,
-{
-    /// Creates a new `MatrixView` instance.
-    ///
-    /// # Arguments
-    /// * `cols` - The number of columns in the matrix.
-    /// * `rows` - The number of rows in the matrix.
-    /// * `points` - The points to view.
-    ///
-    /// # Returns
-    /// A new `MatrixView` instance.
-    #[inline]
-    fn new(cols: usize, rows: usize, points: &'a [Point<T, N>]) -> Result<Self, SLICError<T>> {
-        let expected_len = cols * rows;
-        if expected_len != points.len() {
-            return Err(SLICError::InvalidPointsLength(expected_len));
-        }
-        Ok(Self { cols, rows, points })
-    }
-
-    /// Returns the size of the matrix.
-    ///
-    /// # Returns
-    /// The size of the matrix.
-    #[inline]
-    #[must_use]
-    fn size(&self) -> usize {
-        self.points.len()
-    }
-
-    /// Returns the shape of the matrix.
-    ///
-    /// # Returns
-    /// The shape of the matrix.
-    #[inline]
-    #[must_use]
-    fn shape(&self) -> (usize, usize) {
-        (self.cols, self.rows)
-    }
-
-    /// Returns the flattened index of the given column and row.
-    ///
-    /// # Arguments
-    /// * `col` - The column of the point.
-    /// * `row` - The row of the point.
-    ///
-    /// # Returns
-    /// The flattened index of the given column and row or `None` if the index is out of bounds.
-    #[inline(always)]
-    #[must_use]
-    fn index(&self, col: usize, row: usize) -> Option<usize> {
-        if col < self.cols && row < self.rows {
-            Some(col + row * self.cols)
-        } else {
-            None
-        }
-    }
-
-    /// Returns the point at the given column and row.
-    ///
-    /// # Arguments
-    /// * `col` - The column of the point.
-    /// * `row` - The row of the point.
-    ///
-    /// # Returns
-    /// The point at the given column and row or `None` if the index is out of bounds.
-    #[inline(always)]
-    #[must_use]
-    fn get(&self, col: usize, row: usize) -> Option<&Point<T, N>> {
-        self.index(col, row).map(|index| &self.points[index])
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::assert_approx_eq;
 
     #[must_use]
     fn sample_points<T>(cols: usize, rows: usize) -> Vec<Point<T, 5>>
     where
         T: FloatNumber,
     {
-        vec![[T::zero(); 5]; cols * rows]
-    }
-
-    #[must_use]
-    fn empty_points<T>() -> Vec<Point<T, 5>>
-    where
-        T: FloatNumber,
-    {
-        Vec::new()
-    }
-
-    fn fill_points<T>(points: &mut [Point<T, 5>], cols: usize, rows: usize)
-    where
-        T: FloatNumber,
-    {
         let half_cols = cols / 2;
         let half_rows = rows / 2;
+
+        let mut points = vec![[T::zero(); 5]; cols * rows];
         for col in 0..cols {
             for row in 0..rows {
                 let index = col + row * cols;
@@ -480,6 +269,15 @@ mod tests {
                 };
             }
         }
+        points
+    }
+
+    #[must_use]
+    fn empty_points<T>() -> Vec<Point<T, 5>>
+    where
+        T: FloatNumber,
+    {
+        Vec::new()
     }
 
     #[test]
@@ -559,7 +357,7 @@ mod tests {
     )]
     fn test_new_error(
         #[case] shape: (usize, usize),
-        #[case] n_segments: usize,
+        #[case] segments: usize,
         #[case] compactness: f64,
         #[case] max_iter: usize,
         #[case] tolerance: f64,
@@ -567,7 +365,7 @@ mod tests {
         #[case] expected: SLICError<f64>,
     ) {
         // Act
-        let actual = SLIC::new(shape, n_segments, compactness, max_iter, tolerance, metric);
+        let actual = SLIC::new(shape, segments, compactness, max_iter, tolerance, metric);
 
         // Assert
         assert!(actual.is_err());
@@ -579,13 +377,10 @@ mod tests {
         // Arrange
         let column = 48;
         let row = 27;
-
-        let mut points = sample_points::<f64>(column, row);
-        fill_points(&mut points, column, row);
-
         let slic = SLIC::new((column, row), 32, 1.0, 10, 1e-3, DistanceMetric::Euclidean).unwrap();
 
         // Act
+        let points = sample_points::<f64>(column, row);
         let actual = slic.fit(&points);
 
         // Assert
@@ -598,9 +393,9 @@ mod tests {
     fn test_fit_empty_points() {
         // Arrange
         let slic = SLIC::new((64, 48), 64, 1.0, 10, 1e-3, DistanceMetric::Euclidean).unwrap();
-        let points = empty_points::<f64>();
 
         // Act
+        let points = empty_points::<f64>();
         let actual = slic.fit(&points);
 
         // Assert
@@ -609,260 +404,19 @@ mod tests {
     }
 
     #[test]
-    fn test_fit_invalid_points_length() {
+    fn test_fit_invalid_points() {
         // Arrange
         let slic = SLIC::new((64, 48), 64, 1.0, 10, 1e-3, DistanceMetric::Euclidean).unwrap();
-        let points = sample_points::<f64>(64, 47);
 
         // Act
+        let points = sample_points::<f64>(64, 47);
         let actual = slic.fit(&points);
 
         // Assert
         assert!(actual.is_err());
-        assert_eq!(actual.unwrap_err(), SLICError::InvalidPointsLength(64 * 48));
-    }
-
-    #[test]
-    fn test_initialize() {
-        // Arrange
-        let cols = 48;
-        let rows = 27;
-        let mut points = sample_points::<f64>(cols, rows);
-        fill_points(&mut points, cols, rows);
-
-        let matrix = MatrixView::new(cols, rows, &points).unwrap();
-        let slic = SLIC::new((cols, rows), 32, 1.0, 10, 1e-3, DistanceMetric::Euclidean).unwrap();
-
-        // Act
-        let actual = slic.initialize(&matrix);
-
-        // Assert
-        assert_eq!(actual.len(), 32);
-    }
-
-    #[rstest]
-    #[case::left_top(0, 0, f64::MAX)]
-    #[case::right_top(47, 0, f64::MAX)]
-    #[case::left_bottom(0, 26, f64::MAX)]
-    #[case::right_bottom(47, 26, f64::MAX)]
-    #[case::edge_x(24, 18, 1.008680)]
-    #[case::edge_y(32, 12, 1.008680)]
-    #[case::center(24, 12, 2.008680)]
-    #[case::normal(12, 6, 0.008680)]
-    fn test_gradient(#[case] col: usize, #[case] row: usize, #[case] expected: f64) {
-        // Arrange
-        let cols = 48;
-        let rows = 24;
-        let mut points = sample_points::<f64>(cols, rows);
-        fill_points(&mut points, cols, rows);
-
-        let matrix = MatrixView::new(cols, rows, &points).unwrap();
-        let slic = SLIC::new(
-            (cols, rows),
-            32,
-            1.0,
-            10,
-            1e-3,
-            DistanceMetric::SquaredEuclidean,
-        )
-        .unwrap();
-
-        // Act
-        let actual = slic.gradient(&matrix, col, row);
-
-        // Assert
-        assert_approx_eq!(actual, expected);
-    }
-
-    #[rstest]
-    #[case::x_axis(0, 0, 1, 0, 0.000434)]
-    #[case::y_axis(47, 0, 47, 1, 0.001736)]
-    #[case::x_axis_out_of_bounds(47, 0, 48, 0, f64::MAX)]
-    #[case::y_axis_out_of_bounds(0, 26, 0, 27, f64::MAX)]
-    fn test_axis_gradient(
-        #[case] col1: usize,
-        #[case] row1: usize,
-        #[case] col2: usize,
-        #[case] row2: usize,
-        #[case] expected: f64,
-    ) {
-        // Arrange
-        let cols = 48;
-        let rows = 24;
-        let mut points = sample_points::<f64>(cols, rows);
-        fill_points(&mut points, cols, rows);
-
-        let matrix = MatrixView::new(cols, rows, &points).unwrap();
-        let slic = SLIC::new(
-            (cols, rows),
-            32,
-            1.0,
-            10,
-            1e-3,
-            DistanceMetric::SquaredEuclidean,
-        )
-        .unwrap();
-
-        // Act
-        let actual = slic.axis_gradient(&matrix, col1, row1, col2, row2);
-
-        // Assert
-        assert_approx_eq!(actual, expected);
-    }
-
-    #[test]
-    fn test_matrix_view_new() {
-        // Arrange
-        let cols = 48;
-        let rows = 27;
-        let points = sample_points::<f64>(cols, rows);
-
-        // Act
-        let actual = MatrixView::new(cols, rows, &points);
-
-        // Assert
-        assert!(actual.is_ok());
         assert_eq!(
-            actual.unwrap(),
-            MatrixView {
-                cols,
-                rows,
-                points: &points,
-            }
+            actual.unwrap_err(),
+            SLICError::InvalidPoints(MatrixError::InvalidPoints(64, 48))
         );
-    }
-
-    #[test]
-    fn test_matrix_view_new_invalid_length() {
-        // Arrange
-        let cols = 48;
-        let rows = 27;
-        let points = sample_points::<f64>(cols, rows - 1);
-
-        // Act
-        let matrix = MatrixView::new(cols, rows, &points);
-
-        // Assert
-        assert!(matrix.is_err());
-        assert_eq!(
-            matrix.unwrap_err(),
-            SLICError::InvalidPointsLength(cols * rows)
-        );
-    }
-
-    #[rstest]
-    #[case(0, 0, 0)]
-    #[case(1, 0, 0)]
-    #[case(0, 1, 0)]
-    #[case(1, 1, 1)]
-    #[case(4, 9, 36)]
-    #[case(9, 4, 36)]
-    #[case(27, 48, 1296)]
-    #[case(48, 27, 1296)]
-    fn test_matrix_view_size(#[case] cols: usize, #[case] rows: usize, #[case] expected: usize) {
-        // Arrange
-        let points = sample_points::<f64>(cols, rows);
-        let matrix = MatrixView::new(cols, rows, &points).unwrap();
-
-        // Act
-        let actual = matrix.size();
-
-        // Assert
-        assert_eq!(actual, expected);
-    }
-
-    #[rstest]
-    #[case(0, 0, (0, 0))]
-    #[case(1, 0, (1, 0))]
-    #[case(0, 1, (0, 1))]
-    #[case(1, 1, (1, 1))]
-    #[case(4, 9, (4, 9))]
-    #[case(9, 4, (9, 4))]
-    fn test_matrix_view_shape(
-        #[case] cols: usize,
-        #[case] rows: usize,
-        #[case] expected: (usize, usize),
-    ) {
-        // Arrange
-        let points = sample_points::<f64>(cols, rows);
-        let matrix = MatrixView::new(cols, rows, &points).unwrap();
-
-        // Act
-        let actual = matrix.shape();
-
-        // Assert
-        assert_eq!(actual, expected);
-    }
-
-    #[rstest]
-    #[case(0, 0, Some(0))]
-    #[case(1, 0, Some(1))]
-    #[case(0, 1, Some(48))]
-    #[case(1, 1, Some(49))]
-    #[case(4, 9, Some(4 + 9 * 48))]
-    #[case(9, 4, Some(9 + 4 * 48))]
-    #[case(0, 26, Some(0 + 26 * 48))]
-    #[case(47, 0, Some(47))]
-    #[case(47, 26, Some(47 + 26 * 48))]
-    #[case(0, 27, None)]
-    #[case(48, 0, None)]
-    fn test_matrix_view_index(
-        #[case] col: usize,
-        #[case] row: usize,
-        #[case] expected: Option<usize>,
-    ) {
-        // Arrange
-        let cols = 48;
-        let rows = 27;
-        let points: Vec<Point<f64, 5>> = vec![[0.0; 5]; cols * rows];
-        let matrix = MatrixView::new(cols, rows, &points).unwrap();
-
-        // Act
-        let actual = matrix.index(col, row);
-
-        // Assert
-        assert_eq!(actual, expected);
-    }
-
-    #[rstest]
-    #[case(0, 0, 0)]
-    #[case(1, 0, 1)]
-    #[case(0, 1, 48)]
-    #[case(1, 1, 49)]
-    #[case(47, 0, 47)]
-    #[case(0, 26, 0 + 26 * 48)]
-    #[case(47, 26, 47 + 26 * 48)]
-    fn test_matrix_view_get(#[case] col: usize, #[case] row: usize, #[case] index: usize) {
-        // Arrange
-        let cols = 48;
-        let rows = 27;
-        let mut points = sample_points::<f64>(cols, rows);
-        fill_points(&mut points, cols, rows);
-        let matrix = MatrixView::new(cols, rows, &points).unwrap();
-
-        // Act
-        let actual = matrix.get(col, row);
-        assert!(actual.is_some());
-        assert_eq!(actual.unwrap(), &points[index]);
-    }
-
-    #[rstest]
-    #[case(0, 27)]
-    #[case(48, 0)]
-    #[case(47, 27)]
-    #[case(48, 26)]
-    #[case(48, 27)]
-    fn test_matrix_view_get_out_of_bounds(#[case] col: usize, #[case] row: usize) {
-        // Arrange
-        let cols = 48;
-        let rows = 27;
-        let points = sample_points::<f64>(cols, rows);
-        let matrix = MatrixView::new(cols, rows, &points).unwrap();
-
-        // Act
-        let actual = matrix.get(col, row);
-
-        // Assert
-        assert!(actual.is_none());
     }
 }

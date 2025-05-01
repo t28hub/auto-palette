@@ -1,5 +1,6 @@
 pub mod clustering;
 mod gaussian;
+mod matrix;
 mod metrics;
 mod neighbors;
 mod number;

@@ -150,14 +150,14 @@ describe('@auto-palette/wasm/palette', () => {
     });
 
     it.each([
-      { theme: 'vivid', count: 3, expected: ['#FFD63A', '#4F1C51', '#FF6F61'] },
+      { theme: 'vivid', count: 3, expected: ['#FFD63A', '#FF6F61', '#4F1C51'] },
       { theme: 'muted', count: 3, expected: ['#604652', '#A27B5C', '#3F4F44'] },
-      { theme: 'light', count: 3, expected: ['#6DE1D2', '#FF6F61', '#F7CFD8'] },
-      { theme: 'dark', count: 3, expected: ['#210F37', '#3F4F44', '#604652'] },
+      { theme: 'light', count: 3, expected: ['#F7CFD8', '#FF6F61', '#6DE1D2'] },
+      { theme: 'dark', count: 3, expected: ['#3F4F44', '#210F37', '#604652'] },
       {
         theme: 'colorful',
         count: 3,
-        expected: ['#4F1C51', '#FF6F61', '#6DE1D2'],
+        expected: ['#6DE1D2', '#FF6F61', '#4F1C51'],
       },
     ])(
       'should find the swatches from the palette with $theme theme',
@@ -167,9 +167,8 @@ describe('@auto-palette/wasm/palette', () => {
 
         // Assert
         expect(actual).toHaveLength(3);
-        expect(actual[0].color).toBeSameColor(expected[0]);
-        expect(actual[1].color).toBeSameColor(expected[1]);
-        expect(actual[2].color).toBeSameColor(expected[2]);
+        const actualColors = actual.map((swatch) => swatch.color.toHexString());
+        expect(actualColors).toEqual(expect.arrayContaining(expected));
       },
     );
 

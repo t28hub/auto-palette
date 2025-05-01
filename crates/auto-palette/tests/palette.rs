@@ -46,6 +46,7 @@ fn test_extract_multiple_colors() {
 #[case::dbscan("dbscan")]
 #[case::dbscanpp("dbscan++")]
 #[case::slic("slic")]
+#[case::snic("snic")]
 fn test_builder_with_algorithm(#[case] name: &str) {
     // Arrange
     let image_data = ImageData::load("../../gfx/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();

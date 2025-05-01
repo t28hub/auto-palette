@@ -529,6 +529,7 @@ where
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
 mod tests {
     use std::str::FromStr;
 
@@ -722,11 +723,11 @@ mod tests {
         // Act
         let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
         let actual: Palette<f64> =
-            Palette::extract_with_algorithm(&image_data, Algorithm::DBSCANpp).unwrap();
+            Palette::extract_with_algorithm(&image_data, Algorithm::SNIC).unwrap();
 
         // Assert
-        assert!(!actual.is_empty());
-        assert!(actual.len() >= 3);
+        assert!(!actual.is_empty(), "Palette should not be empty");
+        assert!(actual.len() >= 6, "Palette should have at least 6 swatches");
     }
 
     #[test]
