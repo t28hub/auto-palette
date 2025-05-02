@@ -1,7 +1,5 @@
 use std::{cmp::Reverse, marker::PhantomData};
 
-use rand_distr::weighted::AliasableWeight;
-
 use crate::{
     algorithm::Algorithm,
     color::{rgb_to_xyz, xyz_to_lab, Color, Lab, D65},
@@ -46,14 +44,14 @@ use crate::{
 #[derive(Debug, Clone, PartialEq)]
 pub struct Palette<T>
 where
-    T: FloatNumber + AliasableWeight,
+    T: FloatNumber,
 {
     swatches: Vec<Swatch<T>>,
 }
 
 impl<T> Palette<T>
 where
-    T: FloatNumber + AliasableWeight,
+    T: FloatNumber,
 {
     /// Creates a new `Palette` instance.
     ///
@@ -249,7 +247,7 @@ type DynFilterFn = Box<dyn Fn(&Pixel) -> bool + Send + Sync + 'static>;
 /// ```
 pub struct PaletteBuilder<T>
 where
-    T: FloatNumber + AliasableWeight,
+    T: FloatNumber,
 {
     algorithm: Algorithm,
     filters: Vec<DynFilterFn>,
@@ -259,7 +257,7 @@ where
 
 impl<T> PaletteBuilder<T>
 where
-    T: FloatNumber + AliasableWeight,
+    T: FloatNumber,
 {
     /// The default maximum number of swatches to extract.
     const DEFAULT_MAX_SWATCHES: usize = 256;
@@ -384,7 +382,7 @@ fn to_feature_points<T>(
     filters: &[DynFilterFn],
 ) -> Vec<Point<T, 5>>
 where
-    T: FloatNumber + AliasableWeight,
+    T: FloatNumber,
 {
     let width_f = T::from_usize(width);
     let height_f = T::from_usize(height);
