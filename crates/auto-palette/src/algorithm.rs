@@ -1,11 +1,11 @@
-use std::str::FromStr;
+use std::{fmt::Display, str::FromStr};
 
 use rand_distr::weighted::AliasableWeight;
 
 use crate::{
     error::Error,
     math::{
-        clustering::{Cluster, ClusteringAlgorithm, DBSCANPlusPlus, KMeans, DBSCAN, SLIC},
+        clustering::{Cluster, ClusteringAlgorithm, DBSCANPlusPlus, KMeans, DBSCAN, SLIC, SNIC},
         DistanceMetric,
         FloatNumber,
         Point,
@@ -28,6 +28,9 @@ pub enum Algorithm {
 
     /// SLIC algorithm.
     SLIC,
+
+    /// SNIC algorithm.
+    SNIC,
 }
 
 impl Algorithm {
@@ -54,6 +57,7 @@ impl Algorithm {
             Self::DBSCAN => cluster_with_dbscan(pixels),
             Self::DBSCANpp => cluster_with_dbscanpp(pixels),
             Self::SLIC => cluster_with_slic(width as usize, height as usize, pixels),
+            Self::SNIC => cluster_with_snic(width as usize, height as usize, pixels),
         }
     }
 }
@@ -67,9 +71,22 @@ impl FromStr for Algorithm {
             "dbscan" => Ok(Self::DBSCAN),
             "dbscan++" => Ok(Self::DBSCANpp),
             "slic" => Ok(Self::SLIC),
+            "snic" => Ok(Self::SNIC),
             _ => Err(Error::UnsupportedAlgorithm {
                 name: s.to_string(),
             }),
+        }
+    }
+}
+
+impl Display for Algorithm {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::KMeans => write!(f, "kmeans"),
+            Self::DBSCAN => write!(f, "dbscan"),
+            Self::DBSCANpp => write!(f, "dbscan++"),
+            Self::SLIC => write!(f, "slic"),
+            Self::SNIC => write!(f, "snic"),
         }
     }
 }
@@ -176,7 +193,33 @@ where
         })
 }
 
+const SNIC_SEGMENTS: usize = 128;
+
+fn cluster_with_snic<T>(
+    width: usize,
+    height: usize,
+    pixels: &[Point<T, 5>],
+) -> Result<Vec<Cluster<T, 5>>, Error>
+where
+    T: FloatNumber,
+{
+    let clustering = SNIC::new(
+        (width, height),
+        SNIC_SEGMENTS,
+        DistanceMetric::SquaredEuclidean,
+    )
+    .map_err(|e| Error::PaletteExtractionError {
+        details: e.to_string(),
+    })?;
+    clustering
+        .fit(pixels)
+        .map_err(|e| Error::PaletteExtractionError {
+            details: e.to_string(),
+        })
+}
+
 #[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
 mod tests {
     use rstest::rstest;
 
@@ -221,6 +264,20 @@ mod tests {
             actual.unwrap_err().to_string(),
             format!("Unsupported algorithm specified: '{}'", input)
         );
+    }
+
+    #[rstest]
+    #[case::kmeans(Algorithm::KMeans, "kmeans")]
+    #[case::dbscan(Algorithm::DBSCAN, "dbscan")]
+    #[case::dbscanpp(Algorithm::DBSCANpp, "dbscan++")]
+    #[case::slic(Algorithm::SLIC, "slic")]
+    #[case::snic(Algorithm::SNIC, "snic")]
+    fn test_fmt(#[case] algorithm: Algorithm, #[case] expected: &str) {
+        // Act
+        let actual = format!("{}", algorithm);
+
+        // Assert
+        assert_eq!(actual, expected);
     }
 
     #[test]
