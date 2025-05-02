@@ -1,6 +1,7 @@
-use std::{fmt::Display, str::FromStr};
-
-use rand_distr::weighted::AliasableWeight;
+use std::{
+    fmt::{Display, Formatter},
+    str::FromStr,
+};
 
 use crate::{
     error::Error,
@@ -50,10 +51,10 @@ impl Algorithm {
         pixels: &[Point<T, 5>],
     ) -> Result<Vec<Cluster<T, 5>>, Error>
     where
-        T: FloatNumber + AliasableWeight,
+        T: FloatNumber,
     {
         match self {
-            Self::KMeans => cluster_with_kmeans(pixels),
+            Self::KMeans => cluster_with_kmeans(width as usize, height as usize, pixels),
             Self::DBSCAN => cluster_with_dbscan(pixels),
             Self::DBSCANpp => cluster_with_dbscanpp(pixels),
             Self::SLIC => cluster_with_slic(width as usize, height as usize, pixels),
@@ -80,7 +81,7 @@ impl FromStr for Algorithm {
 }
 
 impl Display for Algorithm {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::KMeans => write!(f, "kmeans"),
             Self::DBSCAN => write!(f, "dbscan"),
@@ -91,20 +92,24 @@ impl Display for Algorithm {
     }
 }
 
-const KMEANS_CLUSTER_COUNT: usize = 32;
-const KMEANS_MAX_ITER: usize = 100;
+const KMEANS_CLUSTER_COUNT: usize = 128;
+const KMEANS_MAX_ITER: usize = 10;
 const KMEANS_TOLERANCE: f64 = 1e-3;
 
-fn cluster_with_kmeans<T>(pixels: &[Point<T, 5>]) -> Result<Vec<Cluster<T, 5>>, Error>
+fn cluster_with_kmeans<T>(
+    width: usize,
+    height: usize,
+    pixels: &[Point<T, 5>],
+) -> Result<Vec<Cluster<T, 5>>, Error>
 where
-    T: FloatNumber + AliasableWeight,
+    T: FloatNumber,
 {
     let clustering = KMeans::new(
+        (width, height),
         KMEANS_CLUSTER_COUNT,
         KMEANS_MAX_ITER,
         T::from_f64(KMEANS_TOLERANCE),
         DistanceMetric::SquaredEuclidean,
-        rand::rng(),
     )
     .map_err(|e| Error::PaletteExtractionError {
         details: e.to_string(),
@@ -310,7 +315,7 @@ mod tests {
         let pixels = empty_points();
 
         // Act
-        let actual = cluster_with_kmeans(&pixels);
+        let actual = cluster_with_kmeans(192, 128, &pixels);
 
         // Assert
         assert!(actual.is_err());
