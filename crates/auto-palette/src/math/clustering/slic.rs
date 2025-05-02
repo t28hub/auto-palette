@@ -143,20 +143,19 @@ where
         let col = index % matrix.cols;
         let row = index / matrix.cols;
 
-        let mut lowest_score = T::max_value();
-        let mut lowest_point = None;
-        matrix
-            .neighbor_indices(col, row)
-            .iter()
-            .for_each(|neighbor_index| {
+        let (_, lowest_point) = matrix.neighbors(col, row).fold(
+            (T::max_value(), None),
+            |(lowest_score, lowest_point), (neighbor_index, neighbor_point)| {
                 let neighbor_col = neighbor_index % matrix.cols;
                 let neighbor_row = neighbor_index / matrix.cols;
                 let score = gradient(matrix, neighbor_col, neighbor_row, self.metric);
                 if score < lowest_score {
-                    lowest_score = score;
-                    lowest_point = matrix.get(neighbor_col, neighbor_row);
+                    (score, Some(neighbor_point))
+                } else {
+                    (lowest_score, lowest_point)
                 }
-            });
+            },
+        );
         lowest_point.copied()
     }
 
@@ -239,6 +238,7 @@ where
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
 mod tests {
     use rstest::rstest;
 

@@ -115,18 +115,15 @@ where
 
         let mut lowest_score = T::max_value();
         let mut lowest_index = None;
-        matrix
-            .neighbor_indices(col, row)
-            .iter()
-            .for_each(|neighbor_index| {
-                let neighbor_col = neighbor_index % matrix.cols;
-                let neighbor_row = neighbor_index / matrix.cols;
-                let score = gradient(matrix, neighbor_col, neighbor_row, self.metric);
-                if score < lowest_score {
-                    lowest_score = score;
-                    lowest_index = Some(*neighbor_index);
-                }
-            });
+        matrix.neighbors(col, row).for_each(|(neighbor_index, _)| {
+            let neighbor_col = neighbor_index % matrix.cols;
+            let neighbor_row = neighbor_index / matrix.cols;
+            let score = gradient(matrix, neighbor_col, neighbor_row, self.metric);
+            if score < lowest_score {
+                lowest_score = score;
+                lowest_index = Some(neighbor_index);
+            }
+        });
         lowest_index
     }
 }
@@ -190,11 +187,10 @@ where
             // Traverse the neighbors of the point and add them as candidates for clustering.
             let centroid = cluster.centroid();
             matrix
-                .neighbor_indices(element.col, element.row)
-                .into_iter()
-                .filter(|&neighbor_index| labels[neighbor_index] == Self::LABEL_UNCLASSIFIED)
-                .for_each(|neighbor_index| {
-                    let distance = self.metric.measure(centroid, &points[neighbor_index]);
+                .neighbors(element.col, element.row)
+                .filter(|(neighbor_index, _)| labels[*neighbor_index] == Self::LABEL_UNCLASSIFIED)
+                .for_each(|(neighbor_index, neighbor_point)| {
+                    let distance = self.metric.measure(centroid, neighbor_point);
                     let element = Element {
                         cluster_label,
                         col: neighbor_index % cols,
@@ -265,6 +261,7 @@ where
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
 mod tests {
     use rstest::rstest;
 

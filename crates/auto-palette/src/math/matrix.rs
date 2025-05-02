@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use thiserror::Error;
 
 use crate::{math::Point, FloatNumber};
@@ -115,39 +113,115 @@ where
         self.index(col, row).map(|index| &self.points[index])
     }
 
-    /// Applies the `action` function to each neighbor of the point at the given column and row.
+    /// Returns an iterator over the 8 neighboring points of the point at the given column and row.
     ///
     /// # Arguments
     /// * `col` - The column of the point.
     /// * `row` - The row of the point.
     ///
     /// # Returns
-    /// A set of indices of the neighboring points.
+    /// An iterator over the neighboring points.
     #[inline]
     #[must_use]
-    pub fn neighbor_indices(&self, col: usize, row: usize) -> HashSet<usize> {
-        if col >= self.cols || row >= self.rows {
-            return HashSet::new();
+    pub fn neighbors(&self, col: usize, row: usize) -> NeighborIterator<T, N> {
+        NeighborIterator::new(self, col, row)
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct NeighborIterator<'a, T, const N: usize>
+where
+    T: FloatNumber,
+{
+    matrix: &'a MatrixView<'a, T, N>,
+    col: usize,
+    row: usize,
+    dx: i8,
+    dy: i8,
+}
+
+impl<'a, T, const N: usize> NeighborIterator<'a, T, N>
+where
+    T: FloatNumber,
+{
+    /// Initial delta x value.
+    const INITIAL_DX: i8 = -1;
+
+    /// Initial delta y value.
+    const INITIAL_DY: i8 = -1;
+
+    /// Creates a new `NeighborIterator` instance.
+    ///
+    /// # Arguments
+    /// * `matrix` - The matrix to iterate over.
+    /// * `col` - The column of the point.
+    /// * `row` - The row of the point.
+    ///
+    /// # Returns
+    /// A new `NeighborIterator` instance.
+    #[inline]
+    #[must_use]
+    pub fn new(matrix: &'a MatrixView<'a, T, N>, col: usize, row: usize) -> Self {
+        Self {
+            matrix,
+            col,
+            row,
+            dx: Self::INITIAL_DX,
+            dy: Self::INITIAL_DY,
+        }
+    }
+}
+
+impl<'a, T, const N: usize> Iterator for NeighborIterator<'a, T, N>
+where
+    T: FloatNumber,
+{
+    type Item = (usize, &'a Point<T, N>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (max_cols, max_rows) = self.matrix.shape();
+
+        // Check if the current indices are out of bounds
+        if self.col >= max_cols || self.row >= max_rows {
+            return None;
         }
 
-        let mut neighbors = HashSet::with_capacity(8);
-        for i in col.saturating_sub(1)..=(col + 1).min(self.cols - 1) {
-            for j in row.saturating_sub(1)..=(row + 1).min(self.rows - 1) {
+        while self.dy <= 1 {
+            let dy = self.dy;
+            while self.dx <= 1 {
+                let dx = self.dx;
+                self.dx += 1;
+
                 // Skip the target point itself
-                if i == col && j == row {
+                if dx == 0 && dy == 0 {
                     continue;
                 }
 
-                if let Some(index) = self.index(i, j) {
-                    neighbors.insert(index);
+                let col = self.col.checked_add_signed(dx.into());
+                let row = self.row.checked_add_signed(dy.into());
+                match (col, row) {
+                    (Some(col), Some(row)) => {
+                        // Check if the indices are within bounds
+                        if col >= max_cols || row >= max_rows {
+                            continue;
+                        }
+
+                        let index = col + row * max_cols;
+                        let point = &self.matrix.points[index];
+                        return Some((index, point));
+                    }
+                    _ => continue,
                 }
             }
+            self.dx = Self::INITIAL_DX;
+            self.dy += 1;
         }
-        neighbors
+        None
     }
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
 mod tests {
     use rstest::rstest;
 
@@ -317,7 +391,7 @@ mod tests {
     #[case((15, 0), vec![14, 30, 31])]
     #[case((15, 7), vec![110, 111, 126, 142, 143])]
     #[case((15, 8), vec![126, 127, 142])]
-    fn test_neighbor_indices(#[case] (col, row): (usize, usize), #[case] expected: Vec<usize>) {
+    fn test_neighbors(#[case] (col, row): (usize, usize), #[case] expected: Vec<usize>) {
         // Arrange
         let cols = 16;
         let rows = 9;
@@ -325,18 +399,24 @@ mod tests {
         let matrix = MatrixView::new(cols, rows, &points).unwrap();
 
         // Act
-        let actual = matrix.neighbor_indices(col, row);
+        let actual =
+            matrix
+                .neighbors(col, row)
+                .fold(Vec::with_capacity(8), |mut acc, (index, _)| {
+                    acc.push(index);
+                    acc
+                });
 
         // Assert
         assert_eq!(actual.len(), expected.len());
-        assert_eq!(actual, HashSet::from_iter(expected));
+        assert_eq!(actual, expected);
     }
 
     #[rstest]
     #[case::right_top(0, 9)]
     #[case::left_bottom(16, 0)]
     #[case::right_bottom(16, 9)]
-    fn test_neighbor_indices_empty(#[case] col: usize, #[case] row: usize) {
+    fn test_neighbors_empty(#[case] col: usize, #[case] row: usize) {
         // Arrange
         let cols = 16;
         let rows = 9;
@@ -344,9 +424,78 @@ mod tests {
         let matrix = MatrixView::new(cols, rows, &points).unwrap();
 
         // Act
-        let actual = matrix.neighbor_indices(col, row);
+        let actual =
+            matrix
+                .neighbors(col, row)
+                .fold(Vec::with_capacity(8), |mut acc, (index, _)| {
+                    acc.push(index);
+                    acc
+                });
 
         // Assert
         assert!(actual.is_empty());
+    }
+
+    #[test]
+    fn test_neighbor_iterator_new() {
+        // Arrange
+        let cols = 16;
+        let rows = 9;
+        let points = vec![[0.0; 3]; cols * rows];
+        let matrix = MatrixView::new(cols, rows, &points).unwrap();
+
+        // Act
+        let actual = NeighborIterator::new(&matrix, 8, 4);
+
+        // Assert
+        assert_eq!(
+            actual,
+            NeighborIterator {
+                matrix: &matrix,
+                col: 8,
+                row: 4,
+                dx: -1,
+                dy: -1,
+            }
+        );
+    }
+
+    #[test]
+    fn test_neighbor_iterator_next() {
+        // Arrange
+        let cols = 3;
+        let rows = 2;
+        let mut points = vec![[0.0; 2]; cols * rows];
+        for i in 0..points.len() {
+            points[i] = [i as f64, i as f64];
+        }
+        let matrix = MatrixView::new(cols, rows, &points).unwrap();
+
+        let mut iterator = NeighborIterator::new(&matrix, 1, 1);
+
+        // Act & Assert
+        assert_eq!(iterator.next(), Some((0, &points[0])));
+        assert_eq!(iterator.next(), Some((1, &points[1])));
+        assert_eq!(iterator.next(), Some((2, &points[2])));
+        assert_eq!(iterator.next(), Some((3, &points[3])));
+        assert_eq!(iterator.next(), Some((5, &points[5])));
+        assert_eq!(iterator.next(), None);
+    }
+
+    #[rstest]
+    #[case::cols(3, 1)]
+    #[case::rows(2, 2)]
+    #[case::cols_rows(3, 2)]
+    fn test_neighbor_iterator_next_out_of_bounds(#[case] col: usize, #[case] row: usize) {
+        // Arrange
+        let cols = 3;
+        let rows = 2;
+        let points = vec![[0.0; 2]; cols * rows];
+        let matrix = MatrixView::new(cols, rows, &points).unwrap();
+
+        let mut iterator = NeighborIterator::new(&matrix, col, row);
+
+        // Act & Assert
+        assert_eq!(iterator.next(), None);
     }
 }
