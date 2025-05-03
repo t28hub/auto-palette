@@ -31,9 +31,14 @@ thiserror  = { workspace = true }
 
 [dev-dependencies]
 anyhow     = { workspace = true }
+divan      = { workspace = true }
 image      = { workspace = true, features = ["jpeg", "png"] }
 rstest     = { workspace = true }
 serde_test = { workspace = true }
+
+[[bench]]
+name    = "algorithm"
+harness = false
 
 [[example]]
 name              = "basic"
