@@ -7,6 +7,7 @@
 [![Version](https://img.shields.io/crates/v/auto-palette?style=flat-square)](https://crates.io/crates/auto-palette)
 [![Codacy grade](https://img.shields.io/codacy/grade/5de09d1930244071a2fa39d5cfcd8633?style=flat-square)](https://app.codacy.com/gh/t28hub/auto-palette/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Codecov](https://img.shields.io/codecov/c/github/t28hub/auto-palette?style=flat-square)](https://codecov.io/gh/t28hub/auto-palette)
+[![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://codspeed.io/t28hub/auto-palette)
 
 ## Overview
 `auto-palette` is a Rust project that offers color palette extraction from images. It consists of the following components:
@@ -38,7 +39,7 @@ Perfect for developers, designers and anyone needing efficient color palette ext
 
 * Automatically extracts prominent color palettes from images.
 * Provides detailed color swatch information (color, position, population)
-* Supports multiple extraction algorithms: `DBSCAN`, `DBSCAN++`, and `KMeans++`.
+* Supports multiple extraction algorithms: `DBSCAN`, `DBSCAN++`, `KMeans`, `SLIC` and `SNIC`.
 * Supports numerous color spaces: `RGB`, `HSL`, `LAB`, `LCHuv`, `ANSI256` and more.
 * Theme-based swatch selection: `Colorful`, `Vivid`, `Muted`, `Light`, and `Dark`.
 * Available as a Rust library, Wasm, and a CLI tool.
