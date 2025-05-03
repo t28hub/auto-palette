@@ -6,9 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased](https://github.com/t28hub/auto-palette/compare/v0.8.0...HEAD)
 ### Added
-- Implement SLIC (Simple Linear Iterative Clustering) algorithm for color palette extraction. (#176)
+- Add SLIC (Simple Linear Iterative Clustering) algorithm for color palette extraction. (#176)
+- Add SNIC (Simple Non-Iterative Clustering) algorithm for color palette extraction. (#177)
 
 ### Changed
+- Improve KMeans initialization to use a grid-based algorithm instead of the KMeans++ algorithm, enhancing performance and clustering stability. (#179)
+
 ### Deprecated
 ### Removed 
 ### Fixed
