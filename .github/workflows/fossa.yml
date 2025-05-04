@@ -1,6 +1,9 @@
 name: FOSSA
 
 on:
+  push:
+    branches:
+    - 'main'
   schedule:
     - cron: '0 0 * * *' # At the end of every day
   workflow_dispatch:
