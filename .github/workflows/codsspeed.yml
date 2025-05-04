@@ -3,8 +3,7 @@ name: CodSpeed
 on:
   push:
     branches:
-      - "main"
-  pull_request:
+      - 'main'
   workflow_dispatch:
 
 permissions:
