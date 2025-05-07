@@ -386,14 +386,18 @@ where
 {
     let width_f = T::from_usize(width);
     let height_f = T::from_usize(height);
-    data.array_chunks::<PIXEL_SIZE>()
+    data.chunks_exact(PIXEL_SIZE)
         .enumerate()
         .filter_map(|(index, chunk)| {
-            if filters.iter().any(|filter| filter(chunk)) {
+            let r = chunk[0];
+            let g = chunk[1];
+            let b = chunk[2];
+            let a = chunk[3];
+            if filters.iter().any(|filter| filter(&[r, g, b, a])) {
                 return None;
             }
 
-            let (x, y, z) = rgb_to_xyz::<T>(chunk[0], chunk[1], chunk[2]);
+            let (x, y, z) = rgb_to_xyz::<T>(r, g, b);
             let (l, a, b) = xyz_to_lab::<T, D65>(x, y, z);
             let x = T::from_usize(index % width);
             let y = T::from_usize(index / width);
@@ -527,7 +531,6 @@ where
 }
 
 #[cfg(test)]
-#[cfg_attr(coverage, coverage(off))]
 mod tests {
     use std::str::FromStr;
 

@@ -12,9 +12,8 @@ license.workspace    = true
 homepage.workspace   = true
 repository.workspace = true
 
-# `cargo msrv` does not support `rust-version.workspace` yet.
 # https://github.com/foresterre/cargo-msrv/issues/590
-rust-version = "1.84.0"
+rust-version = "1.86.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

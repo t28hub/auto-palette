@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Deprecated
 ### Removed 
 ### Fixed
+- Ensure compatibility with Rust stable versions by removing unstable `#![feature]` attributes. (#184)
+
 ### Security
 
 ## [v0.8.0](https://github.com/t28hub/auto-palette/compare/v0.7.0...v0.8.0) - 2025-04-28
