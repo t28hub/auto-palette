@@ -26,12 +26,6 @@ pub enum Algorithm {
 
     /// DBSCAN++ clustering algorithm.
     DBSCANpp,
-
-    /// SLIC algorithm.
-    SLIC,
-
-    /// SNIC algorithm.
-    SNIC,
 }
 
 impl Algorithm {
@@ -54,11 +48,9 @@ impl Algorithm {
         T: FloatNumber,
     {
         match self {
-            Self::KMeans => cluster_with_kmeans(width as usize, height as usize, pixels),
-            Self::DBSCAN => cluster_with_dbscan(pixels),
+            Self::KMeans => kmeans(width as usize, height as usize, pixels),
+            Self::DBSCAN => dbscan(pixels),
             Self::DBSCANpp => cluster_with_dbscanpp(pixels),
-            Self::SLIC => cluster_with_slic(width as usize, height as usize, pixels),
-            Self::SNIC => cluster_with_snic(width as usize, height as usize, pixels),
         }
     }
 }
@@ -71,8 +63,6 @@ impl FromStr for Algorithm {
             "kmeans" => Ok(Self::KMeans),
             "dbscan" => Ok(Self::DBSCAN),
             "dbscan++" => Ok(Self::DBSCANpp),
-            "slic" => Ok(Self::SLIC),
-            "snic" => Ok(Self::SNIC),
             _ => Err(Error::UnsupportedAlgorithm {
                 name: s.to_string(),
             }),
@@ -86,8 +76,6 @@ impl Display for Algorithm {
             Self::KMeans => write!(f, "kmeans"),
             Self::DBSCAN => write!(f, "dbscan"),
             Self::DBSCANpp => write!(f, "dbscan++"),
-            Self::SLIC => write!(f, "slic"),
-            Self::SNIC => write!(f, "snic"),
         }
     }
 }
@@ -96,7 +84,7 @@ const KMEANS_CLUSTER_COUNT: usize = 128;
 const KMEANS_MAX_ITER: usize = 10;
 const KMEANS_TOLERANCE: f64 = 1e-3;
 
-fn cluster_with_kmeans<T>(
+fn kmeans<T>(
     width: usize,
     height: usize,
     pixels: &[Point<T, 5>],
@@ -124,7 +112,7 @@ where
 const DBSCAN_MIN_POINTS: usize = 16;
 const DBSCAN_EPSILON: f64 = 16e-4;
 
-fn cluster_with_dbscan<T>(pixels: &[Point<T, 5>]) -> Result<Vec<Cluster<T, 5>>, Error>
+fn dbscan<T>(pixels: &[Point<T, 5>]) -> Result<Vec<Cluster<T, 5>>, Error>
 where
     T: FloatNumber,
 {
@@ -172,11 +160,8 @@ const SLIC_COMPACTNESS: f64 = 0.0225; // 0.15^2
 const SLIC_MAX_ITER: usize = 10;
 const SLIC_TOLERANCE: f64 = 1e-3;
 
-fn cluster_with_slic<T>(
-    width: usize,
-    height: usize,
-    pixels: &[Point<T, 5>],
-) -> Result<Vec<Cluster<T, 5>>, Error>
+#[allow(dead_code)]
+fn slic<T>(width: usize, height: usize, pixels: &[Point<T, 5>]) -> Result<Vec<Cluster<T, 5>>, Error>
 where
     T: FloatNumber,
 {
@@ -200,11 +185,8 @@ where
 
 const SNIC_SEGMENTS: usize = 128;
 
-fn cluster_with_snic<T>(
-    width: usize,
-    height: usize,
-    pixels: &[Point<T, 5>],
-) -> Result<Vec<Cluster<T, 5>>, Error>
+#[allow(dead_code)]
+fn snic<T>(width: usize, height: usize, pixels: &[Point<T, 5>]) -> Result<Vec<Cluster<T, 5>>, Error>
 where
     T: FloatNumber,
 {
@@ -238,15 +220,12 @@ mod tests {
     #[case::kmeans("kmeans", Algorithm::KMeans)]
     #[case::dbscan("dbscan", Algorithm::DBSCAN)]
     #[case::dbscanpp("dbscan++", Algorithm::DBSCANpp)]
-    #[case::slic("slic", Algorithm::SLIC)]
     #[case::kmeans_upper("KMEANS", Algorithm::KMeans)]
     #[case::dbscan_upper("DBSCAN", Algorithm::DBSCAN)]
     #[case::dbscanpp_upper("DBSCAN++", Algorithm::DBSCANpp)]
-    #[case::slic_upper("SLIC", Algorithm::SLIC)]
     #[case::kmeans_capitalized("Kmeans", Algorithm::KMeans)]
     #[case::dbscan_capitalized("Dbscan", Algorithm::DBSCAN)]
     #[case::dbscanpp_capitalized("Dbscan++", Algorithm::DBSCANpp)]
-    #[case::slic_capitalized("Slic", Algorithm::SLIC)]
     fn test_from_str(#[case] input: &str, #[case] expected: Algorithm) {
         // Act
         let actual = Algorithm::from_str(input).unwrap();
@@ -274,8 +253,6 @@ mod tests {
     #[case::kmeans(Algorithm::KMeans, "kmeans")]
     #[case::dbscan(Algorithm::DBSCAN, "dbscan")]
     #[case::dbscanpp(Algorithm::DBSCANpp, "dbscan++")]
-    #[case::slic(Algorithm::SLIC, "slic")]
-    #[case::snic(Algorithm::SNIC, "snic")]
     fn test_fmt(#[case] algorithm: Algorithm, #[case] expected: &str) {
         // Act
         let actual = format!("{}", algorithm);
@@ -285,19 +262,19 @@ mod tests {
     }
 
     #[test]
-    fn test_cluster_with_dbscan_empty() {
+    fn test_dbscan_empty() {
         // Arrange
         let pixels = empty_points();
 
         // Act
-        let actual = cluster_with_dbscan(&pixels);
+        let actual = dbscan(&pixels);
 
         // Assert
         assert!(actual.is_err());
     }
 
     #[test]
-    fn test_cluster_with_dbscanpp_empty() {
+    fn test_dbscanpp_empty() {
         // Arrange
         let pixels = empty_points();
 
@@ -309,24 +286,12 @@ mod tests {
     }
 
     #[test]
-    fn test_cluster_with_kmeans_empty() {
+    fn test_kmeans_empty() {
         // Arrange
         let pixels = empty_points();
 
         // Act
-        let actual = cluster_with_kmeans(192, 128, &pixels);
-
-        // Assert
-        assert!(actual.is_err());
-    }
-
-    #[test]
-    fn test_cluster_with_slic_empty() {
-        // Arrange
-        let pixels = empty_points();
-
-        // Act
-        let actual = cluster_with_slic(0, 0, &pixels);
+        let actual = kmeans(192, 128, &pixels);
 
         // Assert
         assert!(actual.is_err());

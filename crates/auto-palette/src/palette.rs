@@ -724,11 +724,11 @@ mod tests {
         // Act
         let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
         let actual: Palette<f64> =
-            Palette::extract_with_algorithm(&image_data, Algorithm::SNIC).unwrap();
+            Palette::extract_with_algorithm(&image_data, Algorithm::DBSCANpp).unwrap();
 
         // Assert
-        assert!(!actual.is_empty(), "Palette should not be empty");
-        assert!(actual.len() >= 6, "Palette should have at least 6 swatches");
+        assert!(!actual.is_empty());
+        assert_eq!(actual.len(), 5);
     }
 
     #[test]
