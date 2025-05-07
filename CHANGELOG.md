@@ -4,20 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/t28hub/auto-palette/compare/v0.8.0...HEAD)
+## [Unreleased](https://github.com/t28hub/auto-palette/compare/v0.8.1...HEAD)
 ### Added
 - Add SLIC (Simple Linear Iterative Clustering) algorithm for color palette extraction. (#176)
 - Add SNIC (Simple Non-Iterative Clustering) algorithm for color palette extraction. (#177)
 
 ### Changed
-- Improve KMeans initialization to use a grid-based algorithm instead of the KMeans++ algorithm, enhancing performance and clustering stability. (#179)
-
 ### Deprecated
 ### Removed 
 ### Fixed
-- Ensure compatibility with Rust stable versions by removing unstable `#![feature]` attributes. (#184)
 
 ### Security
+
+## [v0.8.1](https://github.com/t28hub/auto-palette/compare/v0.8.0...v0.8.1) - 2025-05-08
+### Changed
+- Improve KMeans initialization to use a grid-based algorithm instead of the KMeans++ algorithm, enhancing performance and clustering stability. (#179)
+- 
+### Fixed
+- Ensure compatibility with Rust stable versions by removing unstable `#![feature]` attributes. (#184)
 
 ## [v0.8.0](https://github.com/t28hub/auto-palette/compare/v0.7.0...v0.8.0) - 2025-04-28
 ### Added
@@ -109,7 +113,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Initial release.
 
 
-[Unreleased]: https://github.com/t28hub/auto-palette/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/t28hub/auto-palette/compare/v0.8.1...HEAD
+[v0.8.1]: https://github.com/t28hub/auto-palette/compare/v0.8.0...v0.8.1
 [v0.8.0]: https://github.com/t28hub/auto-palette/compare/v0.7.0...v0.8.0
 [v0.7.0]: https://github.com/t28hub/auto-palette/compare/v0.6.0...v0.7.0
 [v0.6.0]: https://github.com/t28hub/auto-palette/compare/v0.5.0...v0.6.0
