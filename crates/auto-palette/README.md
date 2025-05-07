@@ -26,7 +26,7 @@
 
 * Automatically extracts prominent color palettes from images.
 * Provides detailed information on color, position, and population.
-* Supports multiple extraction algorithms: `DBSCAN`, `DBSCAN++`, `KMeans`, `SLIC`, and `SNIC`.
+* Supports multiple extraction algorithms: `DBSCAN`, `DBSCAN++`, and `KMeans`.
 * Supports numerous color spaces: `RGB`, `HSL`, `LAB` and more.
 * Theme-based swatch selection: `Colorful`, `Vivid`, `Muted`, `Light`, and `Dark`.
 
