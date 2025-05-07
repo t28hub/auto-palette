@@ -26,7 +26,7 @@
   "lint-staged": {
     "*.{js,ts,json}": ["biome format --write"],
     "*.toml": ["taplo format"],
-    "*.rs": ["cargo fmt --all --"]
+    "*.rs": ["cargo +nightly fmt --all --"]
   },
   "engines": {
     "node": ">=18.0.0",

@@ -237,7 +237,6 @@ where
 }
 
 #[cfg(test)]
-#[cfg_attr(coverage, coverage(off))]
 mod tests {
     use rstest::rstest;
 

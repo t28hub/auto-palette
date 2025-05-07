@@ -48,7 +48,6 @@ macro_rules! assert_approx_eq {
 }
 
 #[cfg(test)]
-#[cfg_attr(coverage, coverage(off))]
 mod test {
     #[test]
     fn test_assert_approx_eq() {
