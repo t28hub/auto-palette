@@ -1,4 +1,4 @@
-use auto_palette::{Algorithm, ImageData, Palette, Swatch, Theme};
+use auto_palette::{Algorithm, ImageData, Palette, RgbaPixel, Swatch, Theme};
 use serde_wasm_bindgen::from_value;
 use wasm_bindgen::{prelude::wasm_bindgen, JsError};
 use web_sys::ImageData as ImageSource;
@@ -153,7 +153,7 @@ impl JsPalette {
 
         let palette = Palette::builder()
             .algorithm(algorithm)
-            .filter(|pixel| pixel[3] == 0)
+            .filter(|pixel: &RgbaPixel| pixel[3] != 0)
             .build(&image_data)
             .map_err(|e| JsError::new(&format!("Failed to extract palette from image: {}", e)))?;
         Ok(Self(palette))

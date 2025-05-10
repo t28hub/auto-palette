@@ -1,5 +1,3 @@
-#[cfg(feature = "image")]
-use image::ImageError;
 use thiserror::Error;
 
 use crate::math::sampling::SamplingError;
@@ -10,10 +8,6 @@ pub enum Error {
     /// Error when provided image data is empty and contains no pixel information.
     #[error("Image data is empty: no pixels to process")]
     EmptyImageData,
-
-    /// Error when the provided image data contains invalid pixel information.
-    #[error("Image data is invalid: contains invalid pixel data")]
-    InvalidImageData,
 
     /// Error when the palette extraction process fails, providing the underlying details.
     #[error("Palette extraction process failed with error: {details}")]
@@ -42,20 +36,6 @@ pub enum Error {
         /// The name of the unsupported theme.
         name: String,
     },
-
-    /// Error when the image fails to load, providing the underlying cause.
-    #[cfg(feature = "image")]
-    #[error("Image loading process failed with error: {cause}")]
-    ImageLoadError {
-        /// The underlying cause of the image loading failure.
-        #[from]
-        cause: ImageError,
-    },
-
-    /// Error when the image format or color type is not supported.
-    #[cfg(feature = "image")]
-    #[error("Image format or color type is not supported")]
-    UnsupportedImageFormat,
 }
 
 #[cfg(test)]
@@ -71,18 +51,6 @@ mod tests {
         assert_eq!(
             actual.to_string(),
             "Image data is empty: no pixels to process"
-        );
-    }
-
-    #[test]
-    fn test_invalid_image_data() {
-        // Act
-        let actual = Error::InvalidImageData;
-
-        // Assert
-        assert_eq!(
-            actual.to_string(),
-            "Image data is invalid: contains invalid pixel data"
         );
     }
 
@@ -136,35 +104,5 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "Unsupported theme specified: 'pastel'");
-    }
-
-    #[test]
-    #[cfg(feature = "image")]
-    fn test_image_load_error() {
-        // Arrange
-        let cause = ImageError::IoError(std::io::Error::from(std::io::ErrorKind::NotFound));
-        let error = Error::ImageLoadError { cause };
-
-        // Act
-        let actual = error.to_string();
-
-        // Assert
-        assert_eq!(
-            actual,
-            "Image loading process failed with error: entity not found"
-        );
-    }
-
-    #[test]
-    #[cfg(feature = "image")]
-    fn test_unsupported_image() {
-        // Act
-        let actual = Error::UnsupportedImageFormat;
-
-        // Assert
-        assert_eq!(
-            actual.to_string(),
-            "Image format or color type is not supported"
-        );
     }
 }
