@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     color::{white_point::WhitePoint, LCHab, D65, XYZ},
-    math::FloatNumber,
+    math::{denormalize, normalize, FloatNumber},
 };
 
 /// The CIE L*a*b* color representation.
@@ -148,6 +148,84 @@ where
     #[must_use]
     pub(crate) fn max_b() -> T {
         T::from_f32(127.0)
+    }
+
+    /// Normalizes the L component to the range of [0, 1].
+    ///
+    /// # Arguments
+    /// * `l` - The L component to normalize.
+    ///
+    /// # Returns
+    /// The normalized L component in the range of [0, 1].
+    #[inline(always)]
+    #[must_use]
+    pub(crate) fn normalize_l(l: T) -> T {
+        normalize(l, Lab::<T, W>::min_l(), Lab::<T, W>::max_l())
+    }
+
+    /// Denormalizes the L component from the range of [0, 1] to the original range.
+    ///
+    /// # Arguments
+    /// * `l` - The normalized L component to denormalize.
+    ///
+    /// # Returns
+    /// The denormalized L component in the original range.
+    #[inline(always)]
+    #[must_use]
+    pub(crate) fn denormalize_l(l: T) -> T {
+        denormalize(l, Lab::<T, W>::min_l(), Lab::<T, W>::max_l())
+    }
+
+    /// Normalizes the a component to the range of [0, 1].
+    ///
+    /// # Arguments
+    /// * `a` - The a component to normalize.
+    ///
+    /// # Returns
+    /// The normalized a component in the range of [0, 1].
+    #[inline(always)]
+    #[must_use]
+    pub(crate) fn normalize_a(a: T) -> T {
+        normalize(a, Lab::<T, W>::min_a(), Lab::<T, W>::max_a())
+    }
+
+    /// Denormalizes the a component from the range of [0, 1] to the original range.
+    ///
+    /// # Arguments
+    /// * `a` - The normalized a component to denormalize.
+    ///
+    /// # Returns
+    /// The denormalized a component in the original range.
+    #[inline(always)]
+    #[must_use]
+    pub(crate) fn denormalize_a(a: T) -> T {
+        denormalize(a, Lab::<T, W>::min_a(), Lab::<T, W>::max_a())
+    }
+
+    /// Normalizes the b component to the range of [0, 1].
+    ///
+    /// # Arguments
+    /// * `b` - The b component to normalize.
+    ///
+    /// # Returns
+    /// The normalized b component in the range of [0, 1].
+    #[inline(always)]
+    #[must_use]
+    pub(crate) fn normalize_b(b: T) -> T {
+        normalize(b, Lab::<T, W>::min_b(), Lab::<T, W>::max_b())
+    }
+
+    /// Denormalizes the b component from the range of [0, 1] to the original range.
+    ///
+    /// # Arguments
+    /// * `b` - The normalized b component to denormalize.
+    ///
+    /// # Returns
+    /// The denormalized b component in the original range.
+    #[inline(always)]
+    #[must_use]
+    pub(crate) fn denormalize_b(b: T) -> T {
+        denormalize(b, Lab::<T, W>::min_b(), Lab::<T, W>::max_b())
     }
 }
 

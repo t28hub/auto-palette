@@ -1,6 +1,6 @@
 use std::{path::Path, str::FromStr};
 
-use auto_palette::{Algorithm, ImageData, Palette};
+use auto_palette::{Algorithm, ImageData, Palette, RgbaPixel};
 use rstest::rstest;
 
 #[rstest]
@@ -69,7 +69,7 @@ fn test_builder_with_filter() {
 
     // Act
     let actual: Result<Palette<f64>, _> = Palette::builder()
-        .filter(|pixel| pixel[3] == 0)
+        .filter(|pixel: &RgbaPixel| pixel[3] != 0)
         .build(&image_data);
 
     // Assert
@@ -101,7 +101,7 @@ fn test_builder_transparent() {
     // Act
     let image_data = ImageData::load("../../gfx/colors/transparent.png").unwrap();
     let actual: Result<Palette<f64>, _> = Palette::builder()
-        .filter(|pixel| pixel[3] != 0)
+        .filter(|pixel: &RgbaPixel| pixel[3] != 0)
         .build(&image_data);
 
     // Assert

@@ -1,7 +1,7 @@
 use std::{process, time::Instant};
 
 use anyhow::Context;
-use auto_palette::{Algorithm, ImageData, Palette, Theme};
+use auto_palette::{Algorithm, ImageData, Palette, RgbaPixel, Theme};
 use clap::Parser;
 use clipboard::get_image_from_clipboard;
 use image::{self, imageops::FilterType};
@@ -58,9 +58,9 @@ fn main() -> anyhow::Result<()> {
 
     let instant = Instant::now();
     let algorithm = Algorithm::from(context.args().algorithm);
-    let Ok(palette) = Palette::<f32>::builder()
+    let Ok(palette) = Palette::<f64>::builder()
         .algorithm(algorithm)
-        .filter(|pixel| pixel[3] == 0)
+        .filter(|pixel: &RgbaPixel| pixel[3] != 0)
         .build(&image_data)
     else {
         process::exit(1);
