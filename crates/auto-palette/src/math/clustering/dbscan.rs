@@ -4,7 +4,7 @@ use thiserror::Error;
 
 use crate::math::{
     clustering::{Cluster, ClusteringAlgorithm},
-    neighbors::{kdtree::KDTreeSearch, neighbor::Neighbor, search::NeighborSearch},
+    neighbors::{kdtree::KDTreeSearch, Neighbor, NeighborSearch},
     DistanceMetric,
     FloatNumber,
     Point,

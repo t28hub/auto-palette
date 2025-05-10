@@ -314,7 +314,7 @@ impl From<&RgbaImage> for ImageData<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{assert_approx_eq, image::filter::AlphaFilter, RgbaPixel};
+    use crate::{assert_approx_eq, RgbaPixel};
 
     #[test]
     fn test_new() {

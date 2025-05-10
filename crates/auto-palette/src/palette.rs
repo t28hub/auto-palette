@@ -6,6 +6,7 @@ use crate::{
     error::Error,
     image::{
         filter::{AlphaFilter, CompositeFilter, Filter},
+        segmentation::Segment,
         ImageData,
     },
     math::{
@@ -349,12 +350,12 @@ where
         // 2. Group the points into clusters using the specified algorithm.
         let width = image_data.width();
         let height = image_data.height();
-        let pixel_clusters = self.algorithm.cluster(width, height, &pixels)?;
+        let image_segments = self.algorithm.segment(width, height, &pixels)?;
 
         // 3. Merge similar color clusters and create swatches.
-        let color_clusters = cluster_to_color_groups(&pixel_clusters)?;
+        let color_clusters = to_color_group(&image_segments)?;
         let mut swatches =
-            convert_swatches_from_clusters(image_data, &color_clusters, &pixel_clusters);
+            convert_swatches_from_segments(image_data, &color_clusters, &image_segments);
         swatches.sort_by_key(|swatch| Reverse(swatch.population()));
 
         let palette = Palette::new(swatches.into_iter().take(self.max_swatches).collect());
@@ -375,18 +376,18 @@ const COLOR_GROUP_DBSCAN_EPSILON: f64 = 2.5;
 ///
 /// # Returns
 /// The color clusters containing the color information.
-fn cluster_to_color_groups<T>(pixel_clusters: &[Cluster<T, 5>]) -> Result<Vec<Cluster<T, 3>>, Error>
+fn to_color_group<T>(image_segments: &[Segment<T>]) -> Result<Vec<Cluster<T, 3>>, Error>
 where
     T: FloatNumber,
 {
-    let colors: Vec<_> = pixel_clusters
+    let colors: Vec<_> = image_segments
         .iter()
-        .map(|cluster| -> Point<T, 3> {
-            let centroid = cluster.centroid();
+        .map(|segment| -> Point<T, 3> {
+            let center_pixel = segment.center();
             [
-                Lab::<T>::denormalize_l(centroid[0]),
-                Lab::<T>::denormalize_a(centroid[1]),
-                Lab::<T>::denormalize_b(centroid[2]),
+                Lab::<T>::denormalize_l(center_pixel[0]),
+                Lab::<T>::denormalize_a(center_pixel[1]),
+                Lab::<T>::denormalize_b(center_pixel[2]),
             ]
         })
         .collect();
@@ -420,10 +421,10 @@ where
 /// # Returns
 /// The swatches created from the color clusters and pixel clusters.
 #[must_use]
-fn convert_swatches_from_clusters<T>(
+fn convert_swatches_from_segments<T>(
     image_data: &ImageData,
     color_clusters: &[Cluster<T, 3>],
-    pixel_clusters: &[Cluster<T, 5>],
+    image_segments: &[Segment<T>],
 ) -> Vec<Swatch<T>>
 where
     T: FloatNumber,
@@ -438,29 +439,29 @@ where
             let mut total_population = 0;
 
             for &member in color_cluster.members() {
-                let Some(pixel_cluster) = pixel_clusters.get(member) else {
+                let Some(segment) = image_segments.get(member) else {
                     continue;
                 };
 
-                if pixel_cluster.is_empty() {
+                if segment.is_empty() {
                     continue;
                 }
 
-                let fraction = T::from_usize(pixel_cluster.len())
-                    / T::from_usize(pixel_cluster.len() + best_population);
-                let centroid = pixel_cluster.centroid();
+                let fraction =
+                    T::from_usize(segment.len()) / T::from_usize(segment.len() + best_population);
+                let center_pixel = segment.center();
                 best_color.iter_mut().enumerate().for_each(|(i, color)| {
-                    *color += fraction * (centroid[i] - *color);
+                    *color += fraction * (center_pixel[i] - *color);
                 });
 
                 if fraction >= T::from_f32(0.5) || best_population == 0 {
                     best_position = Some((
-                        image_data.denormalize_x(centroid[3]),
-                        image_data.denormalize_y(centroid[4]),
+                        image_data.denormalize_x(center_pixel[3]),
+                        image_data.denormalize_y(center_pixel[4]),
                     ));
-                    best_population = pixel_cluster.len();
+                    best_population = segment.len();
                 }
-                total_population += pixel_cluster.len();
+                total_population += segment.len();
             }
 
             if let Some(position) = best_position {
