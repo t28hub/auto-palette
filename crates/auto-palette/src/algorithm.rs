@@ -5,11 +5,20 @@ use std::{
 
 use crate::{
     error::Error,
+    image::{
+        segmentation::{
+            KmeansSegmentation,
+            Segment,
+            Segmentation,
+            SlicSegmentation,
+            SnicSegmentation,
+        },
+        Pixel,
+    },
     math::{
-        clustering::{Cluster, ClusteringAlgorithm, DBSCANPlusPlus, KMeans, DBSCAN, SLIC, SNIC},
+        clustering::{ClusteringAlgorithm, DBSCANPlusPlus, DBSCAN},
         DistanceMetric,
         FloatNumber,
-        Point,
     },
 };
 
@@ -38,19 +47,19 @@ impl Algorithm {
     ///
     /// # Returns
     /// The clusters found by the algorithm.
-    pub(crate) fn cluster<T>(
+    pub(crate) fn segment<T>(
         &self,
         width: u32,
         height: u32,
-        pixels: &[Point<T, 5>],
-    ) -> Result<Vec<Cluster<T, 5>>, Error>
+        pixels: &[Pixel<T>],
+    ) -> Result<Vec<Segment<T>>, Error>
     where
         T: FloatNumber,
     {
         match self {
             Self::KMeans => kmeans(width as usize, height as usize, pixels),
             Self::DBSCAN => dbscan(pixels),
-            Self::DBSCANpp => cluster_with_dbscanpp(pixels),
+            Self::DBSCANpp => dbscanpp(pixels),
         }
     }
 }
@@ -81,29 +90,25 @@ impl Display for Algorithm {
 }
 
 const KMEANS_CLUSTER_COUNT: usize = 128;
-const KMEANS_MAX_ITER: usize = 10;
+const KMEANS_MAX_ITER: usize = 50;
 const KMEANS_TOLERANCE: f64 = 1e-3;
 
-fn kmeans<T>(
-    width: usize,
-    height: usize,
-    pixels: &[Point<T, 5>],
-) -> Result<Vec<Cluster<T, 5>>, Error>
+fn kmeans<T>(width: usize, height: usize, pixels: &[Pixel<T>]) -> Result<Vec<Segment<T>>, Error>
 where
     T: FloatNumber,
 {
-    let clustering = KMeans::new(
-        (width, height),
-        KMEANS_CLUSTER_COUNT,
-        KMEANS_MAX_ITER,
-        T::from_f64(KMEANS_TOLERANCE),
-        DistanceMetric::SquaredEuclidean,
-    )
-    .map_err(|e| Error::PaletteExtractionError {
-        details: e.to_string(),
-    })?;
-    clustering
-        .fit(pixels)
+    let segmentation = KmeansSegmentation::builder()
+        .segments(KMEANS_CLUSTER_COUNT)
+        .max_iter(KMEANS_MAX_ITER)
+        .tolerance(T::from_f64(KMEANS_TOLERANCE))
+        .metric(DistanceMetric::SquaredEuclidean)
+        .build()
+        .map_err(|e| Error::PaletteExtractionError {
+            details: e.to_string(),
+        })?;
+
+    segmentation
+        .segment(width, height, pixels)
         .map_err(|e| Error::PaletteExtractionError {
             details: e.to_string(),
         })
@@ -112,7 +117,7 @@ where
 const DBSCAN_MIN_POINTS: usize = 16;
 const DBSCAN_EPSILON: f64 = 16e-4;
 
-fn dbscan<T>(pixels: &[Point<T, 5>]) -> Result<Vec<Cluster<T, 5>>, Error>
+fn dbscan<T>(pixels: &[Pixel<T>]) -> Result<Vec<Segment<T>>, Error>
 where
     T: FloatNumber,
 {
@@ -124,18 +129,31 @@ where
     .map_err(|e| Error::PaletteExtractionError {
         details: e.to_string(),
     })?;
-    clustering
+
+    let clusters = clustering
         .fit(pixels)
         .map_err(|e| Error::PaletteExtractionError {
             details: e.to_string(),
+        })?;
+
+    let segments = clusters
+        .iter()
+        .filter_map(|cluster| {
+            if cluster.is_empty() {
+                None
+            } else {
+                Some(Segment::from(cluster))
+            }
         })
+        .collect();
+    Ok(segments)
 }
 
 const DBSCANPP_PROBABILITY: f64 = 0.1;
 const DBSCANPP_MIN_POINTS: usize = 16;
 const DBSCANPP_EPSILON: f64 = 16e-4;
 
-fn cluster_with_dbscanpp<T>(pixels: &[Point<T, 5>]) -> Result<Vec<Cluster<T, 5>>, Error>
+fn dbscanpp<T>(pixels: &[Pixel<T>]) -> Result<Vec<Segment<T>>, Error>
 where
     T: FloatNumber,
 {
@@ -148,11 +166,24 @@ where
     .map_err(|e| Error::PaletteExtractionError {
         details: e.to_string(),
     })?;
-    clustering
+
+    let clusters = clustering
         .fit(pixels)
         .map_err(|e| Error::PaletteExtractionError {
             details: e.to_string(),
+        })?;
+
+    let segments = clusters
+        .iter()
+        .filter_map(|cluster| {
+            if cluster.is_empty() {
+                None
+            } else {
+                Some(Segment::from(cluster))
+            }
         })
+        .collect();
+    Ok(segments)
 }
 
 const SLIC_SEGMENTS: usize = 128;
@@ -161,23 +192,23 @@ const SLIC_MAX_ITER: usize = 10;
 const SLIC_TOLERANCE: f64 = 1e-3;
 
 #[allow(dead_code)]
-fn slic<T>(width: usize, height: usize, pixels: &[Point<T, 5>]) -> Result<Vec<Cluster<T, 5>>, Error>
+fn slic<T>(width: usize, height: usize, pixels: &[Pixel<T>]) -> Result<Vec<Segment<T>>, Error>
 where
     T: FloatNumber,
 {
-    let clustering = SLIC::new(
-        (width, height),
-        SLIC_SEGMENTS,
-        T::from_f64(SLIC_COMPACTNESS),
-        SLIC_MAX_ITER,
-        T::from_f64(SLIC_TOLERANCE),
-        DistanceMetric::SquaredEuclidean,
-    )
-    .map_err(|e| Error::PaletteExtractionError {
-        details: e.to_string(),
-    })?;
-    clustering
-        .fit(pixels)
+    let segmentation = SlicSegmentation::builder()
+        .segments(SLIC_SEGMENTS)
+        .compactness(T::from_f64(SLIC_COMPACTNESS))
+        .max_iter(SLIC_MAX_ITER)
+        .tolerance(T::from_f64(SLIC_TOLERANCE))
+        .metric(DistanceMetric::SquaredEuclidean)
+        .build()
+        .map_err(|e| Error::PaletteExtractionError {
+            details: e.to_string(),
+        })?;
+
+    segmentation
+        .segment(width, height, pixels)
         .map_err(|e| Error::PaletteExtractionError {
             details: e.to_string(),
         })
@@ -186,20 +217,20 @@ where
 const SNIC_SEGMENTS: usize = 128;
 
 #[allow(dead_code)]
-fn snic<T>(width: usize, height: usize, pixels: &[Point<T, 5>]) -> Result<Vec<Cluster<T, 5>>, Error>
+fn snic<T>(width: usize, height: usize, pixels: &[Pixel<T>]) -> Result<Vec<Segment<T>>, Error>
 where
     T: FloatNumber,
 {
-    let clustering = SNIC::new(
-        (width, height),
-        SNIC_SEGMENTS,
-        DistanceMetric::SquaredEuclidean,
-    )
-    .map_err(|e| Error::PaletteExtractionError {
-        details: e.to_string(),
-    })?;
-    clustering
-        .fit(pixels)
+    let segmentation = SnicSegmentation::<T>::builder()
+        .segments(SNIC_SEGMENTS)
+        .metric(DistanceMetric::Euclidean)
+        .build()
+        .map_err(|e| Error::PaletteExtractionError {
+            details: e.to_string(),
+        })?;
+
+    segmentation
+        .segment(width, height, pixels)
         .map_err(|e| Error::PaletteExtractionError {
             details: e.to_string(),
         })
@@ -212,7 +243,10 @@ mod tests {
     use super::*;
 
     #[must_use]
-    fn empty_points() -> Vec<Point<f64, 5>> {
+    fn empty_pixels<T>() -> Vec<Pixel<T>>
+    where
+        T: FloatNumber,
+    {
         Vec::new()
     }
 
@@ -263,11 +297,8 @@ mod tests {
 
     #[test]
     fn test_dbscan_empty() {
-        // Arrange
-        let pixels = empty_points();
-
         // Act
-        let actual = dbscan(&pixels);
+        let actual = dbscan(&empty_pixels::<f64>());
 
         // Assert
         assert!(actual.is_err());
@@ -275,11 +306,8 @@ mod tests {
 
     #[test]
     fn test_dbscanpp_empty() {
-        // Arrange
-        let pixels = empty_points();
-
         // Act
-        let actual = cluster_with_dbscanpp(&pixels);
+        let actual = dbscanpp(&empty_pixels::<f64>());
 
         // Assert
         assert!(actual.is_err());
@@ -287,11 +315,26 @@ mod tests {
 
     #[test]
     fn test_kmeans_empty() {
-        // Arrange
-        let pixels = empty_points();
-
         // Act
-        let actual = kmeans(192, 128, &pixels);
+        let actual = kmeans(192, 128, &empty_pixels::<f64>());
+
+        // Assert
+        assert!(actual.is_err());
+    }
+
+    #[test]
+    fn test_slic_empty() {
+        // Act
+        let actual = slic(192, 128, &empty_pixels::<f64>());
+
+        // Assert
+        assert!(actual.is_err());
+    }
+
+    #[test]
+    fn test_snic_empty() {
+        // Act
+        let actual = snic(192, 128, &empty_pixels::<f64>());
 
         // Assert
         assert!(actual.is_err());
