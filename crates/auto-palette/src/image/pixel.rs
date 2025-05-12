@@ -7,7 +7,7 @@ pub const RGBA_CHANNELS: usize = 4;
 pub type RgbaPixel = [u8; RGBA_CHANNELS];
 
 /// The number of channels in a CIELAB pixel + the pixel coordinates.
-const LABXY_CHANNELS: usize = 5;
+pub const LABXY_CHANNELS: usize = 5;
 
 /// A pixel that contains the CIELAB color space values and the coordinates of the pixel in the image.
 ///

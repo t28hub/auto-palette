@@ -27,10 +27,10 @@ where
     T: FloatNumber,
 {
     /// The number of columns in the matrix.
-    pub(super) cols: usize,
+    pub(crate) cols: usize,
 
     /// The number of rows in the matrix.
-    pub(super) rows: usize,
+    pub(crate) rows: usize,
 
     /// The points in the matrix.
     points: &'a [Point<T, N>],
@@ -113,18 +113,38 @@ where
         self.index(col, row).map(|index| &self.points[index])
     }
 
-    /// Returns an iterator over the 8 neighboring points of the point at the given column and row.
+    /// Returns an iterator over the neighbors of the given point.
     ///
     /// # Arguments
     /// * `col` - The column of the point.
     /// * `row` - The row of the point.
     ///
     /// # Returns
-    /// An iterator over the neighboring points.
+    /// An iterator over the neighbors of the given point.
     #[inline]
     #[must_use]
     pub fn neighbors(&self, col: usize, row: usize) -> NeighborIterator<T, N> {
-        NeighborIterator::new(self, col, row)
+        NeighborIterator::new(self, col, row, 1)
+    }
+
+    /// Returns an iterator over the neighbors within a given `radius` around the given `(col, row)`.
+    ///
+    /// # Arguments
+    /// * `col` - The column of the point.
+    /// * `row` - The row of the point.
+    /// * `radius` - The size of the neighborhood.
+    ///
+    /// # Returns
+    /// An iterator over the neighbors of the given point with the specified size.
+    #[inline]
+    #[must_use]
+    pub fn neighbors_with_size(
+        &self,
+        col: usize,
+        row: usize,
+        radius: usize,
+    ) -> NeighborIterator<T, N> {
+        NeighborIterator::new(self, col, row, radius)
     }
 }
 
@@ -136,38 +156,36 @@ where
     matrix: &'a MatrixView<'a, T, N>,
     col: usize,
     row: usize,
-    dx: i8,
-    dy: i8,
+    radius: isize,
+    dx: isize,
+    dy: isize,
 }
 
 impl<'a, T, const N: usize> NeighborIterator<'a, T, N>
 where
     T: FloatNumber,
 {
-    /// Initial delta x value.
-    const INITIAL_DX: i8 = -1;
-
-    /// Initial delta y value.
-    const INITIAL_DY: i8 = -1;
-
     /// Creates a new `NeighborIterator` instance.
     ///
     /// # Arguments
     /// * `matrix` - The matrix to iterate over.
     /// * `col` - The column of the point.
     /// * `row` - The row of the point.
+    /// * `radius` - The size of the neighborhood.
     ///
     /// # Returns
     /// A new `NeighborIterator` instance.
     #[inline]
     #[must_use]
-    pub fn new(matrix: &'a MatrixView<'a, T, N>, col: usize, row: usize) -> Self {
+    pub fn new(matrix: &'a MatrixView<'a, T, N>, col: usize, row: usize, radius: usize) -> Self {
+        let radius = radius as isize;
         Self {
             matrix,
             col,
             row,
-            dx: Self::INITIAL_DX,
-            dy: Self::INITIAL_DY,
+            radius,
+            dx: -radius,
+            dy: -radius,
         }
     }
 }
@@ -179,16 +197,17 @@ where
     type Item = (usize, &'a Point<T, N>);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (max_cols, max_rows) = self.matrix.shape();
+        let (cols, rows) = self.matrix.shape();
 
         // Check if the current indices are out of bounds
-        if self.col >= max_cols || self.row >= max_rows {
+        if self.col >= cols || self.row >= rows {
             return None;
         }
 
-        while self.dy <= 1 {
+        while self.dy <= self.radius {
             let dy = self.dy;
-            while self.dx <= 1 {
+
+            while self.dx <= self.radius {
                 let dx = self.dx;
                 self.dx += 1;
 
@@ -197,23 +216,25 @@ where
                     continue;
                 }
 
-                let col = self.col.checked_add_signed(dx.into());
-                let row = self.row.checked_add_signed(dy.into());
+                let col = self.col.checked_add_signed(dx);
+                let row = self.row.checked_add_signed(dy);
                 match (col, row) {
                     (Some(col), Some(row)) => {
                         // Check if the indices are within bounds
-                        if col >= max_cols || row >= max_rows {
+                        if col >= cols || row >= rows {
                             continue;
                         }
 
-                        let index = col + row * max_cols;
+                        let index = col + row * cols;
                         let point = &self.matrix.points[index];
                         return Some((index, point));
                     }
                     _ => continue,
                 }
             }
-            self.dx = Self::INITIAL_DX;
+
+            // Reset the X offset and move to the next Y offset
+            self.dx = -self.radius;
             self.dy += 1;
         }
         None
@@ -435,6 +456,40 @@ mod tests {
         assert!(actual.is_empty());
     }
 
+    #[rstest]
+    #[case(0, (0, 0), vec![])]
+    #[case(1, (0, 0), vec![1, 16, 17])]
+    #[case(2, (0, 0), vec![1, 2, 16, 17, 18, 32, 33, 34])]
+    #[case(0, (8, 4), vec![])]
+    #[case(1, (8,4), vec![55, 56, 57, 71, 73, 87, 88, 89])]
+    #[case(2, (8,4), vec![38, 39, 40, 41, 42, 54, 55, 56, 57, 58, 70, 71, 73, 74, 86, 87, 88, 89, 90, 102, 103, 104, 105, 106])]
+    #[case(0, (15, 8), vec![])]
+    #[case(1, (15, 8), vec![126, 127, 142])]
+    #[case(2, (15, 8), vec![109, 110, 111, 125, 126, 127, 141, 142])]
+    fn test_neighbors_with_size(
+        #[case] radius: usize,
+        #[case] (col, row): (usize, usize),
+        #[case] expected: Vec<usize>,
+    ) {
+        // Arrange
+        let cols = 16;
+        let rows = 9;
+        let points = vec![[0.0; 3]; cols * rows];
+        let matrix = MatrixView::new(cols, rows, &points).unwrap();
+
+        // Act
+        let actual =
+            matrix
+                .neighbors_with_size(col, row, radius)
+                .fold(Vec::new(), |mut acc, (index, _)| {
+                    acc.push(index);
+                    acc
+                });
+
+        // Assert
+        assert_eq!(actual, expected);
+    }
+
     #[test]
     fn test_neighbor_iterator_new() {
         // Arrange
@@ -444,7 +499,7 @@ mod tests {
         let matrix = MatrixView::new(cols, rows, &points).unwrap();
 
         // Act
-        let actual = NeighborIterator::new(&matrix, 8, 4);
+        let actual = NeighborIterator::new(&matrix, 8, 4, 1);
 
         // Assert
         assert_eq!(
@@ -453,6 +508,7 @@ mod tests {
                 matrix: &matrix,
                 col: 8,
                 row: 4,
+                radius: 1,
                 dx: -1,
                 dy: -1,
             }
@@ -470,7 +526,7 @@ mod tests {
         }
         let matrix = MatrixView::new(cols, rows, &points).unwrap();
 
-        let mut iterator = NeighborIterator::new(&matrix, 1, 1);
+        let mut iterator = NeighborIterator::new(&matrix, 1, 1, 1);
 
         // Act & Assert
         assert_eq!(iterator.next(), Some((0, &points[0])));
@@ -492,7 +548,7 @@ mod tests {
         let points = vec![[0.0; 2]; cols * rows];
         let matrix = MatrixView::new(cols, rows, &points).unwrap();
 
-        let mut iterator = NeighborIterator::new(&matrix, col, row);
+        let mut iterator = NeighborIterator::new(&matrix, col, row, 1);
 
         // Act & Assert
         assert_eq!(iterator.next(), None);
