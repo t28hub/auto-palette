@@ -13,13 +13,13 @@
 
 <img src="../../gfx/laura-clugston-pwW2iV9TZao-unsplash.jpg" alt="Hot air balloon on blue sky" width="480">
 
-| Theme       | Color Palette                           |
-|-------------|-----------------------------------------|
-| `(Default)` | ![Default](/gfx/palettes/default.png)   |
-| `Colorful`  | ![Colorful](/gfx/palettes/colorful.png) |
-| `Vivid`     | ![Vivid](/gfx/palettes/vivid.png)       |
-| `Muted`     | ![Muted](/gfx/palettes/muted.png)       |
-| `Light`     | ![Light](/gfx/palettes/light.png)       |
+| Theme       | Color Palette                                |
+|-------------|----------------------------------------------|
+| `(Default)` | ![Default](../../gfx/palettes/default.png)   |
+| `Colorful`  | ![Colorful](../../gfx/palettes/colorful.png) |
+| `Vivid`     | ![Vivid](../../gfx/palettes/vivid.png)       |
+| `Muted`     | ![Muted](../../gfx/palettes/muted.png)       |
+| `Light`     | ![Light](../../gfx/palettes/light.png)       |
 
 > [!NOTE]
 > Photo by <a href="https://unsplash.com/@laurahclugston?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Laura Clugston</a> on <a href="https://unsplash.com/photos/multi-colored-hot-air-balloon-pwW2iV9TZao?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Unsplash</a>
@@ -36,10 +36,10 @@ Using `auto-palette` in your Rust project, add it to your `Cargo.toml`.
 
 ```toml
 [dependencies]
-auto-palette = "0.8.1"
+auto-palette = "0.8.2"
 ```
 
-> [!WARNING]
+> [!NOTE]
 > This project is currently in version is pre-1.0.0. While the API is stable for general use, breaking changes may still occur in future updates.
 
 ## Usage

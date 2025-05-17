@@ -18,7 +18,7 @@
 
 Perfect for developers, designers and anyone needing efficient color palette extraction.
 
-> [!WARNING]
+> [!NOTE]
 > This project is in early development (0.y.z). The API may change at any time and breaking changes may occur without notice.
 
 ## Features
@@ -52,7 +52,7 @@ To use `auto-palette` in your Rust project, add it to your `Cargo.toml`.
 
 ```toml
 [dependencies]
-auto-palette = "0.8.1"
+auto-palette = "0.8.2"
 ```
 
 ### CLI Tool
