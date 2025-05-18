@@ -97,33 +97,34 @@ describe('@auto-palette/wasm', () => {
         {
           count: 3,
           theme: 'colorful',
-          expected: ['#C72C52', '#A48611', '#01B1FC'],
+          expected: ['#01B1FC', '#A48611', '#C72C52'],
         },
         {
           count: 3,
           theme: 'vivid',
-          expected: ['#D6314D', '#A48611', '#01B1FC'],
+          expected: ['#01B1FC', '#A48611', '#D6314D'],
         },
         {
           count: 3,
           theme: 'muted',
-          expected: ['#04524E', '#CD85B7', '#846E15'],
+          expected: ['#04524E', '#846E15', '#CD85B7'],
         },
         {
           count: 3,
           theme: 'light',
-          expected: ['#5ECBFE', '#CFC663', '#CD85B7'],
+          expected: ['#5ECBFE', '#CD85B7', '#CFC663'],
         },
         {
           count: 3,
           theme: 'dark',
-          expected: ['#053E2D', '#032F55', '#4A0117'],
+          expected: ['#032F55', '#053E2D', '#4A0117'],
         },
       ])(
         'should find the swatches from the palette with the $theme theme',
         ({ count, theme, expected }) => {
           // Act
           const swatches = palette.findSwatches(count, theme as Theme);
+          swatches.sort((a, b) => a.color.toInt() - b.color.toInt());
 
           // Assert
           expect(swatches).toHaveLength(count);

@@ -17,6 +17,7 @@ impl SeedGenerator {
     /// * `width` - The width of the image.
     /// * `height` - The height of the image.
     /// * `pixels` - The pixels of the image.
+    /// * `mask` - A mask indicating which pixels are included in the clustering.
     /// * `k` - The number of seeds to generate.
     ///
     /// # Returns
@@ -27,21 +28,28 @@ impl SeedGenerator {
         width: usize,
         height: usize,
         pixels: &[Point<T, N>],
+        mask: &[bool],
         k: usize,
     ) -> HashSet<usize>
     where
         T: FloatNumber,
     {
+        assert_eq!(
+            pixels.len(),
+            mask.len(),
+            "pixels and mask must have the same length"
+        );
+
         if k == 0 {
             return HashSet::new();
         }
 
         if k > pixels.len() {
-            return HashSet::from_iter(0..pixels.len());
+            return HashSet::from_iter(mask.iter().enumerate().filter(|(_, &m)| m).map(|(i, _)| i));
         }
 
         match self {
-            Self::RegularGrid => regular_grid(width, height, pixels, k),
+            Self::RegularGrid => regular_grid(width, height, pixels, mask, k),
         }
     }
 }
@@ -52,6 +60,7 @@ fn regular_grid<T, const N: usize>(
     width: usize,
     height: usize,
     pixels: &[Point<T, N>],
+    mask: &[bool],
     k: usize,
 ) -> HashSet<usize>
 where
@@ -67,7 +76,7 @@ where
     'outer: for y in (half..height).step_by(step) {
         for x in (half..width).step_by(step) {
             let index = x + y * width;
-            if index < pixels.len() {
+            if mask[index] && index < pixels.len() {
                 seeds.insert(index);
             }
 
@@ -113,10 +122,11 @@ mod tests {
         let width = 12;
         let height = 9;
         let points = sample_points::<f64>(width, height);
+        let mask = vec![true; width * height];
 
         // Act
         let generator = SeedGenerator::RegularGrid;
-        let actual = generator.generate(width, height, &points, k);
+        let actual = generator.generate(width, height, &points, &mask, k);
 
         // Assert
         assert_eq!(actual.len(), expected.len());
@@ -129,10 +139,11 @@ mod tests {
         let width = 4;
         let height = 3;
         let points = sample_points::<f64>(width, height);
+        let mask = vec![true; width * height];
 
         // Act
         let generator = SeedGenerator::default();
-        let actual = generator.generate(width, height, &points, 0);
+        let actual = generator.generate(width, height, &points, &mask, 0);
 
         // Assert
         assert_eq!(actual.len(), 0);
@@ -144,12 +155,32 @@ mod tests {
         let width = 4;
         let height = 3;
         let points = sample_points::<f64>(width, height);
+        let mask = vec![true; width * height];
 
         // Act
         let generator = SeedGenerator::default();
-        let actual = generator.generate(width, height, &points, 13);
+        let actual = generator.generate(width, height, &points, &mask, 13);
 
         // Assert
         assert_eq!(actual.len(), 12);
+    }
+
+    #[test]
+    fn test_generate_with_mask() {
+        // Arrange
+        let width = 4;
+        let height = 3;
+        let points = sample_points::<f64>(width, height);
+        let mask = vec![
+            true, true, true, true, true, false, true, true, true, true, true, true,
+        ];
+
+        // Act
+        let generator = SeedGenerator::default();
+        let actual = generator.generate(width, height, &points, &mask, 2);
+
+        // Assert
+        assert_eq!(actual.len(), 1);
+        assert_eq!(actual, HashSet::from_iter([7]));
     }
 }

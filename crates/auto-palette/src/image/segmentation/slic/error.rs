@@ -29,10 +29,6 @@ where
     #[error("Tolerance must be greater than zero: {0}")]
     InvalidTolerance(T),
 
-    /// Error when the pixels slice is empty.
-    #[error("The pixels slice is empty")]
-    EmptyPixels,
-
     /// Error when the number of pixels is invalid.
     #[error("Unexpected pixels length: {0}")]
     UnexpectedLength(#[from] MatrixError),

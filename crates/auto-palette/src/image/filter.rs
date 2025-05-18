@@ -1,4 +1,4 @@
-use crate::image::RgbaPixel;
+use crate::image::Rgba;
 
 /// A trait for filtering pixels in an image.
 pub trait Filter: Send + Sync + 'static {
@@ -10,7 +10,7 @@ pub trait Filter: Send + Sync + 'static {
     /// # Returns
     /// `true` if the pixel passes the filter; `false` otherwise.
     #[must_use]
-    fn test(&self, pixel: &RgbaPixel) -> bool;
+    fn test(&self, pixel: &Rgba) -> bool;
 
     /// Composites this filter with another filter.
     ///
@@ -40,10 +40,10 @@ pub trait Filter: Send + Sync + 'static {
 /// * `F` - The type of the closure.
 impl<F> Filter for F
 where
-    F: Fn(&RgbaPixel) -> bool + Send + Sync + 'static,
+    F: Fn(&Rgba) -> bool + Send + Sync + 'static,
 {
     #[inline(always)]
-    fn test(&self, pixel: &RgbaPixel) -> bool {
+    fn test(&self, pixel: &Rgba) -> bool {
         self(pixel)
     }
 }
@@ -90,7 +90,7 @@ where
     F2: Filter,
 {
     #[inline(always)]
-    fn test(&self, pixel: &RgbaPixel) -> bool {
+    fn test(&self, pixel: &Rgba) -> bool {
         // Apply the first filter and then the second filter
         // https://doc.rust-lang.org/reference/expressions/operator-expr.html#lazy-boolean-operators
         self.first.test(pixel) && self.second.test(pixel)
@@ -119,7 +119,7 @@ impl AlphaFilter {
 
 impl Filter for AlphaFilter {
     #[inline(always)]
-    fn test(&self, pixel: &RgbaPixel) -> bool {
+    fn test(&self, pixel: &Rgba) -> bool {
         pixel[3] > self.threshold
     }
 }
@@ -137,7 +137,7 @@ mod tests {
     #[test]
     fn test_closure_filter() {
         // Act & Assert
-        let filter = |pixel: &RgbaPixel| pixel[0] > 128; // Filter for red channel > 128
+        let filter = |pixel: &Rgba| pixel[0] > 128; // Filter for red channel > 128
         assert_eq!(filter.test(&[255, 0, 0, 255]), true);
         assert_eq!(filter.test(&[129, 0, 0, 255]), true);
         assert_eq!(filter.test(&[128, 0, 0, 255]), false);
@@ -147,8 +147,8 @@ mod tests {
     #[test]
     fn test_composite_filter() {
         // Arrange
-        let alpha_filter = |pixel: &RgbaPixel| pixel[3] != 0;
-        let green_filter = |pixel: &RgbaPixel| pixel[1] >= 128;
+        let alpha_filter = |pixel: &Rgba| pixel[3] != 0;
+        let green_filter = |pixel: &Rgba| pixel[1] >= 128;
 
         // Act
         let filter = alpha_filter.composite(green_filter);

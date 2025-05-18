@@ -47,6 +47,9 @@ where
     /// Default label for unclassified pixels.
     const LABEL_UNCLASSIFIED: usize = usize::MAX;
 
+    /// Default label for ignored pixels.
+    const LABEL_IGNORED: usize = usize::MAX - 1;
+
     /// Creates a new `SnicSegmentationBuilder` instance.
     ///
     /// # Returns
@@ -64,6 +67,7 @@ where
     /// # Arguments
     /// * `matrix` - The matrix of points.
     /// * `index` - The index of the point to check.
+    /// * `mask` - A mask indicating which points are valid.
     ///
     /// # Returns
     /// The index of the point with the lowest gradient in the neighborhood if it exists.
@@ -72,6 +76,7 @@ where
         &self,
         matrix: &MatrixView<T, N>,
         index: usize,
+        mask: &[bool],
     ) -> Option<usize> {
         let col = index % matrix.cols;
         let row = index / matrix.cols;
@@ -79,6 +84,10 @@ where
         let mut lowest_score = T::max_value();
         let mut lowest_index = None;
         matrix.neighbors(col, row).for_each(|(neighbor_index, _)| {
+            if !mask[neighbor_index] {
+                return;
+            }
+
             let neighbor_col = neighbor_index % matrix.cols;
             let neighbor_row = neighbor_index / matrix.cols;
             let score = gradient(matrix, neighbor_col, neighbor_row, self.metric);
@@ -97,30 +106,27 @@ where
 {
     type Err = SnicError;
 
-    fn segment(
+    fn segment_with_mask(
         &self,
         width: usize,
         height: usize,
         pixels: &[Pixel<T>],
+        mask: &[bool],
     ) -> Result<Segments<T>, Self::Err> {
-        if pixels.is_empty() {
-            return Err(SnicError::EmptyPixels);
-        }
-
         let matrix = MatrixView::new(width, height, pixels)?;
 
-        // 1. Initialize the seeds using a grid pattern.
-        let seeds = self
+        // Initialize the seeds using a grid pattern.
+        let seeds: Vec<_> = self
             .generator
-            .generate(width, height, pixels, self.segments)
+            .generate(width, height, pixels, mask, self.segments)
             .into_iter()
             .map(|seed_index| {
-                let found = self.find_lowest_gradient_index(&matrix, seed_index);
+                let found = self.find_lowest_gradient_index(&matrix, seed_index, mask);
                 found.unwrap_or(seed_index)
             })
-            .collect::<Vec<_>>();
+            .collect();
 
-        // 2. Initialize the priority queue with the seeds.
+        // Initialize the priority queue with the seeds.
         let mut segments = vec![Segment::default(); seeds.len()];
         let mut queue = seeds.into_iter().enumerate().fold(
             BinaryHeap::with_capacity(matrix.size()),
@@ -136,10 +142,14 @@ where
             },
         );
 
-        // 3. Main clustering loop
         let mut labels = vec![Self::LABEL_UNCLASSIFIED; matrix.size()];
         while let Some(Reverse(element)) = queue.pop() {
             let pixel_index = element.col + element.row * width;
+            if !mask[pixel_index] {
+                labels[pixel_index] = Self::LABEL_IGNORED;
+                continue;
+            }
+
             // Skip if the point is already assigned to a cluster.
             if labels[pixel_index] != Self::LABEL_UNCLASSIFIED {
                 continue;
@@ -322,7 +332,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{math::matrix::MatrixError, ImageData, RgbaPixel};
+    use crate::{math::matrix::MatrixError, ImageData};
 
     #[must_use]
     fn sample_pixels<T>(width: usize, height: usize) -> Vec<Pixel<T>>
@@ -330,14 +340,6 @@ mod tests {
         T: FloatNumber,
     {
         vec![[T::zero(); 5]; width * height]
-    }
-
-    #[must_use]
-    fn empty_pixels<T>() -> Vec<Pixel<T>>
-    where
-        T: FloatNumber,
-    {
-        Vec::new()
     }
 
     #[test]
@@ -390,12 +392,15 @@ mod tests {
     fn test_segment() {
         // Arrange
         let image_data = ImageData::load("../../gfx/baboon.jpg").unwrap();
-        let snic = SnicSegmentation::builder().segments(32).build().unwrap();
+        let snic = SnicSegmentation::<f64>::builder()
+            .segments(32)
+            .build()
+            .unwrap();
 
         // Act
         let width = image_data.width() as usize;
         let height = image_data.height() as usize;
-        let pixels = image_data.pixels::<f64, _>(|pixel: &RgbaPixel| pixel[3] != 0);
+        let pixels = image_data.pixels().collect::<Vec<_>>();
         let actual = snic.segment(width, height, &pixels);
 
         // Assert
@@ -403,27 +408,6 @@ mod tests {
 
         let segments = actual.unwrap();
         assert_eq!(segments.len(), 32);
-    }
-
-    #[test]
-    fn test_segment_empty_pixels() {
-        // Arrange
-        let snic = SnicSegmentation::<f64>::builder()
-            .segments(12)
-            .generator(SeedGenerator::RegularGrid)
-            .metric(DistanceMetric::SquaredEuclidean)
-            .build()
-            .unwrap();
-
-        // Act
-        let pixels = empty_pixels::<f64>();
-        let actual = snic.segment(32, 18, &pixels);
-
-        // Assert
-        assert!(actual.is_err());
-
-        let error = actual.unwrap_err();
-        assert_eq!(error, SnicError::EmptyPixels);
     }
 
     #[test]

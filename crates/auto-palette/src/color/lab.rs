@@ -279,7 +279,7 @@ where
 ///
 /// # Returns
 /// The L*a*b* color space representation of the XYZ color. The tuple contains the L, a, and b components.
-#[inline]
+#[inline(always)]
 #[must_use]
 pub fn xyz_to_lab<T, W>(x: T, y: T, z: T) -> (T, T, T)
 where

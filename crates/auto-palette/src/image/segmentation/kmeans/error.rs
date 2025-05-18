@@ -18,8 +18,4 @@ where
     /// Error when the parameters for K-means clustering are invalid.
     #[error("Parameters for K-means clustering are invalid: {0}")]
     InvalidParameters(#[from] KmeansClusteringError<T>),
-
-    /// Error when the given pixels slice is empty.
-    #[error("The pixels slice is empty")]
-    EmptyPixels,
 }

@@ -4,7 +4,7 @@ use crate::math::Point;
 pub const RGBA_CHANNELS: usize = 4;
 
 /// A pixel that contains the RGBA color space values.
-pub type RgbaPixel = [u8; RGBA_CHANNELS];
+pub type Rgba = [u8; RGBA_CHANNELS];
 
 /// The number of channels in a CIELAB pixel + the pixel coordinates.
 pub const LABXY_CHANNELS: usize = 5;
