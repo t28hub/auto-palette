@@ -14,7 +14,7 @@ permissions:
 
 env:
   NODE_VERSION: 22.x
-  PNPM_VERSION: 10.8.0
+  PNPM_VERSION: 10.11.0
   CARGO_TERM_COLOR: always
 
 jobs:
