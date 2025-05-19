@@ -7,8 +7,9 @@ use image::{DynamicImage, RgbImage, RgbaImage};
 
 use crate::{
     color::{rgb_to_xyz, xyz_to_lab, Lab, D65},
-    image::{error::ImageError, filter::Filter, Pixel, RGBA_CHANNELS},
+    image::{error::ImageError, Pixel, RGBA_CHANNELS},
     math::normalize,
+    Filter,
     FloatNumber,
     ImageResult,
 };
@@ -142,88 +143,84 @@ impl<'a> ImageData<'a> {
         &self.data
     }
 
-    /// Returns the filtered pixels of the image data.
-    ///
-    /// # Type Parameters
-    /// * `T` - The floating point type.
-    /// * `F` - The filter function type.
-    ///
-    /// # Arguments
-    /// * `filter` - The filter function to apply to the pixels.
+    /// Returns an iterator over the pixels of the image data.
     ///
     /// # Returns
-    /// The filtered pixels of the image data.
-    #[must_use]
-    pub(crate) fn pixels<T, F>(&self, filter: F) -> Vec<Pixel<T>>
+    /// An iterator over the pixels of the image data.
+    #[allow(dead_code)]
+    pub(crate) fn pixels<'b, T>(&'b self) -> impl Iterator<Item = Pixel<T>> + 'b
     where
-        T: FloatNumber,
-        F: Filter,
+        T: FloatNumber + 'b,
     {
-        let width = self.width as usize;
         self.data
             .chunks_exact(RGBA_CHANNELS)
             .enumerate()
-            .filter_map(|(index, chunk)| {
-                let r = chunk[0];
-                let g = chunk[1];
-                let b = chunk[2];
-                let a = chunk[3];
-                if !filter.test(&[r, g, b, a]) {
-                    return None;
-                }
+            .map(move |(index, rgba)| self.chunk_to_pixel(index, rgba))
+    }
 
-                let (x, y, z) = rgb_to_xyz::<T>(r, g, b);
-                let (l, a, b) = xyz_to_lab::<T, D65>(x, y, z);
-
-                let x = ((index + 1) % width) as u32;
-                let y = ((index + 1) / width) as u32;
-                Some([
-                    Lab::<T>::normalize_l(l),
-                    Lab::<T>::normalize_a(a),
-                    Lab::<T>::normalize_b(b),
-                    self.normalize_x(x),
-                    self.normalize_y(y),
-                ])
+    /// Returns an iterator over the pixels of the image data together with the result of applying the `filter`.
+    ///
+    /// # Type Parameters
+    /// * `T` - The floating point type.
+    /// * `F` - The filter type.
+    ///
+    /// # Arguments
+    /// * `filter` - The filter to apply to the pixels.
+    ///
+    /// # Returns
+    /// An iterator over the pixels of the image data and the result of applying the filter.
+    pub(crate) fn pixels_with_filter<'b, T, F>(
+        &'b self,
+        filter: &'b F,
+    ) -> impl Iterator<Item = (Pixel<T>, bool)> + 'b
+    where
+        T: FloatNumber + 'b,
+        F: Filter,
+    {
+        self.data
+            .chunks_exact(RGBA_CHANNELS)
+            .enumerate()
+            .map(move |(index, chunk)| {
+                (
+                    self.chunk_to_pixel::<T>(index, chunk),
+                    filter.test(&[chunk[0], chunk[1], chunk[2], chunk[3]]),
+                )
             })
-            .collect()
     }
 
-    /// Normalizes the given value `x` to the range of [0, 1] based on the width of the image data.
+    /// Converts a chunk of pixel data to a pixel representation.
     ///
     /// # Type Parameters
     /// * `T` - The floating point type.
     ///
     /// # Arguments
-    /// * `x` - The value to normalize.
+    /// * `index` - The index of the pixel in the image data.
+    /// * `chunk` - The chunk of pixel data.
     ///
     /// # Returns
-    /// The normalized value of `x` in the range of [0, 1].
+    /// The pixel representation of the chunk of pixel data.
     #[inline(always)]
     #[must_use]
-    pub(crate) fn normalize_x<T>(&self, x: u32) -> T
+    fn chunk_to_pixel<T>(&self, index: usize, chunk: &[u8]) -> Pixel<T>
     where
         T: FloatNumber,
     {
-        normalize(T::from_u32(x), T::zero(), T::from_u32(self.width))
-    }
+        let (x, y, z) = rgb_to_xyz::<T>(chunk[0], chunk[1], chunk[2]);
+        let (l, a, b) = xyz_to_lab::<T, D65>(x, y, z);
 
-    /// Normalizes the given value `y` to the range of [0, 1] based on the height of the image data.
-    ///
-    /// # Type Parameters
-    /// * `T` - The floating point type.
-    ///
-    /// # Arguments
-    /// * `y` - The value to normalize.
-    ///
-    /// # Returns
-    /// The normalized value of `y` in the range of [0, 1].
-    #[inline(always)]
-    #[must_use]
-    pub(crate) fn normalize_y<T>(&self, y: u32) -> T
-    where
-        T: FloatNumber,
-    {
-        normalize(T::from_u32(y), T::zero(), T::from_u32(self.height))
+        let coord_x = T::from_usize((index % self.width as usize) + 1);
+        let coord_y = T::from_usize((index / self.width as usize) + 1);
+
+        let width_f = T::from_u32(self.width);
+        let height_f = T::from_u32(self.height);
+
+        [
+            Lab::<T>::normalize_l(l),
+            Lab::<T>::normalize_a(a),
+            Lab::<T>::normalize_b(b),
+            normalize(coord_x, T::zero(), width_f),
+            normalize(coord_y, T::zero(), height_f),
+        ]
     }
 
     /// Denormalizes the given value `x` from the range of [0, 1] to the range of [0, width].
@@ -314,7 +311,7 @@ impl From<&RgbaImage> for ImageData<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{assert_approx_eq, RgbaPixel};
+    use crate::{assert_approx_eq, Rgba};
 
     #[test]
     fn test_new() {
@@ -472,7 +469,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pixels() {
+    fn test_pixels_iter() {
         // Arrange
         let pixels = [
             255, 0, 0, 255, // Red
@@ -483,49 +480,67 @@ mod tests {
         let image_data = ImageData::new(2, 2, &pixels).unwrap();
 
         // Act
-        let actual = image_data.pixels::<f64, _>(|pixel: &RgbaPixel| pixel[3] != 0);
+        let actual: Vec<_> = image_data.pixels::<f64>().collect();
 
         // Assert
-        assert_eq!(actual.len(), 2);
+        assert_eq!(actual.len(), 4);
 
         let pixel = actual[0];
         assert_approx_eq!(pixel[0], 0.532371);
         assert_approx_eq!(pixel[1], 0.816032);
         assert_approx_eq!(pixel[2], 0.765488);
         assert_approx_eq!(pixel[3], 0.5);
-        assert_approx_eq!(pixel[4], 0.0);
+        assert_approx_eq!(pixel[4], 0.5);
 
         let pixel = actual[1];
+        assert_approx_eq!(pixel[0], 0.0);
+        assert_approx_eq!(pixel[1], 0.501960);
+        assert_approx_eq!(pixel[2], 0.501960);
+        assert_approx_eq!(pixel[3], 1.0);
+        assert_approx_eq!(pixel[4], 0.5);
+
+        let pixel = actual[2];
         assert_approx_eq!(pixel[0], 0.971385);
         assert_approx_eq!(pixel[1], 0.417402);
         assert_approx_eq!(pixel[2], 0.872457);
         assert_approx_eq!(pixel[3], 0.5);
-        assert_approx_eq!(pixel[4], 0.5);
+        assert_approx_eq!(pixel[4], 1.0);
+
+        let pixel = actual[3];
+        assert_approx_eq!(pixel[0], 0.0);
+        assert_approx_eq!(pixel[1], 0.501960);
+        assert_approx_eq!(pixel[2], 0.501960);
+        assert_approx_eq!(pixel[3], 1.0);
+        assert_approx_eq!(pixel[4], 1.0);
     }
 
     #[test]
-    fn test_normalize_x() {
+    fn test_pixels_with_filter() {
         // Arrange
-        let image_data = ImageData::new(4, 3, &[255; 4 * 3 * 4]).unwrap();
+        let data = [
+            255, 0, 0, 255, // Red
+            0, 0, 0, 0, // Transparent
+            255, 255, 0, 255, // Yellow
+            0, 0, 0, 0, // Transparent
+        ];
+        let image_data = ImageData::new(2, 2, &data).unwrap();
 
-        // Act & Assert
-        assert_approx_eq!(image_data.normalize_x::<f64>(0), 0.00);
-        assert_approx_eq!(image_data.normalize_x::<f64>(1), 0.25);
-        assert_approx_eq!(image_data.normalize_x::<f64>(2), 0.50);
-        assert_approx_eq!(image_data.normalize_x::<f64>(3), 0.75);
-        assert_approx_eq!(image_data.normalize_x::<f64>(4), 1.00);
-    }
+        // Act
+        let (pixels, mask) = image_data
+            .pixels_with_filter::<f64, _>(&|rgba: &Rgba| rgba[3] != 0)
+            .fold(
+                (Vec::new(), Vec::new()),
+                |(mut pixels, mut mask), (pixel, m)| {
+                    pixels.push(pixel);
+                    mask.push(m);
+                    (pixels, mask)
+                },
+            );
 
-    #[test]
-    fn test_normalize_y() {
-        // Arrange
-        let image_data = ImageData::new(4, 3, &[255; 4 * 3 * 4]).unwrap();
-
-        // Act & Assert
-        assert_approx_eq!(image_data.normalize_y::<f64>(0), 0.00, 1e-2);
-        assert_approx_eq!(image_data.normalize_y::<f64>(1), 0.33, 1e-2);
-        assert_approx_eq!(image_data.normalize_y::<f64>(2), 0.67, 1e-2);
-        assert_approx_eq!(image_data.normalize_y::<f64>(3), 1.00, 1e-2);
+        // Assert
+        assert_eq!(pixels.len(), 4);
+        assert_eq!(mask.len(), 4);
+        assert_eq!(mask, vec![true, false, true, false]);
     }
 
     #[test]

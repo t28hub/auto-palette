@@ -240,7 +240,7 @@ where
 ///
 /// # Returns
 /// The XYZ color space representation of the RGB color. The tuple contains the X, Y, and Z components.
-#[inline]
+#[inline(always)]
 #[must_use]
 pub fn rgb_to_xyz<T>(r: u8, g: u8, b: u8) -> (T, T, T)
 where
@@ -284,7 +284,7 @@ where
 ///
 /// # Returns
 /// The XYZ color space representation of the L*a*b* color. The tuple contains the X, Y, and Z components.
-#[inline]
+#[inline(always)]
 #[must_use]
 pub fn lab_to_xyz<T, WP>(l: T, a: T, b: T) -> (T, T, T)
 where

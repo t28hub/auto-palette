@@ -20,6 +20,9 @@ use crate::{
         DistanceMetric,
         FloatNumber,
     },
+    Error::EmptyImageData,
+    Filter,
+    ImageData,
 };
 
 /// The clustering algorithm to use for color palette extraction.
@@ -47,19 +50,34 @@ impl Algorithm {
     ///
     /// # Returns
     /// The clusters found by the algorithm.
-    pub(crate) fn segment<T>(
+    pub(crate) fn segment<T, F>(
         &self,
-        width: u32,
-        height: u32,
-        pixels: &[Pixel<T>],
+        image_data: &ImageData,
+        filter: &F,
     ) -> Result<Vec<Segment<T>>, Error>
     where
         T: FloatNumber,
+        F: Filter,
     {
+        if image_data.is_empty() {
+            return Err(EmptyImageData);
+        }
+
         match self {
-            Self::KMeans => kmeans(width as usize, height as usize, pixels),
-            Self::DBSCAN => dbscan(pixels),
-            Self::DBSCANpp => dbscanpp(pixels),
+            Self::KMeans => {
+                let width = image_data.width() as usize;
+                let height = image_data.height() as usize;
+                let (pixels, mask) = collect_pixels_and_mask(image_data, filter);
+                kmeans(width, height, &pixels, &mask)
+            }
+            Self::DBSCAN => {
+                let pixels = collect_filtered_pixels(image_data, filter);
+                dbscan(&pixels)
+            }
+            Self::DBSCANpp => {
+                let pixels = collect_filtered_pixels(image_data, filter);
+                dbscanpp(&pixels)
+            }
         }
     }
 }
@@ -93,7 +111,12 @@ const KMEANS_CLUSTER_COUNT: usize = 128;
 const KMEANS_MAX_ITER: usize = 50;
 const KMEANS_TOLERANCE: f64 = 1e-3;
 
-fn kmeans<T>(width: usize, height: usize, pixels: &[Pixel<T>]) -> Result<Vec<Segment<T>>, Error>
+fn kmeans<T>(
+    width: usize,
+    height: usize,
+    pixels: &[Pixel<T>],
+    mask: &[bool],
+) -> Result<Vec<Segment<T>>, Error>
 where
     T: FloatNumber,
 {
@@ -108,7 +131,7 @@ where
         })?;
 
     segmentation
-        .segment(width, height, pixels)
+        .segment_with_mask(width, height, pixels, mask)
         .map_err(|e| Error::PaletteExtractionError {
             details: e.to_string(),
         })
@@ -236,6 +259,64 @@ where
         })
 }
 
+/// Collects the pixels and mask from the image data.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
+/// * `F` - The filter type.
+///
+/// # Arguments
+/// * `image_data` - The image data to collect pixels from.
+/// * `filter` - The filter to apply to the pixels.
+///
+/// # Returns
+/// A tuple containing a vector of pixels and a vector of masks.
+#[must_use]
+fn collect_pixels_and_mask<T, F>(image_data: &ImageData, filter: &F) -> (Vec<Pixel<T>>, Vec<bool>)
+where
+    T: FloatNumber,
+    F: Filter,
+{
+    let width = image_data.width() as usize;
+    let height = image_data.height() as usize;
+    let (pixels, mask) = image_data.pixels_with_filter(filter).fold(
+        (
+            Vec::with_capacity(width * height),
+            Vec::with_capacity(width * height),
+        ),
+        |(mut pixels, mut mask), (p, m)| {
+            pixels.push(p);
+            mask.push(m);
+            (pixels, mask)
+        },
+    );
+    (pixels, mask)
+}
+
+/// Collects the filtered pixels from the image data.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
+/// * `F` - The filter type.
+///
+/// # Arguments
+/// * `image_data` - The image data to collect pixels from.
+/// * `filter` - The filter to apply to the pixels.
+///
+/// # Returns
+/// A vector of filtered pixels.
+#[must_use]
+fn collect_filtered_pixels<T, F>(image_data: &ImageData, filter: &F) -> Vec<Pixel<T>>
+where
+    T: FloatNumber,
+    F: Filter,
+{
+    image_data
+        .pixels_with_filter(filter)
+        .flat_map(|(pixel, mask)| mask.then_some(pixel))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
@@ -316,7 +397,7 @@ mod tests {
     #[test]
     fn test_kmeans_empty() {
         // Act
-        let actual = kmeans(192, 128, &empty_pixels::<f64>());
+        let actual = kmeans(0, 0, &empty_pixels::<f64>(), &[]);
 
         // Assert
         assert!(actual.is_err());
@@ -325,7 +406,7 @@ mod tests {
     #[test]
     fn test_slic_empty() {
         // Act
-        let actual = slic(192, 128, &empty_pixels::<f64>());
+        let actual = slic(0, 0, &empty_pixels::<f64>());
 
         // Assert
         assert!(actual.is_err());
@@ -334,7 +415,7 @@ mod tests {
     #[test]
     fn test_snic_empty() {
         // Act
-        let actual = snic(192, 128, &empty_pixels::<f64>());
+        let actual = snic(0, 0, &empty_pixels::<f64>());
 
         // Assert
         assert!(actual.is_err());

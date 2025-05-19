@@ -39,8 +39,8 @@ use crate::{
 ///     let mut swatches = palette.find_swatches(3).unwrap();
 ///
 ///     assert_eq!(swatches[0].color().to_hex_string(), "#007749");
-///     assert_eq!(swatches[1].color().to_hex_string(), "#E03C31");
-///     assert_eq!(swatches[2].color().to_hex_string(), "#001489");
+///     assert_eq!(swatches[1].color().to_hex_string(), "#001489");
+///     assert_eq!(swatches[2].color().to_hex_string(), "#E03C31");
 /// }
 /// ```
 #[derive(Debug, Clone, PartialEq)]
@@ -224,15 +224,15 @@ where
 ///
 /// # Examples
 /// ```
-/// use auto_palette::RgbaPixel;
+/// use auto_palette::Rgba;
 /// #[cfg(feature = "image")]
 /// {
-///     use auto_palette::{Algorithm, ImageData, Palette, RgbaPixel};
+///     use auto_palette::{Algorithm, ImageData, Palette, Rgba};
 ///
 ///     let image_data = ImageData::load("../../gfx/flags/za.png").unwrap();
 ///     let palette: Palette<f64> = Palette::builder()
 ///         .algorithm(Algorithm::KMeans)
-///         .filter(|pixel: &RgbaPixel| pixel[3] >= 64)
+///         .filter(|pixel: &Rgba| pixel[3] >= 64)
 ///         .build(&image_data)
 ///         .unwrap();
 ///
@@ -341,18 +341,10 @@ where
             return Err(Error::EmptyImageData);
         }
 
-        // 1. Convert the pixel data to feature points (Lab color space + pixel coordinates).
-        let pixels = image_data.pixels(self.filter);
-        if pixels.is_empty() {
-            return Err(Error::EmptyImageData);
-        }
+        // Group the points into clusters using the specified algorithm.
+        let image_segments = self.algorithm.segment(image_data, &self.filter)?;
 
-        // 2. Group the points into clusters using the specified algorithm.
-        let width = image_data.width();
-        let height = image_data.height();
-        let image_segments = self.algorithm.segment(width, height, &pixels)?;
-
-        // 3. Merge similar color clusters and create swatches.
+        // Merge similar color clusters and create swatches.
         let color_clusters = to_color_group(&image_segments)?;
         let mut swatches =
             convert_swatches_from_segments(image_data, &color_clusters, &image_segments);
@@ -454,7 +446,7 @@ where
                     *color += fraction * (center_pixel[i] - *color);
                 });
 
-                if fraction >= T::from_f32(0.5) || best_population == 0 {
+                if fraction >= T::from_f64(0.5) || best_population == 0 {
                     best_position = Some((
                         image_data.denormalize_x(center_pixel[3]),
                         image_data.denormalize_y(center_pixel[4]),
@@ -488,7 +480,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::RgbaPixel;
+    use crate::Rgba;
 
     #[must_use]
     fn sample_swatches<T>() -> Vec<Swatch<T>>
@@ -547,9 +539,9 @@ mod tests {
     fn test_new() {
         // Act
         let swatches = vec![
-            Swatch::<f32>::new(Color::from_str("#FFFFFF").unwrap(), (5, 10), 256, 0.5714),
-            Swatch::<f32>::new(Color::from_str("#C8102E").unwrap(), (15, 20), 128, 0.2857),
-            Swatch::<f32>::new(Color::from_str("#012169").unwrap(), (30, 30), 64, 0.1429),
+            Swatch::<f64>::new(Color::from_str("#FFFFFF").unwrap(), (5, 10), 256, 0.5714),
+            Swatch::<f64>::new(Color::from_str("#C8102E").unwrap(), (15, 20), 128, 0.2857),
+            Swatch::<f64>::new(Color::from_str("#012169").unwrap(), (30, 30), 64, 0.1429),
         ];
         let actual = Palette::new(swatches.clone());
 
@@ -563,7 +555,7 @@ mod tests {
     fn test_new_empty() {
         // Act
         let swatches = vec![];
-        let actual: Palette<f32> = Palette::new(swatches.clone());
+        let actual: Palette<f64> = Palette::new(swatches.clone());
 
         // Assert
         assert!(actual.is_empty());
@@ -579,7 +571,7 @@ mod tests {
         // Act
         let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
         let algorithm = Algorithm::from_str(name).unwrap();
-        let actual: Palette<f32> = Palette::builder()
+        let actual: Palette<f64> = Palette::builder()
             .algorithm(algorithm)
             .build(&image_data)
             .unwrap();
@@ -593,19 +585,18 @@ mod tests {
     #[test]
     fn test_builder_with_filter() {
         // Arrange
-        let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
-        let actual: Palette<f32> = Palette::builder()
-            .filter(|pixel: &RgbaPixel| pixel[0] >= 128)
-            .filter(|pixel: &RgbaPixel| pixel[3] != 0)
+        let image_data = ImageData::load("../../gfx/flags/np.png").unwrap();
+        let actual: Palette<f64> = Palette::builder()
+            .filter(|rgba: &Rgba| rgba[3] != 0)
             .build(&image_data)
             .unwrap();
 
         // Assert
         assert!(!actual.is_empty());
-        assert_eq!(actual.len(), 3);
-        assert_eq!(actual.swatches[0].color().to_hex_string(), "#FFFFFF");
-        assert_eq!(actual.swatches[1].color().to_hex_string(), "#EE334E");
-        assert_eq!(actual.swatches[2].color().to_hex_string(), "#FCB131");
+        assert_eq!(actual.len(), 5);
+        assert_eq!(actual.swatches[0].color().to_hex_string(), "#DC143C");
+        assert_eq!(actual.swatches[1].color().to_hex_string(), "#003893");
+        assert_eq!(actual.swatches[2].color().to_hex_string(), "#FFFFFF");
     }
 
     #[cfg(feature = "image")]
@@ -615,7 +606,7 @@ mod tests {
         let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
 
         // Act
-        let actual: Palette<f32> = Palette::builder()
+        let actual: Palette<f64> = Palette::builder()
             .max_swatches(3)
             .build(&image_data)
             .unwrap();
@@ -651,7 +642,7 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err().to_string(),
-            "Image data is empty: no pixels to process"
+            "Palette extraction process failed with error: Empty points: The points must be non-empty."
         );
     }
 
@@ -684,7 +675,7 @@ mod tests {
     #[test]
     fn test_find_swatches() {
         // Arrange
-        let swatches = sample_swatches::<f32>();
+        let swatches = sample_swatches::<f64>();
         let palette = Palette::new(swatches.clone());
 
         // Act
@@ -703,7 +694,7 @@ mod tests {
     #[test]
     fn test_find_swatches_empty() {
         // Arrange
-        let swatches = empty_swatches::<f32>();
+        let swatches = empty_swatches::<f64>();
         let palette = Palette::new(swatches.clone());
 
         // Act
@@ -722,7 +713,7 @@ mod tests {
     #[case::dark(Theme::Dark, vec ! ["#0081C8", "#000000"])]
     fn test_find_swatches_with_theme(#[case] theme: Theme, #[case] expected: Vec<&str>) {
         // Arrange
-        let swatches = sample_swatches::<f32>();
+        let swatches = sample_swatches::<f64>();
         let palette = Palette::new(swatches.clone());
 
         // Act

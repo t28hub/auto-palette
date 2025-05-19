@@ -68,6 +68,7 @@ where
     /// # Arguments
     /// * `matrix` - The matrix of pixels.
     /// * `index` - The index of the pixel to find the lowest gradient for.
+    /// * `mask` - The mask for ignoring certain pixels.
     ///
     /// # Returns
     /// The index of the lowest gradient pixel in the neighborhood, or `None` if no such pixel exists.
@@ -77,6 +78,7 @@ where
         &self,
         matrix: &MatrixView<'_, T, LABXY_CHANNELS>,
         index: usize,
+        mask: &[bool],
     ) -> Option<usize> {
         let col = index % matrix.cols;
         let row = index / matrix.cols;
@@ -84,6 +86,10 @@ where
         let (_, lowest_index) = matrix.neighbors(col, row).fold(
             (T::max_value(), None),
             |(lowest_score, lowest_index), (neighbor_index, _)| {
+                if !mask[neighbor_index] {
+                    return (lowest_score, lowest_index);
+                }
+
                 let neighbor_col = neighbor_index % matrix.cols;
                 let neighbor_row = neighbor_index / matrix.cols;
                 let score = gradient(matrix, neighbor_col, neighbor_row, self.metric);
@@ -103,9 +109,11 @@ where
     /// * `N` - The number of dimensions.
     ///
     /// # Arguments
-    /// * `points` - The points to cluster.
-    /// * `centroids` - The centroids of the clusters.
-    /// * `clusters` - The clusters to update.
+    /// * `matrix` - The matrix of pixels.
+    /// * `pixels` - The pixels to segment.
+    /// * `mask` - The mask for ignoring certain pixels.
+    /// * `centers` - The current centroids of the segments.
+    /// * `segments` - The segments to update.
     ///
     /// # Returns
     /// `true` if the centroids have converged, `false` otherwise.
@@ -114,6 +122,7 @@ where
         &self,
         matrix: &MatrixView<'_, T, LABXY_CHANNELS>,
         pixels: &[Pixel<T>],
+        mask: &[bool],
         centers: &mut HashMap<usize, Pixel<T>>,
         segments: &mut HashMap<usize, Segment<T>>,
     ) -> bool {
@@ -131,6 +140,10 @@ where
 
             matrix.neighbors_with_size(col, row, radius).for_each(
                 |(neighbor_index, neighbor_pixel)| {
+                    if !mask[neighbor_index] {
+                        return;
+                    }
+
                     let distance = self.metric.measure(center_pixel, neighbor_pixel);
                     if distance < distances[neighbor_index] {
                         distances[neighbor_index] = distance;
@@ -174,28 +187,25 @@ where
 {
     type Err = SlicError<T>;
 
-    fn segment(
+    fn segment_with_mask(
         &self,
         width: usize,
         height: usize,
         pixels: &[Pixel<T>],
+        mask: &[bool],
     ) -> Result<Segments<T>, Self::Err> {
-        if pixels.is_empty() {
-            return Err(SlicError::EmptyPixels);
-        }
-
         let matrix = MatrixView::new(width, height, pixels)?;
         let seeds = self
             .generator
-            .generate(width, height, pixels, self.segments);
-        let mut centers = seeds
+            .generate(width, height, pixels, mask, self.segments);
+        let mut centers: HashMap<_, _> = seeds
             .into_iter()
             .map(|seed_index| {
-                let found = self.find_lowest_gradient_index(&matrix, seed_index);
+                let found = self.find_lowest_gradient_index(&matrix, seed_index, mask);
                 let index = found.unwrap_or(seed_index);
                 (index, pixels[index])
             })
-            .collect::<HashMap<_, _>>();
+            .collect();
 
         let mut segments = centers
             .iter()
@@ -203,7 +213,7 @@ where
             .collect::<HashMap<_, _>>();
 
         for _ in 0..self.max_iter {
-            if self.iterate(&matrix, pixels, &mut centers, &mut segments) {
+            if self.iterate(&matrix, pixels, mask, &mut centers, &mut segments) {
                 break;
             }
         }
@@ -360,7 +370,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::{math::matrix::MatrixError, ImageData, RgbaPixel};
+    use crate::{math::matrix::MatrixError, ImageData};
 
     #[must_use]
     fn sample_pixels<T>(width: usize, height: usize) -> Vec<Pixel<T>>
@@ -368,14 +378,6 @@ mod tests {
         T: FloatNumber,
     {
         vec![[T::zero(); 5]; width * height]
-    }
-
-    #[must_use]
-    fn empty_pixels<T>() -> Vec<Pixel<T>>
-    where
-        T: FloatNumber,
-    {
-        Vec::new()
     }
 
     #[test]
@@ -518,12 +520,15 @@ mod tests {
     fn test_segment() {
         // Arrange
         let image_data = ImageData::load("../../gfx/baboon.jpg").unwrap();
-        let slic = SlicSegmentation::builder().segments(32).build().unwrap();
+        let slic = SlicSegmentation::<f64>::builder()
+            .segments(32)
+            .build()
+            .unwrap();
 
         // Act
         let width = image_data.width() as usize;
         let height = image_data.height() as usize;
-        let pixels = image_data.pixels::<f64, _>(|pixel: &RgbaPixel| pixel[3] != 0);
+        let pixels: Vec<_> = image_data.pixels().collect();
         let actual = slic.segment(width, height, &pixels);
 
         // Assert
@@ -531,20 +536,6 @@ mod tests {
 
         let segments = actual.unwrap();
         assert_eq!(segments.len(), 32);
-    }
-
-    #[test]
-    fn test_segment_empty_pixels() {
-        // Arrange
-        let slic = SlicSegmentation::builder().segments(32).build().unwrap();
-
-        // Act
-        let pixels = empty_pixels::<f64>();
-        let actual = slic.segment(48, 27, &pixels);
-
-        // Assert
-        assert!(actual.is_err());
-        assert_eq!(actual.unwrap_err(), SlicError::EmptyPixels);
     }
 
     #[test]

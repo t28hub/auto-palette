@@ -10,7 +10,7 @@ mod theme;
 
 pub use algorithm::Algorithm;
 pub use error::Error;
-pub use image::{filter::Filter, ImageData, ImageError, ImageResult, RgbaPixel};
+pub use image::{filter::Filter, ImageData, ImageError, ImageResult, Rgba};
 pub use math::FloatNumber;
 pub use palette::Palette;
 pub use swatch::Swatch;

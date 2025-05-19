@@ -53,17 +53,20 @@ where
 {
     type Err = KmeansError<T>;
 
-    fn segment(
+    fn segment_with_mask(
         &self,
         _width: usize,
         _height: usize,
         pixels: &[Pixel<T>],
+        mask: &[bool],
     ) -> Result<Segments<T>, Self::Err> {
-        if pixels.is_empty() {
-            return Err(KmeansError::EmptyPixels);
-        }
-
-        let clusters = self.kmeans.fit(pixels)?;
+        let filtered_pixels: Vec<_> = pixels
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| mask[*i])
+            .map(|(_, pixel)| *pixel)
+            .collect();
+        let clusters = self.kmeans.fit(&filtered_pixels)?;
         let segments = clusters.iter().map(Segment::from).collect::<Vec<_>>();
         Ok(segments)
     }
@@ -197,7 +200,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::{math::clustering::KmeansError as KmeansClusteringError, ImageData, RgbaPixel};
+    use crate::{math::clustering::KmeansError as KmeansClusteringError, ImageData};
 
     #[test]
     fn test_builder() {
@@ -284,7 +287,7 @@ mod tests {
         // Act
         let width = image_data.width() as usize;
         let height = image_data.height() as usize;
-        let pixels = image_data.pixels(|pixel: &RgbaPixel| pixel[3] != 0);
+        let pixels: Vec<_> = image_data.pixels().collect();
         let actual = segmentation.segment(width, height, &pixels);
 
         // Assert
@@ -292,26 +295,5 @@ mod tests {
 
         let segments = actual.unwrap();
         assert_eq!(segments.len(), 16);
-    }
-
-    #[test]
-    fn test_segment_empty_pixels() {
-        // Arrange
-        let segmentation = KmeansSegmentation::builder()
-            .segments(16)
-            .max_iter(5)
-            .tolerance(1e-4)
-            .build()
-            .unwrap();
-
-        // Act
-        let pixels: Vec<Pixel<f64>> = vec![];
-        let actual = segmentation.segment(192, 128, &pixels);
-
-        // Assert
-        assert!(actual.is_err());
-
-        let error = actual.unwrap_err();
-        assert_eq!(error, KmeansError::EmptyPixels);
     }
 }
