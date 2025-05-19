@@ -2,7 +2,7 @@ pub mod clustering;
 mod gaussian;
 pub mod matrix;
 mod metrics;
-mod neighbors;
+pub mod neighbors;
 mod number;
 mod point;
 pub mod sampling;

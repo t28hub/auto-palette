@@ -87,12 +87,6 @@ where
         }
         true
     }
-
-    /// Clears this cluster and resets the centroid.
-    pub fn clear(&mut self) {
-        self.centroid = [T::zero(); N];
-        self.members.clear();
-    }
 }
 
 #[cfg(test)]
@@ -155,34 +149,5 @@ mod tests {
             HashSet::from([0, 1, 2])
         );
         assert_eq!(cluster.centroid(), &[2.0, 4.0]);
-    }
-
-    #[test]
-    fn test_clear() {
-        // Arrange
-        let mut cluster: Cluster<f32, 2> = Cluster::new();
-        cluster.add_member(0, &[1.0, 2.0]);
-        cluster.add_member(1, &[2.0, 4.0]);
-        cluster.add_member(2, &[3.0, 6.0]);
-
-        assert!(!cluster.is_empty());
-        assert_eq!(cluster.len(), 3);
-        assert_eq!(
-            cluster.members().copied().collect::<HashSet<_>>(),
-            HashSet::from([0, 1, 2])
-        );
-        assert_eq!(cluster.centroid(), &[2.0, 4.0]);
-
-        // Act
-        cluster.clear();
-
-        // Assert
-        assert!(cluster.is_empty());
-        assert_eq!(cluster.len(), 0);
-        assert_eq!(
-            cluster.members().copied().collect::<HashSet<_>>(),
-            HashSet::new()
-        );
-        assert_eq!(cluster.centroid(), &[0.0, 0.0]);
     }
 }

@@ -5,10 +5,6 @@ use crate::{math::Point, FloatNumber};
 /// Error type for the `MatrixView` struct.
 #[derive(Debug, PartialEq, Error)]
 pub enum MatrixError {
-    /// Error when the shape of the matrix is invalid.
-    #[error("Invalid Shape: The shape must be > 0: {0}x{1}")]
-    InvalidShape(usize, usize),
-
     /// Error when the points slice is not in the expected shape.
     #[error("Invalid Points: The points slice is not in the expected shape: {0}x{1}.")]
     InvalidPoints(usize, usize),
@@ -51,10 +47,6 @@ where
     /// A new `MatrixView` instance.
     #[inline]
     pub fn new(cols: usize, rows: usize, points: &'a [Point<T, N>]) -> Result<Self, MatrixError> {
-        if cols == 0 || rows == 0 {
-            return Err(MatrixError::InvalidShape(cols, rows));
-        }
-
         if cols * rows != points.len() {
             return Err(MatrixError::InvalidPoints(cols, rows));
         }
@@ -269,20 +261,19 @@ mod tests {
         );
     }
 
-    #[rstest]
-    #[case(0, 0)]
-    #[case(0, 9)]
-    #[case(16, 0)]
-    fn test_new_invalid_shape(#[case] cols: usize, #[case] rows: usize) {
-        // Arrange
-        let points = vec![[0.0; 3]; cols * rows];
-
+    #[test]
+    fn test_new_empty() {
         // Act
-        let matrix = MatrixView::new(cols, rows, &points);
+        let points = Vec::<[f64; 3]>::new();
+        let matrix = MatrixView::new(0, 0, &points);
 
         // Assert
-        assert!(matrix.is_err());
-        assert_eq!(matrix.unwrap_err(), MatrixError::InvalidShape(cols, rows));
+        assert!(matrix.is_ok());
+
+        let matrix = matrix.unwrap();
+        assert_eq!(matrix.cols, 0);
+        assert_eq!(matrix.rows, 0);
+        assert_eq!(matrix.points.len(), 0);
     }
 
     #[test]
