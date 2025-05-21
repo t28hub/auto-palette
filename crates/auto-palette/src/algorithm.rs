@@ -382,7 +382,10 @@ mod tests {
         let actual = dbscan(&empty_pixels::<f64>());
 
         // Assert
-        assert!(actual.is_err());
+        assert!(actual.is_ok());
+
+        let segments = actual.unwrap();
+        assert!(segments.is_empty());
     }
 
     #[test]
@@ -391,7 +394,10 @@ mod tests {
         let actual = dbscanpp(&empty_pixels::<f64>());
 
         // Assert
-        assert!(actual.is_err());
+        assert!(actual.is_ok());
+
+        let segments = actual.unwrap();
+        assert!(segments.is_empty());
     }
 
     #[test]
@@ -400,7 +406,10 @@ mod tests {
         let actual = kmeans(0, 0, &empty_pixels::<f64>(), &[]);
 
         // Assert
-        assert!(actual.is_err());
+        assert!(actual.is_ok());
+
+        let segments = actual.unwrap();
+        assert!(segments.is_empty());
     }
 
     #[test]
@@ -409,7 +418,10 @@ mod tests {
         let actual = slic(0, 0, &empty_pixels::<f64>());
 
         // Assert
-        assert!(actual.is_err());
+        assert!(actual.is_ok());
+
+        let segments = actual.unwrap();
+        assert!(segments.is_empty());
     }
 
     #[test]
@@ -418,6 +430,9 @@ mod tests {
         let actual = snic(0, 0, &empty_pixels::<f64>());
 
         // Assert
-        assert!(actual.is_err());
+        assert!(actual.is_ok());
+
+        let segments = actual.unwrap();
+        assert!(segments.is_empty());
     }
 }

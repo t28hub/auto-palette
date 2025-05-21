@@ -11,6 +11,7 @@ use crate::math::{
 };
 
 /// DBSCAN++ clustering algorithm error type.
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, PartialEq, Error)]
 pub enum DBSCANPlusPlusError<T>
 where
@@ -27,10 +28,6 @@ where
     /// Error when the epsilon is invalid.
     #[error("Invalid epsilon: The epsilon must be greater than zero: {0}")]
     InvalidEpsilon(T),
-
-    /// Error when the points are empty.
-    #[error("Empty points: The points must be non-empty.")]
-    EmptyPoints,
 }
 
 /// Labels for the points in the clustering process.
@@ -240,10 +237,6 @@ where
     type Err = DBSCANPlusPlusError<T>;
 
     fn fit(&self, points: &[Point<T, N>]) -> Result<Vec<Cluster<T, N>>, DBSCANPlusPlusError<T>> {
-        if points.is_empty() {
-            return Err(DBSCANPlusPlusError::EmptyPoints);
-        }
-
         let points_search = KDTreeSearch::build(points, self.metric, DEFAULT_KDTREE_LEAVES);
         let core_points = self.select_core_points(points, &points_search);
         if core_points.is_empty() {
@@ -379,7 +372,9 @@ mod tests {
         let actual = dbscanpp.fit(&points);
 
         // Assert
-        assert!(actual.is_err());
-        assert_eq!(actual.unwrap_err(), DBSCANPlusPlusError::EmptyPoints);
+        assert!(actual.is_ok());
+
+        let clusters = actual.unwrap();
+        assert_eq!(clusters.len(), 0);
     }
 }

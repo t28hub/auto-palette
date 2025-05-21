@@ -33,6 +33,7 @@ where
     ///
     /// # Returns
     /// A new linear search algorithm.
+    #[allow(dead_code)]
     pub fn build(points: &'a [Point<T, N>], metric: DistanceMetric) -> Self {
         Self { points, metric }
     }

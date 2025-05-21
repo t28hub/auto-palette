@@ -22,10 +22,6 @@ where
     /// Error when the epsilon is invalid.
     #[error("Invalid epsilon: The epsilon must be greater than zero: {0}")]
     InvalidEpsilon(T),
-
-    /// Error when the distance metric is invalid.
-    #[error("Empty points: The points must be non-empty.")]
-    EmptyPoints,
 }
 
 const OUTLIER: i32 = -1;
@@ -136,10 +132,6 @@ where
     type Err = DBSCANError<T>;
 
     fn fit(&self, points: &[Point<T, N>]) -> Result<Vec<Cluster<T, N>>, Self::Err> {
-        if points.is_empty() {
-            return Err(DBSCANError::EmptyPoints);
-        }
-
         let mut labels = vec![UNCLASSIFIED; points.len()];
         let mut clusters = Vec::new();
         let mut current_label = 0;
@@ -274,7 +266,9 @@ mod tests {
         let actual = dbscan.fit(&points);
 
         // Assert
-        assert!(actual.is_err());
-        assert_eq!(actual.unwrap_err(), DBSCANError::EmptyPoints);
+        assert!(actual.is_ok());
+
+        let clusters = actual.unwrap();
+        assert_eq!(clusters.len(), 0);
     }
 }

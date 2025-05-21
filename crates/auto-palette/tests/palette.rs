@@ -105,13 +105,11 @@ fn test_builder_transparent() {
         .build(&image_data);
 
     // Assert
-    assert!(actual.is_err());
+    assert!(actual.is_ok());
 
-    let error = actual.err().unwrap();
-    assert_eq!(
-        error.to_string(),
-        "Palette extraction process failed with error: Empty points: The points must be non-empty."
-    );
+    let palette = actual.unwrap();
+    assert!(palette.is_empty());
+    assert_eq!(palette.len(), 0);
 }
 
 #[rstest]

@@ -639,11 +639,11 @@ mod tests {
         let result: Result<Palette<f64>, _> = Palette::builder().build(&image_data);
 
         // Assert
-        assert!(result.is_err());
-        assert_eq!(
-            result.unwrap_err().to_string(),
-            "Palette extraction process failed with error: Empty points: The points must be non-empty."
-        );
+        assert!(result.is_ok());
+
+        let palette = result.unwrap();
+        assert!(palette.is_empty());
+        assert_eq!(palette.len(), 0);
     }
 
     #[test]
