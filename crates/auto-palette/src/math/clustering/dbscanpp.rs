@@ -4,7 +4,7 @@ use thiserror::Error;
 
 use crate::math::{
     clustering::{Cluster, ClusteringAlgorithm},
-    neighbors::{kdtree::KDTreeSearch, Neighbor, NeighborSearch},
+    neighbors::{kdtree::KdTreeSearch, Neighbor, NeighborSearch},
     DistanceMetric,
     FloatNumber,
     Point,
@@ -119,7 +119,7 @@ where
     fn label_core_points<const N: usize>(
         &self,
         core_points: &[Point<T, N>],
-        core_points_search: &KDTreeSearch<T, N>,
+        core_points_search: &KdTreeSearch<T, N>,
     ) -> Vec<i32> {
         let mut labels = vec![UNCLASSIFIED; core_points.len()];
         let mut current_label = INITIAL_LABEL;
@@ -237,14 +237,14 @@ where
     type Err = DBSCANPlusPlusError<T>;
 
     fn fit(&self, points: &[Point<T, N>]) -> Result<Vec<Cluster<T, N>>, DBSCANPlusPlusError<T>> {
-        let points_search = KDTreeSearch::build(points, self.metric, DEFAULT_KDTREE_LEAVES);
+        let points_search = KdTreeSearch::build(points, self.metric, DEFAULT_KDTREE_LEAVES);
         let core_points = self.select_core_points(points, &points_search);
         if core_points.is_empty() {
             return Ok(Vec::new());
         }
 
         let core_points_search =
-            KDTreeSearch::build(&core_points, self.metric, DEFAULT_KDTREE_LEAVES);
+            KdTreeSearch::build(&core_points, self.metric, DEFAULT_KDTREE_LEAVES);
         let core_labels = self.label_core_points(&core_points, &core_points_search);
         let clusters = self.build_clusters(points, &core_labels, &core_points_search);
         Ok(clusters)

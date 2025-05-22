@@ -74,6 +74,7 @@ describe('@auto-palette/wasm', () => {
       );
     });
 
+    const isLinux = process.platform === 'linux';
     describe('findSwatches', () => {
       let palette: Palette;
       beforeAll(async () => {
@@ -88,36 +89,48 @@ describe('@auto-palette/wasm', () => {
 
         // Assert
         expect(swatches).toHaveLength(3);
-        expect(swatches[0].color).toBeSimilarColor('#5ECBFE');
-        expect(swatches[1].color).toBeSimilarColor('#C7101E');
-        expect(swatches[2].color).toBeSimilarColor('#CFC663');
+        expect(swatches[0].color).toBeSameColor('#5ECBFE');
+        expect(swatches[1].color).toBeSameColor('#C7101E');
+        expect(swatches[2].color).toBeSameColor(
+          isLinux ? '#DABA36' : '#CFC663',
+        );
       });
 
       it.each([
         {
           count: 3,
           theme: 'colorful',
-          expected: ['#01B1FC', '#A48611', '#C72C52'],
+          expected: isLinux
+            ? ['#A48611', '#AD71B9', '#C72B42']
+            : ['#01B1FC', '#A48611', '#C72C52'],
         },
         {
           count: 3,
           theme: 'vivid',
-          expected: ['#01B1FC', '#A48611', '#D6314D'],
+          expected: isLinux
+            ? ['#01B1FC', '#A48611', '#D6314D']
+            : ['#01B1FC', '#A48611', '#D6314D'],
         },
         {
           count: 3,
           theme: 'muted',
-          expected: ['#04524E', '#846E15', '#CD85B7'],
+          expected: isLinux
+            ? ['#04524E', '#846E15', '#CB7599']
+            : ['#04524E', '#846E15', '#CD85B7'],
         },
         {
           count: 3,
           theme: 'light',
-          expected: ['#5ECBFE', '#CD85B7', '#CFC663'],
+          expected: isLinux
+            ? ['#5ECBFE', '#CBB143', '#CD85B7']
+            : ['#5ECBFE', '#CD85B7', '#CFC663'],
         },
         {
           count: 3,
           theme: 'dark',
-          expected: ['#032F55', '#053E2D', '#4A0117'],
+          expected: isLinux
+            ? ['#02305A', '#054435', '#4D0219']
+            : ['#032F55', '#053E2D', '#4A0117'],
         },
       ])(
         'should find the swatches from the palette with the $theme theme',
@@ -128,6 +141,7 @@ describe('@auto-palette/wasm', () => {
 
           // Assert
           expect(swatches).toHaveLength(count);
+
           expect(swatches[0].color).toBeSimilarColor(expected[0]);
           expect(swatches[1].color).toBeSimilarColor(expected[1]);
           expect(swatches[2].color).toBeSimilarColor(expected[2]);

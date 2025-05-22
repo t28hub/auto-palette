@@ -1,4 +1,4 @@
-use std::collections::BinaryHeap;
+use std::{cmp::Ordering, collections::BinaryHeap};
 
 use crate::math::{
     neighbors::{neighbor::Neighbor, search::NeighborSearch},
@@ -7,98 +7,51 @@ use crate::math::{
     Point,
 };
 
-/// Node of a k-d tree.
+/// k-d tree node type.
 #[derive(Debug)]
-struct Node {
-    /// The splitting axis.
-    axis: usize,
-    /// The indices of the points.
-    indices: Vec<usize>,
-    /// The left child node.
-    left: Option<Box<Node>>,
-    /// The right child node.
-    right: Option<Box<Node>>,
+enum Node {
+    /// An internal node of the k-d tree.
+    Internal {
+        /// Axis used for splitting the points.
+        axis: usize,
+
+        /// Index of the pivot point in `points`.
+        index: usize,
+
+        /// Left child node.
+        left: Option<Box<Node>>,
+
+        /// Right child node.
+        right: Option<Box<Node>>,
+    },
+    /// A leaf node containing point indices.
+    Leaf {
+        /// Indices of the points in this leaf node.
+        indices: Vec<usize>,
+    },
 }
 
-impl Node {
-    /// Creates a new internal node.
-    ///
-    /// # Arguments
-    /// * `axis` - The splitting axis.
-    /// * `index` - The index of the point.
-    /// * `left` - The left child node.
-    /// * `right` - The right child node.
-    ///
-    /// # Returns
-    /// A new internal node.
-    #[must_use]
-    fn new_node(axis: usize, index: usize, left: Option<Node>, right: Option<Node>) -> Self {
-        Self {
-            axis,
-            indices: vec![index],
-            left: left.map(Box::new),
-            right: right.map(Box::new),
-        }
-    }
-
-    /// Creates a new leaf node.
-    ///
-    /// # Arguments
-    /// * `axis` - The splitting axis.
-    /// * `indices` - The indices of the points.
-    ///
-    /// # Returns
-    /// A new leaf node.
-    #[must_use]
-    fn new_leaf(axis: usize, indices: &[usize]) -> Self {
-        Self {
-            axis,
-            indices: indices.to_vec(),
-            left: None,
-            right: None,
-        }
-    }
-
-    /// Returns the index of the point.
-    ///
-    /// # Returns
-    /// The index of the point.
-    #[inline]
-    #[must_use]
-    fn index(&self) -> usize {
-        self.indices[0]
-    }
-
-    /// Checks if the node is a leaf.
-    ///
-    /// # Returns
-    /// `true` if the node is a leaf, otherwise `false`.
-    #[inline]
-    #[must_use]
-    fn is_leaf(&self) -> bool {
-        self.left.is_none() && self.right.is_none()
-    }
-}
-
-/// k-d tree search algorithm.
+/// k-d tree structure enabling efficient neighbor searches.
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
 /// * `N` - The dimension of the points.
 #[derive(Debug)]
-pub struct KDTreeSearch<'a, T, const N: usize>
+pub struct KdTreeSearch<'a, T, const N: usize>
 where
     T: FloatNumber,
 {
-    /// The root node of the tree.
-    root: Option<Box<Node>>,
-    /// The points in the tree.
+    /// Points stored in the k-d tree.
     points: &'a [Point<T, N>],
-    /// The distance metric.
+
+    /// Distance metric used for measuring distances between points.
     metric: DistanceMetric,
+
+    /// Root node of the k-d tree structure.
+    root: Option<Box<Node>>,
 }
 
-impl<'a, T, const N: usize> KDTreeSearch<'a, T, N>
+impl<'a, T, const N: usize> KdTreeSearch<'a, T, N>
 where
     T: 'a + FloatNumber,
 {
@@ -107,17 +60,17 @@ where
     /// # Arguments
     /// * `points` - The points to search.
     /// * `metric` - The distance metric to use.
-    /// * `leaf_size` - The maximum number of points in a leaf node.
+    /// * `max_leaf_size` - The maximum number of points in a leaf node.
     ///
     /// # Returns
     /// A new `KDTreeSearch` instance.
-    pub fn build(points: &'a [Point<T, N>], metric: DistanceMetric, leaf_size: usize) -> Self {
-        let mut indices: Vec<usize> = (0..points.len()).collect();
-        let root = Self::split_node(points, leaf_size, &mut indices, 0);
+    pub fn build(points: &'a [Point<T, N>], metric: DistanceMetric, max_leaf_size: usize) -> Self {
+        let mut indices: Vec<_> = (0..points.len()).collect();
+        let root = Self::split_node(points, max_leaf_size, &mut indices, 0).map(Box::new);
         Self {
-            root: root.map(Box::new),
             points,
             metric,
+            root,
         }
     }
 
@@ -125,7 +78,7 @@ where
     #[must_use]
     fn split_node(
         points: &[Point<T, N>],
-        leaf_size: usize,
+        max_leaf_size: usize,
         indices: &mut [usize],
         depth: usize,
     ) -> Option<Node> {
@@ -133,34 +86,48 @@ where
             return None;
         }
 
-        let axis = depth % N;
-        if indices.len() <= leaf_size {
-            return Some(Node::new_leaf(axis, indices));
+        // Return a leaf node when the number of indices <= `max_leaf_size`.
+        if indices.len() <= max_leaf_size {
+            return Some(Node::Leaf {
+                indices: indices.to_vec(),
+            });
         }
 
-        indices.sort_by(|&index1, &index2| {
-            // Compare the points by the splitting axis.
-            points[index1][axis]
-                .partial_cmp(&points[index2][axis])
-                .unwrap()
-        });
+        // Partition the indices by the median value along the splitting axis.
+        let axis = depth % N;
+        let median_index = indices.len() / 2;
+        let (left_indices, median, right_indices) =
+            indices.select_nth_unstable_by(median_index, |&index1, &index2| {
+                // Compare the points by the splitting axis.
+                points[index1][axis]
+                    .partial_cmp(&points[index2][axis])
+                    .unwrap_or(Ordering::Less)
+            });
 
-        let median = indices.len() / 2;
-        let (left_indices, right_indices) = indices.split_at_mut(median);
-        let left = Self::split_node(points, leaf_size, left_indices, depth + 1);
-        let right = Self::split_node(points, leaf_size, &mut right_indices[1..], depth + 1);
-        Some(Node::new_node(axis, indices[median], left, right))
+        let left = Self::split_node(points, max_leaf_size, left_indices, depth + 1);
+        let right = Self::split_node(points, max_leaf_size, right_indices, depth + 1);
+        Some(Node::Internal {
+            axis,
+            index: *median,
+            left: left.map(Box::new),
+            right: right.map(Box::new),
+        })
     }
 
-    fn search_leaf<F>(&self, node: &Node, query: &Point<T, N>, action: &mut F)
-    where
+    #[inline]
+    fn visit_indices_with_distance<F>(
+        &self,
+        indices: &[usize],
+        query: &Point<T, N>,
+        mut visit_fn: F,
+    ) where
         F: FnMut(usize, T),
     {
-        node.indices.iter().for_each(|&index| {
+        for &index in indices {
             let point = &self.points[index];
             let distance = self.metric.measure(point, query);
-            action(index, distance);
-        });
+            visit_fn(index, distance);
+        }
     }
 
     #[allow(dead_code)]
@@ -172,7 +139,7 @@ where
         k: usize,
         neighbors: &mut BinaryHeap<Neighbor<T>>,
     ) {
-        let Some(ref node) = root else {
+        let Some(node) = root.as_ref() else {
             return;
         };
 
@@ -192,30 +159,35 @@ where
             best_distance = neighbors
                 .peek()
                 .map(|neighbor| neighbor.distance)
-                .unwrap_or(T::infinity());
+                .unwrap_or_else(T::infinity);
         };
 
-        if node.is_leaf() {
-            self.search_leaf(node, query, &mut update_neighbors);
-            return;
-        }
+        match node.as_ref() {
+            Node::Internal {
+                axis,
+                index,
+                left,
+                right,
+            } => {
+                let point = &self.points[*index];
+                let distance = self.metric.measure(point, query);
+                update_neighbors(*index, distance);
 
-        let index = node.index();
-        let point = &self.points[index];
-        let distance = self.metric.measure(point, query);
-        update_neighbors(index, distance);
+                let delta = (query[*axis] - point[*axis]).abs();
+                let (near, far) = if query[*axis] < point[*axis] {
+                    (left, right)
+                } else {
+                    (right, left)
+                };
 
-        let axis = node.axis;
-        let delta = (query[axis] - point[axis]).abs();
-        let (near, far) = if query[axis] < point[axis] {
-            (&node.left, &node.right)
-        } else {
-            (&node.right, &node.left)
-        };
-
-        self.search_recursive(near, query, k, neighbors);
-        if delta < best_distance {
-            self.search_recursive(far, query, k, neighbors);
+                self.search_recursive(near, query, k, neighbors);
+                if delta < best_distance {
+                    self.search_recursive(far, query, k, neighbors);
+                }
+            }
+            Node::Leaf { indices } => {
+                self.visit_indices_with_distance(indices, query, &mut update_neighbors);
+            }
         }
     }
 
@@ -226,7 +198,7 @@ where
         query: &Point<T, N>,
         nearest: &mut Neighbor<T>,
     ) {
-        let Some(ref node) = root else {
+        let Some(node) = root.as_ref() else {
             return;
         };
 
@@ -236,27 +208,32 @@ where
             }
         };
 
-        if node.is_leaf() {
-            self.search_leaf(node, query, &mut update_nearest);
-            return;
-        }
+        match node.as_ref() {
+            Node::Internal {
+                axis,
+                index,
+                left,
+                right,
+            } => {
+                let point = &self.points[*index];
+                let distance = self.metric.measure(point, query);
+                update_nearest(*index, distance);
 
-        let index = node.index();
-        let point = &self.points[index];
-        let distance = self.metric.measure(point, query);
-        update_nearest(index, distance);
+                let delta = (query[*axis] - point[*axis]).abs();
+                let (near, far) = if query[*axis] < point[*axis] {
+                    (left, right)
+                } else {
+                    (right, left)
+                };
 
-        let axis = node.axis;
-        let delta = (query[axis] - point[axis]).abs();
-        let (near, far) = if query[axis] < point[axis] {
-            (&node.left, &node.right)
-        } else {
-            (&node.right, &node.left)
-        };
-
-        self.search_nearest_recursive(near, query, nearest);
-        if delta < nearest.distance {
-            self.search_nearest_recursive(far, query, nearest);
+                self.search_nearest_recursive(near, query, nearest);
+                if delta < nearest.distance {
+                    self.search_nearest_recursive(far, query, nearest);
+                }
+            }
+            Node::Leaf { indices } => {
+                self.visit_indices_with_distance(indices, query, &mut update_nearest);
+            }
         }
     }
 
@@ -268,41 +245,46 @@ where
         radius: T,
         neighbors: &mut Vec<Neighbor<T>>,
     ) {
-        let Some(ref node) = root else {
+        let Some(node) = root.as_ref() else {
             return;
         };
 
-        if node.is_leaf() {
-            self.search_leaf(node, query, &mut |index, distance| {
+        match node.as_ref() {
+            Node::Internal {
+                axis,
+                index,
+                left,
+                right,
+            } => {
+                let point = &self.points[*index];
+                let distance = self.metric.measure(point, query);
                 if distance <= radius {
-                    neighbors.push(Neighbor::new(index, distance));
+                    neighbors.push(Neighbor::new(*index, distance));
                 }
-            });
-            return;
-        }
 
-        let index = node.index();
-        let point = &self.points[index];
-        let distance = self.metric.measure(point, query);
-        if distance <= radius {
-            neighbors.push(Neighbor::new(index, distance));
-        }
+                let (near, far) = if query[*axis] < point[*axis] {
+                    (left, right)
+                } else {
+                    (right, left)
+                };
 
-        let axis = node.axis;
-        let (near, far) = if query[axis] < point[axis] {
-            (&node.left, &node.right)
-        } else {
-            (&node.right, &node.left)
-        };
-
-        self.search_radius_recursive(near, query, radius, neighbors);
-        if (query[axis] - point[axis]).abs() <= radius {
-            self.search_radius_recursive(far, query, radius, neighbors);
+                self.search_radius_recursive(near, query, radius, neighbors);
+                if (query[*axis] - point[*axis]).abs() <= radius {
+                    self.search_radius_recursive(far, query, radius, neighbors);
+                }
+            }
+            Node::Leaf { indices } => {
+                self.visit_indices_with_distance(indices, query, &mut |index, distance| {
+                    if distance <= radius {
+                        neighbors.push(Neighbor::new(index, distance));
+                    }
+                });
+            }
         }
     }
 }
 
-impl<T, const N: usize> NeighborSearch<T, N> for KDTreeSearch<'_, T, N>
+impl<T, const N: usize> NeighborSearch<T, N> for KdTreeSearch<'_, T, N>
 where
     T: FloatNumber,
 {
@@ -371,32 +353,32 @@ mod tests {
     fn test_build() {
         // Act
         let points = sample_points();
-        let search = KDTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
+        let search = KdTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
 
         // Assert
-        assert!(search.root.is_some());
-        assert_eq!(search.points.len(), points.len());
+        assert_eq!(search.points, &points);
         assert_eq!(search.metric, DistanceMetric::Euclidean);
+        assert!(search.root.is_some());
     }
 
     #[test]
     fn test_build_empty() {
         // Act
         let points = empty_points();
-        let search: KDTreeSearch<f32, 3> =
-            KDTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
+        let search: KdTreeSearch<f32, 3> =
+            KdTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
 
         // Assert
-        assert!(search.root.is_none());
-        assert_eq!(search.points.len(), 0);
+        assert_eq!(search.points, &points);
         assert_eq!(search.metric, DistanceMetric::Euclidean);
+        assert!(search.root.is_none());
     }
 
     #[test]
     fn test_search() {
         // Arrange
         let points = sample_points();
-        let search = KDTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
+        let search = KdTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
 
         // Act
         let query = [3.0, 5.0, 6.0];
@@ -416,7 +398,7 @@ mod tests {
     fn test_search_empty() {
         // Arrange
         let points = sample_points();
-        let search = KDTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
+        let search = KdTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
 
         // Act
         let query = [3.0, 5.0, 6.0];
@@ -430,7 +412,7 @@ mod tests {
     fn test_search_nearest() {
         // Arrange
         let points = sample_points();
-        let search = KDTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
+        let search = KdTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
 
         // Act
         let query = [2.0, 2.0, 1.0];
@@ -445,7 +427,7 @@ mod tests {
     fn test_search_nearest_empty() {
         // Arrange
         let points = empty_points();
-        let search = KDTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
+        let search = KdTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
 
         // Act
         let query = [3.0, 2.0, 1.0];
@@ -459,7 +441,7 @@ mod tests {
     fn test_search_radius() {
         // Arrange
         let points = sample_points();
-        let search = KDTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
+        let search = KdTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
 
         // Act
         let query = [3.0, 5.0, 6.0];
@@ -477,7 +459,7 @@ mod tests {
     fn test_search_radius_empty() {
         // Arrange
         let points = sample_points();
-        let search = KDTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
+        let search = KdTreeSearch::build(&points, DistanceMetric::Euclidean, 2);
 
         // Act
         let query = [3.0, 5.0, 6.0];
