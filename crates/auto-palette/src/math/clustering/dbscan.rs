@@ -4,7 +4,7 @@ use thiserror::Error;
 
 use crate::math::{
     clustering::{Cluster, ClusteringAlgorithm},
-    neighbors::{kdtree::KDTreeSearch, Neighbor, NeighborSearch},
+    neighbors::{kdtree::KdTreeSearch, Neighbor, NeighborSearch},
     DistanceMetric,
     FloatNumber,
     Point,
@@ -135,7 +135,7 @@ where
         let mut labels = vec![UNCLASSIFIED; points.len()];
         let mut clusters = Vec::new();
         let mut current_label = 0;
-        let neighbor_search = KDTreeSearch::build(points, self.metric, 16);
+        let neighbor_search = KdTreeSearch::build(points, self.metric, 16);
         for (index, point) in points.iter().enumerate() {
             if labels[index] != UNCLASSIFIED {
                 continue;

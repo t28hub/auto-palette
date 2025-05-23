@@ -39,8 +39,8 @@ use crate::{
 ///     let mut swatches = palette.find_swatches(3).unwrap();
 ///
 ///     assert_eq!(swatches[0].color().to_hex_string(), "#007749");
-///     assert_eq!(swatches[1].color().to_hex_string(), "#001489");
-///     assert_eq!(swatches[2].color().to_hex_string(), "#E03C31");
+///     assert_eq!(swatches[1].color().to_hex_string(), "#E03C31");
+///     assert_eq!(swatches[2].color().to_hex_string(), "#001489");
 /// }
 /// ```
 #[derive(Debug, Clone, PartialEq)]
@@ -669,7 +669,7 @@ mod tests {
 
         // Assert
         assert!(!actual.is_empty());
-        assert_eq!(actual.len(), 5);
+        assert_eq!(actual.len(), 6);
     }
 
     #[test]

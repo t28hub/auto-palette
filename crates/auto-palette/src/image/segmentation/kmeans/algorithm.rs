@@ -4,7 +4,7 @@ use crate::{
         Pixel,
     },
     math::{
-        neighbors::{kdtree::KDTreeSearch, NeighborSearch},
+        neighbors::{kdtree::KdTreeSearch, NeighborSearch},
         DistanceMetric,
         FloatNumber,
     },
@@ -60,7 +60,7 @@ where
     ) -> bool {
         segments.iter_mut().for_each(Segment::reset);
 
-        let center_search = KDTreeSearch::build(centers, self.metric, 16);
+        let center_search = KdTreeSearch::build(centers, self.metric, 16);
         for (index, pixel) in pixels.iter().enumerate() {
             if !mask[index] {
                 continue;

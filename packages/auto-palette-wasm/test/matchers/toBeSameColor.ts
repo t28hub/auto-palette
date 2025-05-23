@@ -8,7 +8,7 @@ import {
   printWithType,
 } from 'jest-matcher-utils';
 import { parseColor } from '../utils/color';
-import type { MatcherState } from './types';
+import type { ExpectationResult, MatcherState } from './types';
 
 /**
  * Check if two colors are the same.
@@ -21,7 +21,7 @@ export function toBeSameColor(
   this: MatcherState,
   received: Color,
   expected: unknown,
-) {
+): ExpectationResult {
   const matcherName = this.isNot ? '.not.toBeSameColor' : '.toBeSameColor';
   const expectedColor = parseColor(expected);
   if (!expectedColor) {
