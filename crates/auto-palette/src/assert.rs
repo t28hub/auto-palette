@@ -47,8 +47,44 @@ macro_rules! assert_approx_eq {
     };
 }
 
+#[macro_export]
+macro_rules! assert_color_eq {
+    ($left:expr, $right:expr) => {
+        let tolerance = 1.0;
+        let delta = $left.delta_e(&$right);
+        assert!(
+            delta < tolerance,
+            "assertion failed: `|left-right| >= tolerance`\n  left: `{:?}`,\n right: `{:?}`\n  tolerance: `{:?}`\n  delta: `{:?}`",
+            $left,
+            $right,
+            tolerance,
+            delta
+        );
+    };
+    ($left:expr, $right:expr, $tolerance:expr) => {
+        let delta = $left.delta_e(&$right);
+        assert!(
+            $tolerance >= 0.0,
+            "tolerance must be greater than or equal to zero, but got: `{:?}`",
+            $tolerance
+        );
+        assert!(
+            delta < $tolerance,
+            "assertion failed: `|left-right| >= tolerance`\n  left: `{:?}`,\n right: `{:?}`\n  tolerance: `{:?}`\n  delta: `{:?}`",
+            $left,
+            $right,
+            $tolerance,
+            delta
+        );
+    };
+}
+
 #[cfg(test)]
 mod test {
+    use std::str::FromStr;
+
+    use crate::color::Color;
+
     #[test]
     fn test_assert_approx_eq() {
         assert_approx_eq!(1.0, 1.000001);
@@ -75,5 +111,45 @@ mod test {
     #[should_panic(expected = "epsilon must be positive, but got: `0.0`")]
     fn test_assert_approx_eq_zero_eps() {
         assert_approx_eq!(1.0, 1.0001, 0.0);
+    }
+
+    #[test]
+    fn test_assert_color_eq() {
+        let color1: Color<f64> = Color::from_str("#eb367f").unwrap();
+        let color2: Color<f64> = Color::from_str("#eb367f").unwrap();
+        assert_color_eq!(color1, color2);
+    }
+
+    #[test]
+    fn test_assert_color_eq_with_tolerance() {
+        let color1: Color<f64> = Color::from_str("#eb367f").unwrap();
+        let color2: Color<f64> = Color::from_str("#ec367f").unwrap();
+        assert_color_eq!(color1, color2, 1.0);
+    }
+
+    #[test]
+    #[should_panic(expected = "assertion failed: `|left-right| >= tolerance`")]
+    fn test_assert_color_eq_fail() {
+        let color1: Color<f64> = Color::from_str("#eb367f").unwrap();
+        let color2: Color<f64> = Color::from_str("#ee367f").unwrap();
+        assert_color_eq!(color1, color2);
+    }
+
+    #[test]
+    #[should_panic(expected = "assertion failed: `|left-right| >= tolerance`")]
+    fn test_assert_color_eq_fail_with_tolerance() {
+        let color1: Color<f64> = Color::from_str("#eb367f").unwrap();
+        let color2: Color<f64> = Color::from_str("#ec367f").unwrap();
+        assert_color_eq!(color1, color2, 1e-6);
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "tolerance must be greater than or equal to zero, but got: `-0.0001`"
+    )]
+    fn test_assert_color_eq_zero_tolerance() {
+        let color1: Color<f64> = Color::from_str("#eb367f").unwrap();
+        let color2: Color<f64> = Color::from_str("#ec367f").unwrap();
+        assert_color_eq!(color1, color2, -1e-4);
     }
 }

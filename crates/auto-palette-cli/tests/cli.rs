@@ -29,9 +29,10 @@ fn test_cli() {
         .stdout(
             predicate::str::contains("#FFFFFF")
                 .and(predicate::str::contains("#0081C8"))
-                .and(predicate::str::contains("#FCB131"))
-                .and(predicate::str::contains("#EE344E"))
+                .and(predicate::str::contains("#EE334E"))
                 .and(predicate::str::contains("#000000"))
+                .and(predicate::str::contains("#00A651"))
+                .and(predicate::str::contains("#FCB131"))
                 .and(predicate::str::contains("Extracted 6 swatch(es) in")),
         );
     assert.success();
