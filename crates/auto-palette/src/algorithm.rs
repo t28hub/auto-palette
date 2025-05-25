@@ -8,6 +8,7 @@ use crate::{
     image::{
         segmentation::{
             DbscanSegmentation,
+            FastDbscanSegmentation,
             KmeansSegmentation,
             Segment,
             Segmentation,
@@ -16,11 +17,7 @@ use crate::{
         },
         Pixel,
     },
-    math::{
-        clustering::{ClusteringAlgorithm, DBSCANPlusPlus},
-        DistanceMetric,
-        FloatNumber,
-    },
+    math::{DistanceMetric, FloatNumber},
     Error::EmptyImageData,
     Filter,
     ImageData,
@@ -64,23 +61,13 @@ impl Algorithm {
             return Err(EmptyImageData);
         }
 
+        let width = image_data.width() as usize;
+        let height = image_data.height() as usize;
+        let (pixels, mask) = collect_pixels_and_mask(image_data, filter);
         match self {
-            Self::KMeans => {
-                let width = image_data.width() as usize;
-                let height = image_data.height() as usize;
-                let (pixels, mask) = collect_pixels_and_mask(image_data, filter);
-                kmeans(width, height, &pixels, &mask)
-            }
-            Self::DBSCAN => {
-                let width = image_data.width() as usize;
-                let height = image_data.height() as usize;
-                let (pixels, mask) = collect_pixels_and_mask(image_data, filter);
-                dbscan(width, height, &pixels, &mask)
-            }
-            Self::DBSCANpp => {
-                let pixels = collect_filtered_pixels(image_data, filter);
-                dbscanpp(&pixels)
-            }
+            Self::KMeans => kmeans(width, height, &pixels, &mask),
+            Self::DBSCAN => dbscan(width, height, &pixels, &mask),
+            Self::DBSCANpp => dbscanpp(width, height, &pixels, &mask),
         }
     }
 }
@@ -170,40 +157,33 @@ where
 }
 
 const DBSCANPP_PROBABILITY: f64 = 0.1;
-const DBSCANPP_MIN_POINTS: usize = 16;
-const DBSCANPP_EPSILON: f64 = 16e-4;
+const DBSCANPP_MIN_POINTS: usize = 10;
+const DBSCANPP_EPSILON: f64 = 0.04;
 
-fn dbscanpp<T>(pixels: &[Pixel<T>]) -> Result<Vec<Segment<T>>, Error>
+fn dbscanpp<T>(
+    width: usize,
+    height: usize,
+    pixels: &[Pixel<T>],
+    mask: &[bool],
+) -> Result<Vec<Segment<T>>, Error>
 where
     T: FloatNumber,
 {
-    let clustering = DBSCANPlusPlus::new(
-        T::from_f64(DBSCANPP_PROBABILITY),
-        DBSCANPP_MIN_POINTS,
-        T::from_f64(DBSCANPP_EPSILON),
-        DistanceMetric::SquaredEuclidean,
-    )
-    .map_err(|e| Error::PaletteExtractionError {
-        details: e.to_string(),
-    })?;
-
-    let clusters = clustering
-        .fit(pixels)
+    let segmentation = FastDbscanSegmentation::builder()
+        .min_pixels(DBSCANPP_MIN_POINTS)
+        .probability(T::from_f64(DBSCANPP_PROBABILITY))
+        .epsilon(T::from_f64(DBSCANPP_EPSILON).powi(2))
+        .metric(DistanceMetric::SquaredEuclidean)
+        .build()
         .map_err(|e| Error::PaletteExtractionError {
             details: e.to_string(),
         })?;
 
-    let segments = clusters
-        .iter()
-        .filter_map(|cluster| {
-            if cluster.is_empty() {
-                None
-            } else {
-                Some(Segment::from(cluster))
-            }
+    segmentation
+        .segment_with_mask(width, height, pixels, mask)
+        .map_err(|e| Error::PaletteExtractionError {
+            details: e.to_string(),
         })
-        .collect();
-    Ok(segments)
 }
 
 const SLIC_SEGMENTS: usize = 128;
@@ -290,30 +270,6 @@ where
     (pixels, mask)
 }
 
-/// Collects the filtered pixels from the image data.
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
-/// * `F` - The filter type.
-///
-/// # Arguments
-/// * `image_data` - The image data to collect pixels from.
-/// * `filter` - The filter to apply to the pixels.
-///
-/// # Returns
-/// A vector of filtered pixels.
-#[must_use]
-fn collect_filtered_pixels<T, F>(image_data: &ImageData, filter: &F) -> Vec<Pixel<T>>
-where
-    T: FloatNumber,
-    F: Filter,
-{
-    image_data
-        .pixels_with_filter(filter)
-        .flat_map(|(pixel, mask)| mask.then_some(pixel))
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
@@ -388,7 +344,7 @@ mod tests {
     #[test]
     fn test_dbscanpp_empty() {
         // Act
-        let actual = dbscanpp(&empty_pixels::<f64>());
+        let actual = dbscanpp(0, 0, &empty_pixels::<f64>(), &[]);
 
         // Assert
         assert!(actual.is_ok());

@@ -35,8 +35,8 @@ impl<T> DbscanSegmentation<T>
 where
     T: FloatNumber,
 {
-    /// Default leaf size for the KdTree.
-    const LEAF_SIZE: usize = 16;
+    /// Maximum number of leaf nodes in the KdTree.
+    const MAX_LEAF_SIZE: usize = 16;
 
     /// Label for unassigned pixels.
     const LABEL_UNASSIGNED: i32 = -1;
@@ -66,7 +66,7 @@ where
     /// * `min_size` - The minimum size for a segment to be considered large.
     fn merge_segments(&self, segments: &mut Segments<T>, min_size: usize) {
         let centers: Vec<_> = segments.iter().map(|s| *s.center()).collect();
-        let center_search = KdTreeSearch::build(&centers, self.metric, Self::LEAF_SIZE);
+        let center_search = KdTreeSearch::build(&centers, self.metric, Self::MAX_LEAF_SIZE);
 
         // Map of 'small' segments to their nearest 'large' segment
         let relocation_map: HashMap<_, _> = segments
@@ -141,7 +141,7 @@ where
             .max(1);
         let segment_capacity = (width * height) / self.segments;
 
-        let pixel_search = KdTreeSearch::build(pixels, self.metric, Self::LEAF_SIZE);
+        let pixel_search = KdTreeSearch::build(pixels, self.metric, Self::MAX_LEAF_SIZE);
         let find_neighbors = |index: usize| -> Vec<Neighbor<T>> {
             let seed = &pixels[index];
             let (sx, sy) = Self::index_to_coords(index, width);
