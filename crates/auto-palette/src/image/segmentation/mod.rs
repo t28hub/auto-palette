@@ -1,4 +1,5 @@
 mod algorithm;
+mod dbscan;
 mod helper;
 mod kmeans;
 mod seed;
@@ -7,6 +8,7 @@ mod slic;
 mod snic;
 
 pub use algorithm::{Segmentation, Segments};
+pub use dbscan::DbscanSegmentation;
 pub use kmeans::KmeansSegmentation;
 pub use segment::Segment;
 pub use slic::SlicSegmentation;

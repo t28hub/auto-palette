@@ -89,10 +89,14 @@ describe('@auto-palette/wasm', () => {
 
         // Assert
         expect(swatches).toHaveLength(3);
-        expect(swatches[0].color).toBeSameColor('#5ECBFE');
-        expect(swatches[1].color).toBeSameColor('#C7101E');
+        expect(swatches[0].color).toBeSameColor(
+          isLinux ? '#4EC3FD' : '#5ECBFE',
+        );
+        expect(swatches[1].color).toBeSameColor(
+          isLinux ? '#BF010D' : '#C7101E',
+        );
         expect(swatches[2].color).toBeSameColor(
-          isLinux ? '#DABA36' : '#CFC663',
+          isLinux ? '#FCDC24' : '#CFC663',
         );
       });
 
@@ -101,35 +105,35 @@ describe('@auto-palette/wasm', () => {
           count: 3,
           theme: 'colorful',
           expected: isLinux
-            ? ['#A48611', '#AD71B9', '#C72B42']
+            ? ['#0866A7', '#9C7E14', '#CC538E']
             : ['#01B1FC', '#A48611', '#C72C52'],
         },
         {
           count: 3,
           theme: 'vivid',
           expected: isLinux
-            ? ['#01B1FC', '#A48611', '#D6314D']
+            ? ['#711978', '#B99913', '#DE2D45']
             : ['#01B1FC', '#A48611', '#D6314D'],
         },
         {
           count: 3,
           theme: 'muted',
           expected: isLinux
-            ? ['#04524E', '#846E15', '#CB7599']
+            ? ['#024578', '#03686A', '#A971B5']
             : ['#04524E', '#846E15', '#CD85B7'],
         },
         {
           count: 3,
           theme: 'light',
           expected: isLinux
-            ? ['#5ECBFE', '#CBB143', '#CD85B7']
+            ? ['#4EC3FD', '#CEC169', '#D37BAD']
             : ['#5ECBFE', '#CD85B7', '#CFC663'],
         },
         {
           count: 3,
           theme: 'dark',
           expected: isLinux
-            ? ['#02305A', '#054435', '#4D0219']
+            ? ['#013764', '#023D33', '#590321']
             : ['#032F55', '#053E2D', '#4A0117'],
         },
       ])(

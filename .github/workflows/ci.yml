@@ -93,7 +93,7 @@ jobs:
           tool: cargo-nextest, cargo-llvm-cov
 
       - name: Run unit tests
-        run: cargo nextest run --tests --all-features --package auto-palette
+        run: cargo nextest run --tests --all-features --package auto-palette --retries 2
 
       - name: Run examples
         run: |

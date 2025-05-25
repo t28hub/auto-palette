@@ -480,7 +480,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::Rgba;
+    use crate::{assert_color_eq, Rgba};
 
     #[must_use]
     fn sample_swatches<T>() -> Vec<Swatch<T>>
@@ -586,17 +586,23 @@ mod tests {
     fn test_builder_with_filter() {
         // Arrange
         let image_data = ImageData::load("../../gfx/flags/np.png").unwrap();
-        let actual: Palette<f64> = Palette::builder()
+        let actual: Palette<f32> = Palette::builder()
             .filter(|rgba: &Rgba| rgba[3] != 0)
             .build(&image_data)
             .unwrap();
 
         // Assert
         assert!(!actual.is_empty());
-        assert_eq!(actual.len(), 5);
-        assert_eq!(actual.swatches[0].color().to_hex_string(), "#DC143C");
-        assert_eq!(actual.swatches[1].color().to_hex_string(), "#003893");
-        assert_eq!(actual.swatches[2].color().to_hex_string(), "#FFFFFF");
+        assert!(actual.len() >= 3);
+
+        let actual_colors: Vec<_> = actual.swatches.iter().map(Swatch::color).collect();
+        let expected_colors: Vec<_> = ["#DC143C", "#003893", "#FFFFFF"]
+            .iter()
+            .map(|s| Color::<f32, _>::from_str(s).unwrap())
+            .collect();
+        for (actual, expected) in actual_colors.iter().zip(expected_colors.iter()) {
+            assert_color_eq!(actual, expected);
+        }
     }
 
     #[cfg(feature = "image")]

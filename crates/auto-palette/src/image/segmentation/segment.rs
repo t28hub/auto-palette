@@ -82,6 +82,21 @@ where
         true
     }
 
+    /// Absorbs another segment into this one.
+    ///
+    /// # Arguments
+    /// * `other` - The segment to absorb.
+    pub(super) fn absorb(&mut self, other: &Segment<T>) {
+        let self_weight = T::from_usize(self.assignments.len());
+        let other_weight = T::from_usize(other.assignments.len());
+        let total_weight = self_weight + other_weight;
+        for (self_component, other_component) in self.center.iter_mut().zip(other.center()) {
+            *self_component =
+                (*self_component * self_weight + *other_component * other_weight) / total_weight;
+        }
+        self.assignments.extend(other.assignments());
+    }
+
     /// Resets the segment to its initial state.
     #[inline]
     pub(super) fn reset(&mut self) {
@@ -150,6 +165,39 @@ mod tests {
         assert_eq!(segment.len(), 1);
         assert_eq!(segment.center(), &[0.25; LABXY_CHANNELS]);
         assert_eq!(segment.assignments().copied().collect::<Vec<_>>(), vec![0]);
+    }
+
+    #[test]
+    fn test_absorb() {
+        // Arrange
+        let mut segment1 = Segment::<f64>::default();
+        segment1.assign(0, &[0.25; LABXY_CHANNELS]);
+        segment1.assign(1, &[0.75; LABXY_CHANNELS]);
+
+        let mut segment2 = Segment::<f64>::default();
+        segment2.assign(2, &[0.5; LABXY_CHANNELS]);
+        segment2.assign(3, &[1.0; LABXY_CHANNELS]);
+        segment2.assign(4, &[1.5; LABXY_CHANNELS]);
+
+        // Act
+        segment1.absorb(&segment2);
+
+        // Assert
+        assert!(!segment1.is_empty());
+        assert_eq!(segment1.len(), 5);
+        assert_eq!(segment1.center(), &[0.8; LABXY_CHANNELS]);
+        assert_eq!(
+            segment1.assignments().copied().collect::<HashSet<_>>(),
+            HashSet::from([0, 1, 2, 3, 4])
+        );
+
+        assert!(!segment2.is_empty());
+        assert_eq!(segment2.len(), 3);
+        assert_eq!(segment2.center(), &[1.0; LABXY_CHANNELS]);
+        assert_eq!(
+            segment2.assignments().copied().collect::<HashSet<_>>(),
+            HashSet::from([2, 3, 4])
+        );
     }
 
     #[test]

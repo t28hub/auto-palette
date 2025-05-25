@@ -140,6 +140,26 @@ where
         (self.a.powi(2) + self.b.powi(2)).sqrt()
     }
 
+    /// Calculates the delta E76 value between this color and another color.
+    ///
+    /// # Arguments
+    /// * `other` - The other color to compare against.
+    ///
+    /// # Returns
+    /// The delta E76 value, which is a measure of the difference between two colors.
+    ///
+    /// # Note
+    /// This method uses the CIE76 formula, which is a simple Euclidean distance in the L*a*b* color space.
+    /// [Color difference CIE76 - Wikipedia](https://en.wikipedia.org/wiki/Color_difference#CIE76)
+    #[inline]
+    #[must_use]
+    pub fn delta_e(&self, other: &Self) -> T {
+        let delta_l = self.l - other.l;
+        let delta_a = self.a - other.a;
+        let delta_b = self.b - other.b;
+        (delta_l.powi(2) + delta_a.powi(2) + delta_b.powi(2)).sqrt()
+    }
+
     /// Returns the hue of this color. The hue is the angle of the vector in the a*b* plane.
     ///
     /// # Returns
@@ -465,6 +485,19 @@ mod tests {
 
         // Assert
         assert_approx_eq!(actual, 50.120_117);
+    }
+
+    #[test]
+    fn test_delta_e() {
+        // Arrange
+        let color1: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color2: Color<f32> = Color::new(53.237_144, 80.088_320, 67.199_460);
+
+        // Act
+        let actual = color1.delta_e(&color2);
+
+        // Assert
+        assert_approx_eq!(actual, 156.460388);
     }
 
     #[rstest]

@@ -7,6 +7,7 @@ use crate::{
     error::Error,
     image::{
         segmentation::{
+            DbscanSegmentation,
             KmeansSegmentation,
             Segment,
             Segmentation,
@@ -16,7 +17,7 @@ use crate::{
         Pixel,
     },
     math::{
-        clustering::{ClusteringAlgorithm, DBSCANPlusPlus, DBSCAN},
+        clustering::{ClusteringAlgorithm, DBSCANPlusPlus},
         DistanceMetric,
         FloatNumber,
     },
@@ -71,8 +72,10 @@ impl Algorithm {
                 kmeans(width, height, &pixels, &mask)
             }
             Self::DBSCAN => {
-                let pixels = collect_filtered_pixels(image_data, filter);
-                dbscan(&pixels)
+                let width = image_data.width() as usize;
+                let height = image_data.height() as usize;
+                let (pixels, mask) = collect_pixels_and_mask(image_data, filter);
+                dbscan(width, height, &pixels, &mask)
             }
             Self::DBSCANpp => {
                 let pixels = collect_filtered_pixels(image_data, filter);
@@ -137,39 +140,33 @@ where
         })
 }
 
-const DBSCAN_MIN_POINTS: usize = 16;
-const DBSCAN_EPSILON: f64 = 16e-4;
+const DBSCAN_MIN_POINTS: usize = 10;
+const DBSCAN_EPSILON: f64 = 0.03;
 
-fn dbscan<T>(pixels: &[Pixel<T>]) -> Result<Vec<Segment<T>>, Error>
+fn dbscan<T>(
+    width: usize,
+    height: usize,
+    pixels: &[Pixel<T>],
+    mask: &[bool],
+) -> Result<Vec<Segment<T>>, Error>
 where
     T: FloatNumber,
 {
-    let clustering = DBSCAN::new(
-        DBSCAN_MIN_POINTS,
-        T::from_f64(DBSCAN_EPSILON),
-        DistanceMetric::SquaredEuclidean,
-    )
-    .map_err(|e| Error::PaletteExtractionError {
-        details: e.to_string(),
-    })?;
-
-    let clusters = clustering
-        .fit(pixels)
+    let segmentation = DbscanSegmentation::builder()
+        .segments(128)
+        .min_pixels(DBSCAN_MIN_POINTS)
+        .epsilon(T::from_f64(DBSCAN_EPSILON.powi(2))) // Squared epsilon for squared euclidean distance
+        .metric(DistanceMetric::SquaredEuclidean)
+        .build()
         .map_err(|e| Error::PaletteExtractionError {
             details: e.to_string(),
         })?;
 
-    let segments = clusters
-        .iter()
-        .filter_map(|cluster| {
-            if cluster.is_empty() {
-                None
-            } else {
-                Some(Segment::from(cluster))
-            }
+    segmentation
+        .segment_with_mask(width, height, pixels, mask)
+        .map_err(|e| Error::PaletteExtractionError {
+            details: e.to_string(),
         })
-        .collect();
-    Ok(segments)
 }
 
 const DBSCANPP_PROBABILITY: f64 = 0.1;
@@ -379,7 +376,7 @@ mod tests {
     #[test]
     fn test_dbscan_empty() {
         // Act
-        let actual = dbscan(&empty_pixels::<f64>());
+        let actual = dbscan(0, 0, &empty_pixels::<f64>(), &[]);
 
         // Assert
         assert!(actual.is_ok());
