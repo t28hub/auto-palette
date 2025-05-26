@@ -41,15 +41,6 @@ where
         self.members.len()
     }
 
-    /// Returns whether this cluster is empty.
-    ///
-    /// # Returns
-    /// `true` if this cluster is empty; `false` otherwise.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.members.is_empty()
-    }
-
     /// Returns an iterator over the members of this cluster.
     ///
     /// # Returns
@@ -99,7 +90,6 @@ mod tests {
         let actual: Cluster<f32, 2> = Cluster::new();
 
         // Assert
-        assert!(actual.is_empty());
         assert_eq!(actual.len(), 0);
         assert_eq!(
             actual.members().copied().collect::<HashSet<_>>(),
@@ -116,7 +106,6 @@ mod tests {
         // Act & Assert
         let point = [1.0, 2.0];
         assert!(cluster.add_member(0, &point));
-        assert!(!cluster.is_empty());
         assert_eq!(cluster.len(), 1);
         assert_eq!(
             cluster.members().copied().collect::<HashSet<_>>(),
