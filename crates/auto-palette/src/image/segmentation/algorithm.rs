@@ -29,6 +29,7 @@ where
     ///
     /// # Returns
     /// A collection of segments.
+    #[allow(dead_code)]
     fn segment(
         &self,
         width: usize,

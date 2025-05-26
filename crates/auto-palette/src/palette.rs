@@ -337,10 +337,6 @@ where
     /// # Returns
     /// The `Palette` instance built from the image data.
     pub fn build(self, image_data: &ImageData) -> Result<Palette<T>, Error> {
-        if image_data.is_empty() {
-            return Err(Error::EmptyImageData);
-        }
-
         // Group the points into clusters using the specified algorithm.
         let image_segments = self.algorithm.segment(image_data, &self.filter)?;
 
@@ -627,14 +623,14 @@ mod tests {
         // Act
         let data: Vec<u8> = Vec::new();
         let image_data = ImageData::new(0, 0, &data).unwrap();
-        let result: Result<Palette<f64>, _> = Palette::builder().build(&image_data);
+        let actual = Palette::<f64>::builder().build(&image_data);
 
         // Assert
-        assert!(result.is_err());
-        assert_eq!(
-            result.unwrap_err().to_string(),
-            "Image data is empty: no pixels to process"
-        );
+        assert!(actual.is_ok());
+
+        let palette = actual.unwrap();
+        assert!(palette.is_empty());
+        assert_eq!(palette.len(), 0);
     }
 
     #[test]
@@ -642,12 +638,12 @@ mod tests {
         // Act
         let data: Vec<u8> = vec![0; 4 * 10 * 10]; // 10x10 transparent image
         let image_data = ImageData::new(10, 10, &data).unwrap();
-        let result: Result<Palette<f64>, _> = Palette::builder().build(&image_data);
+        let actual: Result<Palette<f64>, _> = Palette::builder().build(&image_data);
 
         // Assert
-        assert!(result.is_ok());
+        assert!(actual.is_ok());
 
-        let palette = result.unwrap();
+        let palette = actual.unwrap();
         assert!(palette.is_empty());
         assert_eq!(palette.len(), 0);
     }
