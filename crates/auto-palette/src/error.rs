@@ -5,10 +5,6 @@ use crate::math::sampling::SamplingError;
 /// Represents specific errors encountered during the palette extraction process.
 #[derive(Debug, Error)]
 pub enum Error {
-    /// Error when provided image data is empty and contains no pixel information.
-    #[error("Image data is empty: no pixels to process")]
-    EmptyImageData,
-
     /// Error when the palette extraction process fails, providing the underlying details.
     #[error("Palette extraction process failed with error: {details}")]
     PaletteExtractionError {
@@ -41,18 +37,6 @@ pub enum Error {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_empty_image_data() {
-        // Act
-        let actual = Error::EmptyImageData;
-
-        // Assert
-        assert_eq!(
-            actual.to_string(),
-            "Image data is empty: no pixels to process"
-        );
-    }
 
     #[test]
     fn test_palette_extraction_error() {

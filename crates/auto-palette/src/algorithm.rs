@@ -18,7 +18,6 @@ use crate::{
         Pixel,
     },
     math::{DistanceMetric, FloatNumber},
-    Error::EmptyImageData,
     Filter,
     ImageData,
 };
@@ -36,9 +35,48 @@ pub enum Algorithm {
 
     /// DBSCAN++ clustering algorithm.
     DBSCANpp,
+
+    /// SLIC (Simple Linear Iterative Clustering) algorithm.
+    SLIC,
+
+    /// SNIC (Simple Non-Iterative Clustering) algorithm.
+    SNIC,
 }
 
 impl Algorithm {
+    /// The number of segments to use for segmentation.
+    const SEGMENTS: usize = 128;
+
+    /// The maximum number of iterations for the K-means algorithm.
+    const KMEANS_MAX_ITER: usize = 50;
+
+    /// The tolerance for convergence conditions in the K-means algorithm.
+    const KMEANS_TOLERANCE: f64 = 1e-3;
+
+    /// The minimum number of points for the DBSCAN algorithm.
+    const DBSCAN_MIN_POINTS: usize = 10;
+
+    /// The epsilon value for the DBSCAN algorithm.
+    const DBSCAN_EPSILON: f64 = 0.03;
+
+    /// The probability for the Fast DBSCAN (DBSCAN++) algorithm.
+    const FASTDBSCAN_PROBABILITY: f64 = 0.1;
+
+    /// The minimum number of points for the Fast DBSCAN (DBSCAN++) algorithm.
+    const FASTDBSCAN_MIN_POINTS: usize = 10;
+
+    /// The epsilon value for the Fast DBSCAN (DBSCAN++) algorithm.
+    const FASTDBSCAN_EPSILON: f64 = 0.04;
+
+    /// The compactness value for the SLIC algorithm.
+    const SLIC_COMPACTNESS: f64 = 0.0225; // 0.15^2
+
+    /// The maximum number of iterations for the SLIC algorithm.
+    const SLIC_MAX_ITER: usize = 10;
+
+    /// The tolerance for convergence conditions in the SLIC algorithm.
+    const SLIC_TOLERANCE: f64 = 1e-3;
+
     /// Clusters the given pixels using the algorithm.
     ///
     /// # Arguments
@@ -57,17 +95,46 @@ impl Algorithm {
         T: FloatNumber,
         F: Filter,
     {
-        if image_data.is_empty() {
-            return Err(EmptyImageData);
-        }
-
-        let width = image_data.width() as usize;
-        let height = image_data.height() as usize;
-        let (pixels, mask) = collect_pixels_and_mask(image_data, filter);
         match self {
-            Self::KMeans => kmeans(width, height, &pixels, &mask),
-            Self::DBSCAN => dbscan(width, height, &pixels, &mask),
-            Self::DBSCANpp => dbscanpp(width, height, &pixels, &mask),
+            Self::KMeans => segment_internal(image_data, filter, || {
+                KmeansSegmentation::builder()
+                    .segments(Self::SEGMENTS)
+                    .max_iter(Self::KMEANS_MAX_ITER)
+                    .tolerance(T::from_f64(Self::KMEANS_TOLERANCE))
+                    .metric(DistanceMetric::SquaredEuclidean)
+                    .build()
+            }),
+            Self::DBSCAN => segment_internal(image_data, filter, || {
+                DbscanSegmentation::builder()
+                    .segments(Self::SEGMENTS)
+                    .min_pixels(Self::DBSCAN_MIN_POINTS)
+                    .epsilon(T::from_f64(Self::DBSCAN_EPSILON.powi(2))) // Squared epsilon for squared euclidean distance
+                    .metric(DistanceMetric::SquaredEuclidean)
+                    .build()
+            }),
+            Self::DBSCANpp => segment_internal(image_data, filter, || {
+                FastDbscanSegmentation::builder()
+                    .min_pixels(Self::FASTDBSCAN_MIN_POINTS)
+                    .probability(T::from_f64(Self::FASTDBSCAN_PROBABILITY))
+                    .epsilon(T::from_f64(Self::FASTDBSCAN_EPSILON).powi(2))
+                    .metric(DistanceMetric::SquaredEuclidean)
+                    .build()
+            }),
+            Self::SLIC => segment_internal(image_data, filter, || {
+                SlicSegmentation::builder()
+                    .segments(Self::SEGMENTS)
+                    .max_iter(Self::SLIC_MAX_ITER)
+                    .compactness(T::from_f64(Self::SLIC_COMPACTNESS))
+                    .tolerance(T::from_f64(Self::SLIC_TOLERANCE))
+                    .metric(DistanceMetric::SquaredEuclidean)
+                    .build()
+            }),
+            Self::SNIC => segment_internal(image_data, filter, || {
+                SnicSegmentation::<T>::builder()
+                    .segments(Self::SEGMENTS)
+                    .metric(DistanceMetric::Euclidean)
+                    .build()
+            }),
         }
     }
 }
@@ -80,6 +147,8 @@ impl FromStr for Algorithm {
             "kmeans" => Ok(Self::KMeans),
             "dbscan" => Ok(Self::DBSCAN),
             "dbscan++" => Ok(Self::DBSCANpp),
+            "slic" => Ok(Self::SLIC),
+            "snic" => Ok(Self::SNIC),
             _ => Err(Error::UnsupportedAlgorithm {
                 name: s.to_string(),
             }),
@@ -93,144 +162,49 @@ impl Display for Algorithm {
             Self::KMeans => write!(f, "kmeans"),
             Self::DBSCAN => write!(f, "dbscan"),
             Self::DBSCANpp => write!(f, "dbscan++"),
+            Self::SLIC => write!(f, "slic"),
+            Self::SNIC => write!(f, "snic"),
         }
     }
 }
 
-const KMEANS_CLUSTER_COUNT: usize = 128;
-const KMEANS_MAX_ITER: usize = 50;
-const KMEANS_TOLERANCE: f64 = 1e-3;
-
-fn kmeans<T>(
-    width: usize,
-    height: usize,
-    pixels: &[Pixel<T>],
-    mask: &[bool],
+/// Segments the image data using the specified filter and algorithm.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
+/// * `F` - The filter function.
+/// * `B` - The builder function.
+/// * `S` - The segmentation algorithm.
+/// * `E` - The error type for the segmentation algorithm.
+///
+/// # Arguments
+/// * `image_data` - The image data to segment.
+/// * `filter` - The filter to apply to the image data.
+/// * `builder` - The builder function to create the segmentation algorithm.
+///
+/// # Returns
+/// A vector of segments found by the segmentation algorithm.
+fn segment_internal<T, F, B, S, E>(
+    image_data: &ImageData,
+    filter: &F,
+    builder: B,
 ) -> Result<Vec<Segment<T>>, Error>
 where
     T: FloatNumber,
+    F: Filter,
+    B: FnOnce() -> Result<S, E>,
+    S: Segmentation<T, Err = E>,
+    E: Display,
 {
-    let segmentation = KmeansSegmentation::builder()
-        .segments(KMEANS_CLUSTER_COUNT)
-        .max_iter(KMEANS_MAX_ITER)
-        .tolerance(T::from_f64(KMEANS_TOLERANCE))
-        .metric(DistanceMetric::SquaredEuclidean)
-        .build()
-        .map_err(|e| Error::PaletteExtractionError {
-            details: e.to_string(),
-        })?;
+    let segmentation = builder().map_err(|e| Error::PaletteExtractionError {
+        details: e.to_string(),
+    })?;
 
+    let width = image_data.width() as usize;
+    let height = image_data.height() as usize;
+    let (pixels, mask) = collect_pixels_and_mask(image_data, filter);
     segmentation
-        .segment_with_mask(width, height, pixels, mask)
-        .map_err(|e| Error::PaletteExtractionError {
-            details: e.to_string(),
-        })
-}
-
-const DBSCAN_MIN_POINTS: usize = 10;
-const DBSCAN_EPSILON: f64 = 0.03;
-
-fn dbscan<T>(
-    width: usize,
-    height: usize,
-    pixels: &[Pixel<T>],
-    mask: &[bool],
-) -> Result<Vec<Segment<T>>, Error>
-where
-    T: FloatNumber,
-{
-    let segmentation = DbscanSegmentation::builder()
-        .segments(128)
-        .min_pixels(DBSCAN_MIN_POINTS)
-        .epsilon(T::from_f64(DBSCAN_EPSILON.powi(2))) // Squared epsilon for squared euclidean distance
-        .metric(DistanceMetric::SquaredEuclidean)
-        .build()
-        .map_err(|e| Error::PaletteExtractionError {
-            details: e.to_string(),
-        })?;
-
-    segmentation
-        .segment_with_mask(width, height, pixels, mask)
-        .map_err(|e| Error::PaletteExtractionError {
-            details: e.to_string(),
-        })
-}
-
-const DBSCANPP_PROBABILITY: f64 = 0.1;
-const DBSCANPP_MIN_POINTS: usize = 10;
-const DBSCANPP_EPSILON: f64 = 0.04;
-
-fn dbscanpp<T>(
-    width: usize,
-    height: usize,
-    pixels: &[Pixel<T>],
-    mask: &[bool],
-) -> Result<Vec<Segment<T>>, Error>
-where
-    T: FloatNumber,
-{
-    let segmentation = FastDbscanSegmentation::builder()
-        .min_pixels(DBSCANPP_MIN_POINTS)
-        .probability(T::from_f64(DBSCANPP_PROBABILITY))
-        .epsilon(T::from_f64(DBSCANPP_EPSILON).powi(2))
-        .metric(DistanceMetric::SquaredEuclidean)
-        .build()
-        .map_err(|e| Error::PaletteExtractionError {
-            details: e.to_string(),
-        })?;
-
-    segmentation
-        .segment_with_mask(width, height, pixels, mask)
-        .map_err(|e| Error::PaletteExtractionError {
-            details: e.to_string(),
-        })
-}
-
-const SLIC_SEGMENTS: usize = 128;
-const SLIC_COMPACTNESS: f64 = 0.0225; // 0.15^2
-const SLIC_MAX_ITER: usize = 10;
-const SLIC_TOLERANCE: f64 = 1e-3;
-
-#[allow(dead_code)]
-fn slic<T>(width: usize, height: usize, pixels: &[Pixel<T>]) -> Result<Vec<Segment<T>>, Error>
-where
-    T: FloatNumber,
-{
-    let segmentation = SlicSegmentation::builder()
-        .segments(SLIC_SEGMENTS)
-        .compactness(T::from_f64(SLIC_COMPACTNESS))
-        .max_iter(SLIC_MAX_ITER)
-        .tolerance(T::from_f64(SLIC_TOLERANCE))
-        .metric(DistanceMetric::SquaredEuclidean)
-        .build()
-        .map_err(|e| Error::PaletteExtractionError {
-            details: e.to_string(),
-        })?;
-
-    segmentation
-        .segment(width, height, pixels)
-        .map_err(|e| Error::PaletteExtractionError {
-            details: e.to_string(),
-        })
-}
-
-const SNIC_SEGMENTS: usize = 128;
-
-#[allow(dead_code)]
-fn snic<T>(width: usize, height: usize, pixels: &[Pixel<T>]) -> Result<Vec<Segment<T>>, Error>
-where
-    T: FloatNumber,
-{
-    let segmentation = SnicSegmentation::<T>::builder()
-        .segments(SNIC_SEGMENTS)
-        .metric(DistanceMetric::Euclidean)
-        .build()
-        .map_err(|e| Error::PaletteExtractionError {
-            details: e.to_string(),
-        })?;
-
-    segmentation
-        .segment(width, height, pixels)
+        .segment_with_mask(width, height, &pixels, &mask)
         .map_err(|e| Error::PaletteExtractionError {
             details: e.to_string(),
         })
@@ -275,14 +249,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-
-    #[must_use]
-    fn empty_pixels<T>() -> Vec<Pixel<T>>
-    where
-        T: FloatNumber,
-    {
-        Vec::new()
-    }
+    use crate::Rgba;
 
     #[rstest]
     #[case::kmeans("kmeans", Algorithm::KMeans)]
@@ -329,63 +296,24 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    #[test]
-    fn test_dbscan_empty() {
+    #[rstest]
+    #[case::kmeans(Algorithm::KMeans)]
+    #[case::dbscan(Algorithm::DBSCAN)]
+    #[case::dbscanpp(Algorithm::DBSCANpp)]
+    #[case::slic(Algorithm::SLIC)]
+    #[case::snic(Algorithm::SNIC)]
+    fn test_segment_empty(#[case] algorithm: Algorithm) {
+        // Arrange
+        let pixels: Vec<_> = Vec::new();
+        let image_data = ImageData::new(0, 0, &pixels).expect("Failed to create empty image data");
+
         // Act
-        let actual = dbscan(0, 0, &empty_pixels::<f64>(), &[]);
+        let actual = algorithm.segment(&image_data, &|rgba: &Rgba| rgba[0] != 0);
 
         // Assert
         assert!(actual.is_ok());
 
-        let segments = actual.unwrap();
-        assert!(segments.is_empty());
-    }
-
-    #[test]
-    fn test_dbscanpp_empty() {
-        // Act
-        let actual = dbscanpp(0, 0, &empty_pixels::<f64>(), &[]);
-
-        // Assert
-        assert!(actual.is_ok());
-
-        let segments = actual.unwrap();
-        assert!(segments.is_empty());
-    }
-
-    #[test]
-    fn test_kmeans_empty() {
-        // Act
-        let actual = kmeans(0, 0, &empty_pixels::<f64>(), &[]);
-
-        // Assert
-        assert!(actual.is_ok());
-
-        let segments = actual.unwrap();
-        assert!(segments.is_empty());
-    }
-
-    #[test]
-    fn test_slic_empty() {
-        // Act
-        let actual = slic(0, 0, &empty_pixels::<f64>());
-
-        // Assert
-        assert!(actual.is_ok());
-
-        let segments = actual.unwrap();
-        assert!(segments.is_empty());
-    }
-
-    #[test]
-    fn test_snic_empty() {
-        // Act
-        let actual = snic(0, 0, &empty_pixels::<f64>());
-
-        // Assert
-        assert!(actual.is_ok());
-
-        let segments = actual.unwrap();
+        let segments: Vec<Segment<f64>> = actual.unwrap();
         assert!(segments.is_empty());
     }
 }

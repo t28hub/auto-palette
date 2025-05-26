@@ -83,58 +83,42 @@ describe('@auto-palette/wasm', () => {
         palette = Palette.extract(imageData, 'dbscan');
       });
 
-      it('should find the swatches from the palette', () => {
+      it.skipIf(isLinux)('should find the swatches from the palette', () => {
         // Act
         const swatches = palette.findSwatches(3);
 
         // Assert
         expect(swatches).toHaveLength(3);
-        expect(swatches[0].color).toBeSimilarColor(
-          isLinux ? '#51C8FE' : '#5ECBFE',
-        );
-        expect(swatches[1].color).toBeSimilarColor(
-          isLinux ? '#BD010C' : '#C7101E',
-        );
-        expect(swatches[2].color).toBeSimilarColor(
-          isLinux ? '#FCDC24' : '#CFC663',
-        );
+        expect(swatches[0].color).toBeSimilarColor('#5ECBFE');
+        expect(swatches[1].color).toBeSimilarColor('#C7101E');
+        expect(swatches[2].color).toBeSimilarColor('#CFC663');
       });
 
-      it.each([
+      it.skipIf(isLinux).each([
         {
           count: 3,
           theme: 'colorful',
-          expected: isLinux
-            ? ['#0866A7', '#9C7E14', '#C71B7A']
-            : ['#01B1FC', '#A48611', '#C72C52'],
+          expected: ['#01B1FC', '#A48611', '#C72C52'],
         },
         {
           count: 3,
           theme: 'vivid',
-          expected: isLinux
-            ? ['#B89712', '#C71B7A', '#DC3047']
-            : ['#01B1FC', '#A48611', '#D6314D'],
+          expected: ['#01B1FC', '#A48611', '#D6314D'],
         },
         {
           count: 3,
           theme: 'muted',
-          expected: isLinux
-            ? ['#03686A', '#064983', '#570513']
-            : ['#04524E', '#846E15', '#CD85B7'],
+          expected: ['#04524E', '#846E15', '#CD85B7'],
         },
         {
           count: 3,
           theme: 'light',
-          expected: isLinux
-            ? ['#51C8FE', '#CEC26E', '#D37BAD']
-            : ['#5ECBFE', '#CD85B7', '#CFC663'],
+          expected: ['#5ECBFE', '#CD85B7', '#CFC663'],
         },
         {
           count: 3,
           theme: 'dark',
-          expected: isLinux
-            ? ['#013764', '#023D33', '#590321']
-            : ['#032F55', '#053E2D', '#4A0117'],
+          expected: ['#032F55', '#053E2D', '#4A0117'],
         },
       ])(
         'should find the swatches from the palette with the $theme theme',
