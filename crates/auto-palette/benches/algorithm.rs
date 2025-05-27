@@ -9,7 +9,7 @@ fn main() {
 
 const IMAGE_PATH: &str = "../../gfx/laura-clugston-pwW2iV9TZao-unsplash.jpg";
 
-const ALGORITHMS: &[&str] = &["kmeans", "dbscan", "dbscan++"];
+const ALGORITHMS: &[&str] = &["kmeans", "dbscan", "dbscan++", "slic", "snic"];
 
 #[divan::bench(types = [f32, f64], args = ALGORITHMS, sample_count = 10)]
 fn bench_algorithm<T>(bencher: Bencher, name: &str)
