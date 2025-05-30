@@ -222,44 +222,6 @@ impl<'a> ImageData<'a> {
             normalize(coord_y, T::zero(), height_f),
         ]
     }
-
-    /// Denormalizes the given value `x` from the range of [0, 1] to the range of [0, width].
-    ///
-    /// # Type Parameters
-    /// * `T` - The floating point type.
-    ///
-    /// # Arguments
-    /// * `x` - The value to denormalize.
-    ///
-    /// # Returns
-    /// The denormalized value of `x` in the range of [0, width].
-    #[inline(always)]
-    #[must_use]
-    pub(crate) fn denormalize_x<T>(&self, x: T) -> u32
-    where
-        T: FloatNumber,
-    {
-        (x * T::from_u32(self.width)).round().trunc_to_u32()
-    }
-
-    /// Denormalizes the given value `y` from the range of [0, 1] to the range of [0, height].
-    ///
-    /// # Type Parameters
-    /// * `T` - The floating point type.
-    ///
-    /// # Arguments
-    /// * `y` - The value to denormalize.
-    ///
-    /// # Returns
-    /// The denormalized value of `y` in the range of [0, height].
-    #[inline(always)]
-    #[must_use]
-    pub(crate) fn denormalize_y<T>(&self, y: T) -> u32
-    where
-        T: FloatNumber,
-    {
-        (y * T::from_u32(self.height)).round().trunc_to_u32()
-    }
 }
 
 #[cfg(feature = "image")]
@@ -541,30 +503,5 @@ mod tests {
         assert_eq!(pixels.len(), 4);
         assert_eq!(mask.len(), 4);
         assert_eq!(mask, vec![true, false, true, false]);
-    }
-
-    #[test]
-    fn test_denormalize_x() {
-        // Arrange
-        let image_data = ImageData::new(4, 3, &[255; 4 * 3 * 4]).unwrap();
-
-        // Act & Assert
-        assert_eq!(image_data.denormalize_x::<f64>(0.00), 0);
-        assert_eq!(image_data.denormalize_x::<f64>(0.25), 1);
-        assert_eq!(image_data.denormalize_x::<f64>(0.50), 2);
-        assert_eq!(image_data.denormalize_x::<f64>(0.75), 3);
-        assert_eq!(image_data.denormalize_x::<f64>(1.00), 4);
-    }
-
-    #[test]
-    fn test_denormalize_y() {
-        // Arrange
-        let image_data = ImageData::new(4, 3, &[255; 4 * 3 * 4]).unwrap();
-
-        // Act & Assert
-        assert_eq!(image_data.denormalize_y::<f64>(0.00), 0);
-        assert_eq!(image_data.denormalize_y::<f64>(0.33), 1);
-        assert_eq!(image_data.denormalize_y::<f64>(0.67), 2);
-        assert_eq!(image_data.denormalize_y::<f64>(1.00), 3);
     }
 }

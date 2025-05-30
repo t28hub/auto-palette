@@ -1,10 +1,7 @@
 use crate::{
-    image::{segmentation::segment::Segment, Pixel},
-    FloatNumber,
+    image::{segmentation::label::LabelImage, Pixel},
+    math::FloatNumber,
 };
-
-/// A collection of segments.
-pub type Segments<T> = Vec<Segment<T>>;
 
 /// Trait for segmentation algorithms.
 ///
@@ -28,14 +25,14 @@ where
     /// * `pixels` - The pixels of the image.
     ///
     /// # Returns
-    /// A collection of segments.
+    /// A `LabelImage` containing the segmented image, or an error if segmentation fails.
     #[allow(dead_code)]
     fn segment(
         &self,
         width: usize,
         height: usize,
         pixels: &[Pixel<T>],
-    ) -> Result<Segments<T>, Self::Err> {
+    ) -> Result<LabelImage<T>, Self::Err> {
         let mask = vec![true; width * height];
         self.segment_with_mask(width, height, pixels, &mask)
     }
@@ -49,12 +46,12 @@ where
     /// * `mask` - The mask to apply to the pixels.
     ///
     /// # Returns
-    /// A collection of segments.
+    /// A `LabelImage` containing the segmented image, or an error if segmentation fails.
     fn segment_with_mask(
         &self,
         width: usize,
         height: usize,
         pixels: &[Pixel<T>],
         mask: &[bool],
-    ) -> Result<Segments<T>, Self::Err>;
+    ) -> Result<LabelImage<T>, Self::Err>;
 }

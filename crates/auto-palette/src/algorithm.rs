@@ -10,7 +10,7 @@ use crate::{
             DbscanSegmentation,
             FastDbscanSegmentation,
             KmeansSegmentation,
-            Segment,
+            LabelImage,
             Segmentation,
             SlicSegmentation,
             SnicSegmentation,
@@ -90,7 +90,7 @@ impl Algorithm {
         &self,
         image_data: &ImageData,
         filter: &F,
-    ) -> Result<Vec<Segment<T>>, Error>
+    ) -> Result<LabelImage<T>, Error>
     where
         T: FloatNumber,
         F: Filter,
@@ -188,7 +188,7 @@ fn segment_internal<T, F, B, S, E>(
     image_data: &ImageData,
     filter: &F,
     builder: B,
-) -> Result<Vec<Segment<T>>, Error>
+) -> Result<LabelImage<T>, Error>
 where
     T: FloatNumber,
     F: Filter,
@@ -313,7 +313,8 @@ mod tests {
         // Assert
         assert!(actual.is_ok());
 
-        let segments: Vec<Segment<f64>> = actual.unwrap();
-        assert!(segments.is_empty());
+        let label_image: LabelImage<f64> = actual.unwrap();
+        assert_eq!(label_image.width(), 0);
+        assert_eq!(label_image.height(), 0);
     }
 }

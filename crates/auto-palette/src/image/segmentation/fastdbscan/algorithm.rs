@@ -1,8 +1,12 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 
 use crate::{
     image::{
-        segmentation::{fastdbscan::error::FastDbscanError, Segment, Segmentation, Segments},
+        segmentation::{
+            fastdbscan::error::FastDbscanError,
+            label::{Builder as LabelImageBuilder, LabelImage},
+            Segmentation,
+        },
         Pixel,
     },
     math::{
@@ -32,13 +36,13 @@ where
     const MAX_LEAF_SIZE: usize = 16;
 
     /// Label for unlabelled pixels.
-    const LABEL_UNLABELED: isize = -1;
+    const LABEL_UNLABELED: usize = usize::MAX;
 
-    /// Label for marked pixels.
-    const LABEL_MARKED: isize = -2;
+    /// Label for ignored pixels.
+    const LABEL_IGNORED: usize = usize::MAX - 1;
 
-    /// Label for outlier pixels.
-    const LABEL_OUTLIER: isize = -3;
+    /// Label for noise pixels.
+    const LABEL_NOISE: usize = usize::MAX - 2;
 
     /// Creates a new `Builder` instance for `FastDbscanSegmentation`.
     ///
@@ -73,7 +77,7 @@ where
     }
 
     #[must_use]
-    fn label_core_pixels<S>(&self, core_pixels: &[Pixel<T>], core_pixel_search: &S) -> Vec<isize>
+    fn label_core_pixels<S>(&self, core_pixels: &[Pixel<T>], core_pixel_search: &S) -> Vec<usize>
     where
         S: NeighborSearch<T, 5>,
     {
@@ -88,18 +92,11 @@ where
             let neighbors = core_pixel_search.search_radius(core_pixel, self.epsilon);
             // Not enough neighbors to form a segment
             if neighbors.len() < self.min_pixels {
-                labels[index] = Self::LABEL_OUTLIER;
+                labels[index] = Self::LABEL_NOISE;
                 continue;
             }
 
             // Label the core pixel and its neighbors if they are not labeled
-            for neighbor in &neighbors {
-                if labels[neighbor.index] != Self::LABEL_UNLABELED {
-                    continue;
-                }
-                labels[neighbor.index] = Self::LABEL_MARKED;
-            }
-
             let mut queue: VecDeque<_> = neighbors.into();
             self.expand_segment(
                 core_pixels,
@@ -120,59 +117,46 @@ where
         pixels: &[Pixel<T>],
         pixel_search: &S,
         queue: &mut VecDeque<Neighbor<T>>,
-        labels: &mut [isize],
-        current_label: isize,
+        labels: &mut [usize],
+        current_label: usize,
     ) where
         S: NeighborSearch<T, 5>,
     {
         while let Some(neighbor) = queue.pop_front() {
-            let index = neighbor.index;
+            let neighbor_index = neighbor.index;
+            // Label the neighbor with the current segment label
+            if labels[neighbor_index] == Self::LABEL_NOISE {
+                labels[neighbor_index] = current_label;
+                continue;
+            }
 
             // Skip if the neighbor is already labeled
-            if labels[index] >= 0 {
+            if labels[neighbor_index] != Self::LABEL_UNLABELED
+                || labels[neighbor_index] == Self::LABEL_IGNORED
+            {
                 continue;
             }
 
-            // Label the neighbor with the current segment label
-            if labels[index] == Self::LABEL_OUTLIER {
-                labels[index] = current_label;
-                continue;
-            }
+            labels[neighbor_index] = current_label;
 
-            labels[index] = current_label;
-
-            let neighbor_pixel = &pixels[index];
+            let neighbor_pixel = &pixels[neighbor_index];
             let secondary_neighbors = pixel_search.search_radius(neighbor_pixel, self.epsilon);
-            if secondary_neighbors.len() < self.min_pixels {
-                continue;
-            }
-
-            for candidate in secondary_neighbors {
-                match labels[candidate.index] {
-                    Self::LABEL_UNLABELED => {
-                        labels[candidate.index] = Self::LABEL_MARKED;
-                        queue.push_back(candidate);
-                    }
-                    Self::LABEL_OUTLIER => {
-                        queue.push_back(candidate);
-                    }
-                    _ => {}
-                }
+            if secondary_neighbors.len() >= self.min_pixels {
+                queue.extend(secondary_neighbors);
             }
         }
     }
 
     fn build_segments<S>(
         &self,
+        builder: &mut LabelImageBuilder<T>,
         pixels: &[Pixel<T>],
         mask: &[bool],
         core_pixel_search: &S,
-        core_labels: &[isize],
-    ) -> Segments<T>
-    where
+        core_labels: &[usize],
+    ) where
         S: NeighborSearch<T, 5>,
     {
-        let mut segments = HashMap::with_capacity(core_labels.len());
         for (index, pixel) in pixels.iter().enumerate() {
             if !mask[index] {
                 continue;
@@ -187,17 +171,15 @@ where
             }
 
             let core_label = core_labels[nearest.index];
-            // Skip unlabelled, outlier, or noise core pixels
-            if core_label < 0 {
+            // Skip unlabelled, noise, or ignored pixels
+            if core_label == Self::LABEL_UNLABELED
+                || core_label == Self::LABEL_NOISE
+                || core_label == Self::LABEL_IGNORED
+            {
                 continue;
             }
-
-            segments
-                .entry(core_label)
-                .or_insert_with(Segment::default)
-                .assign(index, pixel);
+            builder.get_mut(&core_label).insert(index, pixel);
         }
-        segments.into_values().collect()
     }
 }
 
@@ -213,7 +195,7 @@ where
         height: usize,
         pixels: &[Pixel<T>],
         mask: &[bool],
-    ) -> Result<Segments<T>, Self::Err> {
+    ) -> Result<LabelImage<T>, Self::Err> {
         if pixels.len() != width * height {
             return Err(FastDbscanError::UnexpectedLength {
                 actual: pixels.len(),
@@ -221,15 +203,16 @@ where
             });
         }
 
+        let mut builder = LabelImage::builder(width, height);
         let core_pixels = self.select_core_pixels(pixels, mask);
         if core_pixels.is_empty() {
-            return Ok(Segments::new());
+            return Ok(builder.build());
         }
 
         let core_pixel_search = KdTreeSearch::build(&core_pixels, self.metric, Self::MAX_LEAF_SIZE);
         let core_labels = self.label_core_pixels(&core_pixels, &core_pixel_search);
-        let segments = self.build_segments(pixels, mask, &core_pixel_search, &core_labels);
-        Ok(segments)
+        self.build_segments(&mut builder, pixels, mask, &core_pixel_search, &core_labels);
+        Ok(builder.build())
     }
 }
 
@@ -479,10 +462,11 @@ mod tests {
         // Assert
         assert!(actual.is_ok());
 
-        let segments = actual.unwrap();
+        let label_image = actual.unwrap();
+        let segments: Vec<_> = label_image.segments().collect();
         assert!(!segments.is_empty());
         assert!(segments.len() >= 64);
-        for segment in &segments {
+        for segment in segments {
             assert!(segment.len() >= 10);
         }
     }
@@ -500,7 +484,10 @@ mod tests {
 
         // Assert
         assert!(actual.is_ok());
-        assert!(actual.unwrap().is_empty());
+
+        let label_image = actual.unwrap();
+        assert_eq!(label_image.width(), 0);
+        assert_eq!(label_image.height(), 0);
     }
 
     #[test]
@@ -537,10 +524,11 @@ mod tests {
         // Assert
         assert!(actual.is_ok());
 
-        let segments = actual.unwrap();
+        let label_image = actual.unwrap();
+        let segments: Vec<_> = label_image.segments().collect();
         assert!(!segments.is_empty());
         assert!(segments.len() >= 6);
-        for segment in &segments {
+        for segment in segments {
             assert!(segment.len() >= 10);
         }
     }
@@ -560,7 +548,8 @@ mod tests {
         // Assert
         assert!(actual.is_ok());
 
-        let segments = actual.unwrap();
+        let label_image = actual.unwrap();
+        let segments: Vec<_> = label_image.segments().collect();
         assert!(segments.is_empty());
         assert_eq!(segments.len(), 0);
     }

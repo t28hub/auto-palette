@@ -173,6 +173,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use rstest::rstest;
 
     use super::*;
@@ -250,12 +252,27 @@ mod tests {
 
         // Assert
         assert_eq!(actual.len(), 3);
-        assert_eq!(actual[0].len(), 7);
-        assert_eq!(actual[0].centroid(), &[1.0, 1.0]);
-        assert_eq!(actual[1].len(), 5);
-        assert_eq!(actual[1].centroid(), &[4.4, 3.8]);
-        assert_eq!(actual[2].len(), 4);
-        assert_eq!(actual[2].centroid(), &[0.5, 7.5]);
+
+        let cluster = &actual[0];
+        assert_eq!(cluster.len(), 7);
+        assert_eq!(
+            cluster.members().copied().collect::<HashSet<_>>(),
+            HashSet::from([0, 1, 4, 5, 6, 9, 10])
+        );
+
+        let cluster = &actual[1];
+        assert_eq!(cluster.len(), 5);
+        assert_eq!(
+            cluster.members().copied().collect::<HashSet<_>>(),
+            HashSet::from([11, 12, 13, 14, 15])
+        );
+
+        let cluster = &actual[2];
+        assert_eq!(cluster.len(), 4);
+        assert_eq!(
+            cluster.members().copied().collect::<HashSet<_>>(),
+            HashSet::from([2, 3, 7, 8])
+        );
     }
 
     #[test]

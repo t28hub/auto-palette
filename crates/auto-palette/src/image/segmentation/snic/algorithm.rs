@@ -8,11 +8,10 @@ use crate::{
     image::{
         segmentation::{
             helper::gradient,
+            label::LabelImage,
             seed::SeedGenerator,
             snic::error::SnicError,
-            Segment,
             Segmentation,
-            Segments,
         },
         Pixel,
     },
@@ -44,10 +43,10 @@ where
     /// Default number of segments to create.
     const DEFAULT_SEGMENTS: usize = 64;
 
-    /// Default label for unclassified pixels.
-    const LABEL_UNCLASSIFIED: usize = usize::MAX;
+    /// Label for unlabelled pixels.
+    const LABEL_UNLABELLED: usize = usize::MAX;
 
-    /// Default label for ignored pixels.
+    /// Label for ignored pixels.
     const LABEL_IGNORED: usize = usize::MAX - 1;
 
     /// Creates a new `SnicSegmentationBuilder` instance.
@@ -112,7 +111,7 @@ where
         height: usize,
         pixels: &[Pixel<T>],
         mask: &[bool],
-    ) -> Result<Segments<T>, Self::Err> {
+    ) -> Result<LabelImage<T>, Self::Err> {
         let matrix = MatrixView::new(width, height, pixels)?;
 
         // Initialize the seeds using a grid pattern.
@@ -127,7 +126,7 @@ where
             .collect();
 
         // Initialize the priority queue with the seeds.
-        let mut segments = vec![Segment::default(); seeds.len()];
+        let mut builder = LabelImage::builder(width, height);
         let mut queue = seeds.into_iter().enumerate().fold(
             BinaryHeap::with_capacity(matrix.size()),
             |mut heap, (segment_label, pixel_index)| {
@@ -142,7 +141,7 @@ where
             },
         );
 
-        let mut labels = vec![Self::LABEL_UNCLASSIFIED; matrix.size()];
+        let mut labels = vec![Self::LABEL_UNLABELLED; width * height];
         while let Some(Reverse(element)) = queue.pop() {
             let pixel_index = element.col + element.row * width;
             if !mask[pixel_index] {
@@ -151,22 +150,23 @@ where
             }
 
             // Skip if the point is already assigned to a cluster.
-            if labels[pixel_index] != Self::LABEL_UNCLASSIFIED {
+            if labels[pixel_index] != Self::LABEL_UNLABELLED
+                && labels[pixel_index] != Self::LABEL_IGNORED
+            {
                 continue;
             }
 
             // Assign the nearest cluster label to the point.
             let segment_label = element.segment_label;
+            let segment = builder.get_mut(&segment_label);
+            segment.insert(pixel_index, &pixels[pixel_index]);
             labels[pixel_index] = segment_label;
 
-            let segment = &mut segments[segment_label];
-            segment.assign(pixel_index, &pixels[pixel_index]);
-
-            // Traverse the neighbors of the point and add them as candidates for clustering.
             let center_pixel = segment.center();
+            // Traverse the neighbors of the point and add them as candidates for clustering.
             matrix
                 .neighbors(element.col, element.row)
-                .filter(|(neighbor_index, _)| labels[*neighbor_index] == Self::LABEL_UNCLASSIFIED)
+                .filter(|(neighbor_index, _)| labels[*neighbor_index] == Self::LABEL_UNLABELLED)
                 .for_each(|(neighbor_index, neighbor_pixel)| {
                     let distance = self.metric.measure(center_pixel, neighbor_pixel);
                     let element = Element {
@@ -178,7 +178,7 @@ where
                     queue.push(Reverse(element));
                 });
         }
-        Ok(segments)
+        Ok(builder.build())
     }
 }
 
@@ -391,7 +391,7 @@ mod tests {
     #[cfg(feature = "image")]
     fn test_segment() {
         // Arrange
-        let image_data = ImageData::load("../../gfx/baboon.jpg").unwrap();
+        let image_data = ImageData::load("../../gfx/flags/za.png").unwrap();
         let snic = SnicSegmentation::<f64>::builder()
             .segments(32)
             .build()
@@ -406,7 +406,8 @@ mod tests {
         // Assert
         assert!(actual.is_ok());
 
-        let segments = actual.unwrap();
+        let label_image = actual.unwrap();
+        let segments: Vec<_> = label_image.segments().collect();
         assert_eq!(segments.len(), 32);
     }
 
