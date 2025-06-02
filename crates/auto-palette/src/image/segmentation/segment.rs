@@ -2,33 +2,63 @@ use std::collections::HashSet;
 
 use crate::{
     image::{Pixel, LABXY_CHANNELS},
-    math::clustering::Cluster,
-    FloatNumber,
+    math::FloatNumber,
 };
 
-/// Represents a segment in an image.
-///
-/// This struct contains a center pixel and a set of pixel assignments.
+/// Metadata for a segment in a labeled image.
 ///
 /// # Type Parameters
-/// * `T` - The floating point type.
-#[derive(Debug, Clone, PartialEq)]
-pub struct Segment<T>
+/// * `T` - The floating point type used for pixel values.
+#[derive(Debug, PartialEq)]
+pub struct SegmentMetadata<T>
 where
     T: FloatNumber,
 {
-    center: Pixel<T>,
-    assignments: HashSet<usize>,
+    /// The label of this segment.
+    pub(super) label: usize,
+
+    /// The center pixel of this segment, represented as a normalized LABXY pixel.
+    pub(super) center: Pixel<T>,
+
+    /// The indices of the pixels that belong to this segment.
+    pub(super) indices: HashSet<usize>,
 }
 
-impl<T> Segment<T>
+impl<T> SegmentMetadata<T>
 where
     T: FloatNumber,
 {
+    /// Creates a new `SegmentMetadata` instance with the given label.
+    ///
+    /// # Arguments
+    /// * `label` - The label of this segment.
+    ///
+    /// # Returns
+    /// A new `SegmentMetadata` instance with the specified label.
+    #[must_use]
+    pub fn new(label: usize) -> Self {
+        Self {
+            label,
+            center: [T::zero(); LABXY_CHANNELS],
+            indices: HashSet::new(),
+        }
+    }
+
+    /// Returns the label of this segment.
+    ///
+    /// # Returns
+    /// The label of this segment.
+    #[inline]
+    #[must_use]
+    pub fn label(&self) -> usize {
+        self.label
+    }
+
     /// Returns the center pixel of this segment.
     ///
     /// # Returns
     /// The center pixel of this segment.
+    #[inline]
     #[must_use]
     pub fn center(&self) -> &Pixel<T> {
         &self.center
@@ -37,95 +67,83 @@ where
     /// Checks whether this segment is empty.
     ///
     /// # Returns
-    /// `true` if this segment is empty; `false` otherwise.
+    /// `true` if this segment has no indices; `false` otherwise.
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.assignments.is_empty()
+        self.indices.is_empty()
     }
 
-    /// Returns the number of pixel assignments in this segment.
+    /// Returns the number of pixel indices in this segment.
     ///
     /// # Returns
-    /// The number of pixel assignments in this segment.
+    /// The number of pixel indices in this segment.
+    #[inline]
     #[must_use]
     pub fn len(&self) -> usize {
-        self.assignments.len()
+        self.indices.len()
     }
 
-    /// Returns the iterator over the pixel assignments of this segment.
+    /// Returns the indices of the pixels that belong to this segment.
     ///
     /// # Returns
-    /// An iterator over the pixel assignments of this segment.
-    #[allow(dead_code)]
-    pub fn assignments(&self) -> impl Iterator<Item = &usize> {
-        self.assignments.iter()
+    /// A slice containing the indices of the pixels in this segment.
+    pub fn members(&self) -> impl Iterator<Item = &usize> {
+        self.indices.iter()
     }
 
-    /// Assigns a pixel with the given index to this segment.
+    /// Inserts a pixel into this segment.
     ///
     /// # Arguments
-    /// * `index` - The index of the pixel to assign.
-    /// * `pixel` - The pixel to assign.
+    /// * `index` - The index of the pixel to insert.
+    /// * `pixel` - A reference to the pixel to insert.
     ///
     /// # Returns
-    /// `true` if the pixel was assigned; `false` if the pixel was already assigned.
-    #[inline]
-    pub(super) fn assign(&mut self, index: usize, pixel: &Pixel<T>) -> bool {
-        if !self.assignments.insert(index) {
+    /// `true` if the pixel was successfully inserted, `false` if it was already assigned to this segment.
+    #[inline(always)]
+    pub(super) fn insert(&mut self, index: usize, pixel: &Pixel<T>) -> bool {
+        if !self.indices.insert(index) {
+            // The pixel is already assigned to this segment.
             return false;
         }
 
-        let size = T::from_usize(self.assignments.len());
+        let count = T::from_usize(self.indices.len());
         self.center.iter_mut().zip(pixel).for_each(|(c, p)| {
-            *c = (*c * (size - T::one()) + *p) / size;
+            *c = (*c * (count - T::one()) + *p) / count;
         });
         true
     }
 
-    /// Absorbs another segment into this one.
+    /// Absorbs the metadata from another segment into this one.
     ///
     /// # Arguments
-    /// * `other` - The segment to absorb.
-    pub(super) fn absorb(&mut self, other: &Segment<T>) {
-        let self_weight = T::from_usize(self.assignments.len());
-        let other_weight = T::from_usize(other.assignments.len());
-        let total_weight = self_weight + other_weight;
-        for (self_component, other_component) in self.center.iter_mut().zip(other.center()) {
-            *self_component =
-                (*self_component * self_weight + *other_component * other_weight) / total_weight;
+    /// * `other` - The segment metadata to absorb.
+    ///
+    /// # Note
+    /// This method resets the given segment state, merging its center and indices into this segment.
+    pub(super) fn absorb(&mut self, other: &mut Self) {
+        if other.is_empty() {
+            return;
         }
-        self.assignments.extend(other.assignments());
+
+        let self_count = T::from_usize(self.indices.len());
+        let other_count = T::from_usize(other.indices.len());
+        let total_count = self_count + other_count;
+        self.center
+            .iter_mut()
+            .zip(other.center())
+            .for_each(|(c, o)| {
+                *c = (*c * self_count + *o * other_count) / total_count;
+            });
+        self.indices.extend(other.members());
     }
 
-    /// Resets the segment to its initial state.
-    #[inline]
-    pub(super) fn reset(&mut self) {
+    /// Clears the segment metadata, resetting its state.
+    ///
+    /// # Note
+    /// This method clears the indices, resets the total pixel values, and marks the segment as dirty.
+    pub(super) fn clear(&mut self) {
         self.center.fill(T::zero());
-        self.assignments.clear();
-    }
-}
-
-impl<T> Default for Segment<T>
-where
-    T: FloatNumber,
-{
-    fn default() -> Self {
-        Self {
-            center: [T::zero(); LABXY_CHANNELS],
-            assignments: HashSet::new(),
-        }
-    }
-}
-
-impl<T> From<&Cluster<T, LABXY_CHANNELS>> for Segment<T>
-where
-    T: FloatNumber,
-{
-    fn from(cluster: &Cluster<T, LABXY_CHANNELS>) -> Self {
-        Self {
-            center: *cluster.centroid(),
-            assignments: HashSet::from_iter(cluster.members().copied()),
-        }
+        self.indices.clear();
     }
 }
 
@@ -135,129 +153,132 @@ mod tests {
     use crate::assert_approx_eq;
 
     #[test]
-    fn test_assign() {
-        // Arrange
-        let mut segment = Segment::<f64>::default();
-
+    fn test_new() {
         // Act
-        let actual = segment.assign(0, &[0.25; LABXY_CHANNELS]);
+        let actual = SegmentMetadata::<f64>::new(0);
 
         // Assert
-        assert!(actual);
-        assert!(!segment.is_empty());
-        assert_eq!(segment.len(), 1);
-        assert_eq!(segment.center(), &[0.25; LABXY_CHANNELS]);
-        assert_eq!(segment.assignments().copied().collect::<Vec<_>>(), vec![0]);
+        assert_eq!(
+            actual,
+            SegmentMetadata {
+                label: 0,
+                center: [0.0; LABXY_CHANNELS],
+                indices: HashSet::new(),
+            }
+        );
+        assert!(actual.is_empty());
+        assert_eq!(actual.len(), 0);
+        assert_eq!(actual.label(), 0);
+        assert_eq!(actual.center(), &[0.0; LABXY_CHANNELS]);
     }
 
     #[test]
-    fn test_assign_existing() {
+    fn test_members() {
         // Arrange
-        let mut segment = Segment::<f64>::default();
-        segment.assign(0, &[0.25; LABXY_CHANNELS]);
+        let mut segment = SegmentMetadata::new(1);
+        segment.insert(0, &[0.2, 0.3, 0.4, 0.5, 0.6]);
+        segment.insert(1, &[0.3, 0.4, 0.5, 0.6, 0.7]);
 
         // Act
-        let actual = segment.assign(0, &[0.5; LABXY_CHANNELS]);
+        let members: HashSet<_> = segment.members().cloned().collect();
+
+        // Assert
+        assert_eq!(members, HashSet::from([0, 1]));
+    }
+
+    #[test]
+    fn test_members_empty() {
+        // Arrange
+        let segment = SegmentMetadata::<f64>::new(1);
+
+        // Act
+        let members: Vec<_> = segment.members().cloned().collect();
+
+        // Assert
+        assert!(members.is_empty());
+    }
+
+    #[test]
+    fn test_insert() {
+        // Act
+        let mut segment = SegmentMetadata::new(1);
+        let actual = segment.insert(0, &[0.2, 0.3, 0.4, 0.5, 0.6]);
+
+        // Assert
+        assert!(actual);
+        assert_eq!(segment.len(), 1);
+        assert_eq!(segment.center(), &[0.2, 0.3, 0.4, 0.5, 0.6]);
+    }
+
+    #[test]
+    fn test_insert_duplicate() {
+        // Arrange
+        let mut segment = SegmentMetadata::new(1);
+        segment.insert(0, &[0.2, 0.3, 0.4, 0.5, 0.6]);
+
+        // Act
+        let actual = segment.insert(0, &[0.2, 0.3, 0.4, 0.5, 0.6]);
 
         // Assert
         assert!(!actual);
-        assert!(!segment.is_empty());
         assert_eq!(segment.len(), 1);
-        assert_eq!(segment.center(), &[0.25; LABXY_CHANNELS]);
-        assert_eq!(segment.assignments().copied().collect::<Vec<_>>(), vec![0]);
+        assert_eq!(segment.center(), &[0.2, 0.3, 0.4, 0.5, 0.6]);
     }
 
     #[test]
     fn test_absorb() {
         // Arrange
-        let mut segment1 = Segment::<f64>::default();
-        segment1.assign(0, &[0.25; LABXY_CHANNELS]);
-        segment1.assign(1, &[0.75; LABXY_CHANNELS]);
+        let mut segment1 = SegmentMetadata::new(1);
+        segment1.insert(0, &[0.2, 0.3, 0.4, 0.5, 0.6]);
+        segment1.insert(2, &[0.3, 0.4, 0.5, 0.6, 0.7]);
+        segment1.insert(3, &[0.5, 0.6, 0.7, 0.8, 0.9]);
 
-        let mut segment2 = Segment::<f64>::default();
-        segment2.assign(2, &[0.5; LABXY_CHANNELS]);
-        segment2.assign(3, &[1.0; LABXY_CHANNELS]);
-        segment2.assign(4, &[1.5; LABXY_CHANNELS]);
+        let mut segment2 = SegmentMetadata::new(2);
+        segment2.insert(1, &[0.4, 0.5, 0.6, 0.7, 0.8]);
 
         // Act
-        segment1.absorb(&segment2);
+        segment1.absorb(&mut segment2);
 
         // Assert
-        assert!(!segment1.is_empty());
-        assert_eq!(segment1.len(), 5);
-        assert_eq!(segment1.center(), &[0.8; LABXY_CHANNELS]);
-        assert_eq!(
-            segment1.assignments().copied().collect::<HashSet<_>>(),
-            HashSet::from([0, 1, 2, 3, 4])
-        );
+        assert_eq!(segment1.len(), 4);
 
-        assert!(!segment2.is_empty());
-        assert_eq!(segment2.len(), 3);
-        assert_eq!(segment2.center(), &[1.0; LABXY_CHANNELS]);
-        assert_eq!(
-            segment2.assignments().copied().collect::<HashSet<_>>(),
-            HashSet::from([2, 3, 4])
-        );
+        let center = segment1.center();
+        assert_approx_eq!(center[0], 0.35);
+        assert_approx_eq!(center[1], 0.45);
+        assert_approx_eq!(center[2], 0.55);
+        assert_approx_eq!(center[3], 0.65);
+        assert_approx_eq!(center[4], 0.75);
     }
 
     #[test]
-    fn test_reset() {
+    fn test_absorb_empty_segment() {
         // Arrange
-        let mut segment = Segment::<f64>::default();
-        segment.assign(0, &[0.25; LABXY_CHANNELS]);
+        let mut segment1 = SegmentMetadata::new(1);
+        segment1.insert(0, &[0.2, 0.3, 0.4, 0.5, 0.6]);
+
+        let mut segment2 = SegmentMetadata::new(2); // Empty segment
 
         // Act
-        segment.reset();
+        segment1.absorb(&mut segment2);
+
+        // Assert
+        assert_eq!(segment1.len(), 1);
+        assert_eq!(segment1.center(), &[0.2, 0.3, 0.4, 0.5, 0.6]);
+    }
+
+    #[test]
+    fn test_clear() {
+        // Arrange
+        let mut segment = SegmentMetadata::new(1);
+        segment.insert(0, &[0.2, 0.3, 0.4, 0.5, 0.6]);
+        segment.insert(1, &[0.3, 0.4, 0.5, 0.6, 0.7]);
+
+        // Act
+        segment.clear();
 
         // Assert
         assert!(segment.is_empty());
         assert_eq!(segment.len(), 0);
         assert_eq!(segment.center(), &[0.0; LABXY_CHANNELS]);
-        assert_eq!(
-            segment.assignments().collect::<HashSet<_>>(),
-            HashSet::new()
-        );
-    }
-
-    #[test]
-    fn test_default() {
-        // Act
-        let actual = Segment::<f64>::default();
-
-        // Assert
-        assert!(actual.is_empty());
-        assert_eq!(actual.len(), 0);
-        assert_eq!(
-            actual,
-            Segment {
-                center: [0.0; LABXY_CHANNELS],
-                assignments: HashSet::new(),
-            }
-        )
-    }
-
-    #[test]
-    fn test_from_cluster() {
-        // Arrange
-        let mut cluster = Cluster::new();
-        cluster.add_member(0, &[0.2; LABXY_CHANNELS]);
-        cluster.add_member(1, &[0.3; LABXY_CHANNELS]);
-        cluster.add_member(2, &[0.5; LABXY_CHANNELS]);
-
-        let segment = Segment::from(&cluster);
-
-        // Act & Assert
-        assert!(!segment.is_empty());
-        assert_eq!(segment.len(), 3);
-
-        let center = segment.center();
-        assert_approx_eq!(center[0], 0.333333);
-        assert_approx_eq!(center[1], 0.333333);
-        assert_approx_eq!(center[2], 0.333333);
-        assert_approx_eq!(center[3], 0.333333);
-        assert_approx_eq!(center[4], 0.333333);
-
-        let assignments = HashSet::from_iter(segment.assignments().copied());
-        assert_eq!(assignments, HashSet::from([0, 1, 2]));
     }
 }

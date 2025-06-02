@@ -7,7 +7,7 @@ use crate::math::{point::Point, FloatNumber};
 /// # Type Parameters
 /// * `T` - The floating point type.
 /// * `N` - The number of dimensions.
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Cluster<T, const N: usize>
 where
     T: FloatNumber,
@@ -49,15 +49,6 @@ where
         self.members.iter()
     }
 
-    /// Returns the centroid of this cluster.
-    ///
-    /// # Returns
-    /// The centroid of this cluster.
-    #[must_use]
-    pub fn centroid(&self) -> &Point<T, N> {
-        &self.centroid
-    }
-
     /// Adds a member point to this cluster.
     ///
     /// # Arguments
@@ -90,12 +81,13 @@ mod tests {
         let actual: Cluster<f32, 2> = Cluster::new();
 
         // Assert
-        assert_eq!(actual.len(), 0);
         assert_eq!(
-            actual.members().copied().collect::<HashSet<_>>(),
-            HashSet::new()
+            actual,
+            Cluster {
+                members: HashSet::new(),
+                centroid: [0.0, 0.0],
+            }
         );
-        assert_eq!(actual.centroid(), &[0.0, 0.0]);
     }
 
     #[test]
@@ -108,35 +100,43 @@ mod tests {
         assert!(cluster.add_member(0, &point));
         assert_eq!(cluster.len(), 1);
         assert_eq!(
-            cluster.members().copied().collect::<HashSet<_>>(),
-            HashSet::from([0])
+            cluster,
+            Cluster {
+                members: HashSet::from([0]),
+                centroid: [1.0, 2.0],
+            }
         );
-        assert_eq!(cluster.centroid(), &[1.0, 2.0]);
 
         let point = [2.0, 4.0];
         assert!(cluster.add_member(1, &point));
         assert_eq!(cluster.len(), 2);
         assert_eq!(
-            cluster.members().copied().collect::<HashSet<_>>(),
-            HashSet::from([0, 1])
+            cluster,
+            Cluster {
+                members: HashSet::from([0, 1]),
+                centroid: [1.5, 3.0],
+            }
         );
-        assert_eq!(cluster.centroid(), &[1.5, 3.0]);
 
         let point = [3.0, 6.0];
         assert!(cluster.add_member(2, &point));
         assert_eq!(cluster.len(), 3);
         assert_eq!(
-            cluster.members().copied().collect::<HashSet<_>>(),
-            HashSet::from([0, 1, 2])
+            cluster,
+            Cluster {
+                members: HashSet::from([0, 1, 2]),
+                centroid: [2.0, 4.0],
+            }
         );
-        assert_eq!(cluster.centroid(), &[2.0, 4.0]);
 
         assert!(!cluster.add_member(2, &point));
         assert_eq!(cluster.len(), 3);
         assert_eq!(
-            cluster.members().copied().collect::<HashSet<_>>(),
-            HashSet::from([0, 1, 2])
+            cluster,
+            Cluster {
+                members: HashSet::from([0, 1, 2]),
+                centroid: [2.0, 4.0],
+            }
         );
-        assert_eq!(cluster.centroid(), &[2.0, 4.0]);
     }
 }

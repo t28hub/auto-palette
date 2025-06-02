@@ -1,6 +1,12 @@
 use crate::{
     image::{
-        segmentation::{kmeans::KmeansError, seed::SeedGenerator, Segment, Segmentation, Segments},
+        segmentation::{
+            kmeans::KmeansError,
+            label::{Builder as SegmentBuilder, LabelImage},
+            seed::SeedGenerator,
+            segment::SegmentMetadata,
+            Segmentation,
+        },
         Pixel,
     },
     math::{
@@ -56,9 +62,9 @@ where
         pixels: &[Pixel<T>],
         mask: &[bool],
         centers: &mut [Pixel<T>],
-        segments: &mut [Segment<T>],
+        builder: &mut SegmentBuilder<T>,
     ) -> bool {
-        segments.iter_mut().for_each(Segment::reset);
+        builder.iter_mut().for_each(SegmentMetadata::clear);
 
         let center_search = KdTreeSearch::build(centers, self.metric, 16);
         for (index, pixel) in pixels.iter().enumerate() {
@@ -67,19 +73,19 @@ where
             }
 
             if let Some(nearest) = center_search.search_nearest(pixel) {
-                segments[nearest.index].assign(index, pixel);
+                builder.get_mut(&nearest.index).insert(index, pixel);
             }
         }
 
         let mut converged = true;
-        for (label, segment) in segments.iter_mut().enumerate() {
-            let Some(old_center) = centers.get_mut(label) else {
+        for segment in builder.iter() {
+            let Some(old_center) = centers.get_mut(segment.label()) else {
                 continue;
             };
 
             let new_center = segment.center();
-            let distance = self.metric.measure(old_center, new_center);
-            if distance > self.tolerance {
+            let diff = self.metric.measure(old_center, new_center);
+            if diff > self.tolerance {
                 converged = false;
             }
 
@@ -101,7 +107,7 @@ where
         height: usize,
         pixels: &[Pixel<T>],
         mask: &[bool],
-    ) -> Result<Segments<T>, Self::Err> {
+    ) -> Result<LabelImage<T>, Self::Err> {
         if width * height != pixels.len() {
             return Err(KmeansError::UnexpectedLength {
                 actual: pixels.len(),
@@ -115,14 +121,13 @@ where
             .iter()
             .map(|&seed| pixels[seed])
             .collect();
-        let mut segments = vec![Segment::default(); centers.len()];
-
+        let mut builder = LabelImage::builder(width, height);
         for _ in 0..self.max_iter {
-            if self.iterate(pixels, mask, &mut centers, &mut segments) {
+            if self.iterate(pixels, mask, &mut centers, &mut builder) {
                 break;
             }
         }
-        Ok(segments)
+        Ok(builder.build())
     }
 }
 
@@ -342,9 +347,9 @@ mod tests {
     #[cfg(feature = "image")]
     fn test_segment() {
         // Arrange
-        let image_data = ImageData::load("../../gfx/baboon.jpg").unwrap();
+        let image_data = ImageData::load("../../gfx/flags/za.png").unwrap();
         let segmentation = KmeansSegmentation::builder()
-            .segments(16)
+            .segments(24)
             .max_iter(5)
             .tolerance(1e-4)
             .build()
@@ -359,7 +364,8 @@ mod tests {
         // Assert
         assert!(actual.is_ok());
 
-        let segments = actual.unwrap();
-        assert_eq!(segments.len(), 16);
+        let label_image = actual.unwrap();
+        let segments: Vec<_> = label_image.segments().collect();
+        assert_eq!(segments.len(), 24);
     }
 }

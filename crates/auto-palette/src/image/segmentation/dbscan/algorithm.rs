@@ -2,7 +2,11 @@ use std::collections::{HashMap, VecDeque};
 
 use crate::{
     image::{
-        segmentation::{dbscan::error::DbscanError, Segment, Segmentation, Segments},
+        segmentation::{
+            dbscan::error::DbscanError,
+            label::{Builder as LabelImageBuilder, LabelImage},
+            Segmentation,
+        },
         Pixel,
     },
     math::{
@@ -38,17 +42,11 @@ where
     /// Maximum number of leaf nodes in the KdTree.
     const MAX_LEAF_SIZE: usize = 16;
 
-    /// Label for unassigned pixels.
-    const LABEL_UNASSIGNED: i32 = -1;
+    const LABEL_UNLABELLED: usize = usize::MAX;
 
-    /// Label for noise pixels.
-    const LABEL_NOISE: i32 = -2;
+    const LABEL_IGNORED: usize = usize::MAX - 1;
 
-    /// Label for outlier pixels.
-    const LABEL_OUTLIER: i32 = -3;
-
-    /// Label for marked pixels.
-    const LABEL_MARKED: i32 = -4;
+    const LABEL_NOISE: usize = usize::MAX - 2;
 
     /// Creates a new `Builder` instance for `DbscanSegmentation`.
     ///
@@ -62,41 +60,51 @@ where
     /// Merges small segments into their nearest large segment.
     ///
     /// # Arguments
-    /// * `segments` - The segments to merge.
+    /// * `builder` - The `LabelImageBuilder` to build the label image.
     /// * `min_size` - The minimum size for a segment to be considered large.
-    fn merge_segments(&self, segments: &mut Segments<T>, min_size: usize) {
-        let centers: Vec<_> = segments.iter().map(|s| *s.center()).collect();
+    fn merge_segments(&self, builder: &mut LabelImageBuilder<T>, min_size: usize) {
+        let (labels, centers): (Vec<_>, Vec<_>) = builder
+            .iter()
+            .map(|segment| (segment.label(), segment.center()))
+            .unzip();
         let center_search = KdTreeSearch::build(&centers, self.metric, Self::MAX_LEAF_SIZE);
 
-        // Map of 'small' segments to their nearest 'large' segment
-        let relocation_map: HashMap<_, _> = segments
+        // Merge small segments into their nearest large segment
+        let relocation_table: HashMap<_, _> = builder
             .iter()
-            .enumerate()
-            .filter(|(_, segment)| segment.len() < min_size)
-            .filter_map(|(label, segment)| {
+            .filter(|s| s.len() < min_size)
+            .filter_map(|s| {
                 center_search
-                    .search(segment.center(), 2)
+                    .search(s.center(), 2)
                     .into_iter()
-                    .find(|n| n.index != label)
-                    .map(|n| (label, n.index))
+                    .find_map(|n| {
+                        if labels[n.index] != s.label() {
+                            Some((s.label(), labels[n.index]))
+                        } else {
+                            None
+                        }
+                    })
             })
             .collect();
 
-        // Merge small segments into their nearest large segment
-        for (small_label, large_label) in relocation_map {
-            let (small_segment, large_segment) = if small_label < large_label {
-                let (lower_segments, upper_segments) = segments.split_at_mut(large_label);
-                (&mut lower_segments[small_label], &mut upper_segments[0])
-            } else {
-                let (lower_segments, upper_segments) = segments.split_at_mut(small_label);
-                (&mut upper_segments[0], &mut lower_segments[large_label])
-            };
-            large_segment.absorb(small_segment);
-            small_segment.reset();
+        for (small_label, large_label) in relocation_table {
+            builder.merge(&small_label, &large_label);
         }
 
         // Remove segments that are still below the minimum size
-        segments.retain(|segment| segment.len() >= self.min_pixels);
+        let labels: Vec<_> = builder
+            .iter()
+            .filter_map(|s| {
+                if s.len() < self.min_pixels {
+                    Some(s.label())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for label in labels {
+            builder.remove(&label);
+        }
     }
 
     /// Converts a linear index to 2D coordinates.
@@ -126,7 +134,7 @@ where
         height: usize,
         pixels: &[Pixel<T>],
         mask: &[bool],
-    ) -> Result<Segments<T>, Self::Err> {
+    ) -> Result<LabelImage<T>, Self::Err> {
         if width * height != pixels.len() {
             return Err(DbscanError::UnexpectedLength {
                 actual: pixels.len(),
@@ -156,19 +164,23 @@ where
                 .collect()
         };
 
-        let mut labels = vec![Self::LABEL_UNASSIGNED; pixels.len()];
-        let mut segments = Vec::with_capacity(self.segments);
+        let mut builder = LabelImage::builder(width, height);
+        let mut labels = vec![Self::LABEL_UNLABELLED; pixels.len()];
 
         let mut current_label = 0;
         let mut next_seed_index = 0;
         while let Some(seed_index) = labels
             .iter()
             .skip(next_seed_index)
-            .position(|&l| l == Self::LABEL_UNASSIGNED)
+            .position(|&label| {
+                label == Self::LABEL_UNLABELLED
+                    || label == Self::LABEL_IGNORED
+                    || label == Self::LABEL_NOISE
+            })
             .map(|offset| offset + next_seed_index)
         {
             if !mask[seed_index] {
-                labels[seed_index] = Self::LABEL_NOISE;
+                labels[seed_index] = Self::LABEL_IGNORED;
                 next_seed_index = seed_index + 1;
                 continue;
             }
@@ -180,20 +192,12 @@ where
                 continue;
             }
 
-            // Mark the neighbors as visited
-            for neighbor in &neighbors {
-                if labels[neighbor.index] != Self::LABEL_UNASSIGNED {
-                    continue;
-                }
+            let segment = builder.get_mut(&current_label);
+            segment.insert(seed_index, &pixels[seed_index]);
+            labels[seed_index] = current_label;
 
-                labels[neighbor.index] = if mask[neighbor.index] {
-                    Self::LABEL_MARKED
-                } else {
-                    Self::LABEL_NOISE
-                };
-            }
+            // Expand the segment using a queue
             let mut queue: VecDeque<_> = neighbors.into();
-            let mut segment = Segment::default();
             while let Some(neighbor) = queue.pop_front() {
                 // Check if the segment is full for performance improvement
                 if segment.len() >= segment_capacity {
@@ -201,39 +205,40 @@ where
                 }
 
                 let neighbor_index = neighbor.index;
-                // Check if the neighbor is already labeled
-                if labels[neighbor_index] >= 0 {
+                if !mask[neighbor_index] {
+                    labels[neighbor_index] = Self::LABEL_IGNORED;
                     continue;
                 }
 
-                if labels[neighbor_index] == Self::LABEL_OUTLIER {
+                if labels[neighbor_index] == Self::LABEL_NOISE {
                     labels[neighbor_index] = current_label;
-                    segment.assign(neighbor_index, &pixels[neighbor_index]);
+                    segment.insert(neighbor_index, &pixels[neighbor_index]);
+                }
+
+                // Check if the neighbor is already labeled or ignored
+                if labels[neighbor_index] != Self::LABEL_UNLABELLED {
                     continue;
                 }
 
                 labels[neighbor_index] = current_label;
-                segment.assign(neighbor_index, &pixels[neighbor_index]);
+                segment.insert(neighbor_index, &pixels[neighbor_index]);
 
                 let secondary_neighbors = find_neighbors(neighbor_index);
-                if secondary_neighbors.len() < self.min_pixels {
-                    labels[seed_index] = Self::LABEL_OUTLIER;
-                    continue;
+                if secondary_neighbors.len() >= self.min_pixels {
+                    queue.extend(secondary_neighbors);
                 }
-                queue.extend(secondary_neighbors);
             }
 
-            segments.push(segment);
             current_label += 1;
             next_seed_index = seed_index + 1;
         }
 
         let min_segment_size = (T::from_usize(pixels.len()) / T::from_usize(self.segments)
-            * T::from_f64(0.8))
+            * T::from_f64(0.5))
         .trunc_to_usize()
         .max(1);
-        self.merge_segments(&mut segments, min_segment_size);
-        Ok(segments)
+        self.merge_segments(&mut builder, min_segment_size);
+        Ok(builder.build())
     }
 }
 
@@ -460,9 +465,10 @@ mod tests {
         // Assert
         assert!(actual.is_ok());
 
-        let segments = actual.unwrap();
+        let label_image = actual.unwrap();
+        let segments: Vec<_> = label_image.segments().collect();
         assert!(!segments.is_empty());
-        assert_eq!(segments.len(), 28);
+        assert_eq!(segments.len(), 31);
     }
 
     #[test]
@@ -500,7 +506,8 @@ mod tests {
         // Assert
         assert!(actual.is_ok());
 
-        let segments = actual.unwrap();
+        let label_image = actual.unwrap();
+        let segments: Vec<_> = label_image.segments().collect();
         assert!(!segments.is_empty());
         assert!(segments.len() >= 16);
     }

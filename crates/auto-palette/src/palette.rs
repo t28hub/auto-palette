@@ -6,11 +6,12 @@ use crate::{
     error::Error,
     image::{
         filter::{AlphaFilter, CompositeFilter, Filter},
-        segmentation::Segment,
+        segmentation::LabelImage,
         ImageData,
     },
     math::{
-        clustering::{Cluster, ClusteringAlgorithm, DBSCAN},
+        clustering::{ClusteringAlgorithm, DBSCAN},
+        denormalize,
         sampling::{DiversitySampling, SamplingAlgorithm, SamplingError, WeightedFarthestSampling},
         DistanceMetric,
         FloatNumber,
@@ -338,12 +339,10 @@ where
     /// The `Palette` instance built from the image data.
     pub fn build(self, image_data: &ImageData) -> Result<Palette<T>, Error> {
         // Group the points into clusters using the specified algorithm.
-        let image_segments = self.algorithm.segment(image_data, &self.filter)?;
+        let label_image = self.algorithm.segment(image_data, &self.filter)?;
 
         // Merge similar color clusters and create swatches.
-        let color_clusters = to_color_group(&image_segments)?;
-        let mut swatches =
-            convert_swatches_from_segments(image_data, &color_clusters, &image_segments);
+        let mut swatches = to_swatches(&label_image)?;
         swatches.sort_by_key(|swatch| Reverse(swatch.population()));
 
         let palette = Palette::new(swatches.into_iter().take(self.max_swatches).collect());
@@ -354,31 +353,31 @@ where
 const COLOR_GROUP_DBSCAN_MIN_POINTS: usize = 1;
 const COLOR_GROUP_DBSCAN_EPSILON: f64 = 2.5;
 
-/// Clusters the color groups from the pixel clusters.
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
+/// Converts the label image to swatches.
 ///
 /// # Arguments
-/// * `pixel_clusters` - The pixel clusters containing the color information and pixel positions.
+/// * `label_image` - The label image to convert.
 ///
 /// # Returns
-/// The color clusters containing the color information.
-fn to_color_group<T>(image_segments: &[Segment<T>]) -> Result<Vec<Cluster<T, 3>>, Error>
+/// A vector of swatches extracted from the label image.
+fn to_swatches<T>(label_image: &LabelImage<T>) -> Result<Vec<Swatch<T>>, Error>
 where
     T: FloatNumber,
 {
-    let colors: Vec<_> = image_segments
-        .iter()
-        .map(|segment| -> Point<T, 3> {
+    let (segments, colors): (Vec<_>, Vec<_>) = label_image
+        .segments()
+        .map(|segment| {
             let center_pixel = segment.center();
-            [
-                Lab::<T>::denormalize_l(center_pixel[0]),
-                Lab::<T>::denormalize_a(center_pixel[1]),
-                Lab::<T>::denormalize_b(center_pixel[2]),
-            ]
+            (
+                segment,
+                [
+                    Lab::<T>::denormalize_l(center_pixel[0]),
+                    Lab::<T>::denormalize_a(center_pixel[1]),
+                    Lab::<T>::denormalize_b(center_pixel[2]),
+                ],
+            )
         })
-        .collect();
+        .unzip();
 
     let dbscan = DBSCAN::new(
         COLOR_GROUP_DBSCAN_MIN_POINTS,
@@ -388,46 +387,26 @@ where
     .map_err(|e| Error::PaletteExtractionError {
         details: e.to_string(),
     })?;
-    dbscan
+
+    let clusters = dbscan
         .fit(&colors)
         .map_err(|e| Error::PaletteExtractionError {
             details: e.to_string(),
-        })
-}
+        })?;
 
-/// Converts the color clusters and pixel clusters into swatches.
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
-///
-/// # Arguments
-/// * `width` - The width of the image data.
-/// * `height` - The height of the image data.
-/// * `color_clusters` - The color clusters containing the color information.
-/// * `pixel_clusters` - The pixel clusters containing the color information and pixel positions.
-///
-/// # Returns
-/// The swatches created from the color clusters and pixel clusters.
-#[must_use]
-fn convert_swatches_from_segments<T>(
-    image_data: &ImageData,
-    color_clusters: &[Cluster<T, 3>],
-    image_segments: &[Segment<T>],
-) -> Vec<Swatch<T>>
-where
-    T: FloatNumber,
-{
-    let area = T::from_usize(image_data.area());
-    color_clusters
+    let width = T::from_usize(label_image.width());
+    let height = T::from_usize(label_image.height());
+    let area = width * height;
+    let swatches: Vec<_> = clusters
         .iter()
-        .filter_map(|color_cluster| {
+        .filter_map(|cluster| {
             let mut best_color = [T::zero(); 3];
             let mut best_position = None;
             let mut best_population = 0;
             let mut total_population = 0;
 
-            for &member in color_cluster.members() {
-                let Some(segment) = image_segments.get(member) else {
+            for &member in cluster.members() {
+                let Some(segment) = segments.get(member) else {
                     continue;
                 };
 
@@ -442,10 +421,11 @@ where
                     *color += fraction * (center_pixel[i] - *color);
                 });
 
+                // If the population of the segment is larger than the best population, update the best position and population.
                 if fraction >= T::from_f64(0.5) || best_population == 0 {
                     best_position = Some((
-                        image_data.denormalize_x(center_pixel[3]),
-                        image_data.denormalize_y(center_pixel[4]),
+                        denormalize(center_pixel[3], T::zero(), width).trunc_to_u32(),
+                        denormalize(center_pixel[4], T::zero(), height).trunc_to_u32(),
                     ));
                     best_population = segment.len();
                 }
@@ -466,7 +446,8 @@ where
                 None
             }
         })
-        .collect()
+        .collect();
+    Ok(swatches)
 }
 
 #[cfg(test)]
@@ -524,11 +505,18 @@ mod tests {
     }
 
     #[must_use]
-    fn empty_swatches<T>() -> Vec<Swatch<T>>
+    fn collect_sorted_swatches<T>(palette: &Palette<T>) -> Vec<Swatch<T>>
     where
         T: FloatNumber,
     {
-        vec![]
+        let mut swatches = palette.swatches().iter().copied().collect::<Vec<_>>();
+        swatches.sort_by(|a, b| {
+            a.population()
+                .cmp(&b.population())
+                .reverse()
+                .then(a.color().to_rgb_int().cmp(&b.color().to_rgb_int()))
+        });
+        swatches
     }
 
     #[test]
@@ -570,7 +558,7 @@ mod tests {
         let actual: Palette<f64> = Palette::builder()
             .algorithm(algorithm)
             .build(&image_data)
-            .unwrap();
+            .expect("Failed to extract palette with algorithm");
 
         // Assert
         assert!(!actual.is_empty());
@@ -582,23 +570,28 @@ mod tests {
     fn test_builder_with_filter() {
         // Arrange
         let image_data = ImageData::load("../../gfx/flags/np.png").unwrap();
-        let actual: Palette<f32> = Palette::builder()
+        let actual: Palette<f64> = Palette::builder()
             .filter(|rgba: &Rgba| rgba[3] != 0)
             .build(&image_data)
-            .unwrap();
+            .expect("Failed to extract palette with filter");
 
         // Assert
         assert!(!actual.is_empty());
         assert!(actual.len() >= 3);
 
-        let actual_colors: Vec<_> = actual.swatches.iter().map(Swatch::color).collect();
-        let expected_colors: Vec<_> = ["#DC143C", "#003893", "#FFFFFF"]
-            .iter()
-            .map(|s| Color::<f32, _>::from_str(s).unwrap())
-            .collect();
-        for (actual, expected) in actual_colors.iter().zip(expected_colors.iter()) {
-            assert_color_eq!(actual, expected);
-        }
+        let swatches = collect_sorted_swatches(&actual);
+        assert_color_eq!(
+            swatches[0].color(),
+            Color::<f64>::from_str("#DC143C").expect("Invalid color format")
+        );
+        assert_color_eq!(
+            swatches[1].color(),
+            Color::<f64>::from_str("#003893").expect("Invalid color format")
+        );
+        assert_color_eq!(
+            swatches[2].color(),
+            Color::<f64>::from_str("#FFFFFF").expect("Invalid color format")
+        );
     }
 
     #[cfg(feature = "image")]
@@ -611,11 +604,25 @@ mod tests {
         let actual: Palette<f64> = Palette::builder()
             .max_swatches(3)
             .build(&image_data)
-            .unwrap();
+            .expect("Failed to extract palette with max swatches");
 
         // Assert
         assert!(!actual.is_empty());
         assert_eq!(actual.len(), 3);
+
+        let swatches = collect_sorted_swatches(&actual);
+        assert_color_eq!(
+            swatches[0].color(),
+            Color::<f64>::from_str("#FFFFFF").expect("Invalid color format")
+        );
+        assert_color_eq!(
+            swatches[1].color(),
+            Color::<f64>::from_str("#0081C8").expect("Invalid color format")
+        );
+        assert_color_eq!(
+            swatches[2].color(),
+            Color::<f64>::from_str("#EE334E").expect("Invalid color format")
+        );
     }
 
     #[test]
@@ -628,7 +635,7 @@ mod tests {
         // Assert
         assert!(actual.is_ok());
 
-        let palette = actual.unwrap();
+        let palette = actual.expect("Failed to extract palette from empty image data");
         assert!(palette.is_empty());
         assert_eq!(palette.len(), 0);
     }
@@ -643,7 +650,7 @@ mod tests {
         // Assert
         assert!(actual.is_ok());
 
-        let palette = actual.unwrap();
+        let palette = actual.expect("Failed to extract palette from transparent image");
         assert!(palette.is_empty());
         assert_eq!(palette.len(), 0);
     }
@@ -653,14 +660,40 @@ mod tests {
     fn test_extract() {
         // Act
         let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
-        let actual: Palette<f64> = Palette::extract(&image_data).unwrap();
+        let actual: Palette<f64> =
+            Palette::extract(&image_data).expect("Failed to extract palette");
 
         // Assert
         assert!(!actual.is_empty());
-        assert!(actual.len() >= 3);
+        assert_eq!(actual.len(), 6);
+
+        let swatches = collect_sorted_swatches(&actual);
+        assert_color_eq!(
+            swatches[0].color(),
+            Color::<f64>::from_str("#FFFFFF").expect("Invalid color format")
+        );
+        assert_color_eq!(
+            swatches[1].color(),
+            Color::<f64>::from_str("#0081C8").expect("Invalid color format")
+        );
+        assert_color_eq!(
+            swatches[2].color(),
+            Color::<f64>::from_str("#EE334E").expect("Invalid color format")
+        );
+        assert_color_eq!(
+            swatches[3].color(),
+            Color::<f64>::from_str("#000000").expect("Invalid color format")
+        );
+        assert_color_eq!(
+            swatches[4].color(),
+            Color::<f64>::from_str("#00A651").expect("Invalid color format")
+        );
+        assert_color_eq!(
+            swatches[5].color(),
+            Color::<f64>::from_str("#FCB131").expect("Invalid color format")
+        );
     }
 
-    #[warn(deprecated)]
     #[test]
     #[cfg(feature = "image")]
     fn test_extract_with_algorithm() {
@@ -685,18 +718,19 @@ mod tests {
 
         // Assert
         assert!(actual.is_ok());
-        let actual = actual.unwrap();
-        assert_eq!(actual.len(), 4);
-        assert_eq!(actual[0].color().to_hex_string(), "#FFFFFF");
-        assert_eq!(actual[1].color().to_hex_string(), "#EE334E");
-        assert_eq!(actual[2].color().to_hex_string(), "#00A651");
-        assert_eq!(actual[3].color().to_hex_string(), "#000000");
+
+        let swatches = actual.expect("Failed to find swatches");
+        assert_eq!(swatches.len(), 4);
+        assert_eq!(swatches[0].color().to_hex_string(), "#FFFFFF");
+        assert_eq!(swatches[1].color().to_hex_string(), "#EE334E");
+        assert_eq!(swatches[2].color().to_hex_string(), "#00A651");
+        assert_eq!(swatches[3].color().to_hex_string(), "#000000");
     }
 
     #[test]
     fn test_find_swatches_empty() {
         // Arrange
-        let swatches = empty_swatches::<f64>();
+        let swatches: Vec<Swatch<f64>> = Vec::new();
         let palette = Palette::new(swatches.clone());
 
         // Act
@@ -704,7 +738,9 @@ mod tests {
 
         // Assert
         assert!(actual.is_ok());
-        assert!(actual.unwrap().is_empty(), "Expected empty swatches");
+
+        let swatches = actual.expect("Failed to find swatches in empty palette");
+        assert!(swatches.is_empty());
     }
 
     #[rstest]
@@ -719,7 +755,9 @@ mod tests {
         let palette = Palette::new(swatches.clone());
 
         // Act
-        let actual = palette.find_swatches_with_theme(2, theme).unwrap();
+        let actual = palette
+            .find_swatches_with_theme(2, theme)
+            .expect("Failed to find swatches with theme");
         actual
             .iter()
             .for_each(|swatch| println!("{:?}", swatch.color().to_hex_string()));

@@ -4,11 +4,11 @@ use crate::{
     image::{
         segmentation::{
             helper::gradient,
+            label::{Builder as SegmentBuilder, LabelImage},
             seed::SeedGenerator,
+            segment::SegmentMetadata,
             slic::error::SlicError,
-            Segment,
             Segmentation,
-            Segments,
         },
         Pixel,
         LABXY_CHANNELS,
@@ -50,9 +50,6 @@ where
 
     /// Default tolerance for convergence conditions.
     const DEFAULT_TOLERANCE: f64 = 1e-4;
-
-    /// Label for unassigned pixels.
-    const LABEL_UNASSIGNED: usize = usize::MAX;
 
     /// Creates a new `SlicSegmentationBuilder` instance.
     ///
@@ -113,7 +110,7 @@ where
     /// * `pixels` - The pixels to segment.
     /// * `mask` - The mask for ignoring certain pixels.
     /// * `centers` - The current centroids of the segments.
-    /// * `segments` - The segments to update.
+    /// * `builder` - The segment builder to use for creating segments.
     ///
     /// # Returns
     /// `true` if the centroids have converged, `false` otherwise.
@@ -124,14 +121,14 @@ where
         pixels: &[Pixel<T>],
         mask: &[bool],
         centers: &mut HashMap<usize, Pixel<T>>,
-        segments: &mut HashMap<usize, Segment<T>>,
+        builder: &mut SegmentBuilder<T>,
     ) -> bool {
-        segments.values_mut().for_each(Segment::reset);
+        builder.iter_mut().for_each(SegmentMetadata::clear);
 
         let s = (T::from_usize(matrix.size()) / T::from_usize(self.segments)).sqrt();
         let radius = (T::from_u8(2) * s).ceil().trunc_to_usize();
 
-        let mut labels = vec![Self::LABEL_UNASSIGNED; pixels.len()];
+        let mut labels = vec![usize::MAX; pixels.len()];
         let mut distances = vec![T::max_value(); pixels.len()];
 
         centers.iter().for_each(|(&center_index, center_pixel)| {
@@ -153,20 +150,18 @@ where
             );
         });
 
-        labels.iter().enumerate().for_each(|(pixel_index, &label)| {
-            if let Some(segment) = segments.get_mut(&label) {
-                segment.assign(pixel_index, &pixels[pixel_index]);
-            }
-        });
+        for (index, label) in labels.iter().enumerate() {
+            builder.get_mut(label).insert(index, &pixels[index]);
+        }
 
         let mut converged = true;
-        segments.iter_mut().for_each(|(&label, segment)| {
+        builder.iter().for_each(|segment| {
             if segment.is_empty() {
                 return;
             }
 
             let new_center = segment.center();
-            let Some(old_center) = centers.get_mut(&label) else {
+            let Some(old_center) = centers.get_mut(&segment.label()) else {
                 return;
             };
 
@@ -193,7 +188,7 @@ where
         height: usize,
         pixels: &[Pixel<T>],
         mask: &[bool],
-    ) -> Result<Segments<T>, Self::Err> {
+    ) -> Result<LabelImage<T>, Self::Err> {
         let matrix = MatrixView::new(width, height, pixels)?;
         let seeds = self
             .generator
@@ -207,17 +202,13 @@ where
             })
             .collect();
 
-        let mut segments = centers
-            .iter()
-            .map(|(&label, _)| (label, Segment::default()))
-            .collect::<HashMap<_, _>>();
-
+        let mut builder = LabelImage::builder(width, height);
         for _ in 0..self.max_iter {
-            if self.iterate(&matrix, pixels, mask, &mut centers, &mut segments) {
+            if self.iterate(&matrix, pixels, mask, &mut centers, &mut builder) {
                 break;
             }
         }
-        Ok(segments.into_values().collect())
+        Ok(builder.build())
     }
 }
 
@@ -519,7 +510,7 @@ mod tests {
     #[cfg(feature = "image")]
     fn test_segment() {
         // Arrange
-        let image_data = ImageData::load("../../gfx/baboon.jpg").unwrap();
+        let image_data = ImageData::load("../../gfx/flags/za.png").unwrap();
         let slic = SlicSegmentation::<f64>::builder()
             .segments(32)
             .build()
@@ -534,7 +525,8 @@ mod tests {
         // Assert
         assert!(actual.is_ok());
 
-        let segments = actual.unwrap();
+        let label_image = actual.unwrap();
+        let segments: Vec<_> = label_image.segments().collect();
         assert_eq!(segments.len(), 32);
     }
 
