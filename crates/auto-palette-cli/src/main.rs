@@ -89,7 +89,11 @@ fn main() -> anyhow::Result<()> {
                 context.args().theme
             )
         })?;
-    context.args().output.print(&context, &swatches).unwrap();
+    context
+        .args()
+        .output_format
+        .print(&context, &swatches)
+        .unwrap();
 
     println!(
         "Extracted {} swatch(es) in {}.{:03} seconds",

@@ -35,7 +35,7 @@ impl Printer for TablePrinter<'_> {
     {
         let mut writer = BufWriter::new(output);
 
-        let color_format = self.context.args().color;
+        let color_format = self.context.args().color_space;
         let initial_widths = [
             HEADINGS[0].len(),
             HEADINGS[1].len(),

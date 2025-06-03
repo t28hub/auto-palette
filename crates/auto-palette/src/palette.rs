@@ -548,9 +548,11 @@ mod tests {
 
     #[cfg(feature = "image")]
     #[rstest]
-    #[case::kmeans("kmeans")]
     #[case::dbscan("dbscan")]
     #[case::dbscanpp("dbscan++")]
+    #[case::kmeans("kmeans")]
+    #[case::slic("slic")]
+    #[case::snic("snic")]
     fn test_builder_with_algorithm(#[case] name: &str) {
         // Act
         let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
