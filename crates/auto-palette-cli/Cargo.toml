@@ -1,6 +1,6 @@
 [package]
 name                 = "auto-palette-cli"
-description          = "🎨 A CLI tool to extract prominent color palettes from images."
+description          = "🎨 CLI tool to extract a prominent color palette from an image."
 readme               = "./README.md"
 categories           = ["graphics", "algorithms", "multimedia::images", "command-line-utilities"]
 keywords             = ["palette", "color", "image", "color-palette", "color-extraction"]

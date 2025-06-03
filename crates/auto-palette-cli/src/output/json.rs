@@ -38,7 +38,7 @@ impl<'a> JsonPrinter<'a> {
     {
         let mut swatch_map = Map::with_capacity(3);
 
-        let color_format = self.context.args().color;
+        let color_format = self.context.args().color_space;
         let color = color_format.fmt(swatch.color());
         swatch_map.insert(KEY_COLOR.into(), Value::String(color));
 

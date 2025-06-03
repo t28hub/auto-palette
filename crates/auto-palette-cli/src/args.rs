@@ -21,8 +21,8 @@ use crate::{
 pub struct Options {
     #[arg(
         value_name = "PATH",
-        help = "Path to the image file.",
-        long_help = "Path to the image file. Supported formats include PNG, JPEG, GIF, BMP, ICO, and TIFF.",
+        help = "Path to the image file, or supply --clipboard",
+        long_help = "Path to the image file (PNG, JPEG, GIF, BMP, ICO, and TIFF), or supply --clipboard",
         required = false,
         value_hint = ValueHint::FilePath,
     )]
@@ -31,9 +31,9 @@ pub struct Options {
     #[arg(
         long,
         short = 'a',
-        value_name = "name",
+        value_name = "ALGORITHM",
         value_enum,
-        help = "Algorithm for extracting the color palette.",
+        help = "Extraction algorithm",
         default_value_t = AlgorithmOption::default(),
         ignore_case = true,
     )]
@@ -42,9 +42,9 @@ pub struct Options {
     #[arg(
         long,
         short = 't',
-        value_name = "name",
+        value_name = "THEME",
         value_enum,
-        help = "Theme for selecting the swatches.",
+        help = "Swatch theme",
         ignore_case = true
     )]
     pub theme: Option<ThemeOption>,
@@ -52,8 +52,8 @@ pub struct Options {
     #[arg(
         long,
         short = 'n',
-        value_name = "number",
-        help = "Number of colors to extract.",
+        value_name = "N",
+        help = "Number of swatches",
         default_value = "5"
     )]
     pub count: usize,
@@ -61,24 +61,24 @@ pub struct Options {
     #[arg(
         long,
         short = 'c',
-        value_name = "name",
+        value_name = "SPACE",
         value_enum,
-        help = "Output color format.",
-        default_value_t = ColorFormat::default(),
+        help = "Output color space",
+        default_value_t = ColorSpace::default(),
         ignore_case = true,
     )]
-    pub color: ColorFormat,
+    pub color_space: ColorSpace,
 
     #[arg(
         long,
         short = 'o',
-        value_name = "name",
+        value_name = "FORMAT",
         value_enum,
-        help = "Output format.",
+        help = "Output format",
         default_value_t = OutputFormat::default(),
         ignore_case = true,
     )]
-    pub output: OutputFormat,
+    pub output_format: OutputFormat,
 
     #[arg(
         long,
@@ -87,7 +87,7 @@ pub struct Options {
     )]
     pub no_resize: bool,
 
-    #[arg(long, help = "Get image from system clipboard")]
+    #[arg(long, help = "Read image from system clipboard instead of a file.")]
     pub clipboard: bool,
 }
 
@@ -97,19 +97,29 @@ pub enum AlgorithmOption {
     #[default]
     #[clap(
         name = "dbscan",
-        help = "High accuracy but slower speed. Ideal for precision over performance."
+        help = "Highest colour accuracy; slower on large images."
     )]
     Dbscan,
     #[clap(
         name = "dbscan++",
-        help = "A balanced algorithm with faster speed and good accuracy. Ideal for a balance between precision and performance."
+        help = "Improved speed with similar accuracy to DBSCAN; faster on large images."
     )]
     DbscanPlusPlus,
     #[clap(
         name = "kmeans",
-        help = "Fast speed but potentially less accurate. Ideal for performance over precision."
+        help = "Improved speed than DBSCAN, but less accurate; suitable for large images."
     )]
-    KMeans,
+    Kmeans,
+    #[clap(
+        name = "slic",
+        help = "Improved speed with similar accuracy to KMeans; faster on large images."
+    )]
+    Slic,
+    #[clap(
+        name = "snic",
+        help = "Improved speed than SLIC, but less accurate; suitable for large images."
+    )]
+    Snic,
 }
 
 impl From<AlgorithmOption> for Algorithm {
@@ -117,7 +127,9 @@ impl From<AlgorithmOption> for Algorithm {
         match option {
             AlgorithmOption::Dbscan => Algorithm::DBSCAN,
             AlgorithmOption::DbscanPlusPlus => Algorithm::DBSCANpp,
-            AlgorithmOption::KMeans => Algorithm::KMeans,
+            AlgorithmOption::Kmeans => Algorithm::KMeans,
+            AlgorithmOption::Slic => Algorithm::SLIC,
+            AlgorithmOption::Snic => Algorithm::SNIC,
         }
     }
 }
@@ -151,7 +163,7 @@ impl From<ThemeOption> for Theme {
 
 /// The color space options for the extracted colors.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, ValueEnum)]
-pub enum ColorFormat {
+pub enum ColorSpace {
     #[default]
     #[clap(name = "hex", help = "Hexadecimal color representation")]
     Hex,
@@ -179,7 +191,7 @@ pub enum ColorFormat {
     Xyz,
 }
 
-impl ColorFormat {
+impl ColorSpace {
     /// Returns the string representation of the color space for the given color.
     ///
     /// # Arguments

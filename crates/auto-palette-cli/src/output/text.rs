@@ -38,7 +38,7 @@ impl<'a> TextPrinter<'a> {
             format!("{} ", styled)
         };
 
-        let color_format = self.context.args().color;
+        let color_format = self.context.args().color_space;
         let color = color_format.fmt(swatch.color());
         let color_str = format!("{:<width$}", color, width = widths[0]);
 
@@ -90,7 +90,7 @@ impl Printer for TextPrinter<'_> {
     {
         let mut writer = BufWriter::new(output);
 
-        let color_format = self.context.args().color;
+        let color_format = self.context.args().color_space;
         let widths = swatches.iter().fold([0, 0, 0], |acc, swatch| {
             let color_width = color_format.fmt(swatch.color()).len();
 

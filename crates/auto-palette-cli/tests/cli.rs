@@ -4,6 +4,7 @@ use arboard::Clipboard;
 use assert_cmd::Command;
 use image::io::Reader as ImageReader;
 use predicates::prelude::*;
+use rstest::rstest;
 
 /// Returns the auto-palette command.
 ///
@@ -22,7 +23,7 @@ fn test_cli() {
         .arg("dbscan")
         .arg("--count")
         .arg("6")
-        .arg("--output")
+        .arg("--output-format")
         .arg("table")
         .arg("--no-resize")
         .assert()
@@ -82,7 +83,7 @@ fn test_using_clipboard_as_input() {
 #[test]
 fn test_missing_input() {
     let assert = auto_palette().assert().stderr(predicate::str::contains(
-        "🎨 A CLI tool to extract prominent color palettes from images.",
+        "🎨 CLI tool to extract a prominent color palette from an image.",
     ));
     assert.failure();
 }
@@ -110,12 +111,17 @@ fn test_multiple_inputs() {
     assert.failure();
 }
 
-#[test]
-fn test_algorithm() {
+#[rstest]
+#[case::dbscan("dbscan")]
+#[case::dbscanpp("dbscan++")]
+#[case::kmeans("kmeans")]
+#[case::slic("slic")]
+#[case::snic("snic")]
+fn test_algorithm(#[case] algorithm: &str) {
     let assert = auto_palette()
         .arg("../../gfx/olympic_logo.png")
         .arg("--algorithm")
-        .arg("kmeans")
+        .arg(algorithm)
         .assert();
     assert.success();
 }
@@ -128,7 +134,7 @@ fn test_invalid_algorithm() {
         .arg("unknown")
         .assert()
         .stderr(predicate::str::contains(
-            "invalid value 'unknown' for '--algorithm <name>'",
+            "invalid value 'unknown' for '--algorithm <ALGORITHM>'",
         ));
     assert.failure();
 }
@@ -151,7 +157,7 @@ fn test_invalid_theme() {
         .arg("unknown")
         .assert()
         .stderr(predicate::str::contains(
-            "invalid value 'unknown' for '--theme <name>'",
+            "invalid value 'unknown' for '--theme <THEME>'",
         ));
     assert.failure();
 }
@@ -170,14 +176,37 @@ fn test_invalid_count() {
 }
 
 #[test]
-fn test_invalid_output() {
+fn test_color_space() {
     let assert = auto_palette()
         .arg("../../gfx/olympic_logo.png")
-        .arg("--output")
+        .arg("--color-space")
+        .arg("rgb")
+        .assert();
+    assert.success();
+}
+
+#[test]
+fn test_invalid_color_space() {
+    let assert = auto_palette()
+        .arg("../../gfx/olympic_logo.png")
+        .arg("--color-space")
         .arg("unknown")
         .assert()
         .stderr(predicate::str::contains(
-            "invalid value 'unknown' for '--output <name>'",
+            "invalid value 'unknown' for '--color-space <SPACE>'",
+        ));
+    assert.failure();
+}
+
+#[test]
+fn test_invalid_output_format() {
+    let assert = auto_palette()
+        .arg("../../gfx/olympic_logo.png")
+        .arg("--output-format")
+        .arg("unknown")
+        .assert()
+        .stderr(predicate::str::contains(
+            "invalid value 'unknown' for '--output-format <FORMAT>'",
         ));
     assert.failure();
 }
