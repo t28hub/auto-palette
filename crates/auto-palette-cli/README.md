@@ -9,7 +9,7 @@
 ## Features
 
 - Extract prominent color palettes from images.
-- Supports multiple color extraction algorithms: `dbscan`, `dbscan++`, and `kmeans`. (default: `dbscan`).
+- Supports multiple color extraction algorithms: `dbscan`, `dbscan++`, `kmeans`, `slic`, and `snic`. (default: `dbscan`).
 - Flexible theme selection for color swatches: `colorful`, `vivid`, `muted`, `light`, and `dark`.
 - Supports multiple color formats (`hex`, `rgb`, `cmyk`, `hsl`, `hsv`, `lab`, `luv`, `lchab`, `lchuv`, `oklab`, `oklch`, `xyz`). (default: `hex`).
 - Multiple output formats: `json`, `text`, and `table`. (default: `text`).
@@ -42,23 +42,23 @@ auto-palette --clipboard
 
 ```sh
 $ auto-palette -h
-🎨 A CLI tool to extract prominent color palettes from images.
+🎨 CLI tool to extract a prominent color palette from an image.
 
-Usage: auto-palette [OPTIONS] <PATH>
+Usage: auto-palette [OPTIONS] [PATH]
 
 Arguments:
-  <PATH>  Path to the image file.
+  [PATH]  Path to the image file, or supply --clipboard
 
 Options:
-  -a, --algorithm <name>  Algorithm for extracting the color palette. [default: dbscan] [possible values: dbscan, dbscan++, kmeans]
-  -t, --theme <name>      Theme for selecting the swatches. [possible values: colorful, vivid, muted, light, dark]
-  -n, --count <number>    Number of colors to extract. [default: 5]
-  -c, --color <name>      Output color format. [default: hex] [possible values: hex, rgb, cmyk, hsl, hsv, lab, luv, lchab, lchuv, oklab, oklch, xyz]
-  -o, --output <name>     Output format. [default: text] [possible values: json, text, table]
-      --no-resize         Disable image resizing before extracting the color palette.
-      --clipboard         Get image from system clipboard
-  -h, --help              Print help (see more with '--help')
-  -V, --version           Print version
+  -a, --algorithm <ALGORITHM>   Extraction algorithm [default: dbscan] [possible values: dbscan, dbscan++, kmeans, slic, snic]
+  -t, --theme <THEME>           Swatch theme [possible values: colorful, vivid, muted, light, dark]
+  -n, --count <N>               Number of swatches [default: 5]
+  -c, --color-space <SPACE>     Output color space [default: hex] [possible values: hex, rgb, cmyk, hsl, hsv, lab, luv, lchab, lchuv, oklab, oklch, xyz]
+  -o, --output-format <FORMAT>  Output format [default: text] [possible values: json, text, table]
+      --no-resize               Disable image resizing before extracting the color palette.
+      --clipboard               Read image from system clipboard instead of a file.
+  -h, --help                    Print help (see more with '--help')
+  -V, --version                 Print version
 ```
 
 ## Examples

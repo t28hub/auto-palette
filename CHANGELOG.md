@@ -4,19 +4,29 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/t28hub/auto-palette/compare/v0.8.2...HEAD)
+## [Unreleased](https://github.com/t28hub/auto-palette/compare/v0.9.0...HEAD)
 ### Added
-- Add SLIC (Simple Linear Iterative Clustering) algorithm for color palette extraction. (#176)
-- Add SNIC (Simple Non-Iterative Clustering) algorithm for color palette extraction. (#177)
-
 ### Changed
 ### Deprecated
-### Removed 
+### Removed
 ### Fixed
-
 ### Security
 
-## [Unreleased](https://github.com/t28hub/auto-palette/compare/v0.8.1...v0.8.2) - 2025-05-17
+## [v0.9.0](https://github.com/t28hub/auto-palette/compare/v0.8.2...v0.9.0) - 2025-06-04
+### Added
+- Implement SLIC (Simple Linear Iterative Clustering) algorithm for color palette extraction. (#176)
+- Implement SNIC (Simple Non-Iterative Clustering) algorithm for color palette extraction. (#177)
+- Implement superpixel-based image segmentation using DBSCAN algorithm. (#199)
+- Implement `FastDbscanSegmentation` using DBSCAN++ clustering algorithm. (#200)
+
+### Changed
+- Reduce overhead by moving KMeans implementation to the segmentation module. (#197)
+- Optimize `KDTreeSearch` for faster neighbor search. (#198)
+
+### Fixed
+- Resolve pixel count mismatch with mask filtering. (#193)
+
+## [v0.8.2](https://github.com/t28hub/auto-palette/compare/v0.8.1...v0.8.2) - 2025-05-17
 ### Fixed
 - Fixed a bug where pixels were incorrectly excluded when the filter returned `true`. Pixels are now excluded only when the filter returns `false`. (#189)
 
@@ -117,7 +127,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Initial release.
 
 
-[Unreleased]: https://github.com/t28hub/auto-palette/compare/v0.8.2...HEAD
+[Unreleased]: https://github.com/t28hub/auto-palette/compare/v0.9.0...HEAD
+[v0.8.2]: https://github.com/t28hub/auto-palette/compare/v0.8.2...v0.8.3
 [v0.8.2]: https://github.com/t28hub/auto-palette/compare/v0.8.1...v0.8.2
 [v0.8.1]: https://github.com/t28hub/auto-palette/compare/v0.8.0...v0.8.1
 [v0.8.0]: https://github.com/t28hub/auto-palette/compare/v0.7.0...v0.8.0
