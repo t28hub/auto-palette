@@ -52,6 +52,34 @@ describe('benchmark @auto-palette/wasm vs auto-palette-ts', () => {
     expect(swatches).toHaveLength(6);
   });
 
+  bench('extract with SLIC algorithm in WebAssembly', async () => {
+    // Arrange
+    const imageData = await loadImageData(IMAGE_PATH);
+
+    // Act
+    const palette = AutoPaletteWasm.Palette.extract(imageData, 'slic');
+    const swatches = palette.findSwatches(6);
+
+    // Assert
+    expect(palette.isEmpty()).toBeFalsy();
+    expect(palette.length).toBeGreaterThan(32);
+    expect(swatches).toHaveLength(6);
+  });
+
+  bench('extract with SNIC algorithm in WebAssembly', async () => {
+    // Arrange
+    const imageData = await loadImageData(IMAGE_PATH);
+
+    // Act
+    const palette = AutoPaletteWasm.Palette.extract(imageData, 'snic');
+    const swatches = palette.findSwatches(6);
+
+    // Assert
+    expect(palette.isEmpty()).toBeFalsy();
+    expect(palette.length).toBeGreaterThan(32);
+    expect(swatches).toHaveLength(6);
+  });
+
   bench('extract with DBSCAN algorithm in TypeScript', async () => {
     // Arrange
     const imageData = await loadImageData(IMAGE_PATH);
