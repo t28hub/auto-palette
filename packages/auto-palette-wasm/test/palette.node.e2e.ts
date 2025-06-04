@@ -61,6 +61,8 @@ describe('@auto-palette/wasm', () => {
         { algorithm: 'dbscan', expectedLength: 48 },
         { algorithm: 'dbscan++', expectedLength: 72 },
         { algorithm: 'kmeans', expectedLength: 24 },
+        { algorithm: 'slic', expectedLength: 64 },
+        { algorithm: 'snic', expectedLength: 64 },
       ])(
         'should extract the palette from an image with the $algorithm algorithm',
         ({ algorithm, expectedLength }) => {
@@ -89,36 +91,36 @@ describe('@auto-palette/wasm', () => {
 
         // Assert
         expect(swatches).toHaveLength(3);
-        expect(swatches[0].color).toBeSimilarColor('#5ECBFE');
-        expect(swatches[1].color).toBeSimilarColor('#C7101E');
-        expect(swatches[2].color).toBeSimilarColor('#CFC663');
+        expect(swatches[0].color).toBeSimilarColor('#89DAFE');
+        expect(swatches[1].color).toBeSimilarColor('#BF010D');
+        expect(swatches[2].color).toBeSimilarColor('#FCDC24');
       });
 
       it.skipIf(isLinux).each([
         {
           count: 3,
           theme: 'colorful',
-          expected: ['#01B1FC', '#A48611', '#C72C52'],
+          expected: ['#0866A7', '#A28713', '#CE3A54'],
         },
         {
           count: 3,
           theme: 'vivid',
-          expected: ['#01B1FC', '#A48611', '#D6314D'],
+          expected: ['#711978', '#B99813', '#E83748'],
         },
         {
           count: 3,
           theme: 'muted',
-          expected: ['#04524E', '#846E15', '#CD85B7'],
+          expected: ['#02457A', '#03686A', '#55061A'],
         },
         {
           count: 3,
           theme: 'light',
-          expected: ['#5ECBFE', '#CD85B7', '#CFC663'],
+          expected: ['#5DBFF7', '#CDC26F', '#E96894'],
         },
         {
           count: 3,
           theme: 'dark',
-          expected: ['#032F55', '#053E2D', '#4A0117'],
+          expected: ['#013764', '#023D33', '#55061A'],
         },
       ])(
         'should find the swatches from the palette with the $theme theme',

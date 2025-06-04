@@ -144,6 +144,8 @@ describe('@auto-palette/wasm', () => {
         { algorithm: 'dbscan', expectedLength: 48 },
         { algorithm: 'dbscan++', expectedLength: 72 },
         { algorithm: 'kmeans', expectedLength: 24 },
+        { algorithm: 'slic', expectedLength: 32 },
+        { algorithm: 'snic', expectedLength: 32 },
       ])(
         'should extract the palette from an image with the $algorithm algorithm',
         ({ algorithm, expectedLength }) => {

@@ -222,6 +222,8 @@ describe('@auto-palette/wasm/palette', () => {
         { algorithm: 'dbscan' },
         { algorithm: 'dbscan++' },
         { algorithm: 'kmeans' },
+        { algorithm: 'slic' },
+        { algorithm: 'snic' },
       ])(
         'should extract a palette from an image with the $algorithm algorithm',
         ({ algorithm }) => {

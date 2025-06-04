@@ -10,7 +10,7 @@ const TYPE_DEFINITION: &'static str = r#"
 /**
  * The algorithm of the palette.
  */
-export type Algorithm = "dbscan" | "dbscan++" | "kmeans";
+export type Algorithm = "dbscan" | "dbscan++" | "kmeans" | "slic" | "snic";
 
 /**
  * The theme of the palette.
