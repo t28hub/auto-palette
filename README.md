@@ -39,7 +39,7 @@ Perfect for developers, designers and anyone needing efficient color palette ext
 
 * Automatically extracts prominent color palettes from images.
 * Provides detailed color swatch information (color, position, population)
-* Supports multiple extraction algorithms: `DBSCAN`, `DBSCAN++`, and `KMeans`.
+* Supports multiple extraction algorithms: `DBSCAN`, `DBSCAN++`, `KMeans`, `SLIC`, and `SNIC`.
 * Supports numerous color spaces: `RGB`, `HSL`, `LAB`, `LCHuv`, `ANSI256` and more.
 * Theme-based swatch selection: `Colorful`, `Vivid`, `Muted`, `Light`, and `Dark`.
 * Available as a Rust library, Wasm, and a CLI tool.
@@ -52,7 +52,7 @@ To use `auto-palette` in your Rust project, add it to your `Cargo.toml`.
 
 ```toml
 [dependencies]
-auto-palette = "0.8.2"
+auto-palette = "0.9.0"
 ```
 
 ### CLI Tool
