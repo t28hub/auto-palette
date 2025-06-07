@@ -350,8 +350,15 @@ where
     }
 }
 
+/// The minimum number of points required to merge colors in the LAB color space.
+/// This constant is used to determine whether a color cluster has enough points to be considered for merging.
 const COLOR_MERGE_MIN_POINTS: usize = 1;
-const COLOR_MERGE_EPSILON_LAB: f64 = 2.5;
+
+/// The epsilon value for merging colors in the LAB color space.
+/// The value of 2.3 is a commonly used threshold for perceptual color difference in LAB space.
+/// It is used to determine whether two colors are similar enough to be merged into a single swatch.
+/// [Color difference - CIE76](https://en.wikipedia.org/wiki/Color_difference#CIE76)
+const COLOR_MERGE_EPSILON_LAB: f64 = 2.3;
 
 /// Converts the label image to swatches.
 ///
