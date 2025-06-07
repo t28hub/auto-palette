@@ -33,6 +33,7 @@ pub use lab::Lab;
 pub use lchab::LCHab;
 pub use lchuv::LCHuv;
 pub use luv::Luv;
+use num_traits::clamp;
 pub use oklab::Oklab;
 pub use oklch::Oklch;
 pub use rgb::RGB;
@@ -324,6 +325,39 @@ where
         let g = rgb.g as u32;
         let b = rgb.b as u32;
         (r << 24) | (g << 16) | (b << 8) | alpha as u32
+    }
+
+    /// Mixes this color with another color by a given fraction.
+    ///
+    /// # Arguments
+    /// * `other` - The other color to mix with.
+    /// * `fraction` - The fraction to mix the two colors (0.0 to 1.0).
+    ///
+    /// # Returns
+    /// A new `Color` instance that is the result of mixing the two colors.
+    #[must_use]
+    pub fn mix(&self, other: &Self, fraction: T) -> Self {
+        let fraction = clamp(fraction, T::zero(), T::one());
+        Self {
+            l: self.l + fraction * (other.l - self.l),
+            a: self.a + fraction * (other.a - self.a),
+            b: self.b + fraction * (other.b - self.b),
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<T> Default for Color<T>
+where
+    T: FloatNumber,
+{
+    fn default() -> Self {
+        Self {
+            l: T::zero(),
+            a: T::zero(),
+            b: T::zero(),
+            _marker: PhantomData,
+        }
     }
 }
 
@@ -694,6 +728,43 @@ mod tests {
 
         // Assert
         assert_eq!(actual, 0x00ffff80);
+    }
+
+    #[rstest]
+    #[case::mix_zero(0.0, (91.1120, -48.0806, -14.1521))]
+    #[case::mix_half(0.5, (73.0004, 18.2257, -5.0432))]
+    #[case::mix_full(1.0, (54.8888, 84.5321, 4.0656))]
+    #[case::mix_over(1.5, (54.8888, 84.5321, 4.0656))]
+    #[case::mix_negative(-0.5, (91.1120, -48.0806, -14.1521))]
+    fn test_mix(#[case] fraction: f32, #[case] (l, a, b): (f32, f32, f32)) {
+        // Arrange
+        let color1: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color2: Color<f32> = Color::new(54.8888, 84.5321, 4.0656);
+
+        // Act
+        let actual = color1.mix(&color2, fraction);
+
+        // Assert
+        assert_approx_eq!(actual.l, l, 1e-3);
+        assert_approx_eq!(actual.a, a, 1e-3);
+        assert_approx_eq!(actual.b, b, 1e-3);
+    }
+
+    #[test]
+    fn test_default() {
+        // Act
+        let actual: Color<f64> = Color::default();
+
+        // Assert
+        assert_eq!(
+            actual,
+            Color {
+                l: 0.0,
+                a: 0.0,
+                b: 0.0,
+                _marker: PhantomData
+            }
+        );
     }
 
     #[test]

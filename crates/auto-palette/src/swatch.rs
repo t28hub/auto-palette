@@ -97,6 +97,20 @@ where
     }
 }
 
+impl<T> Default for Swatch<T>
+where
+    T: FloatNumber,
+{
+    fn default() -> Self {
+        Self {
+            color: Color::default(),
+            position: (0, 0),
+            population: 0,
+            ratio: T::zero(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -111,5 +125,23 @@ mod tests {
         assert_eq!(swatch.color(), &color);
         assert_eq!(swatch.position(), (5, 10));
         assert_eq!(swatch.population(), 384);
+        assert_eq!(swatch.ratio(), 0.25);
+    }
+
+    #[test]
+    fn test_default() {
+        // Act
+        let swatch: Swatch<f64> = Swatch::default();
+
+        // Assert
+        assert_eq!(
+            swatch,
+            Swatch {
+                color: Color::default(),
+                position: (0, 0),
+                population: 0,
+                ratio: 0.0,
+            }
+        )
     }
 }

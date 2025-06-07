@@ -1,4 +1,4 @@
-use std::{cmp::Reverse, marker::PhantomData};
+use std::{cmp::Reverse, collections::HashMap, marker::PhantomData};
 
 use crate::{
     algorithm::Algorithm,
@@ -350,8 +350,8 @@ where
     }
 }
 
-const COLOR_GROUP_DBSCAN_MIN_POINTS: usize = 1;
-const COLOR_GROUP_DBSCAN_EPSILON: f64 = 2.5;
+const COLOR_MERGE_MIN_POINTS: usize = 1;
+const COLOR_MERGE_EPSILON_LAB: f64 = 2.5;
 
 /// Converts the label image to swatches.
 ///
@@ -380,16 +380,16 @@ where
         .unzip();
 
     let dbscan = DBSCAN::new(
-        COLOR_GROUP_DBSCAN_MIN_POINTS,
-        T::from_f64(COLOR_GROUP_DBSCAN_EPSILON),
+        COLOR_MERGE_MIN_POINTS,
+        T::from_f64(COLOR_MERGE_EPSILON_LAB),
         DistanceMetric::Euclidean,
     )
     .map_err(|e| Error::PaletteExtractionError {
         details: e.to_string(),
     })?;
 
-    let clusters = dbscan
-        .fit(&colors)
+    let labels = dbscan
+        .run(&colors)
         .map_err(|e| Error::PaletteExtractionError {
             details: e.to_string(),
         })?;
@@ -397,57 +397,58 @@ where
     let width = T::from_usize(label_image.width());
     let height = T::from_usize(label_image.height());
     let area = width * height;
-    let swatches: Vec<_> = clusters
-        .iter()
-        .filter_map(|cluster| {
-            let mut best_color = [T::zero(); 3];
-            let mut best_position = None;
-            let mut best_population = 0;
-            let mut total_population = 0;
 
-            for &member in cluster.members() {
-                let Some(segment) = segments.get(member) else {
-                    continue;
-                };
+    let mut swatches = HashMap::new();
+    let mut populations = HashMap::new();
+    for (index, &label) in labels.iter().enumerate() {
+        let Some(segment) = segments.get(index) else {
+            continue;
+        };
 
-                if segment.is_empty() {
-                    continue;
-                }
+        let Some(color) = colors.get(index).map(|c| Color::new(c[0], c[1], c[2])) else {
+            continue;
+        };
 
-                let fraction =
-                    T::from_usize(segment.len()) / T::from_usize(segment.len() + best_population);
-                let center_pixel = segment.center();
-                best_color.iter_mut().enumerate().for_each(|(i, color)| {
-                    *color += fraction * (center_pixel[i] - *color);
-                });
+        let swatch = swatches.entry(label).or_insert_with(Swatch::default);
+        let population = populations.entry(label).or_insert(0usize);
 
-                // If the population of the segment is larger than the best population, update the best position and population.
-                if fraction >= T::from_f64(0.5) || best_population == 0 {
-                    best_position = Some((
-                        denormalize(center_pixel[3], T::zero(), width).trunc_to_u32(),
-                        denormalize(center_pixel[4], T::zero(), height).trunc_to_u32(),
-                    ));
-                    best_population = segment.len();
-                }
-                total_population += segment.len();
-            }
+        let center_pixel = segment.center();
 
-            if let Some(position) = best_position {
-                let l = Lab::<T>::denormalize_l(best_color[0]);
-                let a = Lab::<T>::denormalize_a(best_color[1]);
-                let b = Lab::<T>::denormalize_b(best_color[2]);
-                Some(Swatch::new(
-                    Color::new(l, a, b),
-                    position,
-                    total_population,
-                    T::from_usize(total_population) / area,
-                ))
-            } else {
-                None
-            }
-        })
-        .collect();
-    Ok(swatches)
+        // Calculate the fraction of the segment's population relative to the total population
+        // (current swatch population + existing swatch population).
+        // The fraction is to determine the weight of the segment's color in the mix.
+        let fraction =
+            T::from_usize(segment.len()) / T::from_usize(segment.len() + swatch.population());
+
+        // Blend the current swatch color with the segment's color based on the fraction.
+        let best_color = swatch.color().mix(&color, fraction);
+
+        // Calculate the total population of the swatch.
+        let total_population = swatch.population() + segment.len();
+
+        // Update the swatch if the current segment's population is greater than the existing one.
+        // This ensures that the swatch's position and population are updated if the segment is larger.
+        if segment.len() > *population {
+            *swatch = Swatch::new(
+                best_color,
+                (
+                    denormalize(center_pixel[3], T::zero(), width).trunc_to_u32(),
+                    denormalize(center_pixel[4], T::zero(), height).trunc_to_u32(),
+                ),
+                total_population,
+                T::from_usize(total_population) / area,
+            );
+            *population = segment.len();
+        } else {
+            *swatch = Swatch::new(
+                best_color,
+                swatch.position(),
+                total_population,
+                T::from_usize(total_population) / area,
+            );
+        };
+    }
+    Ok(swatches.into_values().collect())
 }
 
 #[cfg(test)]
@@ -672,27 +673,27 @@ mod tests {
         let swatches = collect_sorted_swatches(&actual);
         assert_color_eq!(
             swatches[0].color(),
-            Color::<f64>::from_str("#FFFFFF").expect("Invalid color format")
+            Color::<f64>::from_str("#FFFFFF").unwrap()
         );
         assert_color_eq!(
             swatches[1].color(),
-            Color::<f64>::from_str("#0081C8").expect("Invalid color format")
+            Color::<f64>::from_str("#0081C8").unwrap()
         );
         assert_color_eq!(
             swatches[2].color(),
-            Color::<f64>::from_str("#EE334E").expect("Invalid color format")
+            Color::<f64>::from_str("#EE334E").unwrap()
         );
         assert_color_eq!(
             swatches[3].color(),
-            Color::<f64>::from_str("#000000").expect("Invalid color format")
+            Color::<f64>::from_str("#000000").unwrap()
         );
         assert_color_eq!(
             swatches[4].color(),
-            Color::<f64>::from_str("#00A651").expect("Invalid color format")
+            Color::<f64>::from_str("#00A651").unwrap()
         );
         assert_color_eq!(
             swatches[5].color(),
-            Color::<f64>::from_str("#FCB131").expect("Invalid color format")
+            Color::<f64>::from_str("#FCB131").unwrap()
         );
     }
 
