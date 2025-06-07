@@ -1,6 +1,6 @@
-use crate::math::{clustering::cluster::Cluster, point::Point, FloatNumber};
+use crate::math::{point::Point, FloatNumber};
 
-/// Trait for clustering algorithms.
+/// A generic trait for clustering algorithm.
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
@@ -9,15 +9,21 @@ pub trait ClusteringAlgorithm<T, const N: usize>
 where
     T: FloatNumber,
 {
-    /// The error type for the clustering algorithm.
-    type Err;
+    /// The concrete output type of the clustering algorithm.
+    type Output;
 
-    /// Fits the clustering algorithm to the given points.
+    /// The algorithm specific error type.
+    type Error;
+
+    /// Runs the clustering algorithm on the given points.
     ///
     /// # Arguments
-    /// * `points` - The points to cluster.
+    /// * `points` - A slice of points to cluster.
     ///
     /// # Returns
-    /// The clusters of the points.
-    fn fit(&self, points: &[Point<T, N>]) -> Result<Vec<Cluster<T, N>>, Self::Err>;
+    /// A result containing the clustering output or an error.
+    ///
+    /// # Note
+    /// *Time complexity* and *space complexity* should be documented in the individual implementations.
+    fn run(&self, points: &[Point<T, N>]) -> Result<Self::Output, Self::Error>;
 }

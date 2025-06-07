@@ -3,30 +3,30 @@ use std::{collections::VecDeque, fmt::Display};
 use thiserror::Error;
 
 use crate::math::{
-    clustering::{Cluster, ClusteringAlgorithm},
+    clustering::ClusteringAlgorithm,
     neighbors::{kdtree::KdTreeSearch, Neighbor, NeighborSearch},
     DistanceMetric,
     FloatNumber,
     Point,
 };
 
+/// Error type for the DBSCAN algorithm.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
 #[derive(Debug, PartialEq, Error)]
 pub enum DBSCANError<T>
 where
     T: FloatNumber + Display,
 {
     /// Error when the minimum number of points is invalid.
-    #[error("Invalid minimum points: The minimum number of points must be greater than zero: {0}")]
+    #[error("Minimum number of points must be greater than zero, got: {0}")]
     InvalidMinPoints(usize),
 
     /// Error when the epsilon is invalid.
-    #[error("Invalid epsilon: The epsilon must be greater than zero: {0}")]
+    #[error("Epsilon must be greater than zero, got: {0}")]
     InvalidEpsilon(T),
 }
-
-const OUTLIER: i32 = -1;
-const MARKED: i32 = -2;
-const UNCLASSIFIED: i32 = -3;
 
 /// DBSCAN clustering algorithm.
 ///
@@ -47,6 +47,17 @@ impl<T> DBSCAN<T>
 where
     T: FloatNumber,
 {
+    /// The initial label for clusters.
+    pub const LABEL_INITIAL: usize = 0;
+
+    /// The label used for noise points.
+    pub const LABEL_NOISE: usize = usize::MAX - 1;
+
+    /// The label used for unclassified points.
+    pub const LABEL_UNCLASSIFIED: usize = usize::MAX;
+
+    const LEAF_SIZE: usize = 16;
+
     /// Creates a new `DBSCAN` instance.
     ///
     /// # Arguments
@@ -75,53 +86,37 @@ where
     }
 
     #[inline]
-    #[must_use]
     fn expand_cluster<const N: usize, NS>(
         &self,
-        label: i32,
-        labels: &mut [i32],
+        label: usize,
+        labels: &mut [usize],
         points: &[Point<T, N>],
         neighbors: Vec<Neighbor<T>>,
         neighbor_search: &NS,
-    ) -> Cluster<T, N>
-    where
+    ) where
         NS: NeighborSearch<T, N>,
     {
-        let mut cluster = Cluster::new();
-        let mut queue = VecDeque::from(neighbors);
+        let mut queue: VecDeque<_> = neighbors.into();
         while let Some(neighbor) = queue.pop_front() {
             let index = neighbor.index;
-            // Skip if the point is already assigned to a cluster.
-            if labels[index] >= 0 {
+            let point = &points[index];
+            if labels[index] == Self::LABEL_NOISE {
+                labels[index] = label;
                 continue;
             }
 
-            let point = &points[index];
-            if labels[index] == OUTLIER {
-                labels[index] = label;
-                cluster.add_member(index, point);
+            // Skip if the point is already assigned to a cluster.
+            if labels[index] != Self::LABEL_UNCLASSIFIED {
                 continue;
             }
 
             labels[index] = label;
-            cluster.add_member(index, point);
 
             let secondary_neighbors = neighbor_search.search_radius(point, self.epsilon);
-            if secondary_neighbors.len() < self.min_points {
-                continue;
-            }
-
-            for secondary_neighbor in secondary_neighbors {
-                let secondary_index = secondary_neighbor.index;
-                if labels[secondary_index] == UNCLASSIFIED {
-                    labels[secondary_index] = MARKED;
-                    queue.push_back(secondary_neighbor);
-                } else if labels[secondary_index] == OUTLIER {
-                    queue.push_back(secondary_neighbor);
-                }
+            if secondary_neighbors.len() >= self.min_points {
+                queue.extend(secondary_neighbors);
             }
         }
-        cluster
     }
 }
 
@@ -129,84 +124,44 @@ impl<T, const N: usize> ClusteringAlgorithm<T, N> for DBSCAN<T>
 where
     T: FloatNumber,
 {
-    type Err = DBSCANError<T>;
+    type Output = Vec<usize>;
 
-    fn fit(&self, points: &[Point<T, N>]) -> Result<Vec<Cluster<T, N>>, Self::Err> {
-        let mut labels = vec![UNCLASSIFIED; points.len()];
-        let mut clusters = Vec::new();
-        let mut current_label = 0;
-        let neighbor_search = KdTreeSearch::build(points, self.metric, 16);
+    type Error = DBSCANError<T>;
+
+    fn run(&self, points: &[Point<T, N>]) -> Result<Self::Output, Self::Error> {
+        let mut labels = vec![Self::LABEL_UNCLASSIFIED; points.len()];
+        let mut current_label = Self::LABEL_INITIAL;
+        let neighbor_search = KdTreeSearch::build(points, self.metric, Self::LEAF_SIZE);
         for (index, point) in points.iter().enumerate() {
-            if labels[index] != UNCLASSIFIED {
+            if labels[index] != Self::LABEL_UNCLASSIFIED {
                 continue;
             }
 
             let neighbors = neighbor_search.search_radius(point, self.epsilon);
             if neighbors.len() < self.min_points {
-                labels[index] = OUTLIER;
+                labels[index] = Self::LABEL_NOISE;
                 continue;
             }
 
-            // Mark the point as a candidate for clustering.
-            for neighbor in &neighbors {
-                if labels[neighbor.index] != UNCLASSIFIED {
-                    continue;
-                }
-                labels[neighbor.index] = MARKED;
-            }
-
-            let cluster = self.expand_cluster(
+            self.expand_cluster(
                 current_label,
                 &mut labels,
                 points,
                 neighbors,
                 &neighbor_search,
             );
-            if cluster.len() >= self.min_points {
-                clusters.push(cluster);
-            }
             current_label += 1;
         }
-        Ok(clusters)
+        Ok(labels)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
     use rstest::rstest;
 
     use super::*;
     use crate::math::DistanceMetric;
-
-    #[must_use]
-    fn sample_points() -> Vec<Point<f32, 2>> {
-        vec![
-            [0.0, 0.0], // 0
-            [0.0, 1.0], // 0
-            [0.0, 7.0], // 1
-            [0.0, 8.0], // 1
-            [1.0, 0.0], // 0
-            [1.0, 1.0], // 0
-            [1.0, 2.0], // 0
-            [1.0, 7.0], // 1
-            [1.0, 8.0], // 1
-            [2.0, 1.0], // 0
-            [2.0, 2.0], // 0
-            [4.0, 3.0], // 2
-            [4.0, 4.0], // 2
-            [4.0, 5.0], // 2
-            [5.0, 3.0], // 2
-            [5.0, 4.0], // 2
-            [9.0, 8.0], // Outlier
-        ]
-    }
-
-    #[must_use]
-    fn empty_points() -> Vec<Point<f32, 2>> {
-        Vec::new()
-    }
 
     #[test]
     fn test_new() {
@@ -242,50 +197,158 @@ mod tests {
     }
 
     #[test]
-    fn test_fit() {
+    fn test_run() {
+        // Arrange
+        let points = vec![
+            [0.0, 0.0], // 0
+            [0.0, 1.0], // 0
+            [0.0, 7.0], // 1
+            [0.0, 8.0], // 1
+            [1.0, 0.0], // 0
+            [1.0, 1.0], // 0
+            [1.0, 2.0], // 0
+            [1.0, 7.0], // 1
+            [1.0, 8.0], // 1
+            [2.0, 1.0], // 0
+            [2.0, 2.0], // 0
+            [4.0, 3.0], // 2
+            [4.0, 4.0], // 2
+            [4.0, 5.0], // 2
+            [5.0, 3.0], // 2
+            [5.0, 4.0], // 2
+            [9.0, 8.0], // Noise
+        ];
+
         // Act
-        let points = sample_points();
         let dbscan = DBSCAN::new(4, 2.0, DistanceMetric::Euclidean).unwrap();
-
-        let mut actual = dbscan.fit(&points).unwrap();
-        actual.sort_by(|cluster1, cluster2| cluster2.len().cmp(&cluster1.len()));
-
-        // Assert
-        assert_eq!(actual.len(), 3);
-
-        let cluster = &actual[0];
-        assert_eq!(cluster.len(), 7);
-        assert_eq!(
-            cluster.members().copied().collect::<HashSet<_>>(),
-            HashSet::from([0, 1, 4, 5, 6, 9, 10])
-        );
-
-        let cluster = &actual[1];
-        assert_eq!(cluster.len(), 5);
-        assert_eq!(
-            cluster.members().copied().collect::<HashSet<_>>(),
-            HashSet::from([11, 12, 13, 14, 15])
-        );
-
-        let cluster = &actual[2];
-        assert_eq!(cluster.len(), 4);
-        assert_eq!(
-            cluster.members().copied().collect::<HashSet<_>>(),
-            HashSet::from([2, 3, 7, 8])
-        );
-    }
-
-    #[test]
-    fn test_fit_empty() {
-        // Act
-        let points = empty_points();
-        let dbscan = DBSCAN::new(4, 2.0, DistanceMetric::Euclidean).unwrap();
-        let actual = dbscan.fit(&points);
+        let actual = dbscan.run(&points);
 
         // Assert
         assert!(actual.is_ok());
 
-        let clusters = actual.unwrap();
-        assert_eq!(clusters.len(), 0);
+        let labels = actual.unwrap();
+        assert_eq!(labels.len(), points.len());
+        assert_eq!(
+            labels,
+            vec![
+                0,
+                0,
+                1,
+                1,
+                0,
+                0,
+                0,
+                1,
+                1,
+                0,
+                0,
+                2,
+                2,
+                2,
+                2,
+                2,
+                DBSCAN::<f64>::LABEL_NOISE
+            ]
+        );
+    }
+
+    #[test]
+    fn test_run_with_boundary_points() {
+        // Arrange
+        let points = vec![
+            [1.1, 0.0],  // Noise
+            [0.0, 1.1],  // Noise
+            [-1.1, 0.0], // Noise
+            [0.0, -1.1], // Noise
+            [0.0, 0.0],  // Core point
+            [0.0, 1.0],  // 0
+            [1.0, 0.0],  // 0
+            [0.0, -1.0], // 0
+            [-1.0, 0.0], // 0
+        ];
+
+        // Act
+        let dbscan = DBSCAN::new(5, 1.0, DistanceMetric::Euclidean).unwrap();
+        let actual = dbscan.run(&points);
+
+        // Assert
+        assert!(actual.is_ok());
+
+        let labels = actual.unwrap();
+        assert_eq!(labels.len(), points.len());
+        assert_eq!(
+            labels,
+            vec![
+                DBSCAN::<f64>::LABEL_NOISE, // Noise
+                DBSCAN::<f64>::LABEL_NOISE, // Noise
+                DBSCAN::<f64>::LABEL_NOISE, // Noise
+                DBSCAN::<f64>::LABEL_NOISE, // Noise
+                0,                          // Core point
+                0,                          // 0
+                0,                          // 0
+                0,                          // 0
+                0,                          // 0
+            ]
+        );
+    }
+
+    #[test]
+    fn test_run_same_points() {
+        // Arrange
+        let points = vec![
+            [0.0, 0.0], // 0
+            [0.0, 0.0], // 0
+            [0.0, 0.0], // 0
+            [0.0, 0.0], // 0
+        ];
+
+        // Act
+        let dbscan = DBSCAN::new(4, 0.1, DistanceMetric::Euclidean).unwrap();
+        let actual = dbscan.run(&points);
+
+        // Assert
+        assert!(actual.is_ok());
+
+        let labels = actual.unwrap();
+        assert_eq!(labels.len(), points.len());
+        assert_eq!(labels, vec![0, 0, 0, 0]); // All points belong to the same cluster
+    }
+
+    #[test]
+    fn test_run_all_noise() {
+        // Arrange
+        let points = vec![
+            [1.0, 1.0], // Noise
+            [2.0, 2.0], // Noise
+            [3.0, 3.0], // Noise
+            [4.0, 4.0], // Noise
+        ];
+
+        // Act
+        let dbscan = DBSCAN::new(2, 1.0, DistanceMetric::Euclidean).unwrap();
+        let actual = dbscan.run(&points);
+
+        // Assert
+        assert!(actual.is_ok());
+
+        let labels = actual.unwrap();
+        assert_eq!(labels.len(), points.len());
+        assert_eq!(labels, vec![DBSCAN::<f64>::LABEL_NOISE; points.len()]); // All points are noise
+    }
+
+    #[test]
+    fn test_run_empty() {
+        // Arrange
+        let points: Vec<Point<f64, 2>> = vec![];
+
+        // Act
+        let dbscan = DBSCAN::new(4, 2.0, DistanceMetric::Euclidean).unwrap();
+        let actual = dbscan.run(&points);
+
+        // Assert
+        assert!(actual.is_ok());
+
+        let labels = actual.unwrap();
+        assert_eq!(labels.len(), 0);
     }
 }
