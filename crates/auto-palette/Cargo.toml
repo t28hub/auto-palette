@@ -41,8 +41,8 @@ name    = "algorithm"
 harness = false
 
 [[example]]
-name              = "basic"
-path              = "examples/basic.rs"
+name              = "simple"
+path              = "examples/simple.rs"
 required-features = ["image"]
 
 [[example]]
