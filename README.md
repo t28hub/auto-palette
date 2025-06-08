@@ -120,6 +120,11 @@ See the [CONTRIBUTING](CONTRIBUTING.md) guidelines.
 Contributions are welcome! For detailed information on how to contribute, please refer to [CONTRIBUTING](CONTRIBUTING.md) guidelines.  
 Please note that this project is released with a [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
 
+## Security
+
+If you discover any security vulnerabilities, **please do not create a public issue or pull request**.  
+Instead, please follow the [Security Policy](SECURITY.md) to report them privately.  
+
 ## License
 
 This project is distributed under the MIT License. See the [LICENSE](LICENSE) file for details.
