@@ -67,21 +67,21 @@ cargo install auto-palette-cli
 
 ### Rust Example
 
-Here is an example of extracting the color palette from an image using the Rust library.
-See the [examples](crates/auto-palette/examples) directory for more examples.
+Here is a basic example that demonstrates how to extract the color palette and find the top 5 prominent colors.
+See the [examples](./crates/auto-palette/examples) directory for more advanced usage.
 
 ```rust
 use auto_palette::{ImageData, Palette};
 
 fn main() {
   // Load the image data from the file
-  let image_data = ImageData::load("tests/assets/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
+  let image_data = ImageData::load("./gfx/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
 
   // Extract the color palette from the image data
   let palette: Palette<f64> = Palette::extract(&image_data).unwrap();
   println!("Extracted {} swatches", palette.len());
 
-  // Find the 5 dominant colors in the palette and print their information
+  // Find the 5 prominent colors in the palette and print their information
   let swatches = palette.find_swatches(5).unwrap();
   for swatch in swatches {
     println!("Color: {}", swatch.color().to_hex_string());
@@ -94,20 +94,21 @@ fn main() {
 
 ### CLI Example
 
-Here is an example of extracting the color palette from an image using the CLI tool.
+Here is an example of extracting the color palette from an image using the CLI tool:
 
 ```sh
-$ auto-palette path/to/your_image.jpg -n 6 -c rgb -o table
-+---+--------------------+------------+------------+
-| # | Color              | Position   | Population |
-+---+--------------------+------------+------------+
-| 1 | RGB(221, 226, 222) | (104, 96)  |       6778 |
-| 2 | RGB(3, 144, 149)   | (114, 201) |       5476 |
-| 3 | RGB(23, 37, 36)    | (120, 300) |       4300 |
-| 4 | RGB(36, 88, 131)   | (183, 145) |       1348 |
-| 5 | RGB(254, 29, 44)   | (183, 190) |        779 |
-| 6 | RGB(253, 213, 116) | (25, 158)  |        567 |
-+---+--------------------+------------+------------+
+$ auto-palette path/to/your_image.jpg --count 6 --color-space rgb --output-format table
++---+-------------------+------------+------------+
+| # | Color             | Position   | Population |
++---+-------------------+------------+------------+
+| 1 | RGB(94, 203, 254) | (549, 13)  |     109005 |
+| 2 | RGB(220, 17, 36)  | (59, 374)  |       4250 |
+| 3 | RGB(4, 14, 29)    | (87, 195)  |       2533 |
+| 4 | RGB(252, 220, 35) | (94, 32)   |       2149 |
+| 5 | RGB(2, 104, 106)  | (366, 329) |       2133 |
+| 6 | RGB(209, 86, 145) | (378, 263) |       1126 |
++---+-------------------+------------+------------+
+Extracted 182 swatch(es) in 0.344 seconds
 ```
 
 ## Development

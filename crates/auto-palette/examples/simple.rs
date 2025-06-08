@@ -1,29 +1,45 @@
+//! This example demonstrates how to extract a color palette from an image and find the prominent colors.
+//!
+//! # Example Usage
+//! To run this example, you can use the following command:
+//! ```sh
+//! cargo run --example simple --release --features='image' -- 'path'
+//! ```
+//! Replace `'path'` with the path to your image file.
+//! If no image path is provided, it will use a default image located in the `gfx` directory.
 #![deny(warnings)]
+
+use std::time::Instant;
 
 use anyhow::{Context, Error};
 use auto_palette::{ImageData, Palette};
 
-/// Extracts a palette from an image file.
-///
-/// The image path can be provided as a command line argument as follows:
-/// ```sh
-/// cargo run --example basic -- 'path/to/image.jpg'
-/// ```
 fn main() -> Result<(), Error> {
     // Read the image path from the command line arguments
     let path = std::env::args().nth(1).unwrap_or_else(|| {
         println!("No image path provided, using the default image path");
-        "./gfx/holly-booth-hLZWGXy5akM-unsplash.jpg".into()
+        "./gfx/laura-clugston-pwW2iV9TZao-unsplash.jpg".into()
     });
 
     // Load the image data from the file
     let image_data = ImageData::load(&path)
         .with_context(|| format!("Failed to load the image data from the file: {}", path))?;
 
+    // Start the timer to measure the extraction time
+    let start = Instant::now();
+
     // Extract the color palette from the image data
-    let palette: Palette<f32> = Palette::extract(&image_data)
+    let palette: Palette<f64> = Palette::extract(&image_data)
         .with_context(|| "Failed to extract the palette from the image data".to_string())?;
-    println!("Extracted {} swatch(es)", palette.len());
+
+    // Measure the duration of the extraction
+    let duration = start.elapsed();
+    println!(
+        "Extracted {} swatch(es) in {}.{:03} seconds",
+        palette.len(),
+        duration.as_secs(),
+        duration.subsec_millis()
+    );
 
     // Find the 5 dominant colors in the palette and print their information
     let swatches = palette

@@ -97,7 +97,7 @@ jobs:
 
       - name: Run examples
         run: |
-          cargo run --example basic
+          cargo run --example simple
           cargo run --example algorithm
           cargo run --example theme
 
