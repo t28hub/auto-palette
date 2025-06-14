@@ -15,7 +15,6 @@ use crate::{
         sampling::{DiversitySampling, SamplingAlgorithm, SamplingError, WeightedFarthestSampling},
         DistanceMetric,
         FloatNumber,
-        Point,
     },
     theme::Theme,
     Swatch,
@@ -156,23 +155,36 @@ where
             return Ok(vec![]);
         }
 
-        let num_swatches = num_swatches.min(self.swatches.len());
-        let (colors, scores): (Vec<Point<T, 3>>, Vec<T>) = self
-            .swatches
-            .iter()
-            .map(|swatch| {
-                let color = swatch.color();
-                ([color.l, color.a, color.b], score_fn(swatch))
-            })
-            .unzip();
+        let mut colors = Vec::with_capacity(self.swatches.len());
+        let mut scores = Vec::with_capacity(self.swatches.len());
+        let mut indices = Vec::with_capacity(self.swatches.len());
+        for (index, swatch) in self.swatches.iter().enumerate() {
+            let score = score_fn(swatch);
+            if score < T::epsilon() {
+                // Skip swatches with a score below the threshold
+                continue;
+            }
 
-        let sampler =
+            let color = swatch.color();
+            colors.push([color.l, color.a, color.b]);
+            scores.push(score);
+            indices.push(index);
+        }
+
+        let num_swatches = num_swatches.min(indices.len());
+        let sampling =
             sampling_factory(scores).map_err(|cause| Error::SwatchSelectionError { cause })?;
-        let sampled = sampler
+        let sampled = sampling
             .sample(&colors, num_swatches)
             .map_err(|cause| Error::SwatchSelectionError { cause })?;
 
-        let mut found: Vec<_> = sampled.iter().map(|&index| self.swatches[index]).collect();
+        let mut found: Vec<_> = sampled
+            .iter()
+            .map(|&i| {
+                let index = indices[i];
+                self.swatches[index]
+            })
+            .collect();
         found.sort_by_key(|swatch| Reverse(swatch.population()));
         Ok(found)
     }
