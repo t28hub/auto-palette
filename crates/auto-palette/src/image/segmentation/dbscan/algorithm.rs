@@ -1,4 +1,6 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
+
+use rustc_hash::FxHashMap;
 
 use crate::{
     image::{
@@ -70,7 +72,7 @@ where
         let center_search = KdTreeSearch::build(&centers, self.metric, Self::MAX_LEAF_SIZE);
 
         // Merge small segments into their nearest large segment
-        let relocation_table: HashMap<_, _> = builder
+        let relocation_table: FxHashMap<_, _> = builder
             .iter()
             .filter(|s| s.len() < min_size)
             .filter_map(|s| {

@@ -1,4 +1,6 @@
-use std::{cmp::Reverse, collections::HashMap, marker::PhantomData};
+use std::{cmp::Reverse, marker::PhantomData};
+
+use rustc_hash::FxHashMap;
 
 use crate::{
     algorithm::Algorithm,
@@ -417,8 +419,8 @@ where
     let height = T::from_usize(label_image.height());
     let area = width * height;
 
-    let mut swatches = HashMap::new();
-    let mut populations = HashMap::new();
+    let mut swatches = FxHashMap::default();
+    let mut populations = FxHashMap::default();
     for (index, &label) in labels.iter().enumerate() {
         let Some(segment) = segments.get(index) else {
             continue;

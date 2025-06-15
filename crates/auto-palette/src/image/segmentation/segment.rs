@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use rustc_hash::FxHashSet;
 
 use crate::{
     image::{Pixel, LABXY_CHANNELS},
@@ -21,7 +21,7 @@ where
     pub(super) center: Pixel<T>,
 
     /// The indices of the pixels that belong to this segment.
-    pub(super) indices: HashSet<usize>,
+    pub(super) indices: FxHashSet<usize>,
 }
 
 impl<T> SegmentMetadata<T>
@@ -40,7 +40,7 @@ where
         Self {
             label,
             center: [T::zero(); LABXY_CHANNELS],
-            indices: HashSet::new(),
+            indices: FxHashSet::default(),
         }
     }
 
@@ -149,6 +149,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::*;
     use crate::assert_approx_eq;
 
@@ -163,7 +165,7 @@ mod tests {
             SegmentMetadata {
                 label: 0,
                 center: [0.0; LABXY_CHANNELS],
-                indices: HashSet::new(),
+                indices: FxHashSet::default(),
             }
         );
         assert!(actual.is_empty());
