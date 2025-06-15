@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 use crate::{
     image::{
@@ -120,7 +120,7 @@ where
         matrix: &MatrixView<'_, T, LABXY_CHANNELS>,
         pixels: &[Pixel<T>],
         mask: &[bool],
-        centers: &mut HashMap<usize, Pixel<T>>,
+        centers: &mut FxHashMap<usize, Pixel<T>>,
         builder: &mut SegmentBuilder<T>,
     ) -> bool {
         builder.iter_mut().for_each(SegmentMetadata::clear);
@@ -193,7 +193,7 @@ where
         let seeds = self
             .generator
             .generate(width, height, pixels, mask, self.segments);
-        let mut centers: HashMap<_, _> = seeds
+        let mut centers: FxHashMap<_, _> = seeds
             .into_iter()
             .map(|seed_index| {
                 let found = self.find_lowest_gradient_index(&matrix, seed_index, mask);

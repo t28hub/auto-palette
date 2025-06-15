@@ -26,6 +26,7 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)
 [dependencies]
 image      = { workspace = true, optional = true }
 num-traits = { workspace = true }
+rustc-hash = { workspace = true }
 serde      = { workspace = true, optional = true }
 thiserror  = { workspace = true }
 

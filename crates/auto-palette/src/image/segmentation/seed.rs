@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use rustc_hash::FxHashSet;
 
 use crate::{math::Point, FloatNumber};
 
@@ -30,7 +30,7 @@ impl SeedGenerator {
         pixels: &[Point<T, N>],
         mask: &[bool],
         k: usize,
-    ) -> HashSet<usize>
+    ) -> FxHashSet<usize>
     where
         T: FloatNumber,
     {
@@ -41,11 +41,13 @@ impl SeedGenerator {
         );
 
         if k == 0 {
-            return HashSet::new();
+            return FxHashSet::default();
         }
 
         if k > pixels.len() {
-            return HashSet::from_iter(mask.iter().enumerate().filter(|(_, &m)| m).map(|(i, _)| i));
+            return FxHashSet::from_iter(
+                mask.iter().enumerate().filter(|(_, &m)| m).map(|(i, _)| i),
+            );
         }
 
         match self {
@@ -62,7 +64,7 @@ fn regular_grid<T, const N: usize>(
     pixels: &[Point<T, N>],
     mask: &[bool],
     k: usize,
-) -> HashSet<usize>
+) -> FxHashSet<usize>
 where
     T: FloatNumber,
 {
@@ -72,7 +74,7 @@ where
         .trunc_to_usize()
         .max(1); // Ensure step is at least 1
     let half = step / 2;
-    let mut seeds = HashSet::with_capacity(k);
+    let mut seeds = FxHashSet::with_capacity_and_hasher(k, Default::default());
     'outer: for y in (half..height).step_by(step) {
         for x in (half..width).step_by(step) {
             let index = x + y * width;
@@ -130,7 +132,7 @@ mod tests {
 
         // Assert
         assert_eq!(actual.len(), expected.len());
-        assert_eq!(actual, HashSet::from_iter(expected));
+        assert_eq!(actual, FxHashSet::from_iter(expected));
     }
 
     #[test]
@@ -181,6 +183,6 @@ mod tests {
 
         // Assert
         assert_eq!(actual.len(), 1);
-        assert_eq!(actual, HashSet::from_iter([7]));
+        assert_eq!(actual, FxHashSet::from_iter([7]));
     }
 }

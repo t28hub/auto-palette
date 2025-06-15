@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 use crate::{image::segmentation::segment::SegmentMetadata, math::FloatNumber};
 
@@ -18,7 +18,7 @@ where
     height: usize,
 
     /// The segments in the label image, indexed by their labels.
-    segments: HashMap<usize, SegmentMetadata<T>>,
+    segments: FxHashMap<usize, SegmentMetadata<T>>,
 }
 
 impl<T> LabelImage<T>
@@ -116,7 +116,7 @@ where
     height: usize,
 
     /// The segments in the label image, indexed by their labels.
-    segments: HashMap<usize, SegmentMetadata<T>>,
+    segments: FxHashMap<usize, SegmentMetadata<T>>,
 }
 
 impl<T> Builder<T>
@@ -136,7 +136,7 @@ where
         Self {
             width,
             height,
-            segments: HashMap::new(),
+            segments: FxHashMap::default(),
         }
     }
 
@@ -253,6 +253,8 @@ where
 mod tests {
     use std::collections::HashSet;
 
+    use rustc_hash::FxHashSet;
+
     use super::*;
     use crate::image::LABXY_CHANNELS;
 
@@ -267,7 +269,7 @@ mod tests {
             Builder {
                 width: 480,
                 height: 320,
-                segments: HashMap::new(),
+                segments: FxHashMap::default(),
             }
         );
     }
@@ -528,7 +530,7 @@ mod tests {
             SegmentMetadata {
                 label,
                 center: [1.0; LABXY_CHANNELS],
-                indices: HashSet::from([0]),
+                indices: FxHashSet::from_iter([0]),
             }
         );
     }
