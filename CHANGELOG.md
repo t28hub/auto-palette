@@ -4,13 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/t28hub/auto-palette/compare/v0.9.0...HEAD)
+## [Unreleased](https://github.com/t28hub/auto-palette/compare/v0.9.1...HEAD)
 ### Added
 ### Changed
 ### Deprecated
 ### Removed
 ### Fixed
 ### Security
+
+## [v0.9.1](https://github.com/t28hub/auto-palette/compare/v0.9.0...v0.9.1) - 2025-06-15
+### Changed
+- Update `ClusteringAlgorithm` interface and refactor DBSCAN implementation for better modularity. (#208)
+- Update color merge threshold in `to_swatches` to improve color grouping accuracy. (#209)
+- Improve swatches selection logic in `find_swatches` and `find_swatches_with_theme` for better palette extraction. (#212)
+- Replace `HashMap` and `HashSet` with `FxHashMap` and `FxHashSet` to enhance performance. (#214)
+
 
 ## [v0.9.0](https://github.com/t28hub/auto-palette/compare/v0.8.2...v0.9.0) - 2025-06-04
 ### Added

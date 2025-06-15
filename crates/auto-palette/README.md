@@ -5,8 +5,8 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/t28hub/auto-palette/ci.yml?style=flat-square)](https://github.com/t28hub/auto-palette/actions/workflows/ci.yml)
 [![License](https://img.shields.io/crates/l/auto-palette?style=flat-square)](https://crates.io/crates/auto-palette)
 [![Version](https://img.shields.io/crates/v/auto-palette?style=flat-square)](https://crates.io/crates/auto-palette)
-[![Codacy grade](https://img.shields.io/codacy/grade/5de09d1930244071a2fa39d5cfcd8633?style=flat-square)](https://app.codacy.com/gh/t28hub/auto-palette/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
-[![Codecov](https://img.shields.io/codecov/c/github/t28hub/auto-palette?style=flat-square)](https://codecov.io/gh/t28hub/auto-palette)
+[![Codacy](https://img.shields.io/codacy/grade/5de09d1930244071a2fa39d5cfcd8633?style=flat-square)](https://app.codacy.com/gh/t28hub/auto-palette/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+[![Codecov](https://codecov.io/gh/t28hub/auto-palette/graph/badge.svg?token=E1IPqCZP3h)](https://codecov.io/gh/t28hub/auto-palette)[![Codecov](https://codecov.io/gh/t28hub/auto-palette/graph/badge.svg?token=E1IPqCZP3h)](https://codecov.io/gh/t28hub/auto-palette)
 [![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://codspeed.io/t28hub/auto-palette)
 
 ## Features
@@ -20,6 +20,7 @@
 | `Vivid`     | ![Vivid](../../gfx/palettes/vivid.png)       |
 | `Muted`     | ![Muted](../../gfx/palettes/muted.png)       |
 | `Light`     | ![Light](../../gfx/palettes/light.png)       |
+| `Dark`      | ![Dark](../../gfx/palettes/dark.png)         |
 
 > [!NOTE]
 > Photo by <a href="https://unsplash.com/@laurahclugston?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Laura Clugston</a> on <a href="https://unsplash.com/photos/multi-colored-hot-air-balloon-pwW2iV9TZao?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Unsplash</a>
@@ -36,7 +37,7 @@ Using `auto-palette` in your Rust project, add it to your `Cargo.toml`.
 
 ```toml
 [dependencies]
-auto-palette = "0.8.2"
+auto-palette = "0.9.1"
 ```
 
 > [!NOTE]
