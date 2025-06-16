@@ -10,6 +10,7 @@ pub enum DistanceMetric {
     /// The Euclidean distance, used to measure the straight-line distance between two points.
     #[default]
     Euclidean,
+
     /// The squared Euclidean distance, used to measure the squared straight-line distance between two points.
     SquaredEuclidean,
 }
@@ -18,8 +19,8 @@ impl DistanceMetric {
     /// Measures the distance between two points using the specified distance metric.
     ///
     /// # Type Parameters
-    /// * `T` - The floating point type used for calculating the distance.
-    /// * `N` - The number of dimensions.
+    /// * `T` - The floating point type.
+    /// * `N` - The dimension of the points.
     ///
     /// # Arguments
     /// * `point1` - The first point.
@@ -27,45 +28,28 @@ impl DistanceMetric {
     ///
     /// # Returns
     /// The distance between the two points.
-    #[inline]
+    #[inline(always)]
     #[must_use]
     pub fn measure<T, const N: usize>(&self, point1: &Point<T, N>, point2: &Point<T, N>) -> T
     where
         T: FloatNumber,
     {
         match self {
-            DistanceMetric::Euclidean => squared_euclidean(point1, point2).sqrt(),
-            DistanceMetric::SquaredEuclidean => squared_euclidean(point1, point2),
+            DistanceMetric::Euclidean => zip(point1.iter(), point2.iter())
+                .map(|(value1, value2)| {
+                    let diff = *value1 - *value2;
+                    diff * diff
+                })
+                .sum::<T>()
+                .sqrt(),
+            DistanceMetric::SquaredEuclidean => zip(point1.iter(), point2.iter())
+                .map(|(value1, value2)| {
+                    let diff = *value1 - *value2;
+                    diff * diff
+                })
+                .sum(),
         }
     }
-}
-
-/// Measures the squared Euclidean distance between two points.
-///
-/// This is a helper function used by both Euclidean and SquaredEuclidean metrics.
-///
-/// # Type Parameters
-/// * `T` - The floating point type used for calculating the distance.
-/// * `N` - The number of dimensions.
-///
-/// # Arguments
-/// * `point1` - The first point.
-/// * `point2` - The second point.
-///
-/// # Returns
-/// The squared Euclidean distance between the two points.
-#[inline]
-#[must_use]
-fn squared_euclidean<T, const N: usize>(point1: &Point<T, N>, point2: &Point<T, N>) -> T
-where
-    T: FloatNumber,
-{
-    zip(point1.iter(), point2.iter())
-        .map(|(value1, value2)| {
-            let diff = *value1 - *value2;
-            diff * diff
-        })
-        .sum()
 }
 
 #[cfg(test)]
