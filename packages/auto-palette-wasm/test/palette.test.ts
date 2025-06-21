@@ -150,14 +150,14 @@ describe('@auto-palette/wasm/palette', () => {
     });
 
     it.each([
-      { theme: 'vivid', count: 3, expected: ['#FFD63A', '#FF6F61', '#4F1C51'] },
+      { theme: 'vivid', count: 3, expected: ['#6DE1D2', '#FFD63A', '#FF6F61'] },
       { theme: 'muted', count: 3, expected: ['#604652', '#A27B5C', '#3F4F44'] },
-      { theme: 'light', count: 3, expected: ['#F7CFD8', '#FF6F61', '#6DE1D2'] },
-      { theme: 'dark', count: 3, expected: ['#3F4F44', '#210F37', '#604652'] },
+      { theme: 'light', count: 3, expected: ['#6DE1D2', '#FFD63A', '#FF6F61'] },
+      { theme: 'dark', count: 3, expected: ['#3F4F44', '#210F37', '#2A0A1D'] },
       {
         theme: 'colorful',
         count: 3,
-        expected: ['#6DE1D2', '#FF6F61', '#4F1C51'],
+        expected: ['#6DE1D2', '#FFD63A', '#FF6F61'],
       },
     ])(
       'should find the swatches from the palette with $theme theme',

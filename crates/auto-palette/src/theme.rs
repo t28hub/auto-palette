@@ -1,7 +1,8 @@
 use std::{fmt::Debug, str::FromStr};
 
 use crate::{
-    math::{gaussian, FloatNumber},
+    color::Gamut,
+    math::{normalize, FloatNumber},
     Error,
     Swatch,
 };
@@ -43,8 +44,8 @@ pub enum Theme {
 }
 
 impl Theme {
-    /// The maximum score for the swatch.
-    const DEFAULT_SCORE: f64 = 1.0;
+    /// The maximum lightness value for the theme scoring.
+    const MAX_LIGHTNESS: u8 = 100;
 
     /// Scores the swatch based on the theme.
     ///
@@ -62,48 +63,55 @@ impl Theme {
     where
         T: FloatNumber,
     {
-        let color = swatch.color();
-        let ratio = swatch.ratio();
-        let default_score = T::from_f64(Self::DEFAULT_SCORE);
-        match self {
+        let params = match self {
             #[allow(deprecated)]
-            Theme::Basic => ratio,
-            Theme::Colorful => {
-                let score_c = gaussian(color.chroma(), T::from_f64(60.0), T::from_f64(15.0))
-                    .unwrap_or(default_score);
-                let score_l = gaussian(color.lightness(), T::from_f64(50.0), T::from_f64(15.0))
-                    .unwrap_or(default_score);
-                score_c * score_l
+            Theme::Basic => {
+                return swatch.ratio();
             }
-            Theme::Vivid => {
-                let score_c = gaussian(color.chroma(), T::from_f64(75.0), T::from_f64(15.0))
-                    .unwrap_or(default_score);
-                let score_l = gaussian(color.lightness(), T::from_f64(50.0), T::from_f64(15.0))
-                    .unwrap_or(default_score);
-                score_c * score_l
-            }
-            Theme::Muted => {
-                let score_c = gaussian(color.chroma(), T::from_f64(20.0), T::from_f64(15.0))
-                    .unwrap_or(default_score);
-                let score_l = gaussian(color.lightness(), T::from_f64(40.0), T::from_f64(15.0))
-                    .unwrap_or(default_score);
-                score_c * score_l
-            }
-            Theme::Light => {
-                let score_c = gaussian(color.chroma(), T::from_f64(40.0), T::from_f64(15.0))
-                    .unwrap_or(default_score);
-                let score_l = gaussian(color.lightness(), T::from_f64(75.0), T::from_f64(15.0))
-                    .unwrap_or(default_score);
-                score_c * score_l
-            }
-            Theme::Dark => {
-                let score_c = gaussian(color.chroma(), T::from_f64(20.0), T::from_f64(15.0))
-                    .unwrap_or(default_score);
-                let score_l = gaussian(color.lightness(), T::from_f64(25.0), T::from_f64(15.0))
-                    .unwrap_or(default_score);
-                score_c * score_l
-            }
-        }
+            Theme::Colorful => ThemeParams {
+                mean_chroma: T::from_f64(0.75),
+                sigma_chroma: T::from_f64(0.18),
+                mean_lightness: T::from_f64(0.60),
+                sigma_lightness: T::from_f64(0.20),
+            },
+            Theme::Vivid => ThemeParams {
+                mean_chroma: T::from_f64(0.90),
+                sigma_chroma: T::from_f64(0.10),
+                mean_lightness: T::from_f64(0.70),
+                sigma_lightness: T::from_f64(0.20),
+            },
+            Theme::Muted => ThemeParams {
+                mean_chroma: T::from_f64(0.20),
+                sigma_chroma: T::from_f64(0.15),
+                mean_lightness: T::from_f64(0.40),
+                sigma_lightness: T::from_f64(0.15),
+            },
+            Theme::Light => ThemeParams {
+                mean_chroma: T::from_f64(0.60),
+                sigma_chroma: T::from_f64(0.15),
+                mean_lightness: T::from_f64(0.85),
+                sigma_lightness: T::from_f64(0.15),
+            },
+            Theme::Dark => ThemeParams {
+                mean_chroma: T::from_f64(0.25),
+                sigma_chroma: T::from_f64(0.15),
+                mean_lightness: T::from_f64(0.15),
+                sigma_lightness: T::from_f64(0.15),
+            },
+        };
+
+        let color = swatch.color();
+        let max_chroma = Gamut::default().max_chroma(color.hue());
+        let chroma = normalize(color.chroma(), T::zero(), max_chroma);
+        let lightness = normalize(
+            color.lightness(),
+            T::zero(),
+            T::from_u8(Self::MAX_LIGHTNESS),
+        );
+
+        let dc = (chroma - params.mean_chroma) / params.sigma_chroma;
+        let dl = (lightness - params.mean_lightness) / params.sigma_lightness;
+        (T::from_f64(-0.5) * (dc * dc + dl * dl)).exp()
     }
 }
 
@@ -124,6 +132,28 @@ impl FromStr for Theme {
             }),
         }
     }
+}
+
+/// The mean and standard deviation parameters for the theme scoring.
+///
+/// # Type Parameters
+/// * `T` - The float number type.
+#[derive(Debug, PartialEq)]
+struct ThemeParams<T>
+where
+    T: FloatNumber,
+{
+    /// The mean chroma value for the theme.
+    mean_chroma: T,
+
+    /// The standard deviation of the chroma values for the theme.
+    sigma_chroma: T,
+
+    /// The mean lightness value for the theme.
+    mean_lightness: T,
+
+    /// The standard deviation of the lightness values for the theme.
+    sigma_lightness: T,
 }
 
 #[cfg(test)]
@@ -148,17 +178,17 @@ mod tests {
 
     #[rstest]
     #[case::black("#000000", 0.000001)]
-    #[case::gray("#808080", 0.000326)]
-    #[case::white("#ffffff", 0.000001)]
-    #[case::red("#ff0000", 0.011879)]
-    #[case::green("#00ff00", 0.000015)]
-    #[case::blue("#0000ff", 0.000002)]
-    #[case::yellow("#ffff00", 0.000347)]
-    #[case::cyan("#00ffff", 0.018807)]
-    #[case::magenta("#ff00ff", 0.000829)]
-    #[case::orange("#ff8000", 0.123426)]
-    #[case::purple("#8000ff", 0.000069)]
-    #[case::lime("#80ff00", 0.000129)]
+    #[case::gray("#808080", 0.000162)]
+    #[case::white("#ffffff", 0.000023)]
+    #[case::red("#ff0000", 0.359991)]
+    #[case::green("#00ff00", 0.145718)]
+    #[case::blue("#0000ff", 0.146085)]
+    #[case::yellow("#ffff00", 0.067976)]
+    #[case::cyan("#00ffff", 0.113646)]
+    #[case::magenta("#ff00ff", 0.381121)]
+    #[case::orange("#ff8000", 0.358194)]
+    #[case::purple("#8000ff", 0.241719)]
+    #[case::lime("#80ff00", 0.124594)]
     fn test_score_colorful(#[case] hex: &str, #[case] expected: f64) {
         // Act
         let color: Color<f64> = Color::from_str(hex).unwrap();
@@ -171,17 +201,17 @@ mod tests {
 
     #[rstest]
     #[case::black("#000000", 0.0)]
-    #[case::gray("#808080", 0.000003)]
+    #[case::gray("#808080", 0.0)]
     #[case::white("#ffffff", 0.0)]
-    #[case::red("#ff0000", 0.140403)]
-    #[case::green("#00ff00", 0.000490)]
-    #[case::blue("#0000ff", 0.000228)]
-    #[case::yellow("#ffff00", 0.002468)]
-    #[case::cyan("#00ffff", 0.005902)]
-    #[case::magenta("#ff00ff", 0.020425)]
-    #[case::orange("#ff8000", 0.410010)]
-    #[case::purple("#8000ff", 0.003222)]
-    #[case::lime("#80ff00", 0.002103)]
+    #[case::red("#ff0000", 0.426884)]
+    #[case::green("#00ff00", 0.409349)]
+    #[case::blue("#0000ff", 0.102639)]
+    #[case::yellow("#ffff00", 0.241562)]
+    #[case::cyan("#00ffff", 0.347395)]
+    #[case::magenta("#ff00ff", 0.539526)]
+    #[case::orange("#ff8000", 0.599979)]
+    #[case::purple("#8000ff", 0.210622)]
+    #[case::lime("#80ff00", 0.369553)]
     fn test_score_vivid(#[case] hex: &str, #[case] expected: f64) {
         // Act
         let color: Color<f64> = Color::from_str(hex).unwrap();
@@ -194,15 +224,15 @@ mod tests {
 
     #[rstest]
     #[case::black("#000000", 0.011743)]
-    #[case::gray("#808080", 0.273009)]
+    #[case::gray("#808080", 0.273211)]
     #[case::white("#ffffff", 0.000138)]
     #[case::red("#ff0000", 0.0)]
     #[case::green("#00ff00", 0.0)]
     #[case::blue("#0000ff", 0.0)]
     #[case::yellow("#ffff00", 0.0)]
-    #[case::cyan("#00ffff", 0.000400)]
+    #[case::cyan("#00ffff", 0.0)]
     #[case::magenta("#ff00ff", 0.0)]
-    #[case::orange("#ff8000", 0.000014)]
+    #[case::orange("#ff8000", 0.0)]
     #[case::purple("#8000ff", 0.0)]
     #[case::lime("#80ff00", 0.0)]
     fn test_score_muted(#[case] hex: &str, #[case] expected: f64) {
@@ -217,17 +247,17 @@ mod tests {
 
     #[rstest]
     #[case::black("#000000", 0.0)]
-    #[case::gray("#808080", 0.010325)]
-    #[case::white("#ffffff", 0.007137)]
-    #[case::red("#ff0000", 0.000033)]
-    #[case::green("#00ff00", 0.0)]
-    #[case::blue("#0000ff", 0.0)]
-    #[case::yellow("#ffff00", 0.000252)]
-    #[case::cyan("#00ffff", 0.447280)]
-    #[case::magenta("#ff00ff", 0.000001)]
-    #[case::orange("#ff8000", 0.008716)]
-    #[case::purple("#8000ff", 0.0)]
-    #[case::lime("#80ff00", 0.000013)]
+    #[case::gray("#808080", 0.000037)]
+    #[case::white("#ffffff", 0.000204)]
+    #[case::red("#ff0000", 0.003035)]
+    #[case::green("#00ff00", 0.028094)]
+    #[case::blue("#0000ff", 0.000059)]
+    #[case::yellow("#ffff00", 0.020589)]
+    #[case::cyan("#00ffff", 0.026287)]
+    #[case::magenta("#ff00ff", 0.007381)]
+    #[case::orange("#ff8000", 0.013962)]
+    #[case::purple("#8000ff", 0.000380)]
+    #[case::lime("#80ff00", 0.027076)]
     fn test_score_light(#[case] hex: &str, #[case] expected: f64) {
         // Act
         let color: Color<f64> = Color::from_str(hex).unwrap();
@@ -239,16 +269,16 @@ mod tests {
     }
 
     #[rstest]
-    #[case::black("#000000", 0.102511)]
-    #[case::gray("#808080", 0.066942)]
-    #[case::white("#ffffff", 0.000001)]
+    #[case::black("#000000", 0.151239)]
+    #[case::gray("#808080", 0.009136)]
+    #[case::white("#ffffff", 0.0)]
     #[case::red("#ff0000", 0.0)]
     #[case::green("#00ff00", 0.0)]
-    #[case::blue("#0000ff", 0.0)]
+    #[case::blue("#0000ff", 0.000001)]
     #[case::yellow("#ffff00", 0.0)]
-    #[case::cyan("#00ffff", 0.000008)]
+    #[case::cyan("#00ffff", 0.0)]
     #[case::magenta("#ff00ff", 0.0)]
-    #[case::orange("#ff8000", 0.000001)]
+    #[case::orange("#ff8000", 0.0)]
     #[case::purple("#8000ff", 0.0)]
     #[case::lime("#80ff00", 0.0)]
     fn test_score_dark(#[case] hex: &str, #[case] expected: f64) {

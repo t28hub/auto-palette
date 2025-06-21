@@ -162,7 +162,7 @@ where
         let mut indices = Vec::with_capacity(self.swatches.len());
         for (index, swatch) in self.swatches.iter().enumerate() {
             let score = score_fn(swatch);
-            if score < T::epsilon() {
+            if score < T::from_f64(SWATCH_SCORE_THRESHOLD) {
                 // Skip swatches with a score below the threshold
                 continue;
             }
@@ -363,6 +363,10 @@ where
         Ok(palette)
     }
 }
+
+/// The minimum score threshold for swatches.
+/// Swatches with a score below this value are ignored to filter out noise and less significant colors.
+const SWATCH_SCORE_THRESHOLD: f64 = 1e-5;
 
 /// The minimum number of points required to merge colors in the LAB color space.
 /// This constant is used to determine whether a color cluster has enough points to be considered for merging.
@@ -769,10 +773,10 @@ mod tests {
 
     #[rstest]
     #[case::colorful(Theme::Colorful, vec ! ["#EE334E", "#00A651"])]
-    #[case::vivid(Theme::Vivid, vec ! ["#EE334E", "#00A651"])]
-    #[case::muted(Theme::Muted, vec ! ["#0081C8", "#000000"])]
-    #[case::light(Theme::Light, vec ! ["#0081C8", "#00A651"])]
-    #[case::dark(Theme::Dark, vec ! ["#0081C8", "#000000"])]
+    #[case::vivid(Theme::Vivid, vec ! ["#0081C8", "#FCB131"])]
+    #[case::muted(Theme::Muted, vec ! ["#00A651", "#000000"])]
+    #[case::light(Theme::Light, vec ! ["#00A651", "#FCB131"])]
+    #[case::dark(Theme::Dark, vec ! ["#00A651", "#000000"])]
     fn test_find_swatches_with_theme(#[case] theme: Theme, #[case] expected: Vec<&str>) {
         // Arrange
         let swatches = sample_swatches::<f64>();
@@ -782,13 +786,16 @@ mod tests {
         let actual = palette
             .find_swatches_with_theme(2, theme)
             .expect("Failed to find swatches with theme");
-        actual
-            .iter()
-            .for_each(|swatch| println!("{:?}", swatch.color().to_hex_string()));
 
         // Assert
         assert_eq!(actual.len(), 2);
-        assert_eq!(actual[0].color().to_hex_string(), expected[0]);
-        assert_eq!(actual[1].color().to_hex_string(), expected[1]);
+        assert_color_eq!(
+            actual[0].color(),
+            Color::<f64>::from_str(expected[0]).unwrap()
+        );
+        assert_color_eq!(
+            actual[1].color(),
+            Color::<f64>::from_str(expected[1]).unwrap()
+        );
     }
 }
