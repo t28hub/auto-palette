@@ -2,6 +2,7 @@ mod ansi16;
 mod ansi256;
 mod cmyk;
 mod error;
+mod gamut;
 mod hsl;
 mod hsv;
 mod hue;
@@ -25,6 +26,7 @@ use std::{
 pub use ansi16::Ansi16;
 pub use ansi256::Ansi256;
 pub use cmyk::CMYK;
+pub use gamut::Gamut;
 pub use hsl::HSL;
 pub use hsv::HSV;
 pub use hue::Hue;

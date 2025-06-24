@@ -221,7 +221,7 @@ where
     T: FloatNumber,
 {
     debug_assert!(min < max, "min must be less than max");
-    (value - min) / (max - min)
+    ((value - min) / (max - min)).max(T::zero()).min(T::one())
 }
 
 /// Denormalizes a value from the range [min, max].

@@ -91,7 +91,7 @@ describe('@auto-palette/wasm', () => {
 
         // Assert
         expect(swatches).toHaveLength(3);
-        expect(swatches[0].color).toBeSimilarColor('#89DAFE');
+        expect(swatches[0].color).toBeSimilarColor('#5ECBFE');
         expect(swatches[1].color).toBeSimilarColor('#BF010D');
         expect(swatches[2].color).toBeSimilarColor('#FCDC24');
       });
@@ -100,27 +100,27 @@ describe('@auto-palette/wasm', () => {
         {
           count: 3,
           theme: 'colorful',
-          expected: ['#0866A7', '#A28713', '#CE3A54'],
+          expected: ['#27A9DA', '#B08813', '#EF4768'],
         },
         {
           count: 3,
           theme: 'vivid',
-          expected: ['#711978', '#B99813', '#E83748'],
+          expected: ['#1FB0E4', '#DAB00E', '#E6263E'],
         },
         {
           count: 3,
           theme: 'muted',
-          expected: ['#02457A', '#03686A', '#55061A'],
+          expected: ['#023D33', '#4F4200', '#D083B6'],
         },
         {
           count: 3,
           theme: 'light',
-          expected: ['#5DBFF7', '#CDC26F', '#E96894'],
+          expected: ['#80B9F3', '#D0C353', '#E96894'],
         },
         {
           count: 3,
           theme: 'dark',
-          expected: ['#013764', '#023D33', '#55061A'],
+          expected: ['#061530', '#0A2D25', '#3D040C'],
         },
       ])(
         'should find the swatches from the palette with the $theme theme',
