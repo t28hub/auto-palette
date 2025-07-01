@@ -15,10 +15,13 @@ anyhow             = "1.0.97"
 arboard            = "3.4.1"
 assert_cmd         = "2.0.14"
 auto-palette       = { version = "0.9.1", path = "crates/auto-palette", default-features = false }
+bytemuck           = { version = "1.23.1", features = ["derive"] }
 clap               = { version = "4.5.4", features = ["cargo"] }
-divan              = { version = "2.10.1", package = "codspeed-divan-compat" }
+crc32fast          = "1.4.2"
+divan              = { version = "3.0.2", package = "codspeed-divan-compat" }
 image              = { version = "0.25.1", default-features = false }
 num-traits         = "0.2.18"
+once_cell          = "1.21.3"
 predicates         = "3.1.0"
 rstest             = "0.25.0"
 rustc-hash         = "2.1.1"

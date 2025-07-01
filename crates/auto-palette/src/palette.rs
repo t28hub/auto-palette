@@ -787,6 +787,8 @@ mod tests {
             .find_swatches_with_theme(2, theme)
             .expect("Failed to find swatches with theme");
 
+        println!("{:#?}", actual);
+
         // Assert
         assert_eq!(actual.len(), 2);
         assert_color_eq!(

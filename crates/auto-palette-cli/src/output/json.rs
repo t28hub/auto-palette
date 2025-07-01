@@ -77,7 +77,7 @@ impl Printer for JsonPrinter<'_> {
 
         let mut writer = BufWriter::new(output);
         let json_str = serde_json::to_string_pretty(&root_object)?;
-        writeln!(writer, "{}", json_str)?;
+        writeln!(writer, "{json_str}")?;
         writer.flush()?;
         Ok(())
     }

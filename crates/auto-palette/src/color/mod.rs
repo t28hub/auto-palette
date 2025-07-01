@@ -26,7 +26,7 @@ use std::{
 pub use ansi16::Ansi16;
 pub use ansi256::Ansi256;
 pub use cmyk::CMYK;
-pub use gamut::Gamut;
+pub use gamut::{Gamut, GamutKind};
 pub use hsl::HSL;
 pub use hsv::HSV;
 pub use hue::Hue;
@@ -180,7 +180,7 @@ where
     #[must_use]
     pub fn to_hex_string(&self) -> String {
         let RGB { r, g, b } = self.to_rgb();
-        format!("#{:02X}{:02X}{:02X}", r, g, b)
+        format!("#{r:02X}{g:02X}{b:02X}")
     }
 
     /// Converts this color to the RGB color space.

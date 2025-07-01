@@ -1,10 +1,10 @@
 use std::{fmt::Debug, str::FromStr};
 
 use crate::{
-    color::Gamut,
     math::{normalize, FloatNumber},
     Error,
     Swatch,
+    SRGB_GAMUT,
 };
 
 /// The theme representation for scoring the swatches.
@@ -54,6 +54,7 @@ impl Theme {
     ///
     /// # Arguments
     /// * `swatch` - The swatch to score.
+    /// * `gamut` - The gamut of the color space.
     ///
     /// # Returns
     /// The score of the swatch.
@@ -101,7 +102,7 @@ impl Theme {
         };
 
         let color = swatch.color();
-        let max_chroma = Gamut::default().max_chroma(color.hue());
+        let max_chroma = SRGB_GAMUT.max_chroma_at(&color.hue());
         let chroma = normalize(color.chroma(), T::zero(), max_chroma);
         let lightness = normalize(
             color.lightness(),

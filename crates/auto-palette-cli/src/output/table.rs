@@ -50,7 +50,7 @@ impl Printer for TablePrinter<'_> {
                 let color_width = color_format.fmt(swatch.color()).len();
 
                 let (x, y) = swatch.position();
-                let position_width = format!("({}, {})", x, y).len();
+                let position_width = format!("({x}, {y})").len();
 
                 let population_width = swatch.population().to_string().len();
                 [
