@@ -35,7 +35,7 @@ impl<'a> TextPrinter<'a> {
             "".to_string()
         } else {
             let styled = style().background(color_mode).apply("  ");
-            format!("{} ", styled)
+            format!("{styled} ")
         };
 
         let color_format = self.context.args().color_space;
@@ -43,15 +43,12 @@ impl<'a> TextPrinter<'a> {
         let color_str = format!("{:<width$}", color, width = widths[0]);
 
         let (x, y) = swatch.position();
-        let position_str = format!("({}, {})", x, y);
+        let position_str = format!("({x}, {y})");
 
         let population = swatch.population();
         let population_str = format!("{:<width$}", population, width = widths[2]);
 
-        format!(
-            "{}{} {} {}",
-            sample_str, color_str, position_str, population_str
-        )
+        format!("{sample_str}{color_str} {position_str}{population_str}")
     }
 
     #[inline]
@@ -95,7 +92,7 @@ impl Printer for TextPrinter<'_> {
             let color_width = color_format.fmt(swatch.color()).len();
 
             let (x, y) = swatch.position();
-            let position_width = format!("({}, {})", x, y).len();
+            let position_width = format!("({x}, {y})").len();
 
             let population_width = swatch.population().to_string().len();
             [
@@ -107,7 +104,7 @@ impl Printer for TextPrinter<'_> {
 
         for swatch in swatches {
             let text = self.swatch_to_text(swatch, &widths);
-            writeln!(writer, "{}", text)?;
+            writeln!(writer, "{text}")?;
         }
         writer.flush()
     }
