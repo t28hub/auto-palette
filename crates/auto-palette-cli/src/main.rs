@@ -31,8 +31,9 @@ fn main() -> anyhow::Result<()> {
             return Err(anyhow::anyhow!("only one input source can be provided"));
         }
         (None, true) => get_image_from_clipboard()?,
-        (Some(path), false) => image::open(path)
-            .with_context(|| format!("failed to open the image file {:?}", path))?,
+        (Some(path), false) => {
+            image::open(path).with_context(|| format!("failed to open the image file {path:?}"))?
+        }
     };
 
     let image_width = image.width() as f64;

@@ -40,7 +40,7 @@ impl TryFrom<JsAlgorithm> for Algorithm {
                 .as_string()
                 .ok_or_else(|| JsError::new("Failed to retrieve algorithm name"))?,
         )
-        .map_err(|_| JsError::new(&format!("Unknown algorithm name: {}", string)))
+        .map_err(|_| JsError::new(&format!("Unknown algorithm name: {string}")))
     }
 }
 
@@ -55,7 +55,7 @@ impl TryFrom<JsTheme> for Theme {
             .ok_or_else(|| JsError::new("Failed to retrieve theme name"))
             .and_then(|name| {
                 Theme::from_str(&name)
-                    .map_err(|_| JsError::new(&format!("Unknown theme name: {}", name)))
+                    .map_err(|_| JsError::new(&format!("Unknown theme name: {name}")))
             })
     }
 }

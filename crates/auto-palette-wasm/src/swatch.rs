@@ -83,7 +83,7 @@ impl JsSwatch {
             return Err(JsError::new("Ratio must be between 0 and 1"));
         }
         let position: JsPosition = from_value(position)
-            .map_err(|cause| JsError::new(&format!("Invalid position: {}", cause)))?;
+            .map_err(|cause| JsError::new(&format!("Invalid position: {cause}")))?;
         Ok(JsSwatch {
             color,
             position,
