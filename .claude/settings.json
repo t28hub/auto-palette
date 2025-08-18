@@ -1,0 +1,41 @@
+{
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "defaultMode": "default",
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(mkdir:*)",
+      "Bash(git add:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git status:*)",
+      "Bash(cargo build:*)",
+      "Bash(cargo check:*)",
+      "Bash(cargo clippy:*)",
+      "Bash(cargo +nightly fmt:*)",
+      "Bash(cargo nextest:*)",
+      "Bash(cargo run:*)",
+      "WebFetch(https://*)"
+    ],
+    "deny": [
+      "Bash(rm:)",
+      "Bash(sudo:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(git push:)",
+      "Bash(git rebase:)",
+      "Bash(git rm:)",
+      "Bash(pnpm publish:*)",
+      "Bash(cargo publish:*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(*.local.*)"
+    ]
+  },
+  "env": {
+    "BASH_DEFAULT_TIMEOUT_MS": "600000",
+    "BASH_MAX_TIMEOUT_MS": "900000"
+  }
+}

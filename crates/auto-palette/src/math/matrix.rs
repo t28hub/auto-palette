@@ -115,7 +115,7 @@ where
     /// An iterator over the neighbors of the given point.
     #[inline]
     #[must_use]
-    pub fn neighbors(&self, col: usize, row: usize) -> NeighborIterator<T, N> {
+    pub fn neighbors(&self, col: usize, row: usize) -> NeighborIterator<'_, T, N> {
         NeighborIterator::new(self, col, row, 1)
     }
 
@@ -135,7 +135,7 @@ where
         col: usize,
         row: usize,
         radius: usize,
-    ) -> NeighborIterator<T, N> {
+    ) -> NeighborIterator<'_, T, N> {
         NeighborIterator::new(self, col, row, radius)
     }
 }
