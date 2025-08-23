@@ -433,7 +433,12 @@ mod tests {
         let error = actual.unwrap_err();
         assert_eq!(
             error,
-            SnicError::UnexpectedLength(MatrixError::InvalidPoints(width, height))
+            SnicError::UnexpectedLength(MatrixError::DimensionMismatch {
+                cols: width,
+                rows: height,
+                expected: width * height,
+                actual: (width - 1) * height,
+            })
         );
     }
 
