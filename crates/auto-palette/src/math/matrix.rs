@@ -2,12 +2,19 @@ use thiserror::Error;
 
 use crate::{math::Point, FloatNumber};
 
-/// Error type for the `MatrixView` struct.
+/// Errors that can occur when creating or using a `MatrixView`.
 #[derive(Debug, PartialEq, Error)]
 pub enum MatrixError {
-    /// Error when the points slice is not in the expected shape.
-    #[error("Invalid Points: The points slice is not in the expected shape: {0}x{1}.")]
-    InvalidPoints(usize, usize),
+    /// The provided dimensions do not match the points slice length.
+    ///
+    /// This occurs when `cols * rows != points.len()`.
+    #[error("dimension mismatch: expected {expected} points ({cols}x{rows}), but got {actual}")]
+    DimensionMismatch {
+        cols: usize,
+        rows: usize,
+        expected: usize,
+        actual: usize,
+    },
 }
 
 /// Lightweight, read-only view over a matrix of points.
@@ -47,26 +54,29 @@ where
     /// A new `MatrixView` instance.
     #[inline]
     pub fn new(cols: usize, rows: usize, points: &'a [Point<T, N>]) -> Result<Self, MatrixError> {
-        if cols * rows != points.len() {
-            return Err(MatrixError::InvalidPoints(cols, rows));
+        let expected = cols * rows;
+        let actual = points.len();
+
+        if expected != actual {
+            return Err(MatrixError::DimensionMismatch {
+                cols,
+                rows,
+                expected,
+                actual,
+            });
         }
+
         Ok(Self { cols, rows, points })
     }
 
-    /// Returns the size of the matrix.
-    ///
-    /// # Returns
-    /// The size of the matrix.
+    /// Returns the total number of points in the matrix.
     #[inline(always)]
     #[must_use]
     pub fn size(&self) -> usize {
         self.points.len()
     }
 
-    /// Returns the shape of the matrix.
-    ///
-    /// # Returns
-    /// The shape of the matrix.
+    /// Returns the shape of the matrix as (columns, rows).
     #[inline]
     #[must_use]
     pub fn shape(&self) -> (usize, usize) {
@@ -74,6 +84,8 @@ where
     }
 
     /// Returns the flattened index of the given column and row.
+    ///
+    /// Converts 2D coordinates (col, row) to a 1D index in row-major order.
     ///
     /// # Arguments
     /// * `col` - The column of the point.
@@ -83,7 +95,7 @@ where
     /// The flattened index of the given column and row or `None` if the index is out of bounds.
     #[inline(always)]
     #[must_use]
-    pub fn index(&self, col: usize, row: usize) -> Option<usize> {
+    pub fn flatten_index(&self, col: usize, row: usize) -> Option<usize> {
         if col < self.cols && row < self.rows {
             Some(col + row * self.cols)
         } else {
@@ -102,10 +114,13 @@ where
     #[inline(always)]
     #[must_use]
     pub fn get(&self, col: usize, row: usize) -> Option<&Point<T, N>> {
-        self.index(col, row).map(|index| &self.points[index])
+        self.flatten_index(col, row)
+            .map(|index| &self.points[index])
     }
 
     /// Returns an iterator over the neighbors of the given point.
+    ///
+    /// The iterator yields all adjacent points within a radius of 1, excluding the center point itself.
     ///
     /// # Arguments
     /// * `col` - The column of the point.
@@ -121,16 +136,20 @@ where
 
     /// Returns an iterator over the neighbors within a given `radius` around the given `(col, row)`.
     ///
+    /// The iterator yields all points within the square neighborhood defined by the radius,
+    /// excluding the center point itself. For example, with radius=1, it yields up to 8 points
+    /// (the 3x3 grid minus the center).
+    ///
     /// # Arguments
     /// * `col` - The column of the point.
     /// * `row` - The row of the point.
     /// * `radius` - The size of the neighborhood.
     ///
     /// # Returns
-    /// An iterator over the neighbors of the given point with the specified size.
+    /// An iterator over the neighbors of the given point within the specified radius.
     #[inline]
     #[must_use]
-    pub fn neighbors_with_size(
+    pub fn neighbors_within(
         &self,
         col: usize,
         row: usize,
@@ -140,6 +159,15 @@ where
     }
 }
 
+/// An iterator over the neighbors of a point in a matrix.
+///
+/// This iterator yields all points within a square neighborhood of a given radius,
+/// excluding the center point itself. The iteration proceeds in row-major order,
+/// from top-left to bottom-right.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
+/// * `N` - The number of dimensions.
 #[derive(Debug, PartialEq)]
 pub struct NeighborIterator<'a, T, const N: usize>
 where
@@ -288,7 +316,15 @@ mod tests {
 
         // Assert
         assert!(matrix.is_err());
-        assert_eq!(matrix.unwrap_err(), MatrixError::InvalidPoints(cols, rows));
+        assert_eq!(
+            matrix.unwrap_err(),
+            MatrixError::DimensionMismatch {
+                cols,
+                rows,
+                expected: cols * rows,
+                actual: cols * rows - 1,
+            }
+        );
     }
 
     #[rstest]
@@ -336,7 +372,7 @@ mod tests {
     #[case(16, 0, None)]
     #[case(0, 9, None)]
     #[case(16, 9, None)]
-    fn test_index(#[case] col: usize, #[case] row: usize, #[case] expected: Option<usize>) {
+    fn test_flatten_index(#[case] col: usize, #[case] row: usize, #[case] expected: Option<usize>) {
         // Arrange
         let cols = 16;
         let rows = 9;
@@ -344,7 +380,7 @@ mod tests {
         let matrix = MatrixView::new(cols, rows, &points).unwrap();
 
         // Act
-        let actual = matrix.index(col, row);
+        let actual = matrix.flatten_index(col, row);
 
         // Assert
         assert_eq!(actual, expected);
@@ -427,7 +463,7 @@ mod tests {
     #[case::right_top(0, 9)]
     #[case::left_bottom(16, 0)]
     #[case::right_bottom(16, 9)]
-    fn test_neighbors_empty(#[case] col: usize, #[case] row: usize) {
+    fn test_neighbors_out_of_bounds(#[case] col: usize, #[case] row: usize) {
         // Arrange
         let cols = 16;
         let rows = 9;
@@ -457,7 +493,7 @@ mod tests {
     #[case(0, (15, 8), vec![])]
     #[case(1, (15, 8), vec![126, 127, 142])]
     #[case(2, (15, 8), vec![109, 110, 111, 125, 126, 127, 141, 142])]
-    fn test_neighbors_with_size(
+    fn test_neighbors_within(
         #[case] radius: usize,
         #[case] (col, row): (usize, usize),
         #[case] expected: Vec<usize>,
@@ -471,7 +507,7 @@ mod tests {
         // Act
         let actual =
             matrix
-                .neighbors_with_size(col, row, radius)
+                .neighbors_within(col, row, radius)
                 .fold(Vec::new(), |mut acc, (index, _)| {
                     acc.push(index);
                     acc
@@ -529,9 +565,9 @@ mod tests {
     }
 
     #[rstest]
-    #[case::cols(3, 1)]
-    #[case::rows(2, 2)]
-    #[case::cols_rows(3, 2)]
+    #[case::col_out_of_bounds(3, 1)]
+    #[case::row_out_of_bounds(2, 2)]
+    #[case::both_out_of_bounds(3, 2)]
     fn test_neighbor_iterator_next_out_of_bounds(#[case] col: usize, #[case] row: usize) {
         // Arrange
         let cols = 3;
@@ -543,5 +579,68 @@ mod tests {
 
         // Act & Assert
         assert_eq!(iterator.next(), None);
+    }
+
+    #[test]
+    fn test_neighbors_single_cell_matrix() {
+        // Arrange: 1x1 matrix
+        let points = vec![[1.0; 3]];
+        let matrix = MatrixView::new(1, 1, &points).unwrap();
+
+        // Act
+        let neighbors: Vec<_> = matrix.neighbors(0, 0).collect();
+
+        // Assert: No neighbors for a 1x1 matrix
+        assert!(neighbors.is_empty());
+    }
+
+    #[test]
+    fn test_neighbors_with_large_radius() {
+        // Arrange: 5x5 matrix with radius=10 (much larger than matrix)
+        let cols = 5;
+        let rows = 5;
+        let points = vec![[0.0; 3]; cols * rows];
+        let matrix = MatrixView::new(cols, rows, &points).unwrap();
+
+        // Act: Center point with huge radius
+        let neighbors: Vec<_> = matrix
+            .neighbors_within(2, 2, 10)
+            .map(|(idx, _)| idx)
+            .collect();
+
+        // Assert: Should return all points except center (index 12)
+        let expected: Vec<_> = (0..25).filter(|&i| i != 12).collect();
+        assert_eq!(neighbors, expected);
+    }
+
+    #[test]
+    fn test_neighbor_iterator_collect() {
+        // Arrange
+        let cols = 3;
+        let rows = 3;
+        let points = vec![[0.0; 2]; cols * rows];
+        let matrix = MatrixView::new(cols, rows, &points).unwrap();
+
+        // Act: Use collect() instead of fold
+        let neighbors: Vec<usize> = matrix.neighbors(1, 1).map(|(idx, _)| idx).collect();
+
+        // Assert
+        assert_eq!(neighbors, vec![0, 1, 2, 3, 5, 6, 7, 8]);
+    }
+
+    #[test]
+    fn test_neighbor_iterator_with_take() {
+        // Arrange
+        let cols = 4;
+        let rows = 4;
+        let points = vec![[0.0; 2]; cols * rows];
+        let matrix = MatrixView::new(cols, rows, &points).unwrap();
+
+        // Act: Take only first 3 neighbors
+        let first_three: Vec<usize> = matrix.neighbors(2, 2).take(3).map(|(idx, _)| idx).collect();
+
+        // Assert
+        assert_eq!(first_three.len(), 3);
+        assert_eq!(first_three, vec![5, 6, 7]);
     }
 }

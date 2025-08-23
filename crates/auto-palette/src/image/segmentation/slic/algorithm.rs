@@ -135,7 +135,7 @@ where
             let col = center_index % matrix.cols;
             let row = center_index / matrix.cols;
 
-            matrix.neighbors_with_size(col, row, radius).for_each(
+            matrix.neighbors_within(col, row, radius).for_each(
                 |(neighbor_index, neighbor_pixel)| {
                     if !mask[neighbor_index] {
                         return;
@@ -545,7 +545,12 @@ mod tests {
         let error = actual.unwrap_err();
         assert_eq!(
             error,
-            SlicError::UnexpectedLength(MatrixError::InvalidPoints(48, 27))
+            SlicError::UnexpectedLength(MatrixError::DimensionMismatch {
+                cols: 48,
+                rows: 27,
+                expected: 48 * 27,
+                actual: 48 * 26,
+            })
         );
     }
 }
