@@ -11,11 +11,16 @@ use crate::{
 
 /// Weighted farthest point sampling algorithm.
 ///
-/// This algorithm selects points that are farthest apart from each other in the given dataset,
-/// taking into account the weights of the points.
+/// This algorithm extends the farthest point sampling by incorporating weights into
+/// the selection process. Points with higher weights are more likely to be selected,
+/// while still maintaining good spatial distribution through distance-based selection.
+///
+/// # Performance
+/// Time complexity: O(n * k) where n is the number of points and k is the number of samples.
+/// Space complexity: O(n) for storing minimum distances.
 ///
 /// # Type Parameters
-/// * `T` - The floating point type.
+/// * `T` - The floating point type used for calculations.
 #[derive(Debug, Clone, PartialEq)]
 pub struct WeightedFarthestSampling<T>
 where
@@ -29,14 +34,18 @@ impl<T> WeightedFarthestSampling<T>
 where
     T: FloatNumber,
 {
-    /// Creates a new `WeightedFarthestSampling` instance.
+    /// Creates a new `WeightedFarthestSampling` instance with the specified parameters.
     ///
     /// # Arguments
-    /// * `weights` - The weights of the points.
-    /// * `metric` - The distance metric to use for sampling.
+    /// * `weights` - The weights of the points. Higher weights increase selection probability.
+    ///   Must have the same length as the points to be sampled.
+    /// * `metric` - The distance metric to use for measuring spatial distribution.
     ///
     /// # Returns
     /// A new `WeightedFarthestSampling` instance.
+    ///
+    /// # Errors
+    /// * [`SamplingError::EmptyWeights`] - If the weights vector is empty.
     pub fn new(weights: Vec<T>, metric: DistanceMetric) -> Result<Self, SamplingError> {
         if weights.is_empty() {
             return Err(SamplingError::EmptyWeights);
@@ -44,14 +53,18 @@ where
         Ok(Self { weights, metric })
     }
 
-    /// Updates the minimum distances to the selected points.
+    /// Updates the minimum weighted distances from unselected points to the selected set.
     ///
+    /// This method maintains the invariant that `distances[i]` contains the minimum
+    /// weighted distance from point `i` to any selected point. The weighted distance
+    /// is calculated as `distance × weight[i]`, giving preference to points with
+    /// higher weights.
     ///
     /// # Arguments
-    /// * `distances` - The vector of minimum distances to the selected points.
-    /// * `points` - The points to consider for distance calculation.
-    /// * `selected_indices` - The indices of the selected points.
-    /// * `selected_point` - The point to update distances against.
+    /// * `distances` - The vector of minimum weighted distances to update.
+    /// * `points` - All points in the dataset.
+    /// * `selected_indices` - The set of already selected point indices.
+    /// * `selected_point` - The newly selected point to update distances against.
     #[inline]
     fn update_min_distances<const N: usize>(
         &self,
@@ -72,27 +85,46 @@ where
     }
 }
 
-const DEFAULT_INITIAL_INDEX: usize = 0;
-
 impl<T> SamplingAlgorithm<T> for WeightedFarthestSampling<T>
 where
     T: FloatNumber,
 {
-    fn sample<const N: usize>(
+    /// Selects the point with the maximum weight as the initial point.
+    ///
+    /// This ensures that the most important point (highest weight) is always
+    /// included in the sample set.
+    fn select_initial_index<const N: usize>(
         &self,
         points: &[Point<T, N>],
-        num_samples: usize,
-    ) -> Result<HashSet<usize>, SamplingError> {
+    ) -> Result<usize, SamplingError> {
         if points.is_empty() {
             return Err(SamplingError::EmptyPoints);
         }
+
         if points.len() != self.weights.len() {
-            return Err(SamplingError::WeightsLengthMismatch {
+            return Err(SamplingError::LengthMismatch {
                 points_len: points.len(),
                 weights_len: self.weights.len(),
             });
         }
 
+        // Find and return the index of the point with the maximum weight
+        self.weights
+            .iter()
+            .enumerate()
+            .max_by(|(_, weight1), (_, weight2)| {
+                weight1.partial_cmp(weight2).unwrap_or(Ordering::Equal)
+            })
+            .map(|(index, _)| index)
+            .ok_or(SamplingError::EmptyWeights)
+    }
+
+    fn sample<const N: usize>(
+        &self,
+        points: &[Point<T, N>],
+        num_samples: usize,
+    ) -> Result<HashSet<usize>, SamplingError> {
+        let initial_index = self.select_initial_index(points)?;
         if num_samples == 0 {
             return Ok(HashSet::new());
         }
@@ -100,15 +132,6 @@ where
             return Ok((0..points.len()).collect());
         }
 
-        let initial_index = self
-            .weights
-            .iter()
-            .enumerate()
-            .max_by(|(_, weight1), (_, weight2)| {
-                weight1.partial_cmp(weight2).unwrap_or(Ordering::Equal)
-            })
-            .map(|(index, _)| index)
-            .unwrap_or(DEFAULT_INITIAL_INDEX);
         let mut selected = HashSet::with_capacity(num_samples);
         selected.insert(initial_index);
 
@@ -129,7 +152,7 @@ where
                     distance1.partial_cmp(distance2).unwrap_or(Ordering::Equal)
                 })
                 .map(|(index, _)| index)
-                .unwrap_or(DEFAULT_INITIAL_INDEX);
+                .unwrap_or(0);
             // If the farthest point is already selected, break the loop
             if !selected.insert(farthest_index) {
                 break;
@@ -220,7 +243,6 @@ mod tests {
         // Act
         let points = sample_points();
         let actual = algorithm.sample(&points, num_samples).unwrap();
-        println!("actual: {:?}", actual);
 
         // Assert
         assert_eq!(actual.len(), expected.len());
@@ -256,9 +278,77 @@ mod tests {
         assert!(actual.is_err());
         assert_eq!(
             actual.unwrap_err(),
-            SamplingError::WeightsLengthMismatch {
+            SamplingError::LengthMismatch {
                 points_len: points.len(),
                 weights_len: weights.len(),
+            }
+        );
+    }
+
+    #[rstest]
+    #[case::multiple_points(
+        vec![1.0, 2.0, 8.0, 3.0, 5.0], // 8.0 at index 2 is the max
+        vec![[0.0, 0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0], [4.0, 0.0]],
+    2
+    )]
+    #[case::single_point(
+        vec![42.0],
+        vec![[1.0, 2.0]],
+    0
+    )]
+    #[case::equal_weights(
+        vec![5.0, 5.0, 5.0],
+        vec![[0.0, 0.0], [1.0, 0.0], [2.0, 0.0]],
+    2
+    )]
+    fn test_select_initial_index(
+        #[case] weights: Vec<f32>,
+        #[case] points: Vec<Point<f32, 2>>,
+        #[case] expected_index: usize,
+    ) {
+        // Arrange
+        let algorithm = WeightedFarthestSampling::new(weights, DistanceMetric::Euclidean).unwrap();
+
+        // Act
+        let actual = algorithm.select_initial_index(&points);
+
+        // Assert
+        assert!(actual.is_ok());
+        assert_eq!(actual.unwrap(), expected_index);
+    }
+
+    #[test]
+    fn test_select_initial_index_empty_points() {
+        // Arrange
+        let weights = vec![1.0, 2.0, 3.0];
+        let algorithm = WeightedFarthestSampling::new(weights, DistanceMetric::Euclidean).unwrap();
+        let points = empty_points();
+
+        // Act
+        let actual = algorithm.select_initial_index(&points);
+
+        // Assert
+        assert!(actual.is_err());
+        assert_eq!(actual.unwrap_err(), SamplingError::EmptyPoints);
+    }
+
+    #[test]
+    fn test_select_initial_index_weights_length_mismatch() {
+        // Arrange
+        let weights = vec![1.0, 2.0, 3.0];
+        let algorithm = WeightedFarthestSampling::new(weights, DistanceMetric::Euclidean).unwrap();
+        let points = vec![[0.0, 0.0], [1.0, 0.0]];
+
+        // Act
+        let actual = algorithm.select_initial_index(&points);
+
+        // Assert
+        assert!(actual.is_err());
+        assert_eq!(
+            actual.unwrap_err(),
+            SamplingError::LengthMismatch {
+                points_len: 2,
+                weights_len: 3,
             }
         );
     }
