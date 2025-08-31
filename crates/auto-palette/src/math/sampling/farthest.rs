@@ -11,11 +11,18 @@ use crate::{
 
 /// Farthest point sampling algorithm.
 ///
-/// This algorithm selects points that are farthest apart from each other in the given dataset.
+/// This algorithm iteratively selects points that maximize the minimum distance
+/// to already selected points. It provides a good spatial distribution of samples
+/// across the dataset.
+///
+/// # Performance
+/// Time complexity: O(n * k) where n is the number of points and k is the number of samples.
+/// Space complexity: O(n) for storing minimum distances.
 ///
 /// # Type Parameters
-/// * `T` - The floating point type.
+/// * `T` - The floating point type used for distance calculations.
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub struct FarthestSampling<T>
 where
     T: FloatNumber,
@@ -28,7 +35,7 @@ impl<T> FarthestSampling<T>
 where
     T: FloatNumber,
 {
-    /// Creates a new `FarthestSampling` instance.
+    /// Creates a new `FarthestSampling` instance with the specified distance metric.
     ///
     /// # Arguments
     /// * `metric` - The distance metric to use for sampling.
@@ -44,14 +51,19 @@ where
         }
     }
 
-    /// Updates the minimum distances to the selected points.
+    /// Updates the minimum distances from unselected points to the nearest selected point.
+    ///
+    /// This method maintains the invariant that `distances[i]` contains the minimum
+    /// distance from point `i` to any selected point. Points that are already selected
+    /// have their distance set to zero.
     ///
     /// # Arguments
-    /// * `distances` - The vector of minimum distances to the selected points.
-    /// * `points` - The points to consider for distance calculation.
-    /// * `selected_indices` - The indices of the selected points.
-    /// * `selected_point` - The point to update distances against.
+    /// * `distances` - The vector of minimum distances to update.
+    /// * `points` - All points in the dataset.
+    /// * `selected_indices` - The set of already selected point indices.
+    /// * `selected_point` - The newly selected point to update distances against.
     #[inline]
+    #[allow(dead_code)]
     fn update_min_distances<const N: usize>(
         &self,
         distances: &mut [T],
@@ -74,12 +86,11 @@ impl<T> Default for FarthestSampling<T>
 where
     T: FloatNumber,
 {
+    /// Creates a default `FarthestSampling` instance using Euclidean distance.
     fn default() -> Self {
         Self::new(DistanceMetric::default())
     }
 }
-
-const INITIAL_INDEX: usize = 0;
 
 impl<T> SamplingAlgorithm<T> for FarthestSampling<T>
 where
@@ -90,10 +101,7 @@ where
         points: &[Point<T, N>],
         num_samples: usize,
     ) -> Result<HashSet<usize>, SamplingError> {
-        if points.is_empty() {
-            return Err(SamplingError::EmptyPoints);
-        }
-
+        let initial_index = self.select_initial_index(points)?;
         if num_samples == 0 {
             return Ok(HashSet::new());
         }
@@ -103,10 +111,10 @@ where
         }
 
         let mut selected = HashSet::with_capacity(num_samples);
-        selected.insert(INITIAL_INDEX);
+        selected.insert(initial_index);
 
         let mut min_distances = vec![T::infinity(); points.len()];
-        let initial_point = &points[INITIAL_INDEX];
+        let initial_point = &points[initial_index];
         self.update_min_distances(&mut min_distances, points, &selected, initial_point);
 
         while selected.len() < num_samples {
@@ -122,8 +130,20 @@ where
     }
 }
 
+/// Finds the index of the unselected point that is farthest from all selected points.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
+///
+/// # Arguments
+/// * `distances` - The minimum distances from each point to the selected set.
+/// * `selected` - The set of already selected indices.
+///
+/// # Returns
+/// The index of the farthest unselected point, or 0 if all points are selected.
 #[inline]
 #[must_use]
+#[allow(dead_code)]
 fn find_farthest_index<T>(distances: &[T], selected: &HashSet<usize>) -> usize
 where
     T: FloatNumber,
@@ -136,7 +156,7 @@ where
             distance1.partial_cmp(distance2).unwrap_or(Ordering::Equal)
         })
         .map(|(index, _)| index)
-        .unwrap_or(INITIAL_INDEX)
+        .unwrap_or(0)
 }
 
 #[cfg(test)]
@@ -217,11 +237,53 @@ mod tests {
     }
 
     #[test]
-    fn test_sample_empty() {
+    fn test_sample_empty_points() {
         // Act
         let points = empty_points();
         let algorithm = FarthestSampling::default();
         let actual = algorithm.sample(&points, 3);
+
+        // Assert
+        assert!(actual.is_err());
+        assert_eq!(actual.unwrap_err(), SamplingError::EmptyPoints);
+    }
+
+    #[test]
+    fn test_select_initial_index() {
+        // Arrange
+        let algorithm = FarthestSampling::default();
+        let points = sample_points();
+
+        // Act
+        let actual = algorithm.select_initial_index(&points);
+
+        // Assert
+        assert!(actual.is_ok());
+        assert_eq!(actual.unwrap(), 0); // Should return the first index
+    }
+
+    #[test]
+    fn test_select_initial_index_single_point() {
+        // Arrange
+        let algorithm = FarthestSampling::default();
+        let points = vec![[1.0, 2.0]];
+
+        // Act
+        let actual = algorithm.select_initial_index(&points);
+
+        // Assert
+        assert!(actual.is_ok());
+        assert_eq!(actual.unwrap(), 0);
+    }
+
+    #[test]
+    fn test_select_initial_index_empty_points() {
+        // Arrange
+        let algorithm = FarthestSampling::default();
+        let points: Vec<Point<f32, 2>> = vec![];
+
+        // Act
+        let actual = algorithm.select_initial_index(&points);
 
         // Assert
         assert!(actual.is_err());

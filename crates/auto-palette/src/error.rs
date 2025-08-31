@@ -55,13 +55,13 @@ mod tests {
     #[test]
     fn test_swatches_selection_error() {
         // Act
-        let cause = SamplingError::InvalidDiversity;
+        let cause = SamplingError::DiversityOutOfRange;
         let actual = Error::SwatchSelectionError { cause };
 
         // Assert
         assert_eq!(
             actual.to_string(),
-            "Swatch selection process failed with error: Invalid diversity: Diversity score must be between 0.0 and 1.0."
+            "Swatch selection process failed with error: invalid diversity factor: value must be in range [0.0, 1.0]"
         );
     }
 
