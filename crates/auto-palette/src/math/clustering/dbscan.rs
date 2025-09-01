@@ -131,7 +131,7 @@ where
     fn run(&self, points: &[Point<T, N>]) -> Result<Self::Output, Self::Error> {
         let mut labels = vec![Self::LABEL_UNCLASSIFIED; points.len()];
         let mut current_label = Self::LABEL_INITIAL;
-        let neighbor_search = KdTreeSearch::build(points, self.metric, Self::LEAF_SIZE);
+        let neighbor_search = KdTreeSearch::with_leaf_size(points, self.metric, Self::LEAF_SIZE);
         for (index, point) in points.iter().enumerate() {
             if labels[index] != Self::LABEL_UNCLASSIFIED {
                 continue;

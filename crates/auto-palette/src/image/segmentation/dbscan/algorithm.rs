@@ -69,7 +69,8 @@ where
             .iter()
             .map(|segment| (segment.label(), segment.center()))
             .unzip();
-        let center_search = KdTreeSearch::build(&centers, self.metric, Self::MAX_LEAF_SIZE);
+        let center_search =
+            KdTreeSearch::with_leaf_size(&centers, self.metric, Self::MAX_LEAF_SIZE);
 
         // Merge small segments into their nearest large segment
         let relocation_table: FxHashMap<_, _> = builder
@@ -151,7 +152,7 @@ where
             .max(1);
         let segment_capacity = (width * height) / self.segments;
 
-        let pixel_search = KdTreeSearch::build(pixels, self.metric, Self::MAX_LEAF_SIZE);
+        let pixel_search = KdTreeSearch::with_leaf_size(pixels, self.metric, Self::MAX_LEAF_SIZE);
         let find_neighbors = |index: usize| -> Vec<Neighbor<T>> {
             let seed = &pixels[index];
             let (sx, sy) = Self::index_to_coords(index, width);
