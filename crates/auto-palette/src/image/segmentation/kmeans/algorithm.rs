@@ -66,7 +66,7 @@ where
     ) -> bool {
         builder.iter_mut().for_each(SegmentMetadata::clear);
 
-        let center_search = KdTreeSearch::build(centers, self.metric, 16);
+        let center_search = KdTreeSearch::with_leaf_size(centers, self.metric, 16);
         for (index, pixel) in pixels.iter().enumerate() {
             if !mask[index] {
                 continue;

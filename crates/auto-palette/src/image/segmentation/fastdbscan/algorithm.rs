@@ -60,7 +60,7 @@ where
             .trunc_to_usize()
             .max(1);
 
-        let pixel_search = KdTreeSearch::build(pixels, self.metric, Self::MAX_LEAF_SIZE);
+        let pixel_search = KdTreeSearch::with_leaf_size(pixels, self.metric, Self::MAX_LEAF_SIZE);
         pixels
             .iter()
             .zip(mask)
@@ -209,7 +209,8 @@ where
             return Ok(builder.build());
         }
 
-        let core_pixel_search = KdTreeSearch::build(&core_pixels, self.metric, Self::MAX_LEAF_SIZE);
+        let core_pixel_search =
+            KdTreeSearch::with_leaf_size(&core_pixels, self.metric, Self::MAX_LEAF_SIZE);
         let core_labels = self.label_core_pixels(&core_pixels, &core_pixel_search);
         self.build_segments(&mut builder, pixels, mask, &core_pixel_search, &core_labels);
         Ok(builder.build())
