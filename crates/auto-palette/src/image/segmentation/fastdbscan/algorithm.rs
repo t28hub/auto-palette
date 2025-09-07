@@ -70,7 +70,7 @@ where
                     return None;
                 }
 
-                let neighbors = pixel_search.search_radius(pixel, self.epsilon);
+                let neighbors = pixel_search.search_within_radius(pixel, self.epsilon);
                 (neighbors.len() >= self.min_pixels).then_some(*pixel)
             })
             .collect()
@@ -89,7 +89,7 @@ where
                 continue;
             }
 
-            let neighbors = core_pixel_search.search_radius(core_pixel, self.epsilon);
+            let neighbors = core_pixel_search.search_within_radius(core_pixel, self.epsilon);
             // Not enough neighbors to form a segment
             if neighbors.len() < self.min_pixels {
                 labels[index] = Self::LABEL_NOISE;
@@ -123,7 +123,7 @@ where
         S: NeighborSearch<T, 5>,
     {
         while let Some(neighbor) = queue.pop_front() {
-            let neighbor_index = neighbor.index;
+            let neighbor_index = neighbor.index();
             // Label the neighbor with the current segment label
             if labels[neighbor_index] == Self::LABEL_NOISE {
                 labels[neighbor_index] = current_label;
@@ -140,7 +140,8 @@ where
             labels[neighbor_index] = current_label;
 
             let neighbor_pixel = &pixels[neighbor_index];
-            let secondary_neighbors = pixel_search.search_radius(neighbor_pixel, self.epsilon);
+            let secondary_neighbors =
+                pixel_search.search_within_radius(neighbor_pixel, self.epsilon);
             if secondary_neighbors.len() >= self.min_pixels {
                 queue.extend(secondary_neighbors);
             }
@@ -166,11 +167,11 @@ where
                 continue;
             };
 
-            if nearest.distance > self.epsilon {
+            if nearest.distance() > self.epsilon {
                 continue;
             }
 
-            let core_label = core_labels[nearest.index];
+            let core_label = core_labels[nearest.index()];
             // Skip unlabelled, noise, or ignored pixels
             if core_label == Self::LABEL_UNLABELED
                 || core_label == Self::LABEL_NOISE

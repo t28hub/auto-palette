@@ -10,14 +10,17 @@ use crate::math::{
 /// Linear search algorithm for finding nearest neighbors.
 ///
 /// # Type Parameters
-/// * `T` - The floating point type.
+/// * `T` - The floating point type used for distances (e.g., `f32`, `f64`).
 /// * `N` - The dimension of the points.
 #[derive(Debug)]
 pub struct LinearSearch<'a, T, const N: usize>
 where
     T: FloatNumber,
 {
+    /// Reference to the points to search.
     points: &'a [Point<T, N>],
+
+    /// The distance metric used for measuring distances.
     metric: DistanceMetric,
 }
 
@@ -77,7 +80,7 @@ where
             .fold(None, |nearest, (index, point)| {
                 let distance = self.metric.measure(query, point);
                 if let Some(best) = nearest {
-                    if distance < best.distance {
+                    if distance < best.distance() {
                         Some(Neighbor::new(index, distance))
                     } else {
                         Some(best)
@@ -88,7 +91,7 @@ where
             })
     }
 
-    fn search_radius(&self, query: &Point<T, N>, radius: T) -> Vec<Neighbor<T>> {
+    fn search_within_radius(&self, query: &Point<T, N>, radius: T) -> Vec<Neighbor<T>> {
         if radius < T::zero() || self.points.is_empty() {
             return Vec::new();
         }
@@ -140,11 +143,11 @@ mod tests {
     fn test_build() {
         // Act
         let points = sample_points();
-        let search = LinearSearch::build(&points, DistanceMetric::Euclidean);
+        let actual = LinearSearch::build(&points, DistanceMetric::Euclidean);
 
         // Assert
-        assert_eq!(search.points.len(), 14);
-        assert_eq!(search.metric, DistanceMetric::Euclidean);
+        assert_eq!(actual.points.len(), 14);
+        assert_eq!(actual.metric, DistanceMetric::Euclidean);
     }
 
     #[test]
@@ -159,12 +162,9 @@ mod tests {
 
         // Assert
         assert_eq!(neighbors.len(), 3);
-        assert_eq!(neighbors[0].index, 12);
-        assert_eq!(neighbors[0].distance, 8.0_f32.sqrt());
-        assert_eq!(neighbors[1].index, 13);
-        assert_eq!(neighbors[1].distance, 8.0_f32.sqrt());
-        assert_eq!(neighbors[2].index, 0);
-        assert_eq!(neighbors[2].distance, 19.0_f32.sqrt());
+        assert_eq!(neighbors[0], Neighbor::new(12, 8.0_f32.sqrt()));
+        assert_eq!(neighbors[1], Neighbor::new(13, 8.0_f32.sqrt()));
+        assert_eq!(neighbors[2], Neighbor::new(0, 19.0_f32.sqrt()));
     }
 
     #[test]
@@ -175,10 +175,24 @@ mod tests {
 
         // Act
         let query = [2.0, 5.0, 6.0];
-        let neighbors = search.search(&query, 0);
+        let actual = search.search(&query, 0);
 
         // Assert
-        assert!(neighbors.is_empty());
+        assert!(actual.is_empty());
+    }
+
+    #[test]
+    fn test_search_k_greater_than_points() {
+        // Arrange
+        let points = sample_points();
+        let search = LinearSearch::build(&points, DistanceMetric::Euclidean);
+
+        // Act
+        let query = [2.0, 5.0, 6.0];
+        let actual = search.search(&query, 20);
+
+        // Assert
+        assert_eq!(actual.len(), points.len());
     }
 
     #[test]
@@ -189,10 +203,10 @@ mod tests {
 
         // Act
         let query = [2.0, 5.0, 6.0];
-        let neighbors = search.search(&query, 3);
+        let actual = search.search(&query, 3);
 
         // Assert
-        assert!(neighbors.is_empty());
+        assert!(actual.is_empty());
     }
 
     #[test]
@@ -203,11 +217,11 @@ mod tests {
 
         // Act
         let query = [2.0, 5.0, 6.0];
-        let nearest = search.search_nearest(&query).unwrap();
+        let actual = search.search_nearest(&query);
 
         // Assert
-        assert_eq!(nearest.index, 12);
-        assert_eq!(nearest.distance, 8.0_f32.sqrt());
+        assert!(actual.is_some());
+        assert_eq!(actual.unwrap(), Neighbor::new(12, 8.0_f32.sqrt()));
     }
 
     #[test]
@@ -218,55 +232,53 @@ mod tests {
 
         // Act
         let query = [2.0, 5.0, 6.0];
-        let nearest = search.search_nearest(&query);
+        let actual = search.search_nearest(&query);
 
         // Assert
-        assert!(nearest.is_none());
+        assert!(actual.is_none());
     }
 
     #[test]
-    fn test_search_radius() {
+    fn test_search_within_radius() {
         // Arrange
         let points = sample_points();
         let search = LinearSearch::build(&points, DistanceMetric::Euclidean);
 
         // Act
         let query = [2.0, 5.0, 6.0];
-        let neighbors = search.search_radius(&query, 4.0);
+        let actual = search.search_within_radius(&query, 4.0);
 
         // Assert
-        assert_eq!(neighbors.len(), 2);
-        assert_eq!(neighbors[0].index, 12);
-        assert_eq!(neighbors[0].distance, 8.0_f32.sqrt());
-        assert_eq!(neighbors[1].index, 13);
-        assert_eq!(neighbors[1].distance, 8.0_f32.sqrt());
+        assert_eq!(actual.len(), 2);
+        assert_eq!(actual[0], Neighbor::new(12, 8.0_f32.sqrt()));
+        assert_eq!(actual[1], Neighbor::new(13, 8.0_f32.sqrt()));
     }
 
     #[test]
-    fn test_search_radius_zero() {
+    fn test_search_within_radius_zero() {
         // Arrange
         let points = sample_points();
         let search = LinearSearch::build(&points, DistanceMetric::Euclidean);
 
         // Act
         let query = [2.0, 5.0, 6.0];
-        let neighbors = search.search_radius(&query, 0.0);
+        let actual = search.search_within_radius(&query, 0.0);
 
         // Assert
-        assert!(neighbors.is_empty());
+        assert!(actual.is_empty());
     }
 
     #[test]
-    fn test_search_radius_empty() {
+    fn test_search_within_radius_empty() {
         // Arrange
         let points = empty_points();
         let search = LinearSearch::build(&points, DistanceMetric::Euclidean);
 
         // Act
         let query = [2.0, 5.0, 6.0];
-        let neighbors = search.search_radius(&query, 4.0);
+        let actual = search.search_within_radius(&query, 4.0);
 
         // Assert
-        assert!(neighbors.is_empty());
+        assert!(actual.is_empty());
     }
 }

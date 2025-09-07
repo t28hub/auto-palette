@@ -81,8 +81,8 @@ where
                     .search(s.center(), 2)
                     .into_iter()
                     .find_map(|n| {
-                        if labels[n.index] != s.label() {
-                            Some((s.label(), labels[n.index]))
+                        if labels[n.index()] != s.label() {
+                            Some((s.label(), labels[n.index()]))
                         } else {
                             None
                         }
@@ -157,10 +157,10 @@ where
             let seed = &pixels[index];
             let (sx, sy) = Self::index_to_coords(index, width);
             pixel_search
-                .search_radius(seed, self.epsilon)
+                .search_within_radius(seed, self.epsilon)
                 .into_iter()
                 .filter(|neighbor| {
-                    let neighbor_index = neighbor.index;
+                    let neighbor_index = neighbor.index();
                     let (nx, xy) = Self::index_to_coords(neighbor_index, width);
                     nx.abs_diff(sx) + xy.abs_diff(sy) <= spatial_radius
                 })
@@ -207,7 +207,7 @@ where
                     break;
                 }
 
-                let neighbor_index = neighbor.index;
+                let neighbor_index = neighbor.index();
                 if !mask[neighbor_index] {
                     labels[neighbor_index] = Self::LABEL_IGNORED;
                     continue;

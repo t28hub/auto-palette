@@ -40,7 +40,7 @@ enum Node {
 /// for optimal performance across different dataset sizes.
 ///
 /// # Type Parameters
-/// * `T` - The floating point type.
+/// * `T` - The floating point type used for distances (e.g., `f32`, `f64`).
 /// * `N` - The dimension of the points.
 #[derive(Debug)]
 pub struct KdTreeSearch<'a, T, const N: usize>
@@ -274,7 +274,7 @@ where
         strategy.into_result()
     }
 
-    fn search_radius(&self, query: &Point<T, N>, radius: T) -> Vec<Neighbor<T>> {
+    fn search_within_radius(&self, query: &Point<T, N>, radius: T) -> Vec<Neighbor<T>> {
         let Some(root) = self.root else {
             return Vec::new();
         };
@@ -375,7 +375,7 @@ where
         if self.neighbors.len() < self.k {
             self.neighbors.push(Neighbor::new(point_index, distance));
         } else if let Some(farthest) = self.neighbors.peek() {
-            if distance < farthest.distance {
+            if distance < farthest.distance() {
                 self.neighbors.pop();
                 self.neighbors.push(Neighbor::new(point_index, distance));
             }
@@ -385,7 +385,7 @@ where
     fn should_continue(&self, distance: T) -> bool {
         self.neighbors
             .peek()
-            .is_none_or(|farthest| self.neighbors.len() < self.k || distance < farthest.distance)
+            .is_none_or(|farthest| self.neighbors.len() < self.k || distance < farthest.distance())
     }
 
     fn into_result(self) -> Self::Result {
@@ -426,7 +426,11 @@ where
     type Result = Option<Neighbor<T>>;
 
     fn visit_point(&mut self, point_index: usize, distance: T) {
-        if self.nearest.as_ref().is_none_or(|n| distance < n.distance) {
+        if self
+            .nearest
+            .as_ref()
+            .is_none_or(|n| distance < n.distance())
+        {
             self.nearest = Some(Neighbor::new(point_index, distance));
         }
     }
@@ -434,7 +438,7 @@ where
     fn should_continue(&self, distance: T) -> bool {
         self.nearest
             .as_ref()
-            .is_none_or(|nearest| distance < nearest.distance)
+            .is_none_or(|nearest| distance < nearest.distance())
     }
 
     fn into_result(self) -> Self::Result {
@@ -766,14 +770,14 @@ mod tests {
     }
 
     #[test]
-    fn test_search_radius() {
+    fn test_search_within_radius() {
         // Arrange
         let points = sample_points();
         let search = KdTreeSearch::with_leaf_size(&points, DistanceMetric::Euclidean, 4);
 
         // Act
         let query = [3.0, 5.0, 6.0];
-        let actual = search.search_radius(&query, 4.5);
+        let actual = search.search_within_radius(&query, 4.5);
 
         // Assert
         assert_eq!(actual.len(), 2);
@@ -782,42 +786,42 @@ mod tests {
     }
 
     #[test]
-    fn test_search_radius_with_zero_radius() {
+    fn test_search_within_radius_with_zero_radius() {
         // Arrange
         let points = sample_points();
         let search = KdTreeSearch::with_leaf_size(&points, DistanceMetric::Euclidean, 4);
 
         // Act
         let query = [3.0, 5.0, 6.0];
-        let actual = search.search_radius(&query, 0.0);
+        let actual = search.search_within_radius(&query, 0.0);
 
         // Assert
         assert!(actual.is_empty());
     }
 
     #[test]
-    fn test_search_radius_with_negative_radius() {
+    fn test_search_within_radius_with_negative_radius() {
         // Arrange
         let points = sample_points();
         let search = KdTreeSearch::with_leaf_size(&points, DistanceMetric::Euclidean, 4);
 
         // Act
         let query = [3.0, 5.0, 6.0];
-        let actual = search.search_radius(&query, -1.0);
+        let actual = search.search_within_radius(&query, -1.0);
 
         // Assert
         assert!(actual.is_empty());
     }
 
     #[test]
-    fn test_search_radius_exact_match() {
+    fn test_search_within_radius_exact_match() {
         // Arrange
         let points = sample_points();
         let search = KdTreeSearch::with_leaf_size(&points, DistanceMetric::Euclidean, 4);
 
         // Act
         let query = [3.0, 9.0, 1.0]; // Exact match with point at index 3
-        let actual = search.search_radius(&query, 0.001);
+        let actual = search.search_within_radius(&query, 0.001);
 
         // Assert
         assert_eq!(actual.len(), 1);
@@ -825,42 +829,42 @@ mod tests {
     }
 
     #[test]
-    fn test_search_radius_empty_points() {
+    fn test_search_within_radius_empty_points() {
         // Arrange
         let points = empty_points();
         let search = KdTreeSearch::with_leaf_size(&points, DistanceMetric::Euclidean, 4);
 
         // Act
         let query = [3.0, 5.0, 6.0];
-        let actual = search.search_radius(&query, 1.0);
+        let actual = search.search_within_radius(&query, 1.0);
 
         // Assert
         assert!(actual.is_empty());
     }
 
     #[test]
-    fn test_search_radius_large() {
+    fn test_search_within_radius_large() {
         // Arrange
         let points = sample_points();
         let search = KdTreeSearch::with_leaf_size(&points, DistanceMetric::Euclidean, 4);
 
         // Act
         let query = [5.0, 5.0, 5.0];
-        let actual = search.search_radius(&query, 100.0);
+        let actual = search.search_within_radius(&query, 100.0);
 
         // Assert
         assert_eq!(actual.len(), points.len());
     }
 
     #[test]
-    fn test_search_radius_single_point() {
+    fn test_search_within_radius_single_point() {
         // Arrange
         let points = vec![[3.0, 5.0, 6.0]];
         let search = KdTreeSearch::with_leaf_size(&points, DistanceMetric::Euclidean, 2);
 
         // Act
         let query = [1.0, 1.0, 1.0];
-        let neighbors = search.search_radius(&query, 45.0);
+        let neighbors = search.search_within_radius(&query, 45.0);
 
         // Assert
         assert_eq!(neighbors.len(), 1);
@@ -868,14 +872,14 @@ mod tests {
     }
 
     #[test]
-    fn test_search_radius_boundary() {
+    fn test_search_within_radius_boundary() {
         // Arrange
         let points = sample_points();
         let search = KdTreeSearch::with_leaf_size(&points, DistanceMetric::Euclidean, 4);
 
         // Act
         let query = [3.0, 5.0, 6.0];
-        let actual = search.search_radius(&query, 1.0);
+        let actual = search.search_within_radius(&query, 1.0);
 
         // Assert
         assert_eq!(actual.len(), 1);
@@ -883,14 +887,14 @@ mod tests {
     }
 
     #[test]
-    fn test_search_radius_no_matches() {
+    fn test_search_within_radius_no_matches() {
         // Arrange
         let points = sample_points();
         let search = KdTreeSearch::with_leaf_size(&points, DistanceMetric::Euclidean, 4);
 
         // Act
         let query = [100.0, 100.0, 100.0];
-        let actual = search.search_radius(&query, 10.0);
+        let actual = search.search_within_radius(&query, 10.0);
 
         // Assert
         assert!(actual.is_empty());
