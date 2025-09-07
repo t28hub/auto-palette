@@ -98,7 +98,7 @@ where
     {
         let mut queue: VecDeque<_> = neighbors.into();
         while let Some(neighbor) = queue.pop_front() {
-            let index = neighbor.index;
+            let index = neighbor.index();
             let point = &points[index];
             if labels[index] == Self::LABEL_NOISE {
                 labels[index] = label;
@@ -112,7 +112,7 @@ where
 
             labels[index] = label;
 
-            let secondary_neighbors = neighbor_search.search_radius(point, self.epsilon);
+            let secondary_neighbors = neighbor_search.search_within_radius(point, self.epsilon);
             if secondary_neighbors.len() >= self.min_points {
                 queue.extend(secondary_neighbors);
             }
@@ -137,7 +137,7 @@ where
                 continue;
             }
 
-            let neighbors = neighbor_search.search_radius(point, self.epsilon);
+            let neighbors = neighbor_search.search_within_radius(point, self.epsilon);
             if neighbors.len() < self.min_points {
                 labels[index] = Self::LABEL_NOISE;
                 continue;

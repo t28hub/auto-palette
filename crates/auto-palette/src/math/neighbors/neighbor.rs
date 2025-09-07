@@ -4,17 +4,21 @@ use crate::math::FloatNumber;
 
 /// A neighbor in a nearest neighbor search.
 ///
+/// Represents a point found during a neighbor search, containing its index
+/// in the original dataset and the distance from the query point.
+///
 /// # Type Parameters
-/// * `T` - The floating point type.
+/// * `T` - The floating point type used for distances (e.g., `f32`, `f64`).
 #[derive(Debug)]
 pub struct Neighbor<T>
 where
     T: FloatNumber,
 {
     /// The index of the neighbor.
-    pub(crate) index: usize,
+    index: usize,
+
     /// The distance to the neighbor.
-    pub(crate) distance: T,
+    distance: T,
 }
 
 impl<T> Neighbor<T>
@@ -36,6 +40,18 @@ where
     pub fn new(index: usize, distance: T) -> Self {
         debug_assert!(distance >= T::zero(), "Distance must be non-negative");
         Self { index, distance }
+    }
+
+    /// Returns the index of the neighbor.
+    #[inline(always)]
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
+    /// Returns the distance to the neighbor.
+    #[inline(always)]
+    pub fn distance(&self) -> T {
+        self.distance
     }
 }
 
@@ -72,6 +88,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+
     use super::*;
 
     #[test]
@@ -82,6 +100,16 @@ mod tests {
         // Assert
         assert_eq!(neighbor.index, 0);
         assert_eq!(neighbor.distance, 2.0);
+    }
+
+    #[test]
+    fn test_neighbor_zero_distance() {
+        // Act
+        let neighbor = Neighbor::new(1, 0.0);
+
+        // Assert
+        assert_eq!(neighbor.index, 1);
+        assert_eq!(neighbor.distance, 0.0);
     }
 
     #[test]
@@ -118,10 +146,10 @@ mod tests {
         let neighbor2 = Neighbor::new(1, 2.0);
 
         // Act
-        let ordering = neighbor1.cmp(&neighbor2);
+        let actual = neighbor1.cmp(&neighbor2);
 
-        // Act & Assert
-        assert_eq!(ordering, Ordering::Less);
+        // Assert
+        assert_eq!(actual, Ordering::Less);
     }
 
     #[test]
@@ -131,10 +159,10 @@ mod tests {
         let neighbor2 = Neighbor::new(1, 2.0);
 
         // Act
-        let ordering = neighbor1.cmp(&neighbor2);
+        let actual = neighbor1.cmp(&neighbor2);
 
-        // Act & Assert
-        assert_eq!(ordering, Ordering::Equal);
+        // Assert
+        assert_eq!(actual, Ordering::Equal);
     }
 
     #[test]
@@ -144,9 +172,9 @@ mod tests {
         let neighbor2 = Neighbor::new(1, 1.0);
 
         // Act
-        let ordering = neighbor1.cmp(&neighbor2);
+        let actual = neighbor1.cmp(&neighbor2);
 
-        // Act & Assert
-        assert_eq!(ordering, Ordering::Greater);
+        // Act
+        assert_eq!(actual, Ordering::Greater);
     }
 }

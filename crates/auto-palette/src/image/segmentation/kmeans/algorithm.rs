@@ -73,7 +73,7 @@ where
             }
 
             if let Some(nearest) = center_search.search_nearest(pixel) {
-                builder.get_mut(&nearest.index).insert(index, pixel);
+                builder.get_mut(&nearest.index()).insert(index, pixel);
             }
         }
 
