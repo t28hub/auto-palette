@@ -4,7 +4,7 @@ members  = ["crates/*"]
 
 [workspace.package]
 edition    = "2021"
-version    = "0.9.1"
+version    = "0.9.2"
 authors    = ["Tatsuya Maki <t28oogle@gmail.com>"]
 license    = "MIT"
 homepage   = "https://github.com/t28hub/auto-palette"
@@ -14,7 +14,7 @@ repository = "https://github.com/t28hub/auto-palette"
 anyhow             = "1.0.97"
 arboard            = "3.4.1"
 assert_cmd         = "2.0.14"
-auto-palette       = { version = "0.9.1", path = "crates/auto-palette", default-features = false }
+auto-palette       = { version = "0.9.2", path = "crates/auto-palette", default-features = false }
 clap               = { version = "4.5.4", features = ["cargo"] }
 divan              = { version = "3.0.3", package = "codspeed-divan-compat" }
 image              = { version = "0.25.1", default-features = false }

@@ -37,11 +37,11 @@ Using `auto-palette` in your Rust project, add it to your `Cargo.toml`.
 
 ```toml
 [dependencies]
-auto-palette = "0.9.1"
+auto-palette = "0.9.2"
 ```
 
 > [!NOTE]
-> This project is currently in version is pre-1.0.0. While the API is stable for general use, breaking changes may still occur in future updates.
+> This project is pre-1.0.0. While the API is generally stable, breaking changes may still occur.
 
 ## Usage
 
@@ -59,7 +59,7 @@ fn main() {
   println!("Extracted {} swatches", palette.len());
 
   // Find the 5 prominent colors in the palette and print their information
-  let swatches = palette.find_swatches(5);
+  let swatches = palette.find_swatches(5).unwrap();
   for swatch in swatches {
     println!("Color: {}", swatch.color().to_hex_string());
     println!("Position: {:?}", swatch.position());
@@ -94,7 +94,7 @@ This method requires the `image` feature to be enabled. The `image` feature is e
 
 ```toml
 [dependencies]
-auto-palette = { version = "0.8.0", features = ["image"] }
+auto-palette = { version = "0.9.2", features = ["image"] }
 image        = { version = "0.25.6", features = ["jpeg"] } # if you want to load jpeg images
 ```
 
