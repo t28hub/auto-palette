@@ -52,7 +52,7 @@ To use `auto-palette` in your Rust project, add it to your `Cargo.toml`.
 
 ```toml
 [dependencies]
-auto-palette = "0.9.1"
+auto-palette = "0.9.2"
 ```
 
 ### CLI Tool

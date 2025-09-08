@@ -4,13 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/t28hub/auto-palette/compare/v0.9.1...HEAD)
+## [Unreleased](https://github.com/t28hub/auto-palette/compare/v0.9.2...HEAD)
 ### Added
 ### Changed
 ### Deprecated
 ### Removed
 ### Fixed
 ### Security
+
+## [v0.9.2](https://github.com/t28hub/auto-palette/compare/v0.9.1...v0.9.2) - 2025-09-08
+### Added
+- Add 2D Gaussian function support for improved Theme scoring accuracy. (#217)
+- Add color gamut support for better color space handling in `color` module.
+
+### Changed
+- Improve KD-tree implementation with better API consistency and comprehensive documentation. (#228, #229)
+- Optimize `RadiusSearchStrategy` initial capacity from 32 to 128 for better performance. (#230)
+- Enhance sampling algorithms with clearer APIs, better error handling, and improved test coverage. (#227)
+- Improve `MatrixView` API clarity and documentation. (#224)
+- Enhance math module with improved documentation, safety checks, and comprehensive test coverage. (#225)
+- Add `#[inline(always)]` attribute to `DistanceMetric::measure` for improved performance. (#216)
 
 ## [v0.9.1](https://github.com/t28hub/auto-palette/compare/v0.9.0...v0.9.1) - 2025-06-15
 ### Changed
@@ -135,8 +148,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Initial release.
 
 
-[Unreleased]: https://github.com/t28hub/auto-palette/compare/v0.9.0...HEAD
-[v0.8.2]: https://github.com/t28hub/auto-palette/compare/v0.8.2...v0.8.3
+[Unreleased]: https://github.com/t28hub/auto-palette/compare/v0.9.2...HEAD
+[v0.9.2]: https://github.com/t28hub/auto-palette/compare/v0.9.1...v0.9.2
+[v0.9.1]: https://github.com/t28hub/auto-palette/compare/v0.9.0...v0.9.1
+[v0.9.0]: https://github.com/t28hub/auto-palette/compare/v0.8.2...v0.9.0
 [v0.8.2]: https://github.com/t28hub/auto-palette/compare/v0.8.1...v0.8.2
 [v0.8.1]: https://github.com/t28hub/auto-palette/compare/v0.8.0...v0.8.1
 [v0.8.0]: https://github.com/t28hub/auto-palette/compare/v0.7.0...v0.8.0
