@@ -466,7 +466,7 @@ where
     T: FloatNumber,
 {
     /// Initial capacity for the neighbors vector to minimize reallocations.
-    const INITIAL_NEIGHBOR_CAPACITY: usize = 32;
+    const INITIAL_NEIGHBOR_CAPACITY: usize = 128;
 
     /// Creates a new radius search strategy.
     ///
@@ -477,9 +477,21 @@ where
     /// A new strategy instance with an empty results vector.
     #[must_use]
     fn new(radius: T) -> Self {
+        Self::with_capacity(radius, Self::INITIAL_NEIGHBOR_CAPACITY)
+    }
+
+    /// Creates a new radius search strategy with specified initial capacity.
+    ///
+    /// # Arguments
+    /// * `radius` - Maximum distance from the query point.
+    /// * `capacity` - Initial capacity for the neighbors vector.
+    ///
+    /// # Returns
+    /// A new strategy instance with pre-allocated capacity.
+    fn with_capacity(radius: T, capacity: usize) -> Self {
         Self {
             radius,
-            neighbors: Vec::with_capacity(Self::INITIAL_NEIGHBOR_CAPACITY),
+            neighbors: Vec::with_capacity(capacity),
         }
     }
 }
@@ -898,5 +910,53 @@ mod tests {
 
         // Assert
         assert!(actual.is_empty());
+    }
+
+    #[test]
+    fn test_k_nearest_search_strategy() {
+        // Act
+        let actual = KNearestSearchStrategy::<f32>::new(4);
+
+        // Assert
+        assert_eq!(actual.k, 4);
+        assert_eq!(actual.neighbors.capacity(), 4);
+        assert!(actual.neighbors.is_empty());
+    }
+
+    #[test]
+    fn test_nearest_search_strategy() {
+        // Act
+        let actual = NearestSearchStrategy::<f32>::new();
+
+        // Assert
+        assert!(actual.nearest.is_none());
+    }
+
+    #[test]
+    fn test_radius_search_strategy() {
+        // Arrange
+        let radius = 10.0;
+        let actual = RadiusSearchStrategy::new(radius);
+
+        // Act
+        assert_eq!(actual.radius, radius);
+        assert_eq!(
+            actual.neighbors.capacity(),
+            RadiusSearchStrategy::<f32>::INITIAL_NEIGHBOR_CAPACITY
+        );
+        assert!(actual.neighbors.is_empty());
+    }
+
+    #[test]
+    fn test_radius_search_strategy_with_capacity() {
+        // Arrange
+        let radius = 5.0;
+        let capacity = 16;
+        let actual = RadiusSearchStrategy::with_capacity(radius, capacity);
+
+        // Act
+        assert_eq!(actual.radius, radius);
+        assert_eq!(actual.neighbors.capacity(), capacity);
+        assert!(actual.neighbors.is_empty());
     }
 }
