@@ -14,9 +14,9 @@
 
 * `auto-palette`: Core library for programmatic usage.
 * `auto-palette-cli`: Command-line interface for easy usage.
-* `auto-palette-wasm`: WebAssembly version for browser usage.
+* `auto-palette-wasm`: WebAssembly build for browser usage.
 
-Perfect for developers, designers and anyone needing efficient color palette extraction.
+Perfect for developers, designers and anyone who needs to extract color palettes from images.
 
 > [!NOTE]
 > This project is in early development (0.y.z). The API may change at any time and breaking changes may occur without notice.
@@ -57,7 +57,7 @@ auto-palette = "0.9.2"
 
 ### CLI Tool
 
-To use command-line interface, install the `auto-palette-cli` crate.
+To use the command-line interface, install the `auto-palette-cli` crate.
 
 ```sh
 cargo install auto-palette-cli
