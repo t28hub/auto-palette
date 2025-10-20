@@ -54,7 +54,7 @@
     "auto-palette": "^1.4.0",
     "esbuild-plugin-copy": "^2.1.1",
     "jest-matcher-utils": "^29.7.0",
-    "playwright": "^1.51.1",
+    "playwright": "^1.55.1",
     "tsup": "^8.4.0",
     "wasm-pack": "^0.13.1"
   }
