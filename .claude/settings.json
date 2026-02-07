@@ -3,21 +3,6 @@
   "permissions": {
     "defaultMode": "default",
     "allow": [
-      "Bash(ls:*)",
-      "Bash(find:*)",
-      "Bash(grep:*)",
-      "Bash(mkdir:*)",
-      "Bash(git add:*)",
-      "Bash(git diff:*)",
-      "Bash(git log:*)",
-      "Bash(git status:*)",
-      "Bash(cargo build:*)",
-      "Bash(cargo check:*)",
-      "Bash(cargo clippy:*)",
-      "Bash(cargo +nightly fmt:*)",
-      "Bash(cargo nextest:*)",
-      "Bash(cargo run:*)",
-      "WebFetch(https://*)"
     ],
     "deny": [
       "Bash(rm:)",
