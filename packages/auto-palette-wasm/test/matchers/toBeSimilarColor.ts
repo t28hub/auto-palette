@@ -26,9 +26,7 @@ export function toBeSimilarColor(
   expected: unknown,
   epsilon = DEFAULT_EPSILON,
 ): ExpectationResult {
-  const matcherName = this.isNot
-    ? '.not.toBeSimilarColor'
-    : '.toBeSimilarColor';
+  const matcherName = this.isNot ? '.not.toBeSimilarColor' : '.toBeSimilarColor';
   const expectedColor = parseColor(expected);
   if (!expectedColor) {
     const message = matcherErrorMessage(

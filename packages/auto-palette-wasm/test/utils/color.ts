@@ -13,7 +13,7 @@ export function parseColor(value: unknown): Color | undefined {
   if (typeof value === 'string') {
     try {
       return Color.fromHexString(value);
-    } catch (e) {
+    } catch (_) {
       // Ignore the error and return undefined
       return undefined;
     }

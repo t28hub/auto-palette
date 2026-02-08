@@ -2,8 +2,7 @@
   "includeCoAuthoredBy": false,
   "permissions": {
     "defaultMode": "default",
-    "allow": [
-    ],
+    "allow": [],
     "deny": [
       "Bash(rm:)",
       "Bash(sudo:*)",

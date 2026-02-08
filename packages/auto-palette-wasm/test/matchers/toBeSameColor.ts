@@ -17,11 +17,7 @@ import type { ExpectationResult, MatcherState } from './types';
  * @param expected - The expected color.
  * @returns An object containing the result of the comparison.
  */
-export function toBeSameColor(
-  this: MatcherState,
-  received: Color,
-  expected: unknown,
-): ExpectationResult {
+export function toBeSameColor(this: MatcherState, received: Color, expected: unknown): ExpectationResult {
   const matcherName = this.isNot ? '.not.toBeSameColor' : '.toBeSameColor';
   const expectedColor = parseColor(expected);
   if (!expectedColor) {

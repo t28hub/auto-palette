@@ -11,12 +11,7 @@ export {
 /**
  * The input type for the WASM module.
  */
-export type ModuleInput =
-  | RequestInfo
-  | URL
-  | Response
-  | BufferSource
-  | WebAssembly.Module;
+export type ModuleInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 /**
  * Initialize the `@auto-palette/wasm` module
@@ -24,8 +19,6 @@ export type ModuleInput =
  * @param module - The WASM module or path to the WASM module.
  * @returns The Promise that resolves when the WASM module is initialized.
  */
-export async function initialize(
-  module: ModuleInput | Promise<ModuleInput>,
-): Promise<void> {
+export async function initialize(module: ModuleInput | Promise<ModuleInput>): Promise<void> {
   await init({ module_or_path: module });
 }
