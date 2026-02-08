@@ -3,8 +3,7 @@
 ## Project Structure & Modules
 - `crates/auto-palette/`: Core library (algorithms, color, image, math).
 - `crates/auto-palette-cli/`: CLI entrypoint + integration tests.
-- `crates/auto-palette-wasm/`: Wasm bindings (Rust, built with `wasm-pack`).
-- `packages/auto-palette-wasm/`: TypeScript wrapper, bundling, Vitest.
+- `crates/auto-palette-wasm/`: Wasm bindings (Rust, built with `wasm-pack`) + TypeScript wrapper, bundling, Vitest.
 - `gfx/`: Fixture images. `benches/`, `coverage/`: benches and reports.
 
 ## Agent Workflow
@@ -34,8 +33,8 @@
 - Benchmarks
   - `cargo bench -p auto-palette` (divan)
 - Wasm/TS
-  - Build: `pnpm -C packages/auto-palette-wasm build` (needs `wasm-pack`)
-  - Test: `pnpm -C packages/auto-palette-wasm test` (Vitest; unit/e2e)
+  - Build: `pnpm -C crates/auto-palette-wasm build` (needs `wasm-pack`)
+  - Test: `pnpm -C crates/auto-palette-wasm test` (Vitest; unit/e2e)
 - Format/Lint
   - `pnpm format` (Biome + rustfmt + Taplo), `pnpm lint`
   - Rust lints: `cargo clippy -- -D warnings`
@@ -82,7 +81,7 @@
   - Verify publish: confirm crates.io lists `auto-palette@X.Y.Z`.
   - GitHub Release: create a release from the tag; paste highlights and link `CHANGELOG.md`.
   - Open next cycle: add a fresh “Unreleased” section to `CHANGELOG.md` for future changes.
-  - Optional: coordinate npm publication for `packages/auto-palette-wasm` if/when distribution is enabled (not automated here).
+  - Optional: coordinate npm publication for `crates/auto-palette-wasm` if/when distribution is enabled (not automated here).
 
 ## Tooling & Environment
 - MSRV: Rust 1.86.0 (see crate `rust-version`). Toolchain file installs `rustfmt`/`clippy`.

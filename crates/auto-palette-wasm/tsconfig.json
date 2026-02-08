@@ -19,10 +19,10 @@
     "baseUrl": ".",
     "types": ["vitest/globals"],
     "paths": {
-      "@auto-palette/core": ["../../crates/auto-palette-wasm/dist"],
-      "@auto-palette/wasm": ["./src/index.ts"]
+      "@auto-palette/core": ["./pkg"],
+      "@auto-palette/wasm": ["./ts/index.ts"]
     }
   },
-  "include": ["src", "test/**/*.ts", "../../crates/auto-palette-wasm/dist"],
+  "include": ["ts", "test/**/*.ts", "pkg"],
   "exclude": ["node_modules", "dist"]
 }

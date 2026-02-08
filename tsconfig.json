@@ -16,7 +16,7 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "outDir": "./dist",
-    "baseUrl": "./packages",
+    "baseUrl": "./crates",
     "types": ["vitest/globals"]
   },
   "exclude": ["node_modules", "dist"]

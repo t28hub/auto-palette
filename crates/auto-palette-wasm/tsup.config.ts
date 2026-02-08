@@ -3,7 +3,7 @@ import { copy } from 'esbuild-plugin-copy';
 
 export default defineConfig({
   target: 'esnext',
-  entry: ['src/index.ts'],
+  entry: ['ts/index.ts'],
   format: ['cjs', 'esm'],
   dts: true,
   sourcemap: false,
@@ -15,7 +15,7 @@ export default defineConfig({
       resolveFrom: 'cwd',
       assets: [
         {
-          from: '../../crates/auto-palette-wasm/dist/*.wasm',
+          from: './pkg/*.wasm',
           to: './dist',
         },
       ],

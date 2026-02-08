@@ -45,8 +45,8 @@ cargo nextest run --tests --all-features --workspace --exclude auto-palette-wasm
 Optional (Wasm/TS package):
 
 ```sh
-pnpm -C packages/auto-palette-wasm test:e2e:install   # first-time only (Playwright)
-pnpm -C packages/auto-palette-wasm test               # Vitest unit/e2e
+pnpm -C crates/auto-palette-wasm test:e2e:install   # first-time only (Playwright)
+pnpm -C crates/auto-palette-wasm test               # Vitest unit/e2e
 ```
 
 6. Try examples (Rust)

@@ -7,7 +7,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/t28hub/auto-palette.git",
-    "directory": "packages/auto-palette-wasm"
+    "directory": "crates/auto-palette-wasm"
   },
   "bugs": "https://github.com/t28hub/auto-palette/issues",
   "author": {
@@ -35,10 +35,10 @@
   "scripts": {
     "clean": "rimraf dist",
     "dev": "tsup --no-dts --watch",
-    "dev:wasm": "wasm-pack build --dev --target web --out-name auto_palette --out-dir ./dist ../../crates/auto-palette-wasm",
+    "dev:wasm": "wasm-pack build --dev --target web --out-name auto_palette --out-dir ./pkg .",
     "build": "pnpm build:wasm && pnpm build:ts",
     "build:ts": "tsup",
-    "build:wasm": "wasm-pack build --release --target web --out-name auto_palette --out-dir ./dist ../../crates/auto-palette-wasm",
+    "build:wasm": "wasm-pack build --release --target web --out-name auto_palette --out-dir ./pkg .",
     "test": "vitest run --coverage",
     "test:unit": "vitest run --project unit",
     "test:e2e": "vitest run --project e2e*",

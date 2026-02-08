@@ -8,16 +8,13 @@ export default defineConfig({
     globals: true,
     dir: 'test',
     alias: {
-      '@auto-palette/core': resolve(
-        __dirname,
-        '../../crates/auto-palette-wasm/dist',
-      ),
-      '@auto-palette/wasm': resolve(__dirname, 'src/index.ts'),
+      '@auto-palette/core': resolve(__dirname, 'pkg'),
+      '@auto-palette/wasm': resolve(__dirname, 'ts/index.ts'),
     },
     coverage: {
       all: false,
       provider: 'v8',
-      include: ['src/**/*.ts'],
+      include: ['ts/**/*.ts'],
       exclude: ['**/*.test.ts', '**/*.d.ts'],
       reporter: ['lcov', 'html', 'json', 'text'],
       reportsDirectory: 'coverage',
