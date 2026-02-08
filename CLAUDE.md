@@ -126,7 +126,7 @@ Border point assignment depends on neighbor iteration order. Changing the data s
 `dev` and `test` profiles use `opt-level = 3` (not the default 0) for faster execution during development. Release profile uses `opt-level = 'z'` with LTO for size optimization.
 
 ### Pre-commit hooks
-husky + lint-staged auto-formats staged files on commit. If a commit fails due to formatting, re-stage the formatted files and commit again — do not bypass with `--no-verify`.
+lefthook auto-formats staged files on commit. If a commit fails due to formatting, re-stage the formatted files and commit again — do not bypass with `--no-verify`.
 
 ### Safety
 Do not read `.env`, `.env.*`, or `secrets/**`. Avoid network commands unless explicitly requested.

@@ -1,0 +1,28 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: format rust
+      glob: "*.rs"
+      run: cargo +nightly fmt --all --
+      stage_fixed: true
+
+    - name: format js
+      glob: "*.{js,ts,json}"
+      run: biome format --write {staged_files}
+      stage_fixed: true
+
+    - name: format toml
+      glob: "*.toml"
+      run: taplo format {staged_files}
+      stage_fixed: true
+
+pre-push:
+  parallel: true
+  jobs:
+    - name: lint rust
+      glob: "*.rs"
+      run: cargo clippy -- -D warnings
+
+    - name: lint js
+      glob: "*.{js,ts}"
+      run: biome lint {push_files}
