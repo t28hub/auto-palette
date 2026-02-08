@@ -69,7 +69,7 @@ cargo run --example theme --release --features='image'
 - Rust: [rustfmt](https://github.com/rust-lang/rustfmt) with repo config (`.rustfmt.toml`) and clippy.
 - TOML: [taplo](https://github.com/tamasfe/taplo) (`.taplo.toml`).
 - JS/TS/JSON: [Biome](https://biomejs.dev/) (`biome.json`).
-- Pre-commit hooks: `pnpm install` enables husky/lint-staged; staged files are formatted automatically.
+- Pre-commit hooks: `pnpm install` enables lefthook; staged files are formatted automatically.
 
 ## License
 
