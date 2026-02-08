@@ -4,10 +4,7 @@ import * as AutoPaletteTs from 'auto-palette';
 import { bench, describe, expect } from 'vitest';
 import { loadImageData } from './utils/image';
 
-const IMAGE_PATH = resolve(
-  process.cwd(),
-  '../../gfx/laura-clugston-pwW2iV9TZao-unsplash.jpg',
-);
+const IMAGE_PATH = resolve(process.cwd(), '../../gfx/laura-clugston-pwW2iV9TZao-unsplash.jpg');
 
 describe('benchmark @auto-palette/wasm vs auto-palette-ts', () => {
   bench('extract with DBSCAN algorithm in WebAssembly', async () => {

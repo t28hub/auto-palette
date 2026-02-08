@@ -1,9 +1,4 @@
-import {
-  type Algorithm,
-  Palette,
-  type Theme,
-  initialize,
-} from '@auto-palette/wasm';
+import { type Algorithm, initialize, Palette, type Theme } from '@auto-palette/wasm';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 const WASM_PATH = '/dist/auto_palette_bg.wasm';
@@ -112,9 +107,7 @@ describe('@auto-palette/wasm', () => {
     it.skip('should throw an error if the module cannot be loaded', async () => {
       // Act & Assert
       const module = fetch('/dist/unknown.wasm');
-      await expect(initialize(module)).rejects.toThrowError(
-        /Failed to initialize WebAssembly module: /,
-      );
+      await expect(initialize(module)).rejects.toThrowError(/Failed to initialize WebAssembly module: /);
     });
   });
 
@@ -146,17 +139,14 @@ describe('@auto-palette/wasm', () => {
         { algorithm: 'kmeans', expectedLength: 24 },
         { algorithm: 'slic', expectedLength: 32 },
         { algorithm: 'snic', expectedLength: 32 },
-      ])(
-        'should extract the palette from an image with the $algorithm algorithm',
-        ({ algorithm, expectedLength }) => {
-          // Act
-          const palette = Palette.extract(imageData, algorithm as Algorithm);
+      ])('should extract the palette from an image with the $algorithm algorithm', ({ algorithm, expectedLength }) => {
+        // Act
+        const palette = Palette.extract(imageData, algorithm as Algorithm);
 
-          // Assert
-          expect(palette.isEmpty()).toBeFalsy();
-          expect(palette.length).toBeGreaterThan(expectedLength);
-        },
-      );
+        // Assert
+        expect(palette.isEmpty()).toBeFalsy();
+        expect(palette.length).toBeGreaterThan(expectedLength);
+      });
     });
 
     describe('findSwatches', () => {
@@ -196,16 +186,13 @@ describe('@auto-palette/wasm', () => {
           count: 3,
           theme: 'dark',
         },
-      ])(
-        'should find the swatches from the palette with the $theme theme',
-        ({ count, theme }) => {
-          // Act
-          const swatches = palette.findSwatches(count, theme as Theme);
+      ])('should find the swatches from the palette with the $theme theme', ({ count, theme }) => {
+        // Act
+        const swatches = palette.findSwatches(count, theme as Theme);
 
-          // Assert
-          expect(swatches).toHaveLength(count);
-        },
-      );
+        // Assert
+        expect(swatches).toHaveLength(count);
+      });
     });
   });
 });

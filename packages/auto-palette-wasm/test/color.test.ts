@@ -291,16 +291,13 @@ describe('@auto-palette/wasm/color', () => {
       { input: 0xff0000, expected: '#FF0000' },
       { input: 0x00ff00, expected: '#00FF00' },
       { input: 0x0000ff, expected: '#0000FF' },
-    ])(
-      "should create a color from an integer '$input'",
-      ({ input, expected }) => {
-        // Act
-        const actual = Color.fromInt(input);
+    ])("should create a color from an integer '$input'", ({ input, expected }) => {
+      // Act
+      const actual = Color.fromInt(input);
 
-        // Assert
-        expect(actual.toHexString()).toEqual(expected);
-      },
-    );
+      // Assert
+      expect(actual.toHexString()).toEqual(expected);
+    });
   });
 
   describe('fromString', () => {
@@ -325,15 +322,12 @@ describe('@auto-palette/wasm/color', () => {
       { input: '#ff0000ff', expected: '#FF0000' },
       { input: '#00ff00ff', expected: '#00FF00' },
       { input: '#0000ffff', expected: '#0000FF' },
-    ])(
-      "should create a color from a string '$input'",
-      ({ input, expected }) => {
-        // Act
-        const actual = Color.fromHexString(input);
+    ])("should create a color from a string '$input'", ({ input, expected }) => {
+      // Act
+      const actual = Color.fromHexString(input);
 
-        // Assert
-        expect(actual.toHexString()).toEqual(expected);
-      },
-    );
+      // Assert
+      expect(actual.toHexString()).toEqual(expected);
+    });
   });
 });
