@@ -14,9 +14,9 @@
     "name": "Tatsuya Maki",
     "url": "https://github.com/t28hub"
   },
-  "main": "dist/index.js",
+  "main": "dist/index.cjs",
   "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
+  "types": "dist/index.d.cts",
   "exports": {
     "./package.json": "./package.json",
     "./auto-palette_bg.wasm": "./dist/auto-palette_bg.wasm",
@@ -26,8 +26,8 @@
         "default": "./dist/index.mjs"
       },
       "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
       }
     }
   },
@@ -41,10 +41,10 @@
   ],
   "scripts": {
     "clean": "rimraf dist",
-    "dev": "tsup --no-dts --watch",
+    "dev": "tsdown --no-dts --watch",
     "dev:wasm": "wasm-pack build --dev --target web --out-name auto_palette --out-dir ./dist ../../crates/auto-palette-wasm",
     "build": "pnpm build:wasm && pnpm build:ts",
-    "build:ts": "tsup",
+    "build:ts": "tsdown",
     "build:wasm": "wasm-pack build --release --target web --out-name auto_palette --out-dir ./dist ../../crates/auto-palette-wasm",
     "test": "vitest run --coverage",
     "test:unit": "vitest run --project unit",
@@ -60,10 +60,9 @@
     "@vitest/coverage-v8": "catalog:",
     "@vitest/ui": "catalog:",
     "auto-palette": "1.4.0",
-    "esbuild-plugin-copy": "2.1.1",
     "jest-matcher-utils": "30.2.0",
     "playwright": "1.58.1",
-    "tsup": "8.5.1",
+    "tsdown": "0.20.3",
     "typescript": "catalog:",
     "wasm-pack": "0.14.0"
   }
