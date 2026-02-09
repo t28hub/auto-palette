@@ -23,7 +23,7 @@
     "vitest": "catalog:"
   },
   "engines": {
-    "node": ">=18.0.0",
+    "node": ">=20.19.0",
     "pnpm": "10.29.1"
   },
   "packageManager": "pnpm@10.29.1"
