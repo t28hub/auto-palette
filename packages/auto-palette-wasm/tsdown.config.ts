@@ -8,7 +8,7 @@ export default defineConfig({
   shims: true,
   minify: true,
   hash: false,
-  clean: false,
+  clean: true,
   copy: [
     {
       from: '../../crates/auto-palette-wasm/dist/*.wasm',
