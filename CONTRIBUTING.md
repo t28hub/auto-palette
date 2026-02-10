@@ -19,47 +19,40 @@ git clone git@github.com:t28hub/auto-palette.git
 cd auto-palette
 ```
 
-2. Create a feature branch
+2. Install dependencies
+
+This project uses [just](https://just.systems/) as a task runner. Run `just` to see all available commands.
+
+```sh
+just setup    # Install cargo tools (nextest, llvm-cov, etc.) and Node.js dependencies
+```
+
+3. Create a feature branch
 
 ```sh
 git checkout -b feat/short-description
 ```
 
-3. Make changes and write tests
+4. Make changes and write tests
 
-4. Format and lint
-
-```sh
-pnpm format && pnpm lint         # Biome + rustfmt + Taplo
-cargo +nightly fmt --all         # Ensure Rust formatting (nightly config)
-taplo fmt                        # Ensure TOML formatting
-cargo clippy -- -D warnings      # Deny Rust lints
-```
-
-5. Run tests
+5. Format, lint, and test
 
 ```sh
-cargo nextest run --tests --all-features --workspace --exclude auto-palette-wasm
+just ready    # Run formatting, linting, and tests
 ```
 
-Optional (Wasm/TS package):
+Or run each step individually:
 
 ```sh
-pnpm -C packages/auto-palette-wasm test:e2e:install   # first-time only (Playwright)
-pnpm -C packages/auto-palette-wasm test               # Vitest unit/e2e
+just format   # Format all files
+just lint     # Lint all files
+just test     # Run all tests (lib, cli, wasm)
+just check    # Run lint, audit, and udeps
 ```
 
-6. Try examples (Rust)
+6. Ensure no regressions and update docs/CHANGELOG if user-visible
 
-```sh
-cargo run --example simple --release --features='image'
-cargo run --example algorithm --release --features='image'
-cargo run --example theme --release --features='image'
-```
-
-7. Ensure no regressions and update docs/CHANGELOG if user-visible
-
-8. Open a pull request
+7. Open a pull request
 
 - Use clear descriptions, link issues (e.g., "Closes #123").
 - Follow Conventional Commits (e.g., `feat(wasm): add browser e2e`).
@@ -68,8 +61,7 @@ cargo run --example theme --release --features='image'
 
 - Rust: [rustfmt](https://github.com/rust-lang/rustfmt) with repo config (`.rustfmt.toml`) and clippy.
 - TOML: [taplo](https://github.com/tamasfe/taplo) (`.taplo.toml`).
-- JS/TS/JSON: [Biome](https://biomejs.dev/) (`biome.json`).
-- Pre-commit hooks: `pnpm install` enables lefthook; staged files are formatted automatically.
+- JavaScript/TypeScript/JSON: [Biome](https://biomejs.dev/) (`biome.json`).
 
 ## License
 
