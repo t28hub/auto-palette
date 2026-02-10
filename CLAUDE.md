@@ -13,56 +13,34 @@ The project consists of three crates:
 
 ## Development Commands
 
-### Building and Testing
-```bash
-# Run all tests in the workspace, excluding `auto-palette-wasm`
-cargo nextest run --tests --all-features --workspace --exclude auto-palette-wasm
+This project uses [just](https://just.systems/) as a task runner. Run `just` to see all available commands.
 
-# Run all tests in the `auto-palette` crate
-cargo nextest run --tests --all-features --package auto-palette
+### Common Commands
+```sh
+just setup    # Install cargo tools (nextest, llvm-cov, etc.) and Node.js dependencies
+just ready    # Run formatting, linting, tests, and checks
+just format   # Format all files
+just lint     # Lint all files
+just test     # Run all tests (lib, cli, wasm)
+just check    # Run lint, audit, and udeps
+just build    # Build all crates
+just bench    # Run Rust benchmarks
+just coverage # Run tests with coverage report
+```
 
-# Run all tests in the `auto-palette-cli` crate
-cargo nextest run --tests --all-features --package auto-palette-cli
-
-# Run all tests in the `auto-palette-wasm` crate
-cargo nextest run --tests --package auto-palette-wasm --target wasm32-unknown-unknown
-
-# Run all tests (may fail on non-wasm32 targets)
-# Note: WASM tests require `wasm32-unknown-unknown` target or `wasm-pack`
-cargo nextest run --lib
-
+### Individual Crate Commands
+```sh
 # Run a single test
 cargo nextest run -- test_name
 
-# Build all crates
-cargo build --all
-
-# Build with release optimizations
-cargo build --release --all
-```
-
-### Code Quality and Formatting
-```bash
-# Format Rust code (requires nightly toolchain)
-cargo +nightly fmt --all
-
-# Format TOML files
-taplo fmt
-
-# Format all code (uses pnpm scripts)
-pnpm format
-
-# Lint Rust code (all warnings are denied in CI)
-cargo clippy -- -D warnings
-
-# Lint JavaScript/TypeScript (via Biome)
-pnpm lint
-# or
-biome lint .
+# Run tests for a specific crate
+cargo nextest run --tests --all-features --package auto-palette
+cargo nextest run --tests --all-features --package auto-palette-cli
+cargo test --tests --package auto-palette-wasm --target wasm32-unknown-unknown
 ```
 
 ### Examples and CLI Testing
-```bash
+```sh
 # Run the simple example
 cargo run --example simple --release --features='image' -- 'path/to/image.jpg'
 
@@ -74,13 +52,6 @@ cargo run --example theme --release --features='image' -- 'theme_name'
 
 # Test CLI functionality
 cargo run --bin auto-palette-cli -- --help
-```
-
-### WebAssembly Development
-```bash
-# Build WASM package
-cd crates/auto-palette-wasm
-wasm-pack build --target web --release
 ```
 
 ## Architecture
