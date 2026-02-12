@@ -24,14 +24,13 @@ export function toBeSimilarColor(
   this: MatcherState,
   received: Color,
   expected: unknown,
-  epsilon = DEFAULT_EPSILON,
+  epsilon: number = DEFAULT_EPSILON,
 ): ExpectationResult {
   const matcherName = this.isNot ? '.not.toBeSimilarColor' : '.toBeSimilarColor';
   const expectedColor = parseColor(expected);
   if (!expectedColor) {
     const message = matcherErrorMessage(
       matcherHint(matcherName, 'received', 'expected'),
-      'Expected value is not a valid color',
       `${EXPECTED_COLOR('expected')} is not a valid color`,
       printWithType('expected', expected, printExpected),
     );

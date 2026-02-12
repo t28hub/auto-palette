@@ -78,9 +78,9 @@ describe('@auto-palette/wasm', () => {
 
         // Assert
         expect(swatches).toHaveLength(3);
-        expect(swatches[0].color).toBeSimilarColor('#5ECBFE');
-        expect(swatches[1].color).toBeSimilarColor('#BF010D');
-        expect(swatches[2].color).toBeSimilarColor('#FCDC24');
+        expect(swatches[0]?.color).toBeSimilarColor('#5ECBFE');
+        expect(swatches[1]?.color).toBeSimilarColor('#BF010D');
+        expect(swatches[2]?.color).toBeSimilarColor('#FCDC24');
       });
 
       it.skipIf(isLinux).each([
@@ -117,9 +117,9 @@ describe('@auto-palette/wasm', () => {
         // Assert
         expect(swatches).toHaveLength(count);
 
-        expect(swatches[0].color).toBeSimilarColor(expected[0]);
-        expect(swatches[1].color).toBeSimilarColor(expected[1]);
-        expect(swatches[2].color).toBeSimilarColor(expected[2]);
+        expect(swatches[0]?.color).toBeSimilarColor(expected[0]);
+        expect(swatches[1]?.color).toBeSimilarColor(expected[1]);
+        expect(swatches[2]?.color).toBeSimilarColor(expected[2]);
       });
     });
   });

@@ -49,7 +49,7 @@ describe('@auto-palette/wasm/matchers', () => {
       // Assert
       expect(() => {
         expect(received).toBeSameColor(expected);
-      }).toThrowError(/Expected value is not a valid color/);
+      }).toThrowError(/is not a valid color/);
     });
 
     describe('.not.toBeSameColor', () => {
