@@ -23,7 +23,6 @@ export function toBeSameColor(this: MatcherState, received: Color, expected: unk
   if (!expectedColor) {
     const message = matcherErrorMessage(
       matcherName,
-      'Expected value is not a valid color',
       `${EXPECTED_COLOR('expected')} is not a valid color`,
       printWithType<unknown>('expected', expected, printExpected),
     );

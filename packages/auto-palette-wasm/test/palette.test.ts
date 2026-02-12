@@ -58,9 +58,9 @@ describe('@auto-palette/wasm/palette', () => {
 
       // Assert
       expect(actual).toHaveLength(3);
-      expect(actual[0].color).toBeSameColor('#6DE1D2');
-      expect(actual[1].color).toBeSameColor('#FFD63A');
-      expect(actual[2].color).toBeSameColor('#FF6F61');
+      expect(actual[0]?.color).toBeSameColor('#6DE1D2');
+      expect(actual[1]?.color).toBeSameColor('#FFD63A');
+      expect(actual[2]?.color).toBeSameColor('#FF6F61');
     });
 
     it.each([
@@ -119,12 +119,12 @@ describe('@auto-palette/wasm/palette', () => {
         return b.color.toInt() - a.color.toInt();
       });
       expect(swatches.length).toBe(6);
-      expect(swatches[0].color).toBeSimilarColor('#FFFFFF');
-      expect(swatches[1].color).toBeSimilarColor('#FFB916');
-      expect(swatches[2].color).toBeSimilarColor('#E1392D');
-      expect(swatches[3].color).toBeSimilarColor('#007847');
-      expect(swatches[4].color).toBeSimilarColor('#000C8A');
-      expect(swatches[5].color).toBeSimilarColor('#000000');
+      expect(swatches[0]?.color).toBeSimilarColor('#FFFFFF');
+      expect(swatches[1]?.color).toBeSimilarColor('#FFB916');
+      expect(swatches[2]?.color).toBeSimilarColor('#E1392D');
+      expect(swatches[3]?.color).toBeSimilarColor('#007847');
+      expect(swatches[4]?.color).toBeSimilarColor('#000C8A');
+      expect(swatches[5]?.color).toBeSimilarColor('#000000');
     });
 
     it.each([

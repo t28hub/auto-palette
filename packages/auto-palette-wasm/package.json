@@ -55,6 +55,7 @@
   },
   "devDependencies": {
     "@napi-rs/canvas": "0.1.89",
+    "@tsconfig/strictest": "2.0.8",
     "@types/node": "catalog:",
     "@vitest/browser-playwright": "catalog:",
     "@vitest/coverage-v8": "catalog:",
