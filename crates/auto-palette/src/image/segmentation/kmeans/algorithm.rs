@@ -1,7 +1,7 @@
 use crate::{
     image::{
         segmentation::{
-            kmeans::KmeansError,
+            kmeans::{config::KmeansConfig, KmeansError},
             label::{Builder as SegmentBuilder, LabelImage},
             seed::SeedGenerator,
             segment::SegmentMetadata,
@@ -34,28 +34,36 @@ where
     metric: DistanceMetric,
 }
 
+impl<T> TryFrom<KmeansConfig<T>> for KmeansSegmentation<T>
+where
+    T: FloatNumber,
+{
+    type Error = KmeansError<T>;
+
+    fn try_from(config: KmeansConfig<T>) -> Result<Self, Self::Error> {
+        if config.segments == 0 {
+            return Err(KmeansError::InvalidSegments);
+        }
+        if config.max_iter == 0 {
+            return Err(KmeansError::InvalidIterations);
+        }
+        if config.tolerance <= T::zero() || config.tolerance.is_nan() {
+            return Err(KmeansError::InvalidTolerance(config.tolerance));
+        }
+        Ok(Self {
+            segments: config.segments,
+            max_iter: config.max_iter,
+            tolerance: config.tolerance,
+            generator: config.generator,
+            metric: config.metric,
+        })
+    }
+}
+
 impl<T> KmeansSegmentation<T>
 where
     T: FloatNumber,
 {
-    /// Default number of segments for the segmentation.
-    const DEFAULT_SEGMENTS: usize = 64;
-
-    /// Default maximum number of iterations for the K-means algorithm.
-    const DEFAULT_MAX_ITER: usize = 100;
-
-    /// Default tolerance for convergence conditions.
-    const DEFAULT_TOLERANCE: f64 = 1e-4;
-
-    /// Creates a new `KmeansSegmentationBuilder` instance.
-    ///
-    /// # Returns
-    /// A new `KmeansSegmentationBuilder` instance with default parameters.
-    #[must_use]
-    pub fn builder() -> Builder<T> {
-        Builder::default()
-    }
-
     #[must_use]
     fn iterate(
         &self,
@@ -131,160 +139,23 @@ where
     }
 }
 
-/// Builder for `KmeansSegmentation`.
-///
-/// This struct allows for the configuration of the K-means segmentation algorithm.
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
-#[derive(Debug, PartialEq)]
-pub struct Builder<T>
-where
-    T: FloatNumber,
-{
-    segments: usize,
-    max_iter: usize,
-    tolerance: T,
-    generator: SeedGenerator,
-    metric: DistanceMetric,
-}
-
-impl<T> Builder<T>
-where
-    T: FloatNumber,
-{
-    /// Sets the number of segments for the segmentation.
-    ///
-    /// # Arguments
-    /// * `segments` - The number of segments to create.
-    ///
-    /// # Returns
-    /// A new `KmeansSegmentationBuilder` instance with the specified number of segments.
-    #[must_use]
-    pub fn segments(mut self, segments: usize) -> Self {
-        self.segments = segments;
-        self
-    }
-
-    /// Sets the maximum number of iterations for the K-means algorithm.
-    ///
-    /// # Arguments
-    /// * `max_iter` - The maximum number of iterations to perform.
-    ///
-    /// # Returns
-    /// A new `KmeansSegmentationBuilder` instance with the specified maximum number of iterations.
-    #[must_use]
-    pub fn max_iter(mut self, max_iter: usize) -> Self {
-        self.max_iter = max_iter;
-        self
-    }
-
-    /// Sets the tolerance for convergence conditions.
-    ///
-    /// # Arguments
-    /// * `tolerance` - The tolerance value for convergence conditions.
-    ///
-    /// # Returns
-    /// The `KmeansSegmentationBuilder` instance with the specified tolerance.
-    #[must_use]
-    pub fn tolerance(mut self, tolerance: T) -> Self {
-        self.tolerance = tolerance;
-        self
-    }
-
-    /// Sets the seed generator for the segmentation.
-    ///
-    /// # Arguments
-    /// * `generator` - The seed generator to use for the segmentation.
-    ///
-    /// # Returns
-    /// The `KmeansSegmentationBuilder` instance with the specified seed generator.
-    #[allow(dead_code)]
-    #[must_use]
-    pub fn generator(mut self, generator: SeedGenerator) -> Self {
-        self.generator = generator;
-        self
-    }
-
-    /// Sets the distance metric for the segmentation.
-    ///
-    /// # Arguments
-    /// * `metric` - The distance metric to use for the segmentation.
-    ///
-    /// # Returns
-    /// The `KmeansSegmentationBuilder` instance with the specified distance metric.
-    #[must_use]
-    pub fn metric(mut self, metric: DistanceMetric) -> Self {
-        self.metric = metric;
-        self
-    }
-
-    /// Builds the KmeansSegmentation instance.
-    ///
-    /// # Returns
-    /// A new KmeansSegmentation instance with the specified parameters.
-    pub fn build(self) -> Result<KmeansSegmentation<T>, KmeansError<T>> {
-        if self.segments == 0 {
-            return Err(KmeansError::InvalidSegments);
-        }
-        if self.max_iter == 0 {
-            return Err(KmeansError::InvalidIterations);
-        }
-        if self.tolerance <= T::zero() || self.tolerance.is_nan() {
-            return Err(KmeansError::InvalidTolerance(self.tolerance));
-        }
-
-        Ok(KmeansSegmentation {
-            segments: self.segments,
-            max_iter: self.max_iter,
-            tolerance: self.tolerance,
-            generator: self.generator,
-            metric: self.metric,
-        })
-    }
-}
-
-impl<T> Default for Builder<T>
-where
-    T: FloatNumber,
-{
-    fn default() -> Self {
-        Self {
-            segments: KmeansSegmentation::<T>::DEFAULT_SEGMENTS,
-            max_iter: KmeansSegmentation::<T>::DEFAULT_MAX_ITER,
-            tolerance: T::from_f64(KmeansSegmentation::<T>::DEFAULT_TOLERANCE),
-            generator: SeedGenerator::default(),
-            metric: DistanceMetric::default(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::ImageData;
+    use crate::{image::segmentation::seed::SeedGenerator, ImageData};
 
     #[test]
-    fn test_builder() {
+    fn test_try_from() {
         // Act
-        let actual = KmeansSegmentation::<f64>::builder();
-
-        // Assert
-        assert_eq!(actual, Builder::default());
-    }
-
-    #[test]
-    fn test_builder_build() {
-        // Act
-        let actual = KmeansSegmentation::<f64>::builder()
+        let config = KmeansConfig::<f64>::default()
             .segments(10)
             .max_iter(100)
             .tolerance(1e-4)
             .generator(SeedGenerator::RegularGrid)
-            .metric(DistanceMetric::SquaredEuclidean)
-            .build();
+            .metric(DistanceMetric::SquaredEuclidean);
+        let actual = KmeansSegmentation::try_from(config);
 
         // Assert
         assert!(actual.is_ok());
@@ -306,18 +177,18 @@ mod tests {
     #[case(0, 25, 1e-4, KmeansError::InvalidSegments)]
     #[case(48, 0, 1e-4, KmeansError::InvalidIterations)]
     #[case(48, 25, -1e-4, KmeansError::InvalidTolerance(-1e-4))]
-    fn test_builder_build_invalid_parameters(
+    fn test_try_from_error(
         #[case] segments: usize,
         #[case] max_iter: usize,
         #[case] tolerance: f64,
         #[case] expected: KmeansError<f64>,
     ) {
         // Act
-        let actual = KmeansSegmentation::builder()
+        let config = KmeansConfig::default()
             .segments(segments)
             .max_iter(max_iter)
-            .tolerance(tolerance)
-            .build();
+            .tolerance(tolerance);
+        let actual = KmeansSegmentation::try_from(config);
 
         // Assert
         assert!(actual.is_err());
@@ -327,11 +198,10 @@ mod tests {
     }
 
     #[test]
-    fn test_builder_build_invalid_tolerance_nan() {
+    fn test_try_from_tolerance_nan() {
         // Act
-        let actual = KmeansSegmentation::<f64>::builder()
-            .tolerance(f64::NAN)
-            .build();
+        let config = KmeansConfig::<f64>::default().tolerance(f64::NAN);
+        let actual = KmeansSegmentation::try_from(config);
 
         // Assert
         assert!(actual.is_err());
@@ -348,12 +218,11 @@ mod tests {
     fn test_segment() {
         // Arrange
         let image_data = ImageData::load("../../gfx/flags/za.png").unwrap();
-        let segmentation = KmeansSegmentation::builder()
+        let config = KmeansConfig::default()
             .segments(24)
             .max_iter(5)
-            .tolerance(1e-4)
-            .build()
-            .unwrap();
+            .tolerance(1e-4);
+        let segmentation = KmeansSegmentation::<f64>::try_from(config).unwrap();
 
         // Act
         let width = image_data.width() as usize;

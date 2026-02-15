@@ -9,6 +9,7 @@ use crate::{
         segmentation::{
             DbscanSegmentation,
             FastDbscanSegmentation,
+            KmeansConfig,
             KmeansSegmentation,
             LabelImage,
             Segmentation,
@@ -99,12 +100,13 @@ impl Algorithm {
     {
         match self {
             Self::KMeans => segment_internal(image_data, filter, || {
-                KmeansSegmentation::builder()
-                    .segments(Self::SEGMENTS)
-                    .max_iter(Self::KMEANS_MAX_ITER)
-                    .tolerance(T::from_f64(Self::KMEANS_TOLERANCE))
-                    .metric(DistanceMetric::SquaredEuclidean)
-                    .build()
+                KmeansSegmentation::try_from(
+                    KmeansConfig::<T>::default()
+                        .segments(Self::SEGMENTS)
+                        .max_iter(Self::KMEANS_MAX_ITER)
+                        .tolerance(T::from_f64(Self::KMEANS_TOLERANCE))
+                        .metric(DistanceMetric::SquaredEuclidean),
+                )
             }),
             Self::DBSCAN => segment_internal(image_data, filter, || {
                 DbscanSegmentation::builder()
