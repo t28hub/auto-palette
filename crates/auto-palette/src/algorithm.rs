@@ -8,6 +8,7 @@ use crate::{
     image::{
         segmentation::{
             DbscanSegmentation,
+            FastDbscanConfig,
             FastDbscanSegmentation,
             KmeansConfig,
             KmeansSegmentation,
@@ -117,12 +118,13 @@ impl Algorithm {
                     .build()
             }),
             Self::DBSCANpp => segment_internal(image_data, filter, || {
-                FastDbscanSegmentation::builder()
-                    .min_pixels(Self::FASTDBSCAN_MIN_POINTS)
-                    .probability(T::from_f64(Self::FASTDBSCAN_PROBABILITY))
-                    .epsilon(T::from_f64(Self::FASTDBSCAN_EPSILON).powi(2))
-                    .metric(DistanceMetric::SquaredEuclidean)
-                    .build()
+                FastDbscanSegmentation::try_from(
+                    FastDbscanConfig::<T>::default()
+                        .min_pixels(Self::FASTDBSCAN_MIN_POINTS)
+                        .probability(T::from_f64(Self::FASTDBSCAN_PROBABILITY))
+                        .epsilon(T::from_f64(Self::FASTDBSCAN_EPSILON).powi(2))
+                        .metric(DistanceMetric::SquaredEuclidean),
+                )
             }),
             Self::SLIC => segment_internal(image_data, filter, || {
                 SlicSegmentation::try_from(

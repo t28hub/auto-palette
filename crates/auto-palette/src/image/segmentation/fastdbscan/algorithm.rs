@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use crate::{
     image::{
         segmentation::{
-            fastdbscan::error::FastDbscanError,
+            fastdbscan::{config::FastDbscanConfig, error::FastDbscanError},
             label::{Builder as LabelImageBuilder, LabelImage},
             Segmentation,
         },
@@ -28,6 +28,31 @@ where
     metric: DistanceMetric,
 }
 
+impl<T> TryFrom<FastDbscanConfig<T>> for FastDbscanSegmentation<T>
+where
+    T: FloatNumber,
+{
+    type Error = FastDbscanError<T>;
+
+    fn try_from(config: FastDbscanConfig<T>) -> Result<Self, Self::Error> {
+        if config.min_pixels == 0 {
+            return Err(FastDbscanError::InvalidMinPixels);
+        }
+        if config.epsilon <= T::zero() || config.epsilon.is_nan() {
+            return Err(FastDbscanError::InvalidEpsilon(config.epsilon));
+        }
+        if !(T::zero()..=T::one()).contains(&config.probability) {
+            return Err(FastDbscanError::OutOfRangeProbability(config.probability));
+        }
+        Ok(Self {
+            min_pixels: config.min_pixels,
+            epsilon: config.epsilon,
+            probability: config.probability,
+            metric: config.metric,
+        })
+    }
+}
+
 impl<T> FastDbscanSegmentation<T>
 where
     T: FloatNumber,
@@ -43,15 +68,6 @@ where
 
     /// Label for noise pixels.
     const LABEL_NOISE: usize = usize::MAX - 2;
-
-    /// Creates a new `Builder` instance for `FastDbscanSegmentation`.
-    ///
-    /// # Returns
-    /// A `Builder` instance for `FastDbscanSegmentation` with default parameters.
-    #[must_use]
-    pub fn builder() -> Builder<T> {
-        Builder::default()
-    }
 
     #[must_use]
     fn select_core_pixels(&self, pixels: &[Pixel<T>], mask: &[bool]) -> Vec<Pixel<T>> {
@@ -218,116 +234,6 @@ where
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub struct Builder<T> {
-    min_pixels: usize,
-    epsilon: T,
-    probability: T,
-    metric: DistanceMetric,
-}
-
-impl<T> Builder<T>
-where
-    T: FloatNumber,
-{
-    /// Default minimum number of pixels in a segment.
-    const DEFAULT_MIN_PIXELS: usize = 6;
-
-    /// Default epsilon value for the segmentation.
-    const DEFAULT_EPSILON: f64 = 0.03;
-
-    /// Default probability for the segmentation.
-    const DEFAULT_PROBABILITY: f64 = 0.2;
-
-    /// Sets the minimum number of pixels in a segment.
-    ///
-    /// # Arguments
-    /// * `min_pixels` - The minimum number of pixels required to form a segment.
-    ///
-    /// # Returns
-    /// A mutable reference to the `Builder` instance with the updated `min_pixels` value.
-    #[must_use]
-    pub fn min_pixels(mut self, min_pixels: usize) -> Self {
-        self.min_pixels = min_pixels;
-        self
-    }
-
-    /// Sets the epsilon value for the segmentation.
-    ///
-    /// # Arguments
-    /// * `epsilon` - The epsilon value that defines the radius for neighborhood search.
-    ///
-    /// # Returns
-    /// A mutable reference to the `Builder` instance with the updated `epsilon` value.
-    #[must_use]
-    pub fn epsilon(mut self, epsilon: T) -> Self {
-        self.epsilon = epsilon;
-        self
-    }
-
-    /// Sets the probability for the segmentation.
-    ///
-    /// # Arguments
-    /// * `probability` - The probability value that defines the likelihood of selecting a core pixel.
-    ///
-    /// # Returns
-    /// A mutable reference to the `Builder` instance with the updated `probability` value.
-    #[must_use]
-    pub fn probability(mut self, probability: T) -> Self {
-        self.probability = probability;
-        self
-    }
-
-    /// Sets the distance metric for the segmentation.
-    ///
-    /// # Arguments
-    /// * `metric` - The distance metric to be used for measuring distances between pixels.
-    ///
-    /// # Returns
-    /// A mutable reference to the `Builder` instance with the updated `metric` value.
-    #[must_use]
-    pub fn metric(mut self, metric: DistanceMetric) -> Self {
-        self.metric = metric;
-        self
-    }
-
-    /// Builds the `FastDbscanSegmentation` instance with the specified parameters.
-    ///
-    /// # Returns
-    /// A `Result` containing the `FastDbscanSegmentation` instance if successful, or a `FastDbscanError` if there are validation issues.
-    pub fn build(&self) -> Result<FastDbscanSegmentation<T>, FastDbscanError<T>> {
-        if self.min_pixels == 0 {
-            return Err(FastDbscanError::InvalidMinPixels);
-        }
-        if self.epsilon <= T::zero() || self.epsilon.is_nan() {
-            return Err(FastDbscanError::InvalidEpsilon(self.epsilon));
-        }
-        if !(T::zero()..=T::one()).contains(&self.probability) {
-            return Err(FastDbscanError::OutOfRangeProbability(self.probability));
-        }
-        Ok(FastDbscanSegmentation {
-            min_pixels: self.min_pixels,
-            epsilon: self.epsilon,
-            probability: self.probability,
-            metric: self.metric,
-        })
-    }
-}
-
-impl<T> Default for Builder<T>
-where
-    T: FloatNumber,
-{
-    fn default() -> Self {
-        Self {
-            min_pixels: Self::DEFAULT_MIN_PIXELS,
-            epsilon: T::from_f64(Self::DEFAULT_EPSILON),
-            probability: T::from_f64(Self::DEFAULT_PROBABILITY),
-            metric: DistanceMetric::default(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
@@ -336,33 +242,14 @@ mod tests {
     use crate::{ImageData, Rgba};
 
     #[test]
-    fn test_builder() {
+    fn test_try_from() {
         // Act
-        let actual = FastDbscanSegmentation::<f64>::builder();
-
-        // Assert
-        assert_eq!(
-            actual,
-            Builder {
-                min_pixels: Builder::<f64>::DEFAULT_MIN_PIXELS,
-                epsilon: f64::from_f64(Builder::<f64>::DEFAULT_EPSILON),
-                probability: f64::from_f64(Builder::<f64>::DEFAULT_PROBABILITY),
-                metric: DistanceMetric::default(),
-            }
-        );
-    }
-
-    #[test]
-    fn test_builder_build() {
-        // Arrange
-        let builder = FastDbscanSegmentation::<f64>::builder()
+        let config = FastDbscanConfig::<f64>::default()
             .min_pixels(8)
             .epsilon(0.05)
             .probability(0.25)
             .metric(DistanceMetric::Euclidean);
-
-        // Act
-        let actual = builder.build();
+        let actual = FastDbscanSegmentation::try_from(config);
 
         // Assert
         assert!(actual.is_ok());
@@ -384,18 +271,18 @@ mod tests {
     #[case::invalid_epsilon(5, -0.01, 0.1, FastDbscanError::InvalidEpsilon(-0.01))]
     #[case::invalid_probability_more(5, 0.02, 1.1, FastDbscanError::OutOfRangeProbability(1.1))]
     #[case::invalid_probability_less(5, 0.02, -0.1, FastDbscanError::OutOfRangeProbability(-0.1))]
-    fn test_builder_build_invalid_params(
+    fn test_try_from_error(
         #[case] min_pixels: usize,
         #[case] epsilon: f64,
         #[case] probability: f64,
         #[case] expected: FastDbscanError<f64>,
     ) {
         // Act
-        let actual = FastDbscanSegmentation::<f64>::builder()
+        let config = FastDbscanConfig::<f64>::default()
             .min_pixels(min_pixels)
             .epsilon(f64::from_f64(epsilon))
-            .probability(f64::from_f64(probability))
-            .build();
+            .probability(f64::from_f64(probability));
+        let actual = FastDbscanSegmentation::try_from(config);
 
         // Assert
         assert!(actual.is_err());
@@ -405,13 +292,13 @@ mod tests {
     }
 
     #[test]
-    fn test_builder_build_invalid_epsilon_nan() {
+    fn test_try_from_epsilon_nan() {
         // Act
-        let actual = FastDbscanSegmentation::<f64>::builder()
+        let config = FastDbscanConfig::<f64>::default()
             .min_pixels(5)
             .epsilon(f64::NAN)
-            .probability(0.1)
-            .build();
+            .probability(0.1);
+        let actual = FastDbscanSegmentation::try_from(config);
 
         // Assert
         assert!(actual.is_err());
@@ -424,13 +311,13 @@ mod tests {
     }
 
     #[test]
-    fn test_builder_build_invalid_probability_nan() {
+    fn test_try_from_probability_nan() {
         // Act
-        let actual = FastDbscanSegmentation::<f64>::builder()
+        let config = FastDbscanConfig::<f64>::default()
             .min_pixels(5)
             .epsilon(0.02)
-            .probability(f64::NAN)
-            .build();
+            .probability(f64::NAN);
+        let actual = FastDbscanSegmentation::try_from(config);
 
         // Assert
         assert!(actual.is_err());
@@ -447,13 +334,12 @@ mod tests {
     fn test_segment() {
         // Arrange
         let image_data = ImageData::load("../../gfx/flags/za.png").unwrap();
-        let segmentation = FastDbscanSegmentation::builder()
+        let config = FastDbscanConfig::default()
             .min_pixels(10)
             .epsilon(0.03)
             .probability(0.1)
-            .metric(DistanceMetric::Euclidean)
-            .build()
-            .unwrap();
+            .metric(DistanceMetric::Euclidean);
+        let segmentation = FastDbscanSegmentation::<f64>::try_from(config).unwrap();
 
         // Act
         let width = image_data.width() as usize;
@@ -476,7 +362,8 @@ mod tests {
     #[test]
     fn test_segment_empty_image() {
         // Arrange
-        let segmentation = FastDbscanSegmentation::<f64>::builder().build().unwrap();
+        let segmentation =
+            FastDbscanSegmentation::<f64>::try_from(FastDbscanConfig::default()).unwrap();
 
         // Act
         let width = 0;
@@ -496,13 +383,12 @@ mod tests {
     fn test_segment_with_mask() {
         // Arrange
         let image_data = ImageData::load("../../gfx/flags/np.png").unwrap();
-        let segmentation = FastDbscanSegmentation::builder()
+        let config = FastDbscanConfig::default()
             .min_pixels(10)
             .epsilon(0.03)
             .probability(0.1)
-            .metric(DistanceMetric::Euclidean)
-            .build()
-            .unwrap();
+            .metric(DistanceMetric::Euclidean);
+        let segmentation = FastDbscanSegmentation::<f64>::try_from(config).unwrap();
 
         let width = image_data.width() as usize;
         let height = image_data.height() as usize;
@@ -538,7 +424,8 @@ mod tests {
     #[test]
     fn test_segment_with_mask_empty_image() {
         // Arrange
-        let segmentation = FastDbscanSegmentation::<f64>::builder().build().unwrap();
+        let segmentation =
+            FastDbscanSegmentation::<f64>::try_from(FastDbscanConfig::default()).unwrap();
 
         // Act
         let width = 0;
@@ -559,7 +446,8 @@ mod tests {
     #[test]
     fn test_segment_with_mask_unexpected_length() {
         // Arrange
-        let segmentation = FastDbscanSegmentation::<f64>::builder().build().unwrap();
+        let segmentation =
+            FastDbscanSegmentation::<f64>::try_from(FastDbscanConfig::default()).unwrap();
 
         // Act
         let width = 16;
