@@ -12,6 +12,7 @@ use crate::{
             KmeansSegmentation,
             LabelImage,
             Segmentation,
+            SlicConfig,
             SlicSegmentation,
             SnicConfig,
             SnicSegmentation,
@@ -122,13 +123,14 @@ impl Algorithm {
                     .build()
             }),
             Self::SLIC => segment_internal(image_data, filter, || {
-                SlicSegmentation::builder()
-                    .segments(Self::SEGMENTS)
-                    .max_iter(Self::SLIC_MAX_ITER)
-                    .compactness(T::from_f64(Self::SLIC_COMPACTNESS))
-                    .tolerance(T::from_f64(Self::SLIC_TOLERANCE))
-                    .metric(DistanceMetric::SquaredEuclidean)
-                    .build()
+                SlicSegmentation::try_from(
+                    SlicConfig::<T>::default()
+                        .segments(Self::SEGMENTS)
+                        .max_iter(Self::SLIC_MAX_ITER)
+                        .compactness(T::from_f64(Self::SLIC_COMPACTNESS))
+                        .tolerance(T::from_f64(Self::SLIC_TOLERANCE))
+                        .metric(DistanceMetric::SquaredEuclidean),
+                )
             }),
             Self::SNIC => segment_internal(image_data, filter, || {
                 SnicSegmentation::try_from(
