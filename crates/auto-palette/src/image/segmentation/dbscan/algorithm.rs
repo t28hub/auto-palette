@@ -5,7 +5,7 @@ use rustc_hash::FxHashMap;
 use crate::{
     image::{
         segmentation::{
-            dbscan::error::DbscanError,
+            dbscan::{config::DbscanConfig, error::DbscanError},
             label::{Builder as LabelImageBuilder, LabelImage},
             Segmentation,
         },
@@ -37,6 +37,31 @@ where
     metric: DistanceMetric,
 }
 
+impl<T> TryFrom<DbscanConfig<T>> for DbscanSegmentation<T>
+where
+    T: FloatNumber,
+{
+    type Error = DbscanError<T>;
+
+    fn try_from(config: DbscanConfig<T>) -> Result<Self, Self::Error> {
+        if config.segments == 0 {
+            return Err(DbscanError::InvalidSegments);
+        }
+        if config.min_pixels == 0 {
+            return Err(DbscanError::InvalidMinPixels);
+        }
+        if config.epsilon <= T::zero() || config.epsilon.is_nan() {
+            return Err(DbscanError::InvalidEpsilon(config.epsilon));
+        }
+        Ok(Self {
+            segments: config.segments,
+            min_pixels: config.min_pixels,
+            epsilon: config.epsilon,
+            metric: config.metric,
+        })
+    }
+}
+
 impl<T> DbscanSegmentation<T>
 where
     T: FloatNumber,
@@ -49,15 +74,6 @@ where
     const LABEL_IGNORED: usize = usize::MAX - 1;
 
     const LABEL_NOISE: usize = usize::MAX - 2;
-
-    /// Creates a new `Builder` instance for `DbscanSegmentation`.
-    ///
-    /// # Returns
-    /// A new `Builder` instance for `DbscanSegmentation`.
-    #[must_use]
-    pub fn builder() -> Builder<T> {
-        Builder::default()
-    }
 
     /// Merges small segments into their nearest large segment.
     ///
@@ -245,123 +261,6 @@ where
     }
 }
 
-/// Builder for `DbscanSegmentation`.
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
-#[derive(Debug, PartialEq)]
-pub struct Builder<T>
-where
-    T: FloatNumber,
-{
-    segments: usize,
-    min_pixels: usize,
-    epsilon: T,
-    metric: DistanceMetric,
-}
-
-impl<T> Builder<T>
-where
-    T: FloatNumber,
-{
-    /// Default number of segments.
-    const DEFAULT_SEGMENTS: usize = 64;
-
-    /// Default minimum number of pixels for a segment.
-    const DEFAULT_MIN_PIXELS: usize = 6;
-
-    /// Default epsilon value for the segmentation.
-    const DEFAULT_EPSILON: f64 = 1e-3;
-
-    /// Sets the number of segments for the segmentation.
-    ///
-    /// # Arguments
-    /// * `segments` - The number of segments to create.
-    ///
-    /// # Returns
-    /// The `Builder` instance with the specified number of segments.
-    #[must_use]
-    pub fn segments(mut self, segments: usize) -> Self {
-        self.segments = segments;
-        self
-    }
-
-    /// Sets the minimum number of pixels for a segment.
-    ///
-    /// # Arguments
-    /// * `min_pixels` - The minimum number of pixels for a segment.
-    ///
-    /// # Returns
-    /// The `Builder` instance with the specified minimum number of pixels.
-    #[must_use]
-    pub fn min_pixels(mut self, min_pixels: usize) -> Self {
-        self.min_pixels = min_pixels;
-        self
-    }
-
-    /// Sets the epsilon value for the segmentation.
-    ///
-    /// # Arguments
-    /// * `epsilon` - The epsilon value for the segmentation.
-    ///
-    /// # Returns
-    /// The `Builder` instance with the specified epsilon value.
-    #[must_use]
-    pub fn epsilon(mut self, epsilon: T) -> Self {
-        self.epsilon = epsilon;
-        self
-    }
-
-    /// Sets the distance metric for the segmentation.
-    ///
-    /// # Arguments
-    /// * `metric` - The distance metric for the segmentation.
-    ///
-    /// # Returns
-    /// The `Builder` instance with the specified distance metric.
-    #[must_use]
-    pub fn metric(mut self, metric: DistanceMetric) -> Self {
-        self.metric = metric;
-        self
-    }
-
-    /// Builds the `DbscanSegmentation` instance.
-    ///
-    /// # Returns
-    /// A new `DbscanSegmentation` instance.
-    pub fn build(self) -> Result<DbscanSegmentation<T>, DbscanError<T>> {
-        if self.segments == 0 {
-            return Err(DbscanError::InvalidSegments);
-        }
-        if self.min_pixels == 0 {
-            return Err(DbscanError::InvalidMinPixels);
-        }
-        if self.epsilon <= T::zero() || self.epsilon.is_nan() {
-            return Err(DbscanError::InvalidEpsilon(self.epsilon));
-        }
-        Ok(DbscanSegmentation {
-            segments: self.segments,
-            min_pixels: self.min_pixels,
-            epsilon: self.epsilon,
-            metric: self.metric,
-        })
-    }
-}
-
-impl<T> Default for Builder<T>
-where
-    T: FloatNumber,
-{
-    fn default() -> Self {
-        Self {
-            segments: Self::DEFAULT_SEGMENTS,
-            min_pixels: Self::DEFAULT_MIN_PIXELS,
-            epsilon: T::from_f64(Self::DEFAULT_EPSILON),
-            metric: DistanceMetric::default(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
@@ -370,23 +269,14 @@ mod tests {
     use crate::{ImageData, Rgba};
 
     #[test]
-    fn test_builder() {
+    fn test_try_from() {
         // Act
-        let actual = DbscanSegmentation::<f64>::builder();
-
-        // Assert
-        assert_eq!(actual, Builder::default());
-    }
-
-    #[test]
-    fn test_builder_build() {
-        // Act
-        let actual = DbscanSegmentation::<f64>::builder()
+        let config = DbscanConfig::<f64>::default()
             .segments(32)
             .min_pixels(12)
             .epsilon(0.01)
-            .metric(DistanceMetric::Euclidean)
-            .build();
+            .metric(DistanceMetric::Euclidean);
+        let actual = DbscanSegmentation::try_from(config);
 
         // Assert
         assert!(actual.is_ok());
@@ -407,18 +297,18 @@ mod tests {
     #[case::invalid_segments(0, 6, 0.01, DbscanError::InvalidSegments)]
     #[case::invalid_min_pixels(32, 0, 0.01, DbscanError::InvalidMinPixels)]
     #[case::invalid_epsilon(32, 6, -0.01, DbscanError::InvalidEpsilon(-0.01))]
-    fn test_builder_build_with_invalid_params(
+    fn test_try_from_error(
         #[case] segments: usize,
         #[case] min_pixels: usize,
         #[case] epsilon: f64,
         #[case] expected: DbscanError<f64>,
     ) {
         // Act
-        let actual = DbscanSegmentation::<f64>::builder()
+        let config = DbscanConfig::<f64>::default()
             .segments(segments)
             .min_pixels(min_pixels)
-            .epsilon(epsilon)
-            .build();
+            .epsilon(epsilon);
+        let actual = DbscanSegmentation::try_from(config);
 
         // Assert
         assert!(actual.is_err());
@@ -428,13 +318,13 @@ mod tests {
     }
 
     #[test]
-    fn test_builder_build_with_invalid_epsilon_nan() {
+    fn test_try_from_epsilon_nan() {
         // Act
-        let actual = DbscanSegmentation::<f64>::builder()
+        let config = DbscanConfig::<f64>::default()
             .segments(32)
             .min_pixels(6)
-            .epsilon(f64::NAN)
-            .build();
+            .epsilon(f64::NAN);
+        let actual = DbscanSegmentation::try_from(config);
 
         // Assert
         assert!(actual.is_err());
@@ -451,13 +341,12 @@ mod tests {
     fn test_segment() {
         // Arrange
         let image_data = ImageData::load("../../gfx/flags/za.png").unwrap();
-        let segmentation = DbscanSegmentation::builder()
+        let config = DbscanConfig::default()
             .segments(32)
             .min_pixels(10)
             .epsilon(0.01)
-            .metric(DistanceMetric::Euclidean)
-            .build()
-            .unwrap();
+            .metric(DistanceMetric::Euclidean);
+        let segmentation = DbscanSegmentation::<f64>::try_from(config).unwrap();
 
         // Act
         let width = image_data.width() as usize;
@@ -478,13 +367,12 @@ mod tests {
     fn test_segment_with_mask() {
         // Arrange
         let image_data = ImageData::load("../../gfx/flags/np.png").unwrap();
-        let segmentation = DbscanSegmentation::builder()
+        let config = DbscanConfig::default()
             .segments(32)
             .min_pixels(10)
             .epsilon(0.01)
-            .metric(DistanceMetric::Euclidean)
-            .build()
-            .unwrap();
+            .metric(DistanceMetric::Euclidean);
+        let segmentation = DbscanSegmentation::<f64>::try_from(config).unwrap();
 
         // Create a mask that includes all pixels
         let width = image_data.width() as usize;
@@ -518,7 +406,7 @@ mod tests {
     #[test]
     fn test_segment_with_mask_unexpected_length() {
         // Arrange
-        let segmentation = DbscanSegmentation::builder().build().unwrap();
+        let segmentation = DbscanSegmentation::<f64>::try_from(DbscanConfig::default()).unwrap();
 
         // Act
         let width = 9;

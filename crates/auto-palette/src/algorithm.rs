@@ -7,6 +7,7 @@ use crate::{
     error::Error,
     image::{
         segmentation::{
+            DbscanConfig,
             DbscanSegmentation,
             FastDbscanConfig,
             FastDbscanSegmentation,
@@ -110,12 +111,13 @@ impl Algorithm {
                 )
             }),
             Self::DBSCAN => segment_internal(image_data, filter, || {
-                DbscanSegmentation::builder()
-                    .segments(Self::SEGMENTS)
-                    .min_pixels(Self::DBSCAN_MIN_POINTS)
-                    .epsilon(T::from_f64(Self::DBSCAN_EPSILON.powi(2))) // Squared epsilon for squared euclidean distance
-                    .metric(DistanceMetric::SquaredEuclidean)
-                    .build()
+                DbscanSegmentation::try_from(
+                    DbscanConfig::<T>::default()
+                        .segments(Self::SEGMENTS)
+                        .min_pixels(Self::DBSCAN_MIN_POINTS)
+                        .epsilon(T::from_f64(Self::DBSCAN_EPSILON.powi(2))) // Squared epsilon for squared euclidean distance
+                        .metric(DistanceMetric::SquaredEuclidean),
+                )
             }),
             Self::DBSCANpp => segment_internal(image_data, filter, || {
                 FastDbscanSegmentation::try_from(

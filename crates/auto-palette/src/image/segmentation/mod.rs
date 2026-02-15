@@ -10,7 +10,7 @@ mod slic;
 mod snic;
 
 pub use algorithm::Segmentation;
-pub use dbscan::DbscanSegmentation;
+pub use dbscan::{DbscanConfig, DbscanSegmentation};
 pub use fastdbscan::{FastDbscanConfig, FastDbscanSegmentation};
 pub use kmeans::{KmeansConfig, KmeansSegmentation};
 pub use label::LabelImage;
