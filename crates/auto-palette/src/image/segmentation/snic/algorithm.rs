@@ -10,7 +10,7 @@ use crate::{
             helper::gradient,
             label::LabelImage,
             seed::SeedGenerator,
-            snic::error::SnicError,
+            snic::{config::SnicConfig, error::SnicError},
             Segmentation,
         },
         Pixel,
@@ -36,27 +36,34 @@ where
     _marker: PhantomData<T>,
 }
 
+impl<T> TryFrom<SnicConfig<T>> for SnicSegmentation<T>
+where
+    T: FloatNumber,
+{
+    type Error = SnicError;
+
+    fn try_from(config: SnicConfig<T>) -> Result<Self, Self::Error> {
+        if config.segments == 0 {
+            return Err(SnicError::InvalidSegments(config.segments));
+        }
+        Ok(Self {
+            segments: config.segments,
+            generator: config.generator,
+            metric: config.metric,
+            _marker: PhantomData,
+        })
+    }
+}
+
 impl<T> SnicSegmentation<T>
 where
     T: FloatNumber,
 {
-    /// Default number of segments to create.
-    const DEFAULT_SEGMENTS: usize = 64;
-
     /// Label for unlabelled pixels.
     const LABEL_UNLABELLED: usize = usize::MAX;
 
     /// Label for ignored pixels.
     const LABEL_IGNORED: usize = usize::MAX - 1;
-
-    /// Creates a new `SnicSegmentationBuilder` instance.
-    ///
-    /// # Returns
-    /// A new `SnicSegmentationBuilder` instance with default values.
-    #[must_use]
-    pub fn builder() -> Builder<T> {
-        Builder::default()
-    }
 
     /// Finds the index of the lowest gradient point in the matrix.
     ///
@@ -182,97 +189,6 @@ where
     }
 }
 
-/// Builder for `SnicSegmentation`.
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
-#[derive(Debug, PartialEq)]
-pub struct Builder<T>
-where
-    T: FloatNumber,
-{
-    segments: usize,
-    generator: SeedGenerator,
-    metric: DistanceMetric,
-    _marker: PhantomData<T>,
-}
-
-impl<T> Builder<T>
-where
-    T: FloatNumber,
-{
-    /// Sets the number of segments to create.
-    ///
-    /// # Arguments
-    /// * `segments` - The number of segments to create.
-    ///
-    /// # Returns
-    /// The `SnicSegmentationBuilder` instance with the specified number of segments.
-    #[must_use]
-    pub fn segments(mut self, segments: usize) -> Self {
-        self.segments = segments;
-        self
-    }
-
-    /// Sets the seed generator to use.
-    ///
-    /// # Arguments
-    /// * `generator` - The seed generator to use.
-    ///
-    /// # Returns
-    /// The `SnicSegmentationBuilder` instance with the specified seed generator.
-    #[allow(dead_code)]
-    #[must_use]
-    pub fn generator(mut self, generator: SeedGenerator) -> Self {
-        self.generator = generator;
-        self
-    }
-
-    /// Sets the distance metric to use.
-    ///
-    /// # Arguments
-    /// * `metric` - The distance metric to use.
-    ///
-    /// # Returns
-    /// The `SnicSegmentationBuilder` instance with the specified distance metric.
-    #[must_use]
-    pub fn metric(mut self, metric: DistanceMetric) -> Self {
-        self.metric = metric;
-        self
-    }
-
-    /// Builds a new `SnicSegmentation` instance.
-    ///
-    /// # Returns
-    /// A `Result` containing the `SnicSegmentation` instance or an error if the parameters are invalid.
-    pub fn build(self) -> Result<SnicSegmentation<T>, SnicError> {
-        if self.segments == 0 {
-            return Err(SnicError::InvalidSegments(self.segments));
-        }
-
-        Ok(SnicSegmentation {
-            segments: self.segments,
-            generator: self.generator,
-            metric: self.metric,
-            _marker: PhantomData,
-        })
-    }
-}
-
-impl<T> Default for Builder<T>
-where
-    T: FloatNumber,
-{
-    fn default() -> Self {
-        Self {
-            segments: SnicSegmentation::<T>::DEFAULT_SEGMENTS,
-            generator: SeedGenerator::default(),
-            metric: DistanceMetric::default(),
-            _marker: PhantomData,
-        }
-    }
-}
-
 /// An element representing a candidate for clustering.
 ///
 /// # Type Parameters
@@ -332,7 +248,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{math::matrix::MatrixError, ImageData};
+    use crate::{image::segmentation::seed::SeedGenerator, math::matrix::MatrixError, ImageData};
 
     #[must_use]
     fn sample_pixels<T>(width: usize, height: usize) -> Vec<Pixel<T>>
@@ -343,22 +259,13 @@ mod tests {
     }
 
     #[test]
-    fn test_builder() {
+    fn test_try_from() {
         // Act
-        let actual = SnicSegmentation::<f64>::builder();
-
-        // Assert
-        assert_eq!(actual, Builder::<f64>::default());
-    }
-
-    #[test]
-    fn test_builder_build() {
-        // Act
-        let actual = SnicSegmentation::<f64>::builder()
+        let config = SnicConfig::<f64>::default()
             .segments(128)
             .generator(SeedGenerator::RegularGrid)
-            .metric(DistanceMetric::SquaredEuclidean)
-            .build();
+            .metric(DistanceMetric::SquaredEuclidean);
+        let actual = SnicSegmentation::try_from(config);
 
         // Assert
         assert!(actual.is_ok());
@@ -376,9 +283,10 @@ mod tests {
     }
 
     #[test]
-    fn test_builder_build_error() {
+    fn test_try_from_invalid_segments() {
         // Act
-        let actual = SnicSegmentation::<f64>::builder().segments(0).build();
+        let config = SnicConfig::<f64>::default().segments(0);
+        let actual = SnicSegmentation::try_from(config);
 
         // Assert
         assert!(actual.is_err());
@@ -392,10 +300,8 @@ mod tests {
     fn test_segment() {
         // Arrange
         let image_data = ImageData::load("../../gfx/flags/za.png").unwrap();
-        let snic = SnicSegmentation::<f64>::builder()
-            .segments(32)
-            .build()
-            .unwrap();
+        let config = SnicConfig::default().segments(32);
+        let snic = SnicSegmentation::<f64>::try_from(config).unwrap();
 
         // Act
         let width = image_data.width() as usize;
@@ -414,12 +320,11 @@ mod tests {
     #[test]
     fn test_segment_unexpected_length() {
         // Arrange
-        let snic = SnicSegmentation::<f64>::builder()
+        let config = SnicConfig::default()
             .segments(12)
             .generator(SeedGenerator::RegularGrid)
-            .metric(DistanceMetric::SquaredEuclidean)
-            .build()
-            .unwrap();
+            .metric(DistanceMetric::SquaredEuclidean);
+        let snic = SnicSegmentation::<f64>::try_from(config).unwrap();
 
         // Act
         let width = 32;

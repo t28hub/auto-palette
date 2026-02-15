@@ -15,4 +15,4 @@ pub use fastdbscan::FastDbscanSegmentation;
 pub use kmeans::KmeansSegmentation;
 pub use label::LabelImage;
 pub use slic::SlicSegmentation;
-pub use snic::SnicSegmentation;
+pub use snic::{SnicConfig, SnicSegmentation};

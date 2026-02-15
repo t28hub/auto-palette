@@ -13,6 +13,7 @@ use crate::{
             LabelImage,
             Segmentation,
             SlicSegmentation,
+            SnicConfig,
             SnicSegmentation,
         },
         Pixel,
@@ -130,10 +131,11 @@ impl Algorithm {
                     .build()
             }),
             Self::SNIC => segment_internal(image_data, filter, || {
-                SnicSegmentation::<T>::builder()
-                    .segments(Self::SEGMENTS)
-                    .metric(DistanceMetric::Euclidean)
-                    .build()
+                SnicSegmentation::try_from(
+                    SnicConfig::<T>::default()
+                        .segments(Self::SEGMENTS)
+                        .metric(DistanceMetric::SquaredEuclidean),
+                )
             }),
         }
     }
