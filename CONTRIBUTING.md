@@ -60,7 +60,7 @@ just check    # Run lint, audit, and udeps
 ## Code Style
 
 - Rust: [rustfmt](https://github.com/rust-lang/rustfmt) with repo config (`.rustfmt.toml`) and clippy.
-- TOML: [taplo](https://github.com/tamasfe/taplo) (`.taplo.toml`).
+- TOML: [Tombi](https://github.com/tombi-toml/tombi) (`tombi.toml`).
 - JavaScript/TypeScript/JSON: [Biome](https://biomejs.dev/) (`biome.json`).
 
 ## License

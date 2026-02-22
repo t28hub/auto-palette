@@ -1,19 +1,18 @@
 [package]
 name                 = "auto-palette-cli"
-description          = "🎨 CLI tool to extract a prominent color palette from an image."
-readme               = "./README.md"
-categories           = ["graphics", "algorithms", "multimedia::images", "command-line-utilities"]
-keywords             = ["palette", "color", "image", "color-palette", "color-extraction"]
-edition.workspace    = true
 version.workspace    = true
 authors.workspace    = true
-license.workspace    = true
-homepage.workspace   = true
-repository.workspace = true
-
+edition.workspace    = true
 # `cargo msrv` does not support `rust-version.workspace` yet.
 # https://github.com/foresterre/cargo-msrv/issues/590
-rust-version = "1.86.0"
+rust-version         = "1.86.0"
+description          = "🎨 CLI tool to extract a prominent color palette from an image."
+readme               = "./README.md"
+homepage.workspace   = true
+repository.workspace = true
+license.workspace    = true
+keywords             = ["color", "color-extraction", "color-palette", "image", "palette"]
+categories           = ["algorithms", "command-line-utilities", "graphics", "multimedia::images"]
 
 [dependencies]
 anyhow       = { workspace = true }

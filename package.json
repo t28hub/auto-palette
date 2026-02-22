@@ -5,19 +5,14 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "prepare": "lefthook install",
-    "format": "pnpm format:biome && pnpm format:cargo && pnpm format:taplo",
-    "format:biome": "biome format --write .",
-    "format:cargo": "cargo +nightly fmt --all",
-    "format:taplo": "taplo format",
-    "lint": "biome lint ."
+    "prepare": "lefthook install"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.14",
-    "@taplo/cli": "0.7.0",
     "@types/node": "catalog:",
     "lefthook": "2.1.0",
     "rimraf": "6.1.2",
+    "tombi": "0.7.31",
     "typescript": "catalog:",
     "vite-plugin-wasm": "3.5.0",
     "vitest": "catalog:"

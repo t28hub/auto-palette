@@ -13,7 +13,7 @@
 - Keep changes small & reversible
   - Avoid unrelated rewrites; prefer incremental patches.
 - Format/lint before tests
-  - `pnpm format` then `pnpm lint`.
+  - `just format` then `just lint`.
 - Default tests
   - `cargo nextest run --tests --all-features --workspace --exclude auto-palette-wasm`.
 - Safety
@@ -37,14 +37,14 @@
   - Build: `pnpm -C packages/auto-palette-wasm build` (needs `wasm-pack`)
   - Test: `pnpm -C packages/auto-palette-wasm test` (Vitest; unit/e2e)
 - Format/Lint
-  - `pnpm format` (Biome + rustfmt + Taplo), `pnpm lint`
+  - `just format` (Biome + rustfmt + Tombi), `just lint`
   - Rust lints: `cargo clippy -- -D warnings`
 
 ## Coding Style & Naming
 - Rust
   - rustfmt nightly per `.rustfmt.toml`; group imports; format docs. Run `cargo +nightly fmt --all`.
 - TOML
-  - Taplo with alignment rules (`.taplo.toml`).
+  - Tombi with alignment rules (`tombi.toml`).
 - TS/JSON
   - Biome, 2-space indent, single quotes (`biome.json`).
 - Naming
@@ -74,7 +74,7 @@
   - Update `CHANGELOG.md`: move items from “Unreleased” to `vX.Y.Z - YYYY-MM-DD` with clear bullets.
   - Bump version: set `[workspace.package].version` in `Cargo.toml` to `X.Y.Z`.
   - Sync docs: update README dependency snippet (`auto-palette = "X.Y.Z"`).
-  - Verify: `pnpm format && pnpm lint` then run default tests (see above).
+  - Verify: `just format && just lint` then run default tests (see above).
 - Tag & trigger CI
   - Create tag (signed preferred): `git tag -s vX.Y.Z -m "vX.Y.Z"` or `git tag vX.Y.Z -m "vX.Y.Z"`.
   - Push tag: `git push origin vX.Y.Z` (CI will publish `auto-palette` to crates.io).
