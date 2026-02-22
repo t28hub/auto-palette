@@ -37,7 +37,7 @@ format-js:
 
 # Format TOML files
 format-toml:
-  taplo fmt
+  tombi format
 
 
 # Linting

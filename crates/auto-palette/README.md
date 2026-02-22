@@ -225,7 +225,7 @@ Follow the instructions below to build and test the project:
 2. Create a new branch for your feature or bug fix.
 3. Make your changes and write tests.
 4. Test your changes with `cargo test --lib`.
-5. Format the code with `cargo +nightly fmt` and `taplo fmt`.
+5. Format the code with `cargo +nightly fmt` and `tombi format`.
 6. Create a pull request.
 
 ## License

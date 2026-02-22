@@ -1,19 +1,18 @@
 [package]
 name                 = "auto-palette-wasm"
-description          = "🎨 A WebAssembly binding for auto-palette, allowing it to automatically extract color palettes from images."
-publish              = false
-readme               = "./README.md"
-categories           = ["wasm", "multimedia::images", "graphics", "algorithms"]
-keywords             = ["palette", "color", "image", "color-palette", "webassembly"]
-edition.workspace    = true
 version.workspace    = true
 authors.workspace    = true
-license.workspace    = true
+edition.workspace    = true
+# https://github.com/foresterre/cargo-msrv/issues/590
+rust-version         = "1.86.0"
+description          = "🎨 A WebAssembly binding for auto-palette, allowing it to automatically extract color palettes from images."
+readme               = "./README.md"
 homepage.workspace   = true
 repository.workspace = true
-
-# https://github.com/foresterre/cargo-msrv/issues/590
-rust-version = "1.86.0"
+license.workspace    = true
+keywords             = ["color", "color-palette", "image", "palette", "webassembly"]
+categories           = ["algorithms", "graphics", "multimedia::images", "wasm"]
+publish              = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]

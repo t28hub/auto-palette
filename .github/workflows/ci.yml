@@ -33,16 +33,13 @@ jobs:
       - name: Check .rs files
         run: cargo +nightly fmt --all -- --check
 
-      - name: Install cargo-binstall
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-binstall
-
-      - name: Install taplo-cli
-        run: cargo binstall --no-confirm --no-discover-github-token --force taplo-cli
+      - name: Install tombi
+        uses: tombi-toml/setup-tombi@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check .toml files
-        run: taplo fmt --check --diff
+        run: tombi format --check
 
   check:
     runs-on: ubuntu-latest
