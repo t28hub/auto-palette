@@ -29,13 +29,14 @@ where
     T: FloatNumber,
 {
     /// Default number of segments to generate.
-    const DEFAULT_SEGMENTS: usize = 64;
+    const DEFAULT_SEGMENTS: usize = 128;
 
     /// Default minimum number of pixels for a segment.
-    const DEFAULT_MIN_PIXELS: usize = 6;
+    const DEFAULT_MIN_PIXELS: usize = 10;
 
     /// Default epsilon value for the segmentation.
-    const DEFAULT_EPSILON: f64 = 1e-3;
+    /// The epsilon value is squared because the default distance metric is SquaredEuclidean.
+    const DEFAULT_EPSILON: f64 = 0.03 * 0.03;
 
     /// Sets the number of segments to generate.
     ///
@@ -95,7 +96,7 @@ where
             segments: Self::DEFAULT_SEGMENTS,
             min_pixels: Self::DEFAULT_MIN_PIXELS,
             epsilon: T::from_f64(Self::DEFAULT_EPSILON),
-            metric: DistanceMetric::default(),
+            metric: DistanceMetric::SquaredEuclidean,
         }
     }
 }
@@ -116,7 +117,7 @@ mod tests {
                 segments: DbscanConfig::<f64>::DEFAULT_SEGMENTS,
                 min_pixels: DbscanConfig::<f64>::DEFAULT_MIN_PIXELS,
                 epsilon: DbscanConfig::<f64>::DEFAULT_EPSILON,
-                metric: DistanceMetric::default(),
+                metric: DistanceMetric::SquaredEuclidean,
             }
         );
     }
@@ -128,7 +129,7 @@ mod tests {
             .segments(128)
             .min_pixels(10)
             .epsilon(0.05)
-            .metric(DistanceMetric::SquaredEuclidean);
+            .metric(DistanceMetric::Euclidean);
 
         // Assert
         assert_eq!(
@@ -137,7 +138,7 @@ mod tests {
                 segments: 128,
                 min_pixels: 10,
                 epsilon: 0.05,
-                metric: DistanceMetric::SquaredEuclidean,
+                metric: DistanceMetric::Euclidean,
             }
         );
     }

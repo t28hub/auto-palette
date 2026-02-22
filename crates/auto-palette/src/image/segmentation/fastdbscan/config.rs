@@ -29,13 +29,14 @@ where
     T: FloatNumber,
 {
     /// Default minimum number of pixels in a segment.
-    const DEFAULT_MIN_PIXELS: usize = 6;
+    const DEFAULT_MIN_PIXELS: usize = 10;
 
     /// Default epsilon value for the segmentation.
-    const DEFAULT_EPSILON: f64 = 0.03;
+    /// The epsilon value is squared because the default distance metric is SquaredEuclidean.
+    const DEFAULT_EPSILON: f64 = 0.04 * 0.04;
 
     /// Default probability for the segmentation.
-    const DEFAULT_PROBABILITY: f64 = 0.2;
+    const DEFAULT_PROBABILITY: f64 = 0.1;
 
     /// Sets the minimum number of pixels required to form a segment.
     ///
@@ -95,7 +96,7 @@ where
             min_pixels: Self::DEFAULT_MIN_PIXELS,
             epsilon: T::from_f64(Self::DEFAULT_EPSILON),
             probability: T::from_f64(Self::DEFAULT_PROBABILITY),
-            metric: DistanceMetric::default(),
+            metric: DistanceMetric::SquaredEuclidean,
         }
     }
 }
@@ -116,7 +117,7 @@ mod tests {
                 min_pixels: FastDbscanConfig::<f64>::DEFAULT_MIN_PIXELS,
                 epsilon: FastDbscanConfig::<f64>::DEFAULT_EPSILON,
                 probability: FastDbscanConfig::<f64>::DEFAULT_PROBABILITY,
-                metric: DistanceMetric::default(),
+                metric: DistanceMetric::SquaredEuclidean,
             }
         );
     }
@@ -128,7 +129,7 @@ mod tests {
             .min_pixels(10)
             .epsilon(0.05)
             .probability(0.25)
-            .metric(DistanceMetric::SquaredEuclidean);
+            .metric(DistanceMetric::Euclidean);
 
         // Assert
         assert_eq!(
@@ -137,7 +138,7 @@ mod tests {
                 min_pixels: 10,
                 epsilon: 0.05,
                 probability: 0.25,
-                metric: DistanceMetric::SquaredEuclidean,
+                metric: DistanceMetric::Euclidean,
             }
         );
     }

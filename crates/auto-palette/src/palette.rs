@@ -1,4 +1,4 @@
-use std::{cmp::Reverse, marker::PhantomData};
+use std::cmp::Reverse;
 
 use rustc_hash::FxHashMap;
 
@@ -8,7 +8,7 @@ use crate::{
     error::Error,
     image::{
         filter::{AlphaFilter, CompositeFilter, Filter},
-        segmentation::LabelImage,
+        segmentation::{LabelImage, SegmentationMethod},
         ImageData,
     },
     math::{
@@ -260,10 +260,9 @@ where
     T: FloatNumber,
     F: Filter,
 {
-    algorithm: Algorithm,
+    algorithm: SegmentationMethod<T>,
     filter: F,
     max_swatches: usize,
-    _marker: PhantomData<T>,
 }
 
 impl<T> PaletteBuilder<T, AlphaFilter>
@@ -280,10 +279,9 @@ where
     #[must_use]
     fn new() -> Self {
         PaletteBuilder {
-            algorithm: Algorithm::default(),
+            algorithm: SegmentationMethod::default(),
             filter: AlphaFilter::default(),
             max_swatches: Self::DEFAULT_MAX_SWATCHES,
-            _marker: PhantomData,
         }
     }
 }
@@ -300,8 +298,8 @@ where
     ///
     /// # Returns
     /// A `PaletteBuilder` instance with the algorithm applied.
-    pub fn algorithm(mut self, algorithm: Algorithm) -> Self {
-        self.algorithm = algorithm;
+    pub fn algorithm(mut self, algorithm: impl Into<SegmentationMethod<T>>) -> Self {
+        self.algorithm = algorithm.into();
         self
     }
 
@@ -324,7 +322,6 @@ where
             algorithm: self.algorithm,
             filter: self.filter.composite(filter),
             max_swatches: self.max_swatches,
-            _marker: PhantomData,
         }
     }
 

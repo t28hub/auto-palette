@@ -35,16 +35,16 @@ where
     T: FloatNumber,
 {
     /// Default number of segments to generate.
-    const DEFAULT_SEGMENTS: usize = 64;
+    const DEFAULT_SEGMENTS: usize = 128;
 
     /// Default compactness of the segments.
-    const DEFAULT_COMPACTNESS: f64 = 1.0;
+    const DEFAULT_COMPACTNESS: f64 = 0.0225; // 0.15^2
 
     /// Default maximum number of iterations.
     const DEFAULT_MAX_ITER: usize = 10;
 
     /// Default tolerance for convergence conditions.
-    const DEFAULT_TOLERANCE: f64 = 1e-4;
+    const DEFAULT_TOLERANCE: f64 = 1e-3;
 
     /// Sets the number of segments to generate.
     ///
@@ -130,7 +130,7 @@ where
             max_iter: Self::DEFAULT_MAX_ITER,
             tolerance: T::from_f64(Self::DEFAULT_TOLERANCE),
             generator: SeedGenerator::default(),
-            metric: DistanceMetric::default(),
+            metric: DistanceMetric::SquaredEuclidean,
         }
     }
 }
@@ -155,7 +155,7 @@ mod tests {
                 max_iter: SlicConfig::<f64>::DEFAULT_MAX_ITER,
                 tolerance: SlicConfig::<f64>::DEFAULT_TOLERANCE,
                 generator: SeedGenerator::default(),
-                metric: DistanceMetric::default(),
+                metric: DistanceMetric::SquaredEuclidean,
             }
         );
     }
@@ -169,7 +169,7 @@ mod tests {
             .max_iter(25)
             .tolerance(1e-8)
             .generator(SeedGenerator::RegularGrid)
-            .metric(DistanceMetric::SquaredEuclidean);
+            .metric(DistanceMetric::Euclidean);
 
         // Assert
         assert_eq!(
@@ -180,7 +180,7 @@ mod tests {
                 max_iter: 25,
                 tolerance: 1e-8,
                 generator: SeedGenerator::RegularGrid,
-                metric: DistanceMetric::SquaredEuclidean,
+                metric: DistanceMetric::Euclidean,
             }
         );
     }

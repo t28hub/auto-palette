@@ -32,13 +32,13 @@ where
     T: FloatNumber,
 {
     /// Default number of segments to generate.
-    const DEFAULT_SEGMENTS: usize = 64;
+    const DEFAULT_SEGMENTS: usize = 128;
 
     /// Default maximum number of iterations.
-    const DEFAULT_MAX_ITER: usize = 100;
+    const DEFAULT_MAX_ITER: usize = 50;
 
     /// Default tolerance for convergence conditions.
-    const DEFAULT_TOLERANCE: f64 = 1e-4;
+    const DEFAULT_TOLERANCE: f64 = 1e-3;
 
     /// Sets the number of segments to generate.
     ///
@@ -111,7 +111,7 @@ where
             max_iter: Self::DEFAULT_MAX_ITER,
             tolerance: T::from_f64(Self::DEFAULT_TOLERANCE),
             generator: SeedGenerator::default(),
-            metric: DistanceMetric::default(),
+            metric: DistanceMetric::SquaredEuclidean,
         }
     }
 }
@@ -133,7 +133,7 @@ mod tests {
                 max_iter: KmeansConfig::<f64>::DEFAULT_MAX_ITER,
                 tolerance: KmeansConfig::<f64>::DEFAULT_TOLERANCE,
                 generator: SeedGenerator::default(),
-                metric: DistanceMetric::default(),
+                metric: DistanceMetric::SquaredEuclidean,
             }
         );
     }
@@ -146,7 +146,7 @@ mod tests {
             .max_iter(50)
             .tolerance(1e-8)
             .generator(SeedGenerator::RegularGrid)
-            .metric(DistanceMetric::SquaredEuclidean);
+            .metric(DistanceMetric::Euclidean);
 
         // Assert
         assert_eq!(
@@ -156,7 +156,7 @@ mod tests {
                 max_iter: 50,
                 tolerance: 1e-8,
                 generator: SeedGenerator::RegularGrid,
-                metric: DistanceMetric::SquaredEuclidean,
+                metric: DistanceMetric::Euclidean,
             }
         );
     }

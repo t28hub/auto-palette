@@ -30,7 +30,7 @@ where
     T: FloatNumber,
 {
     /// Default number of segments to generate.
-    const DEFAULT_SEGMENTS: usize = 64;
+    const DEFAULT_SEGMENTS: usize = 128;
 
     /// Sets the number of segments to generate.
     ///
@@ -77,7 +77,7 @@ where
         Self {
             segments: Self::DEFAULT_SEGMENTS,
             generator: SeedGenerator::default(),
-            metric: DistanceMetric::default(),
+            metric: DistanceMetric::SquaredEuclidean,
             _marker: PhantomData,
         }
     }
@@ -98,7 +98,7 @@ mod tests {
             SnicConfig {
                 segments: SnicConfig::<f64>::DEFAULT_SEGMENTS,
                 generator: SeedGenerator::default(),
-                metric: DistanceMetric::default(),
+                metric: DistanceMetric::SquaredEuclidean,
                 _marker: PhantomData,
             }
         );
@@ -110,7 +110,7 @@ mod tests {
         let actual = SnicConfig::<f64>::default()
             .segments(128)
             .generator(SeedGenerator::RegularGrid)
-            .metric(DistanceMetric::SquaredEuclidean);
+            .metric(DistanceMetric::Euclidean);
 
         // Assert
         assert_eq!(
@@ -118,7 +118,7 @@ mod tests {
             SnicConfig {
                 segments: 128,
                 generator: SeedGenerator::RegularGrid,
-                metric: DistanceMetric::SquaredEuclidean,
+                metric: DistanceMetric::Euclidean,
                 _marker: PhantomData,
             }
         );
