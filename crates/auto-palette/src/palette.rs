@@ -298,6 +298,7 @@ where
     ///
     /// # Returns
     /// A `PaletteBuilder` instance with the algorithm applied.
+    #[must_use]
     pub fn algorithm(mut self, algorithm: impl Into<SegmentationMethod<T>>) -> Self {
         self.algorithm = algorithm.into();
         self

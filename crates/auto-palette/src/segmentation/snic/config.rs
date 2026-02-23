@@ -113,7 +113,7 @@ mod tests {
     fn test_with_custom_values() {
         // Act
         let actual = SnicConfig::<f64>::default()
-            .segments(128)
+            .segments(256)
             .generator(SeedGenerator::RegularGrid)
             .metric(DistanceMetric::Euclidean);
 
@@ -121,7 +121,7 @@ mod tests {
         assert_eq!(
             actual,
             SnicConfig {
-                segments: 128,
+                segments: 256,
                 generator: SeedGenerator::RegularGrid,
                 metric: DistanceMetric::Euclidean,
                 _marker: PhantomData,
