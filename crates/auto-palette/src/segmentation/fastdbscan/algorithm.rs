@@ -1,17 +1,15 @@
 use std::collections::VecDeque;
 
 use crate::{
-    image::{
-        segmentation::{
-            fastdbscan::{config::FastDbscanConfig, error::FastDbscanError},
-            label::{Builder as LabelImageBuilder, LabelImage},
-            Segmentation,
-        },
-        Pixel,
-    },
+    image::Pixel,
     math::{
         neighbors::{kdtree::KdTreeSearch, Neighbor, NeighborSearch},
         DistanceMetric,
+    },
+    segmentation::{
+        fastdbscan::{config::FastDbscanConfig, error::FastDbscanError},
+        label::{Builder as LabelImageBuilder, LabelImage},
+        Segmentation,
     },
     FloatNumber,
 };

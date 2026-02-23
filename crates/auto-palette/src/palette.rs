@@ -8,7 +8,6 @@ use crate::{
     error::Error,
     image::{
         filter::{AlphaFilter, CompositeFilter, Filter},
-        segmentation::{LabelImage, SegmentationMethod},
         ImageData,
     },
     math::{
@@ -18,6 +17,7 @@ use crate::{
         DistanceMetric,
         FloatNumber,
     },
+    segmentation::{LabelImage, SegmentationMethod},
     theme::Theme,
     Swatch,
 };

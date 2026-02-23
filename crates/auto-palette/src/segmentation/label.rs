@@ -1,6 +1,6 @@
 use rustc_hash::FxHashMap;
 
-use crate::{image::segmentation::segment::SegmentMetadata, math::FloatNumber};
+use crate::{math::FloatNumber, segmentation::segment::SegmentMetadata};
 
 /// Represents a labeled image where each pixel is assigned a label corresponding to a segment.
 ///

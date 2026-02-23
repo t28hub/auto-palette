@@ -1,18 +1,16 @@
 use crate::{
-    image::{
-        segmentation::{
-            kmeans::{config::KmeansConfig, KmeansError},
-            label::{Builder as SegmentBuilder, LabelImage},
-            seed::SeedGenerator,
-            segment::SegmentMetadata,
-            Segmentation,
-        },
-        Pixel,
-    },
+    image::Pixel,
     math::{
         neighbors::{kdtree::KdTreeSearch, NeighborSearch},
         DistanceMetric,
         FloatNumber,
+    },
+    segmentation::{
+        kmeans::{config::KmeansConfig, KmeansError},
+        label::{Builder as SegmentBuilder, LabelImage},
+        seed::SeedGenerator,
+        segment::SegmentMetadata,
+        Segmentation,
     },
 };
 
@@ -144,7 +142,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::{image::segmentation::seed::SeedGenerator, ImageData};
+    use crate::{segmentation::seed::SeedGenerator, ImageData};
 
     #[test]
     fn test_try_from() {

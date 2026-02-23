@@ -1,19 +1,16 @@
 use rustc_hash::FxHashMap;
 
 use crate::{
-    image::{
-        segmentation::{
-            helper::gradient,
-            label::{Builder as SegmentBuilder, LabelImage},
-            seed::SeedGenerator,
-            segment::SegmentMetadata,
-            slic::{config::SlicConfig, error::SlicError},
-            Segmentation,
-        },
-        Pixel,
-        LABXY_CHANNELS,
-    },
+    image::{Pixel, LABXY_CHANNELS},
     math::{matrix::MatrixView, DistanceMetric, FloatNumber},
+    segmentation::{
+        helper::gradient,
+        label::{Builder as SegmentBuilder, LabelImage},
+        seed::SeedGenerator,
+        segment::SegmentMetadata,
+        slic::{config::SlicConfig, error::SlicError},
+        Segmentation,
+    },
 };
 
 /// SLIC (Simple Linear Iterative Clustering) segmentation algorithm.
@@ -226,7 +223,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::{image::segmentation::seed::SeedGenerator, math::matrix::MatrixError, ImageData};
+    use crate::{math::matrix::MatrixError, segmentation::seed::SeedGenerator, ImageData};
 
     #[must_use]
     fn sample_pixels<T>(width: usize, height: usize) -> Vec<Pixel<T>>

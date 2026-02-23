@@ -3,18 +3,16 @@ use std::collections::VecDeque;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    image::{
-        segmentation::{
-            dbscan::{config::DbscanConfig, error::DbscanError},
-            label::{Builder as LabelImageBuilder, LabelImage},
-            Segmentation,
-        },
-        Pixel,
-    },
+    image::Pixel,
     math::{
         neighbors::{kdtree::KdTreeSearch, Neighbor, NeighborSearch},
         DistanceMetric,
         FloatNumber,
+    },
+    segmentation::{
+        dbscan::{config::DbscanConfig, error::DbscanError},
+        label::{Builder as LabelImageBuilder, LabelImage},
+        Segmentation,
     },
 };
 

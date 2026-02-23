@@ -5,7 +5,8 @@ use std::{
 
 use crate::{
     error::Error,
-    image::segmentation::{
+    math::FloatNumber,
+    segmentation::{
         DbscanConfig,
         FastDbscanConfig,
         KmeansConfig,
@@ -13,7 +14,6 @@ use crate::{
         SlicConfig,
         SnicConfig,
     },
-    math::FloatNumber,
 };
 
 /// The clustering algorithm to use for color palette extraction.

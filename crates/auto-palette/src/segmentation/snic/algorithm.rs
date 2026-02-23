@@ -5,17 +5,15 @@ use std::{
 };
 
 use crate::{
-    image::{
-        segmentation::{
-            helper::gradient,
-            label::LabelImage,
-            seed::SeedGenerator,
-            snic::{config::SnicConfig, error::SnicError},
-            Segmentation,
-        },
-        Pixel,
-    },
+    image::Pixel,
     math::{matrix::MatrixView, DistanceMetric, FloatNumber},
+    segmentation::{
+        helper::gradient,
+        label::LabelImage,
+        seed::SeedGenerator,
+        snic::{config::SnicConfig, error::SnicError},
+        Segmentation,
+    },
 };
 
 /// SNIC (Simple Non-Iterative Clustering) segmentation algorithm.
@@ -248,7 +246,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{image::segmentation::seed::SeedGenerator, math::matrix::MatrixError, ImageData};
+    use crate::{math::matrix::MatrixError, segmentation::seed::SeedGenerator, ImageData};
 
     #[must_use]
     fn sample_pixels<T>(width: usize, height: usize) -> Vec<Pixel<T>>

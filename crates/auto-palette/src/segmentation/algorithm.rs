@@ -1,7 +1,4 @@
-use crate::{
-    image::{segmentation::label::LabelImage, Pixel},
-    math::FloatNumber,
-};
+use crate::{image::Pixel, math::FloatNumber, segmentation::label::LabelImage};
 
 /// Trait for segmentation algorithms.
 ///
