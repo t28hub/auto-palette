@@ -39,6 +39,7 @@ where
     ///
     /// # Returns
     /// A new `SnicConfig` with the specified number of segments.
+    #[must_use]
     pub fn segments(mut self, segments: usize) -> Self {
         self.segments = segments;
         self
@@ -51,6 +52,8 @@ where
     ///
     /// # Returns
     /// A new `SnicConfig` with the specified seed generator.
+    #[allow(unused)]
+    #[must_use]
     pub(crate) fn generator(mut self, generator: SeedGenerator) -> Self {
         self.generator = generator;
         self
@@ -63,6 +66,8 @@ where
     ///
     /// # Returns
     /// A new `SnicConfig` with the specified distance metric.
+    #[allow(unused)]
+    #[must_use]
     pub(crate) fn metric(mut self, metric: DistanceMetric) -> Self {
         self.metric = metric;
         self

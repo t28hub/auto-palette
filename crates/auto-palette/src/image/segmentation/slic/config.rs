@@ -53,6 +53,7 @@ where
     ///
     /// # Returns
     /// A new `SlicConfig` with the specified number of segments.
+    #[must_use]
     pub fn segments(mut self, segments: usize) -> Self {
         self.segments = segments;
         self
@@ -65,6 +66,7 @@ where
     ///
     /// # Returns
     /// A new `SlicConfig` with the specified compactness.
+    #[must_use]
     pub fn compactness(mut self, compactness: T) -> Self {
         self.compactness = compactness;
         self
@@ -77,6 +79,7 @@ where
     ///
     /// # Returns
     /// A new `SlicConfig` with the specified maximum iterations.
+    #[must_use]
     pub fn max_iter(mut self, max_iter: usize) -> Self {
         self.max_iter = max_iter;
         self
@@ -89,6 +92,7 @@ where
     ///
     /// # Returns
     /// A new `SlicConfig` with the specified tolerance.
+    #[must_use]
     pub fn tolerance(mut self, tolerance: T) -> Self {
         self.tolerance = tolerance;
         self
@@ -101,6 +105,8 @@ where
     ///
     /// # Returns
     /// A new `SlicConfig` with the specified seed generator.
+    #[allow(unused)]
+    #[must_use]
     pub(crate) fn generator(mut self, generator: SeedGenerator) -> Self {
         self.generator = generator;
         self
@@ -113,6 +119,8 @@ where
     ///
     /// # Returns
     /// A new `SlicConfig` with the specified distance metric.
+    #[allow(unused)]
+    #[must_use]
     pub(crate) fn metric(mut self, metric: DistanceMetric) -> Self {
         self.metric = metric;
         self

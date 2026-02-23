@@ -45,6 +45,7 @@ where
     ///
     /// # Returns
     /// A new `DbscanConfig` with the specified number of segments.
+    #[must_use]
     pub fn segments(mut self, segments: usize) -> Self {
         self.segments = segments;
         self
@@ -57,6 +58,7 @@ where
     ///
     /// # Returns
     /// A new `DbscanConfig` with the specified minimum pixels.
+    #[must_use]
     pub fn min_pixels(mut self, min_pixels: usize) -> Self {
         self.min_pixels = min_pixels;
         self
@@ -69,6 +71,7 @@ where
     ///
     /// # Returns
     /// A new `DbscanConfig` with the specified epsilon.
+    #[must_use]
     pub fn epsilon(mut self, epsilon: T) -> Self {
         self.epsilon = epsilon;
         self
@@ -81,6 +84,8 @@ where
     ///
     /// # Returns
     /// A new `DbscanConfig` with the specified distance metric.
+    #[allow(unused)]
+    #[must_use]
     pub(crate) fn metric(mut self, metric: DistanceMetric) -> Self {
         self.metric = metric;
         self
