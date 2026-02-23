@@ -1,19 +1,16 @@
 use rustc_hash::FxHashMap;
 
 use crate::{
-    image::{
-        segmentation::{
-            helper::gradient,
-            label::{Builder as SegmentBuilder, LabelImage},
-            seed::SeedGenerator,
-            segment::SegmentMetadata,
-            slic::error::SlicError,
-            Segmentation,
-        },
-        Pixel,
-        LABXY_CHANNELS,
-    },
+    image::{Pixel, LABXY_CHANNELS},
     math::{matrix::MatrixView, DistanceMetric, FloatNumber},
+    segmentation::{
+        helper::gradient,
+        label::{Builder as SegmentBuilder, LabelImage},
+        seed::SeedGenerator,
+        segment::SegmentMetadata,
+        slic::{config::SlicConfig, error::SlicError},
+        Segmentation,
+    },
 };
 
 /// SLIC (Simple Linear Iterative Clustering) segmentation algorithm.
@@ -35,31 +32,40 @@ where
     metric: DistanceMetric,
 }
 
+impl<T> TryFrom<SlicConfig<T>> for SlicSegmentation<T>
+where
+    T: FloatNumber,
+{
+    type Error = SlicError<T>;
+
+    fn try_from(config: SlicConfig<T>) -> Result<Self, Self::Error> {
+        if config.segments == 0 {
+            return Err(SlicError::InvalidSegments(config.segments));
+        }
+        if config.compactness <= T::zero() || config.compactness.is_nan() {
+            return Err(SlicError::InvalidCompactness(config.compactness));
+        }
+        if config.max_iter == 0 {
+            return Err(SlicError::InvalidIterations(config.max_iter));
+        }
+        if config.tolerance <= T::zero() || config.tolerance.is_nan() {
+            return Err(SlicError::InvalidTolerance(config.tolerance));
+        }
+        Ok(Self {
+            segments: config.segments,
+            compactness: config.compactness,
+            max_iter: config.max_iter,
+            tolerance: config.tolerance,
+            generator: config.generator,
+            metric: config.metric,
+        })
+    }
+}
+
 impl<T> SlicSegmentation<T>
 where
     T: FloatNumber,
 {
-    /// Default number of segments to create.
-    const DEFAULT_SEGMENTS: usize = 64;
-
-    /// Default compactness of the segments.
-    const DEFAULT_COMPACTNESS: f64 = 1.0;
-
-    /// Default maximum number of iterations.
-    const DEFAULT_MAX_ITER: usize = 10;
-
-    /// Default tolerance for convergence conditions.
-    const DEFAULT_TOLERANCE: f64 = 1e-4;
-
-    /// Creates a new `SlicSegmentationBuilder` instance.
-    ///
-    /// # Returns
-    /// A new `SlicSegmentationBuilder` instance with default values.
-    #[must_use]
-    pub fn builder() -> Builder<T> {
-        Builder::default()
-    }
-
     /// Finds the lowest gradient pixel in the neighborhood of the given index.
     ///
     /// # Arguments
@@ -212,156 +218,12 @@ where
     }
 }
 
-/// Builder for `SlicSegmentation`.
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
-#[derive(Debug, PartialEq)]
-pub struct Builder<T>
-where
-    T: FloatNumber,
-{
-    segments: usize,
-    compactness: T,
-    max_iter: usize,
-    tolerance: T,
-    generator: SeedGenerator,
-    metric: DistanceMetric,
-}
-
-impl<T> Builder<T>
-where
-    T: FloatNumber,
-{
-    /// Sets the number of segments.
-    ///
-    /// # Arguments
-    /// * `segments` - The number of segments.
-    ///
-    /// # Returns
-    /// The `SlicSegmentationBuilder` instance with the specified number of segments.
-    #[must_use]
-    pub fn segments(mut self, segments: usize) -> Self {
-        self.segments = segments;
-        self
-    }
-
-    /// Sets the compactness of the segments.
-    ///
-    /// # Arguments
-    /// * `compactness` - The compactness of the segments.
-    ///
-    /// # Returns
-    /// The `SlicSegmentationBuilder` instance with the specified compactness.
-    #[must_use]
-    pub fn compactness(mut self, compactness: T) -> Self {
-        self.compactness = compactness;
-        self
-    }
-
-    /// Sets the maximum number of iterations.
-    ///
-    /// # Arguments
-    /// * `max_iter` - The maximum number of iterations.
-    ///
-    /// # Returns
-    /// The `SlicSegmentationBuilder` instance with the specified maximum iterations.
-    #[must_use]
-    pub fn max_iter(mut self, max_iter: usize) -> Self {
-        self.max_iter = max_iter;
-        self
-    }
-
-    /// Sets the tolerance for convergence conditions.
-    ///
-    /// # Arguments
-    /// * `tolerance` - The tolerance for convergence conditions.
-    ///
-    /// # Returns
-    /// The `SlicSegmentationBuilder` instance with the specified tolerance.
-    #[must_use]
-    pub fn tolerance(mut self, tolerance: T) -> Self {
-        self.tolerance = tolerance;
-        self
-    }
-
-    /// Sets the seed generator for the segmentation.
-    ///
-    /// # Arguments
-    /// * `generator` - The seed generator to use.
-    ///
-    /// # Returns
-    /// The `SlicSegmentationBuilder` instance with the specified generator.
-    #[allow(dead_code)]
-    #[must_use]
-    pub fn generator(mut self, generator: SeedGenerator) -> Builder<T> {
-        self.generator = generator;
-        self
-    }
-
-    /// Sets the distance metric to use.
-    ///
-    /// # Arguments
-    /// * `metric` - The distance metric to use.
-    ///
-    /// # Returns
-    /// The `SlicSegmentationBuilder` instance with the specified metric.
-    #[must_use]
-    pub fn metric(mut self, metric: DistanceMetric) -> Self {
-        self.metric = metric;
-        self
-    }
-
-    /// Builds the `SlicSegmentation` instance.
-    ///
-    /// # Returns
-    /// A `Result` containing the `SlicSegmentation` instance or an error if the parameters are invalid.
-    pub fn build(self) -> Result<SlicSegmentation<T>, SlicError<T>> {
-        if self.segments == 0 {
-            return Err(SlicError::InvalidSegments(self.segments));
-        }
-        if self.compactness <= T::zero() || self.compactness.is_nan() {
-            return Err(SlicError::InvalidCompactness(self.compactness));
-        }
-        if self.max_iter == 0 {
-            return Err(SlicError::InvalidIterations(self.max_iter));
-        }
-        if self.tolerance <= T::zero() || self.tolerance.is_nan() {
-            return Err(SlicError::InvalidTolerance(self.tolerance));
-        }
-        Ok(SlicSegmentation {
-            segments: self.segments,
-            compactness: self.compactness,
-            max_iter: self.max_iter,
-            tolerance: self.tolerance,
-            generator: self.generator,
-            metric: self.metric,
-        })
-    }
-}
-
-impl<T> Default for Builder<T>
-where
-    T: FloatNumber,
-{
-    fn default() -> Self {
-        Self {
-            segments: SlicSegmentation::<T>::DEFAULT_SEGMENTS,
-            compactness: T::from_f64(SlicSegmentation::<T>::DEFAULT_COMPACTNESS),
-            max_iter: SlicSegmentation::<T>::DEFAULT_MAX_ITER,
-            tolerance: T::from_f64(SlicSegmentation::<T>::DEFAULT_TOLERANCE),
-            generator: SeedGenerator::default(),
-            metric: DistanceMetric::default(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::{math::matrix::MatrixError, ImageData};
+    use crate::{math::matrix::MatrixError, segmentation::seed::SeedGenerator, ImageData};
 
     #[must_use]
     fn sample_pixels<T>(width: usize, height: usize) -> Vec<Pixel<T>>
@@ -372,35 +234,16 @@ mod tests {
     }
 
     #[test]
-    fn test_builder() {
+    fn test_try_from() {
         // Act
-        let actual = SlicSegmentation::builder();
-
-        // Assert
-        assert_eq!(
-            actual,
-            Builder {
-                segments: 64,
-                compactness: 1.0,
-                max_iter: 10,
-                tolerance: 1e-4,
-                generator: SeedGenerator::default(),
-                metric: DistanceMetric::Euclidean,
-            }
-        );
-    }
-
-    #[test]
-    fn test_builder_build() {
-        // Act
-        let actual = SlicSegmentation::builder()
+        let config = SlicConfig::<f64>::default()
             .segments(128)
             .compactness(10.0)
             .max_iter(25)
             .tolerance(1e-8)
             .generator(SeedGenerator::RegularGrid)
-            .metric(DistanceMetric::SquaredEuclidean)
-            .build();
+            .metric(DistanceMetric::SquaredEuclidean);
+        let actual = SlicSegmentation::try_from(config);
 
         // Assert
         assert!(actual.is_ok());
@@ -452,7 +295,7 @@ mod tests {
         DistanceMetric::Euclidean,
         SlicError::InvalidTolerance(0.0)
     )]
-    fn test_build_error(
+    fn test_try_from_error(
         #[case] segments: usize,
         #[case] compactness: f64,
         #[case] max_iter: usize,
@@ -461,13 +304,13 @@ mod tests {
         #[case] expected: SlicError<f64>,
     ) {
         // Act
-        let actual = SlicSegmentation::builder()
+        let config = SlicConfig::default()
             .segments(segments)
             .compactness(compactness)
             .max_iter(max_iter)
             .tolerance(tolerance)
-            .metric(metric)
-            .build();
+            .metric(metric);
+        let actual = SlicSegmentation::try_from(config);
 
         // Assert
         assert!(actual.is_err());
@@ -477,9 +320,10 @@ mod tests {
     }
 
     #[test]
-    fn test_build_error_compactness_nan() {
+    fn test_try_from_compactness_nan() {
         // Act
-        let actual = SlicSegmentation::builder().compactness(f64::NAN).build();
+        let config = SlicConfig::<f64>::default().compactness(f64::NAN);
+        let actual = SlicSegmentation::try_from(config);
 
         // Assert
         assert!(actual.is_err());
@@ -492,9 +336,10 @@ mod tests {
     }
 
     #[test]
-    fn test_build_error_tolerance_nan() {
+    fn test_try_from_tolerance_nan() {
         // Act
-        let actual = SlicSegmentation::builder().tolerance(f64::NAN).build();
+        let config = SlicConfig::<f64>::default().tolerance(f64::NAN);
+        let actual = SlicSegmentation::try_from(config);
 
         // Assert
         assert!(actual.is_err());
@@ -511,10 +356,8 @@ mod tests {
     fn test_segment() {
         // Arrange
         let image_data = ImageData::load("../../gfx/flags/za.png").unwrap();
-        let slic = SlicSegmentation::<f64>::builder()
-            .segments(32)
-            .build()
-            .unwrap();
+        let config = SlicConfig::default().segments(32);
+        let slic = SlicSegmentation::<f64>::try_from(config).unwrap();
 
         // Act
         let width = image_data.width() as usize;
@@ -533,7 +376,8 @@ mod tests {
     #[test]
     fn test_segment_unexpected_length() {
         // Arrange
-        let slic = SlicSegmentation::builder().segments(32).build().unwrap();
+        let config = SlicConfig::default().segments(32);
+        let slic = SlicSegmentation::<f64>::try_from(config).unwrap();
 
         // Act
         let pixels = sample_pixels::<f64>(48, 26);

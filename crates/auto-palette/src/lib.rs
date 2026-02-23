@@ -5,6 +5,7 @@ mod error;
 mod image;
 mod math;
 mod palette;
+mod segmentation;
 mod swatch;
 mod theme;
 
