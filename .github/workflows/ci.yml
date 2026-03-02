@@ -200,7 +200,7 @@ jobs:
         run: cargo build --package auto-palette-cli --bins --release
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: auto-palette
           path: target/release/auto-palette-cli
