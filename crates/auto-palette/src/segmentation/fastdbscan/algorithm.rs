@@ -7,8 +7,10 @@ use crate::{
         DistanceMetric,
     },
     segmentation::{
-        fastdbscan::{config::FastDbscanConfig, error::FastDbscanError},
-        label::{Builder as LabelImageBuilder, LabelImage},
+        error::SegmentationError,
+        fastdbscan::config::FastDbscanConfig,
+        input::SegmentationInput,
+        result::{Builder as SegmentBuilder, SegmentationResult},
         Segmentation,
     },
     FloatNumber,
@@ -30,17 +32,25 @@ impl<T> TryFrom<FastDbscanConfig<T>> for FastDbscanSegmentation<T>
 where
     T: FloatNumber,
 {
-    type Error = FastDbscanError<T>;
+    type Error = SegmentationError;
 
     fn try_from(config: FastDbscanConfig<T>) -> Result<Self, Self::Error> {
         if config.min_pixels == 0 {
-            return Err(FastDbscanError::InvalidMinPixels);
+            return Err(SegmentationError::InvalidArgument(
+                "The minimum number of pixels must be greater than zero".into(),
+            ));
         }
         if config.epsilon <= T::zero() || config.epsilon.is_nan() {
-            return Err(FastDbscanError::InvalidEpsilon(config.epsilon));
+            return Err(SegmentationError::InvalidArgument(format!(
+                "The epsilon value must be greater than zero and not NaN: {}",
+                config.epsilon
+            )));
         }
         if !(T::zero()..=T::one()).contains(&config.probability) {
-            return Err(FastDbscanError::OutOfRangeProbability(config.probability));
+            return Err(SegmentationError::InvalidArgument(format!(
+                "The probability value must be in the range (0, 1]: {}",
+                config.probability
+            )));
         }
         Ok(Self {
             min_pixels: config.min_pixels,
@@ -164,7 +174,7 @@ where
 
     fn build_segments<S>(
         &self,
-        builder: &mut LabelImageBuilder<T>,
+        builder: &mut SegmentBuilder<T>,
         pixels: &[Pixel<T>],
         mask: &[bool],
         core_pixel_search: &S,
@@ -202,23 +212,16 @@ impl<T> Segmentation<T> for FastDbscanSegmentation<T>
 where
     T: FloatNumber,
 {
-    type Err = FastDbscanError<T>;
-
-    fn segment_with_mask(
+    fn segment(
         &self,
-        width: usize,
-        height: usize,
-        pixels: &[Pixel<T>],
-        mask: &[bool],
-    ) -> Result<LabelImage<T>, Self::Err> {
-        if pixels.len() != width * height {
-            return Err(FastDbscanError::UnexpectedLength {
-                actual: pixels.len(),
-                expected: width * height,
-            });
-        }
+        input: &SegmentationInput<'_, T>,
+    ) -> Result<SegmentationResult<T>, SegmentationError> {
+        let width = input.width();
+        let height = input.height();
+        let pixels = input.pixels();
+        let mask = input.mask();
 
-        let mut builder = LabelImage::builder(width, height);
+        let mut builder = SegmentationResult::builder(width, height);
         let core_pixels = self.select_core_pixels(pixels, mask);
         if core_pixels.is_empty() {
             return Ok(builder.build());
@@ -265,15 +268,25 @@ mod tests {
     }
 
     #[rstest]
-    #[case::invalid_min_pixels(0, 0.02, 0.1, FastDbscanError::InvalidMinPixels)]
-    #[case::invalid_epsilon(5, -0.01, 0.1, FastDbscanError::InvalidEpsilon(-0.01))]
-    #[case::invalid_probability_more(5, 0.02, 1.1, FastDbscanError::OutOfRangeProbability(1.1))]
-    #[case::invalid_probability_less(5, 0.02, -0.1, FastDbscanError::OutOfRangeProbability(-0.1))]
+    #[case::invalid_min_pixels(
+        0,
+        0.02,
+        0.1,
+        "The minimum number of pixels must be greater than zero"
+    )]
+    #[case::invalid_epsilon(5, -0.01, 0.1, "The epsilon value must be greater than zero and not NaN: -0.01")]
+    #[case::invalid_probability_more(
+        5,
+        0.02,
+        1.1,
+        "The probability value must be in the range (0, 1]: 1.1"
+    )]
+    #[case::invalid_probability_less(5, 0.02, -0.1, "The probability value must be in the range (0, 1]: -0.1")]
     fn test_try_from_error(
         #[case] min_pixels: usize,
         #[case] epsilon: f64,
         #[case] probability: f64,
-        #[case] expected: FastDbscanError<f64>,
+        #[case] expected: &str,
     ) {
         // Act
         let config = FastDbscanConfig::<f64>::default()
@@ -286,7 +299,7 @@ mod tests {
         assert!(actual.is_err());
 
         let error = actual.unwrap_err();
-        assert_eq!(error, expected);
+        assert_eq!(error.to_string(), expected);
     }
 
     #[test]
@@ -343,16 +356,17 @@ mod tests {
         let width = image_data.width() as usize;
         let height = image_data.height() as usize;
         let pixels: Vec<_> = image_data.pixels().collect();
-        let actual = segmentation.segment(width, height, &pixels);
+        let mask = vec![true; pixels.len()];
+        let input = SegmentationInput::new(width, height, &pixels, &mask).unwrap();
+        let actual = segmentation.segment(&input);
 
         // Assert
         assert!(actual.is_ok());
 
-        let label_image = actual.unwrap();
-        let segments: Vec<_> = label_image.segments().collect();
-        assert!(!segments.is_empty());
-        assert!(segments.len() >= 64);
-        for segment in segments {
+        let result = actual.unwrap();
+        assert!(!result.is_empty());
+        assert!(result.len() >= 64);
+        for segment in result.segments() {
             assert!(segment.len() >= 10);
         }
     }
@@ -367,17 +381,19 @@ mod tests {
         let width = 0;
         let height = 0;
         let pixels = Vec::new();
-        let actual = segmentation.segment(width, height, &pixels);
+        let mask: Vec<bool> = Vec::new();
+        let input = SegmentationInput::new(width, height, &pixels, &mask).unwrap();
+        let actual = segmentation.segment(&input);
 
         // Assert
         assert!(actual.is_ok());
 
-        let label_image = actual.unwrap();
-        assert_eq!(label_image.width(), 0);
-        assert_eq!(label_image.height(), 0);
+        let result = actual.unwrap();
+        assert!(result.is_empty());
     }
 
     #[test]
+    #[cfg(feature = "image")]
     fn test_segment_with_mask() {
         // Arrange
         let image_data = ImageData::load("../../gfx/flags/np.png").unwrap();
@@ -405,16 +421,16 @@ mod tests {
             );
 
         // Act
-        let actual = segmentation.segment_with_mask(width, height, &pixels, &mask);
+        let input = SegmentationInput::new(width, height, &pixels, &mask).unwrap();
+        let actual = segmentation.segment(&input);
 
         // Assert
         assert!(actual.is_ok());
 
-        let label_image = actual.unwrap();
-        let segments: Vec<_> = label_image.segments().collect();
-        assert!(!segments.is_empty());
-        assert!(segments.len() >= 6);
-        for segment in segments {
+        let result = actual.unwrap();
+        assert!(!result.is_empty());
+        assert!(result.len() >= 6);
+        for segment in result.segments() {
             assert!(segment.len() >= 10);
         }
     }
@@ -430,38 +446,13 @@ mod tests {
         let height = 0;
         let pixels = Vec::new();
         let mask = Vec::new();
-        let actual = segmentation.segment_with_mask(width, height, &pixels, &mask);
+        let input = SegmentationInput::new(width, height, &pixels, &mask).unwrap();
+        let actual = segmentation.segment(&input);
 
         // Assert
         assert!(actual.is_ok());
 
-        let label_image = actual.unwrap();
-        let segments: Vec<_> = label_image.segments().collect();
-        assert!(segments.is_empty());
-        assert_eq!(segments.len(), 0);
-    }
-
-    #[test]
-    fn test_segment_with_mask_unexpected_length() {
-        // Arrange
-        let segmentation =
-            FastDbscanSegmentation::<f64>::try_from(FastDbscanConfig::default()).unwrap();
-
-        // Act
-        let width = 16;
-        let height = 9;
-        let pixels = vec![Pixel::default(); width * height - 1];
-        let mask = vec![true; width * height - 1];
-        let actual = segmentation.segment_with_mask(width, height, &pixels, &mask);
-
-        // Assert
-        assert!(actual.is_err());
-        assert_eq!(
-            actual.unwrap_err(),
-            FastDbscanError::UnexpectedLength {
-                actual: pixels.len(),
-                expected: width * height
-            }
-        );
+        let result = actual.unwrap();
+        assert!(result.is_empty());
     }
 }

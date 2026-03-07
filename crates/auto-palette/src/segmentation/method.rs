@@ -3,14 +3,15 @@ use crate::{
     image::Pixel,
     math::FloatNumber,
     segmentation::{
+        input::SegmentationInput,
         DbscanConfig,
         DbscanSegmentation,
         FastDbscanConfig,
         FastDbscanSegmentation,
         KmeansConfig,
         KmeansSegmentation,
-        LabelImage,
         Segmentation,
+        SegmentationResult,
         SlicConfig,
         SlicSegmentation,
         SnicConfig,
@@ -58,37 +59,42 @@ where
     /// * `filter` - The filter to apply to the image pixels.
     ///
     /// # Returns
-    /// A `LabelImage` containing the segmented regions, or an error if segmentation fails.
-    pub fn segment<F>(&self, image: &ImageData, filter: &F) -> Result<LabelImage<T>, Error>
+    /// A `SegmentationResult` representing the segmented regions, or an error if segmentation fails.
+    pub fn segment<F>(&self, image: &ImageData, filter: &F) -> Result<SegmentationResult<T>, Error>
     where
         F: Filter,
     {
         let width = image.width() as usize;
         let height = image.height() as usize;
         let (pixels, mask) = collect_pixels_and_mask(image, filter);
+        let input = SegmentationInput::new(width, height, &pixels, &mask).map_err(|e| {
+            Error::PaletteExtractionError {
+                details: e.to_string(),
+            }
+        })?;
         match self {
             Self::Dbscan(config) => DbscanSegmentation::try_from(*config)
-                .and_then(|s| s.segment_with_mask(width, height, &pixels, &mask))
+                .and_then(|s| s.segment(&input))
                 .map_err(|e| Error::PaletteExtractionError {
                     details: e.to_string(),
                 }),
             Self::FastDbscan(config) => FastDbscanSegmentation::try_from(*config)
-                .and_then(|s| s.segment_with_mask(width, height, &pixels, &mask))
+                .and_then(|s| s.segment(&input))
                 .map_err(|e| Error::PaletteExtractionError {
                     details: e.to_string(),
                 }),
             Self::Kmeans(config) => KmeansSegmentation::try_from(*config)
-                .and_then(|s| s.segment_with_mask(width, height, &pixels, &mask))
+                .and_then(|s| s.segment(&input))
                 .map_err(|e| Error::PaletteExtractionError {
                     details: e.to_string(),
                 }),
             Self::Slic(config) => SlicSegmentation::try_from(*config)
-                .and_then(|s| s.segment_with_mask(width, height, &pixels, &mask))
+                .and_then(|s| s.segment(&input))
                 .map_err(|e| Error::PaletteExtractionError {
                     details: e.to_string(),
                 }),
             Self::Snic(config) => SnicSegmentation::try_from(*config)
-                .and_then(|s| s.segment_with_mask(width, height, &pixels, &mask))
+                .and_then(|s| s.segment(&input))
                 .map_err(|e| Error::PaletteExtractionError {
                     details: e.to_string(),
                 }),
@@ -208,8 +214,7 @@ mod tests {
         // Assert
         assert!(actual.is_ok());
 
-        let label_image: LabelImage<f64> = actual.unwrap();
-        assert_eq!(label_image.width(), 0);
-        assert_eq!(label_image.height(), 0);
+        let result = actual.unwrap();
+        assert!(result.is_empty());
     }
 }

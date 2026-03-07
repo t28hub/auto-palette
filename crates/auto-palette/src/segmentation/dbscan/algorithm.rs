@@ -3,15 +3,16 @@ use std::collections::VecDeque;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    image::Pixel,
     math::{
         neighbors::{kdtree::KdTreeSearch, Neighbor, NeighborSearch},
         DistanceMetric,
         FloatNumber,
     },
     segmentation::{
-        dbscan::{config::DbscanConfig, error::DbscanError},
-        label::{Builder as LabelImageBuilder, LabelImage},
+        dbscan::config::DbscanConfig,
+        error::SegmentationError,
+        input::SegmentationInput,
+        result::{Builder as SegmentBuilder, SegmentationResult},
         Segmentation,
     },
 };
@@ -39,17 +40,24 @@ impl<T> TryFrom<DbscanConfig<T>> for DbscanSegmentation<T>
 where
     T: FloatNumber,
 {
-    type Error = DbscanError<T>;
+    type Error = SegmentationError;
 
     fn try_from(config: DbscanConfig<T>) -> Result<Self, Self::Error> {
         if config.segments == 0 {
-            return Err(DbscanError::InvalidSegments);
+            return Err(SegmentationError::InvalidArgument(
+                "The number of segments must be greater than zero".into(),
+            ));
         }
         if config.min_pixels == 0 {
-            return Err(DbscanError::InvalidMinPixels);
+            return Err(SegmentationError::InvalidArgument(
+                "The minimum number of pixels must be greater than zero".into(),
+            ));
         }
         if config.epsilon <= T::zero() || config.epsilon.is_nan() {
-            return Err(DbscanError::InvalidEpsilon(config.epsilon));
+            return Err(SegmentationError::InvalidArgument(format!(
+                "Epsilon must be greater than zero and not NaN: {}",
+                config.epsilon
+            )));
         }
         Ok(Self {
             segments: config.segments,
@@ -76,9 +84,9 @@ where
     /// Merges small segments into their nearest large segment.
     ///
     /// # Arguments
-    /// * `builder` - The `LabelImageBuilder` to build the label image.
+    /// * `builder` - The segment builder.
     /// * `min_size` - The minimum size for a segment to be considered large.
-    fn merge_segments(&self, builder: &mut LabelImageBuilder<T>, min_size: usize) {
+    fn merge_segments(&self, builder: &mut SegmentBuilder<T>, min_size: usize) {
         let (labels, centers): (Vec<_>, Vec<_>) = builder
             .iter()
             .map(|segment| (segment.label(), segment.center()))
@@ -143,21 +151,14 @@ impl<T> Segmentation<T> for DbscanSegmentation<T>
 where
     T: FloatNumber,
 {
-    type Err = DbscanError<T>;
-
-    fn segment_with_mask(
+    fn segment(
         &self,
-        width: usize,
-        height: usize,
-        pixels: &[Pixel<T>],
-        mask: &[bool],
-    ) -> Result<LabelImage<T>, Self::Err> {
-        if width * height != pixels.len() {
-            return Err(DbscanError::UnexpectedLength {
-                actual: pixels.len(),
-                expected: width * height,
-            });
-        }
+        input: &SegmentationInput<'_, T>,
+    ) -> Result<SegmentationResult<T>, SegmentationError> {
+        let width = input.width();
+        let height = input.height();
+        let pixels = input.pixels();
+        let mask = input.mask();
 
         let spatial_radius = (T::from_usize(pixels.len()) / T::from_usize(self.segments))
             .sqrt()
@@ -181,7 +182,7 @@ where
                 .collect()
         };
 
-        let mut builder = LabelImage::builder(width, height);
+        let mut builder = SegmentationResult::builder(width, height);
         let mut labels = vec![Self::LABEL_UNLABELLED; pixels.len()];
 
         let mut current_label = 0;
@@ -292,14 +293,19 @@ mod tests {
     }
 
     #[rstest]
-    #[case::invalid_segments(0, 6, 0.01, DbscanError::InvalidSegments)]
-    #[case::invalid_min_pixels(32, 0, 0.01, DbscanError::InvalidMinPixels)]
-    #[case::invalid_epsilon(32, 6, -0.01, DbscanError::InvalidEpsilon(-0.01))]
+    #[case::invalid_segments(0, 6, 0.01, "The number of segments must be greater than zero")]
+    #[case::invalid_min_pixels(
+        32,
+        0,
+        0.01,
+        "The minimum number of pixels must be greater than zero"
+    )]
+    #[case::invalid_epsilon(32, 6, -0.01, "Epsilon must be greater than zero and not NaN: -0.01")]
     fn test_try_from_error(
         #[case] segments: usize,
         #[case] min_pixels: usize,
         #[case] epsilon: f64,
-        #[case] expected: DbscanError<f64>,
+        #[case] expected: &str,
     ) {
         // Act
         let config = DbscanConfig::<f64>::default()
@@ -312,7 +318,7 @@ mod tests {
         assert!(actual.is_err());
 
         let error = actual.unwrap_err();
-        assert_eq!(error, expected);
+        assert_eq!(error.to_string(), expected);
     }
 
     #[test]
@@ -350,18 +356,20 @@ mod tests {
         let width = image_data.width() as usize;
         let height = image_data.height() as usize;
         let pixels: Vec<_> = image_data.pixels().collect();
-        let actual = segmentation.segment(width, height, &pixels);
+        let mask = vec![true; pixels.len()];
+        let input = SegmentationInput::new(width, height, &pixels, &mask).unwrap();
+        let actual = segmentation.segment(&input);
 
         // Assert
         assert!(actual.is_ok());
 
-        let label_image = actual.unwrap();
-        let segments: Vec<_> = label_image.segments().collect();
-        assert!(!segments.is_empty());
-        assert_eq!(segments.len(), 31);
+        let result = actual.unwrap();
+        assert!(!result.is_empty());
+        assert_eq!(result.len(), 31);
     }
 
     #[test]
+    #[cfg(feature = "image")]
     fn test_segment_with_mask() {
         // Arrange
         let image_data = ImageData::load("../../gfx/flags/np.png").unwrap();
@@ -390,38 +398,14 @@ mod tests {
             );
 
         // Act
-        let actual = segmentation.segment_with_mask(width, height, &pixels, &mask);
+        let input = SegmentationInput::new(width, height, &pixels, &mask).unwrap();
+        let actual = segmentation.segment(&input);
 
         // Assert
         assert!(actual.is_ok());
 
-        let label_image = actual.unwrap();
-        let segments: Vec<_> = label_image.segments().collect();
-        assert!(!segments.is_empty());
-        assert!(segments.len() >= 16);
-    }
-
-    #[test]
-    fn test_segment_with_mask_unexpected_length() {
-        // Arrange
-        let segmentation = DbscanSegmentation::<f64>::try_from(DbscanConfig::default()).unwrap();
-
-        // Act
-        let width = 9;
-        let height = 4;
-        let pixels: Vec<Pixel<f64>> = vec![Pixel::default(); width * height - 1];
-        let mask: Vec<bool> = vec![true; width * height - 1];
-
-        let actual = segmentation.segment_with_mask(width, height, &pixels, &mask);
-
-        // Assert
-        assert!(actual.is_err());
-        assert_eq!(
-            actual.unwrap_err(),
-            DbscanError::UnexpectedLength {
-                actual: pixels.len(),
-                expected: width * height,
-            }
-        );
+        let result = actual.unwrap();
+        assert!(!result.is_empty());
+        assert!(result.len() >= 16);
     }
 }

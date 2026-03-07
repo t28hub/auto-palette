@@ -1,20 +1,22 @@
 mod algorithm;
 mod dbscan;
+mod error;
 mod fastdbscan;
 mod helper;
+mod input;
 mod kmeans;
-mod label;
 mod method;
+mod result;
 mod seed;
-mod segment;
+pub(crate) mod segment;
 mod slic;
 mod snic;
 
-pub use algorithm::Segmentation;
+pub(crate) use algorithm::Segmentation;
 pub use dbscan::{DbscanConfig, DbscanSegmentation};
 pub use fastdbscan::{FastDbscanConfig, FastDbscanSegmentation};
 pub use kmeans::{KmeansConfig, KmeansSegmentation};
-pub use label::LabelImage;
 pub use method::SegmentationMethod;
+pub use result::SegmentationResult;
 pub use slic::{SlicConfig, SlicSegmentation};
 pub use snic::{SnicConfig, SnicSegmentation};

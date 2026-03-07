@@ -2,37 +2,34 @@ use rustc_hash::FxHashMap;
 
 use crate::{math::FloatNumber, segmentation::segment::SegmentMetadata};
 
-/// Represents a labeled image where each pixel is assigned a label corresponding to a segment.
+/// The result of segmenting an image into regions.
 ///
 /// # Type Parameters
 /// * `T` - The floating point type used for pixel values.
 #[derive(Debug, PartialEq)]
-pub struct LabelImage<T>
+pub struct SegmentationResult<T>
 where
     T: FloatNumber,
 {
-    /// The width of the label image.
+    /// The width of the segmented image.
     width: usize,
 
-    /// The height of the label image.
+    /// The height of the segmented image.
     height: usize,
 
-    /// The segments in the label image, indexed by their labels.
-    segments: FxHashMap<usize, SegmentMetadata<T>>,
+    /// The segments extracted from the image.
+    segments: Vec<SegmentMetadata<T>>,
 }
 
-impl<T> LabelImage<T>
+impl<T> SegmentationResult<T>
 where
     T: FloatNumber,
 {
-    /// Label for unlabeled pixels in the label image.
-    pub const LABEL_UNLABELLED: usize = usize::MAX;
-
-    /// Creates a new `Builder` instance for constructing a `LabelImage`.
+    /// Creates a new `Builder` instance for constructing a `SegmentationResult`.
     ///
     /// # Arguments
-    /// * `width` - The width of the label image.
-    /// * `height` - The height of the label image.
+    /// * `width` - The width of the image.
+    /// * `height` - The height of the image.
     ///
     /// # Returns
     /// A new `Builder` instance initialized with the specified dimensions.
@@ -41,66 +38,58 @@ where
         Builder::new(width, height)
     }
 
-    /// Returns the width of the label image.
+    /// Returns the width of the segmented image.
     ///
     /// # Returns
-    /// The width of the label image.
+    /// The width of the segmented image.
     #[inline]
     #[must_use]
     pub fn width(&self) -> usize {
         self.width
     }
 
-    /// Returns the height of the label image.
+    /// Returns the height of the segmented image.
     ///
     /// # Returns
-    /// The height of the label image.
+    /// The height of the segmented image.
     #[inline]
     #[must_use]
     pub fn height(&self) -> usize {
         self.height
     }
 
-    /// Returns an iterator over the segments in the label image.
+    /// Returns a slice of the segments in the result.
     ///
     /// # Returns
-    /// An iterator over the segments in the label image.
-    pub fn segments(&self) -> impl Iterator<Item = &SegmentMetadata<T>> {
-        self.segments.values()
+    /// A slice of the segments in the result.
+    #[inline]
+    #[must_use]
+    pub fn segments(&self) -> &[SegmentMetadata<T>] {
+        &self.segments
     }
 
-    /// Converts the label image to a vector of RGBA bytes.
-    ///
-    /// # Arguments
-    /// * `transform` - A function that takes a reference to a label and returns an RGBA color as an array of 4 bytes.
+    /// Returns whether the result contains no segments.
     ///
     /// # Returns
-    /// A vector of bytes representing the RGBA color values for each pixel in the label image.
-    #[allow(dead_code)]
+    /// `true` if the result contains no segments.
+    #[inline]
     #[must_use]
-    pub fn to_rgba_buffer<F>(&self, transform: F) -> Vec<u8>
-    where
-        F: Fn(&usize) -> [u8; 4],
-    {
-        let mut labels = vec![Self::LABEL_UNLABELLED; self.width * self.height];
-        self.segments.values().for_each(|segment| {
-            segment.members().for_each(|&index| {
-                labels[index] = segment.label;
-            });
-        });
+    pub fn is_empty(&self) -> bool {
+        self.segments.is_empty()
+    }
 
-        labels.iter().fold(
-            Vec::with_capacity(self.width * self.height * 4),
-            |mut buffer, label| {
-                let rgba = transform(label);
-                buffer.extend_from_slice(&rgba);
-                buffer
-            },
-        )
+    /// Returns the number of segments in the result.
+    ///
+    /// # Returns
+    /// The number of segments in the result.
+    #[inline]
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.segments.len()
     }
 }
 
-/// A builder for constructing a `LabelImage`.
+/// A builder for constructing a `SegmentationResult`.
 ///
 /// # Type Parameters
 /// * `T` - The floating point type used for pixel values.
@@ -109,13 +98,13 @@ pub(super) struct Builder<T>
 where
     T: FloatNumber,
 {
-    /// The width of the label image.
+    /// The width of the image.
     width: usize,
 
-    /// The height of the label image.
+    /// The height of the image.
     height: usize,
 
-    /// The segments in the label image, indexed by their labels.
+    /// The segments indexed by their labels.
     segments: FxHashMap<usize, SegmentMetadata<T>>,
 }
 
@@ -123,11 +112,11 @@ impl<T> Builder<T>
 where
     T: FloatNumber,
 {
-    /// Creates a new `Builder` instance for constructing a `LabelImage`.
+    /// Creates a new `Builder` instance for constructing a `SegmentationResult`.
     ///
     /// # Arguments
-    /// * `width` - The width of the label image.
-    /// * `height` - The height of the label image.
+    /// * `width` - The width of the image.
+    /// * `height` - The height of the image.
     ///
     /// # Returns
     /// A new `Builder` instance initialized with the specified dimensions.
@@ -184,7 +173,7 @@ where
         self.segments.values_mut()
     }
 
-    /// Merges two segments in the label image.
+    /// Merges two segments in the builder.
     ///
     /// # Arguments
     /// * `src_label` - The label of the source segment to merge.
@@ -235,16 +224,23 @@ where
         self.segments.remove(label)
     }
 
-    /// Builds the `LabelImage` from the current state of the builder.
+    /// Builds the `SegmentationResult` from the current state of the builder.
+    ///
+    /// Empty segments are excluded from the result.
     ///
     /// # Returns
-    /// A new `LabelImage` instance containing the width, height, labels, and segments.
+    /// A new `SegmentationResult` instance.
     #[must_use]
-    pub fn build(self) -> LabelImage<T> {
-        LabelImage {
+    pub fn build(self) -> SegmentationResult<T> {
+        let segments = self
+            .segments
+            .into_values()
+            .filter(|s| !s.is_empty())
+            .collect();
+        SegmentationResult {
             width: self.width,
             height: self.height,
-            segments: self.segments,
+            segments,
         }
     }
 }
@@ -261,7 +257,7 @@ mod tests {
     #[test]
     fn test_builder() {
         // Act
-        let builder = LabelImage::<f64>::builder(480, 320);
+        let builder = SegmentationResult::<f64>::builder(480, 320);
 
         // Assert
         assert_eq!(
@@ -275,46 +271,9 @@ mod tests {
     }
 
     #[test]
-    fn test_to_rgba_buffer() {
-        // Arrange
-        let mut builder = LabelImage::<f64>::builder(2, 2);
-
-        let label1 = 0usize;
-        let segment1 = builder.get_mut(&label1);
-        segment1.insert(0, &[1.0, 0.0, 0.0, 0.5, 0.5]);
-        segment1.insert(1, &[0.0, 1.0, 0.0, 0.5, 0.5]);
-
-        let label2 = 1usize;
-        let segment2 = builder.get_mut(&label2);
-        segment2.insert(2, &[0.0, 0.0, 1.0, 0.5, 0.5]);
-
-        // Act
-        let label_image = builder.build();
-        let actual = label_image.to_rgba_buffer(|label| {
-            match *label {
-                0 => [255, 0, 0, 255], // Red
-                1 => [0, 255, 0, 255], // Green
-                _ => [0, 0, 255, 255], // Blue for unlabelled
-            }
-        });
-
-        // Assert
-        assert_eq!(actual.len(), 16); // 2x2 pixels, each with 4 bytes (RGBA)
-        assert_eq!(
-            &actual,
-            &[
-                255, 0, 0, 255, // 0 - Pixel (0, 0) - Red
-                255, 0, 0, 255, // 1 - Pixel (1, 0) - Red
-                0, 255, 0, 255, // 2 - Pixel (0, 1) - Green
-                0, 0, 255, 255, // 3 - Pixel (1, 1) - Blue (unlabelled)
-            ]
-        );
-    }
-
-    #[test]
     fn test_builder_get() {
         // Arrange
-        let mut builder = LabelImage::<f64>::builder(480, 320);
+        let mut builder = SegmentationResult::<f64>::builder(480, 320);
 
         let label = 0usize;
         builder.get_mut(&label);
@@ -335,7 +294,7 @@ mod tests {
     #[test]
     fn test_builder_get_non_existent() {
         // Arrange
-        let builder = LabelImage::<f64>::builder(480, 320);
+        let builder = SegmentationResult::<f64>::builder(480, 320);
         let label = 1usize;
 
         // Act
@@ -348,7 +307,7 @@ mod tests {
     #[test]
     fn test_builder_iter() {
         // Arrange
-        let mut builder = LabelImage::<f64>::builder(480, 320);
+        let mut builder = SegmentationResult::<f64>::builder(480, 320);
 
         let label1 = 1usize;
         builder.get_mut(&label1);
@@ -368,7 +327,7 @@ mod tests {
     #[test]
     fn test_builder_iter_mut() {
         // Arrange
-        let mut builder = LabelImage::<f64>::builder(480, 320);
+        let mut builder = SegmentationResult::<f64>::builder(480, 320);
 
         let label1 = 1usize;
         builder.get_mut(&label1).insert(0, &[1.0; LABXY_CHANNELS]);
@@ -400,7 +359,7 @@ mod tests {
     #[test]
     fn test_builder_merge() {
         // Arrange
-        let mut builder = LabelImage::<f64>::builder(480, 320);
+        let mut builder = SegmentationResult::<f64>::builder(480, 320);
 
         let src_label = 1usize;
         let src = builder.get_mut(&src_label);
@@ -437,7 +396,7 @@ mod tests {
     #[test]
     fn test_builder_merge_same_label() {
         // Arrange
-        let mut builder = LabelImage::<f64>::builder(480, 320);
+        let mut builder = SegmentationResult::<f64>::builder(480, 320);
 
         let label = 1usize;
         builder.get_mut(&label).insert(0, &[1.0; LABXY_CHANNELS]);
@@ -453,7 +412,7 @@ mod tests {
     #[test]
     fn test_builder_merge_non_existent() {
         // Arrange
-        let mut builder = LabelImage::<f64>::builder(480, 320);
+        let mut builder = SegmentationResult::<f64>::builder(480, 320);
 
         let src_label = 1usize;
         let dst_label = 2usize;
@@ -470,7 +429,7 @@ mod tests {
     #[test]
     fn test_builder_merge_src_non_existent() {
         // Arrange
-        let mut builder = LabelImage::<f64>::builder(480, 320);
+        let mut builder = SegmentationResult::<f64>::builder(480, 320);
 
         let src_label = 1usize;
 
@@ -491,7 +450,7 @@ mod tests {
     #[test]
     fn test_builder_merge_dst_non_existent() {
         // Arrange
-        let mut builder = LabelImage::<f64>::builder(480, 320);
+        let mut builder = SegmentationResult::<f64>::builder(480, 320);
 
         let src_label = 1usize;
         builder
@@ -512,7 +471,7 @@ mod tests {
     #[test]
     fn test_builder_remove() {
         // Arrange
-        let mut builder = LabelImage::<f64>::builder(480, 320);
+        let mut builder = SegmentationResult::<f64>::builder(480, 320);
 
         let label = 1usize;
         builder.get_mut(&label).insert(0, &[1.0; LABXY_CHANNELS]);
@@ -538,7 +497,7 @@ mod tests {
     #[test]
     fn test_builder_remove_non_existent() {
         // Arrange
-        let mut builder = LabelImage::<f64>::builder(480, 320);
+        let mut builder = SegmentationResult::<f64>::builder(480, 320);
 
         let label = 1usize;
 
@@ -553,7 +512,7 @@ mod tests {
     #[test]
     fn test_builder_build() {
         // Arrange
-        let mut builder = LabelImage::<f64>::builder(480, 320);
+        let mut builder = SegmentationResult::<f64>::builder(480, 320);
 
         let label1 = 0usize;
         let segment1 = builder.get_mut(&label1);
@@ -571,6 +530,34 @@ mod tests {
         // Assert
         assert_eq!(actual.width(), 480);
         assert_eq!(actual.height(), 320);
-        assert_eq!(actual.segments.len(), 2);
+        assert_eq!(actual.len(), 2);
+        assert!(actual
+            .segments()
+            .iter()
+            .any(|s| s.label() == label1 && s.len() == 2));
+        assert!(actual
+            .segments()
+            .iter()
+            .any(|s| s.label() == label2 && s.len() == 2));
+    }
+
+    #[test]
+    fn test_builder_build_filters_empty() {
+        // Arrange
+        let mut builder = SegmentationResult::<f64>::builder(480, 320);
+
+        let label1 = 0usize;
+        builder.get_mut(&label1); // Create empty segment
+
+        let label2 = 1usize;
+        let segment2 = builder.get_mut(&label2);
+        segment2.insert(0, &[1.0; LABXY_CHANNELS]);
+
+        // Act
+        let actual = builder.build();
+
+        // Assert
+        assert_eq!(actual.len(), 1);
+        assert_eq!(actual.segments()[0].label(), label2);
     }
 }

@@ -5,13 +5,14 @@ use std::{
 };
 
 use crate::{
-    image::Pixel,
     math::{matrix::MatrixView, DistanceMetric, FloatNumber},
     segmentation::{
+        error::SegmentationError,
         helper::gradient,
-        label::LabelImage,
+        input::SegmentationInput,
+        result::SegmentationResult,
         seed::SeedGenerator,
-        snic::{config::SnicConfig, error::SnicError},
+        snic::config::SnicConfig,
         Segmentation,
     },
 };
@@ -38,11 +39,14 @@ impl<T> TryFrom<SnicConfig<T>> for SnicSegmentation<T>
 where
     T: FloatNumber,
 {
-    type Error = SnicError;
+    type Error = SegmentationError;
 
     fn try_from(config: SnicConfig<T>) -> Result<Self, Self::Error> {
         if config.segments == 0 {
-            return Err(SnicError::InvalidSegments(config.segments));
+            return Err(SegmentationError::InvalidArgument(format!(
+                "The number of segments must be greater than zero: {}",
+                config.segments
+            )));
         }
         Ok(Self {
             segments: config.segments,
@@ -108,15 +112,15 @@ impl<T> Segmentation<T> for SnicSegmentation<T>
 where
     T: FloatNumber,
 {
-    type Err = SnicError;
-
-    fn segment_with_mask(
+    fn segment(
         &self,
-        width: usize,
-        height: usize,
-        pixels: &[Pixel<T>],
-        mask: &[bool],
-    ) -> Result<LabelImage<T>, Self::Err> {
+        input: &SegmentationInput<'_, T>,
+    ) -> Result<SegmentationResult<T>, SegmentationError> {
+        let width = input.width();
+        let height = input.height();
+        let pixels = input.pixels();
+        let mask = input.mask();
+
         let matrix = MatrixView::new(width, height, pixels)?;
 
         // Initialize the seeds using a grid pattern.
@@ -131,7 +135,7 @@ where
             .collect();
 
         // Initialize the priority queue with the seeds.
-        let mut builder = LabelImage::builder(width, height);
+        let mut builder = SegmentationResult::builder(width, height);
         let mut queue = seeds.into_iter().enumerate().fold(
             BinaryHeap::with_capacity(matrix.size()),
             |mut heap, (segment_label, pixel_index)| {
@@ -246,15 +250,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{math::matrix::MatrixError, segmentation::seed::SeedGenerator, ImageData};
-
-    #[must_use]
-    fn sample_pixels<T>(width: usize, height: usize) -> Vec<Pixel<T>>
-    where
-        T: FloatNumber,
-    {
-        vec![[T::zero(); 5]; width * height]
-    }
+    use crate::{segmentation::seed::SeedGenerator, ImageData};
 
     #[test]
     fn test_try_from() {
@@ -290,7 +286,10 @@ mod tests {
         assert!(actual.is_err());
 
         let error = actual.unwrap_err();
-        assert_eq!(error, SnicError::InvalidSegments(0));
+        assert_eq!(
+            error.to_string(),
+            "The number of segments must be greater than zero: 0"
+        );
     }
 
     #[test]
@@ -305,44 +304,15 @@ mod tests {
         let width = image_data.width() as usize;
         let height = image_data.height() as usize;
         let pixels = image_data.pixels().collect::<Vec<_>>();
-        let actual = snic.segment(width, height, &pixels);
+        let mask = vec![true; pixels.len()];
+        let input = SegmentationInput::new(width, height, &pixels, &mask).unwrap();
+        let actual = snic.segment(&input);
 
         // Assert
         assert!(actual.is_ok());
 
-        let label_image = actual.unwrap();
-        let segments: Vec<_> = label_image.segments().collect();
-        assert_eq!(segments.len(), 32);
-    }
-
-    #[test]
-    fn test_segment_unexpected_length() {
-        // Arrange
-        let config = SnicConfig::default()
-            .segments(12)
-            .generator(SeedGenerator::RegularGrid)
-            .metric(DistanceMetric::SquaredEuclidean);
-        let snic = SnicSegmentation::<f64>::try_from(config).unwrap();
-
-        // Act
-        let width = 32;
-        let height = 18;
-        let pixels = sample_pixels(width - 1, height);
-        let actual = snic.segment(width, height, &pixels);
-
-        // Assert
-        assert!(actual.is_err());
-
-        let error = actual.unwrap_err();
-        assert_eq!(
-            error,
-            SnicError::UnexpectedLength(MatrixError::DimensionMismatch {
-                cols: width,
-                rows: height,
-                expected: width * height,
-                actual: (width - 1) * height,
-            })
-        );
+        let result = actual.unwrap();
+        assert_eq!(result.len(), 32);
     }
 
     #[test]
