@@ -1,5 +1,5 @@
 use std::{
-    fmt::{Debug, Display},
+    fmt::Display,
     iter::Sum,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign},
 };
@@ -30,7 +30,6 @@ use num_traits::Float;
 pub trait FloatNumber:
     Sized
     + Copy
-    + Debug
     + Display
     + PartialOrd
     + Float
