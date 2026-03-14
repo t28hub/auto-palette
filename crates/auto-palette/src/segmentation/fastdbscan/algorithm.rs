@@ -46,7 +46,7 @@ where
                 config.epsilon
             )));
         }
-        if !(T::zero()..=T::one()).contains(&config.probability) {
+        if !(config.probability > T::zero() && config.probability <= T::one()) {
             return Err(SegmentationError::InvalidArgument(format!(
                 "The probability value must be in the range (0, 1]: {}",
                 config.probability
@@ -280,6 +280,12 @@ mod tests {
         0.02,
         1.1,
         "The probability value must be in the range (0, 1]: 1.1"
+    )]
+    #[case::invalid_probability_zero(
+        5,
+        0.02,
+        0.0,
+        "The probability value must be in the range (0, 1]: 0"
     )]
     #[case::invalid_probability_less(5, 0.02, -0.1, "The probability value must be in the range (0, 1]: -0.1")]
     fn test_try_from_error(
