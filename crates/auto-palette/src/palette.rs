@@ -17,7 +17,7 @@ use crate::{
         DistanceMetric,
         FloatNumber,
     },
-    segmentation::{LabelImage, SegmentationMethod},
+    segmentation::{segment::SegmentMetadata, SegmentationMethod},
     theme::Theme,
     Swatch,
 };
@@ -351,10 +351,10 @@ where
     /// The `Palette` instance built from the image data.
     pub fn build(self, image_data: &ImageData) -> Result<Palette<T>, Error> {
         // Group the points into clusters using the specified algorithm.
-        let label_image = self.algorithm.segment(image_data, &self.filter)?;
+        let result = self.algorithm.segment(image_data, &self.filter)?;
 
         // Merge similar color clusters and create swatches.
-        let mut swatches = to_swatches(&label_image)?;
+        let mut swatches = to_swatches(result.width(), result.height(), result.segments())?;
         swatches.sort_by_key(|swatch| Reverse(swatch.population()));
 
         let palette = Palette::new(swatches.into_iter().take(self.max_swatches).collect());
@@ -376,19 +376,25 @@ const COLOR_MERGE_MIN_POINTS: usize = 1;
 /// [Color difference - CIE76](https://en.wikipedia.org/wiki/Color_difference#CIE76)
 const COLOR_MERGE_EPSILON_LAB: f64 = 2.3;
 
-/// Converts the label image to swatches.
+/// Converts the segments to swatches.
 ///
 /// # Arguments
-/// * `label_image` - The label image to convert.
+/// * `width` - The width of the image.
+/// * `height` - The height of the image.
+/// * `segments` - The segments to convert.
 ///
 /// # Returns
-/// A vector of swatches extracted from the label image.
-fn to_swatches<T>(label_image: &LabelImage<T>) -> Result<Vec<Swatch<T>>, Error>
+/// A vector of swatches extracted from the segments.
+fn to_swatches<T>(
+    width: usize,
+    height: usize,
+    segments: &[SegmentMetadata<T>],
+) -> Result<Vec<Swatch<T>>, Error>
 where
     T: FloatNumber,
 {
-    let (segments, colors): (Vec<_>, Vec<_>) = label_image
-        .segments()
+    let (indexed_segments, colors): (Vec<_>, Vec<_>) = segments
+        .iter()
         .map(|segment| {
             let center_pixel = segment.center();
             (
@@ -417,14 +423,14 @@ where
             details: e.to_string(),
         })?;
 
-    let width = T::from_usize(label_image.width());
-    let height = T::from_usize(label_image.height());
+    let width = T::from_usize(width);
+    let height = T::from_usize(height);
     let area = width * height;
 
     let mut swatches = FxHashMap::default();
     let mut populations = FxHashMap::default();
     for (index, &label) in labels.iter().enumerate() {
-        let Some(segment) = segments.get(index) else {
+        let Some(segment) = indexed_segments.get(index) else {
             continue;
         };
 

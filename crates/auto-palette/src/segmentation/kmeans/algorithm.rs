@@ -6,8 +6,10 @@ use crate::{
         FloatNumber,
     },
     segmentation::{
-        kmeans::{config::KmeansConfig, KmeansError},
-        label::{Builder as SegmentBuilder, LabelImage},
+        error::SegmentationError,
+        input::SegmentationInput,
+        kmeans::config::KmeansConfig,
+        result::{Builder as SegmentBuilder, SegmentationResult},
         seed::SeedGenerator,
         segment::SegmentMetadata,
         Segmentation,
@@ -36,17 +38,24 @@ impl<T> TryFrom<KmeansConfig<T>> for KmeansSegmentation<T>
 where
     T: FloatNumber,
 {
-    type Error = KmeansError<T>;
+    type Error = SegmentationError;
 
     fn try_from(config: KmeansConfig<T>) -> Result<Self, Self::Error> {
         if config.segments == 0 {
-            return Err(KmeansError::InvalidSegments);
+            return Err(SegmentationError::InvalidArgument(
+                "The number of segments must be greater than zero".into(),
+            ));
         }
         if config.max_iter == 0 {
-            return Err(KmeansError::InvalidIterations);
+            return Err(SegmentationError::InvalidArgument(
+                "The number of iterations must be greater than zero".into(),
+            ));
         }
         if config.tolerance <= T::zero() || config.tolerance.is_nan() {
-            return Err(KmeansError::InvalidTolerance(config.tolerance));
+            return Err(SegmentationError::InvalidArgument(format!(
+                "Tolerance must be greater than zero and not NaN: {}",
+                config.tolerance
+            )));
         }
         Ok(Self {
             segments: config.segments,
@@ -105,21 +114,14 @@ impl<T> Segmentation<T> for KmeansSegmentation<T>
 where
     T: FloatNumber,
 {
-    type Err = KmeansError<T>;
-
-    fn segment_with_mask(
+    fn segment(
         &self,
-        width: usize,
-        height: usize,
-        pixels: &[Pixel<T>],
-        mask: &[bool],
-    ) -> Result<LabelImage<T>, Self::Err> {
-        if width * height != pixels.len() {
-            return Err(KmeansError::UnexpectedLength {
-                actual: pixels.len(),
-                expected: width * height,
-            });
-        }
+        input: &SegmentationInput<'_, T>,
+    ) -> Result<SegmentationResult<T>, SegmentationError> {
+        let width = input.width();
+        let height = input.height();
+        let pixels = input.pixels();
+        let mask = input.mask();
 
         let mut centers: Vec<_> = self
             .generator
@@ -127,7 +129,7 @@ where
             .iter()
             .map(|&seed| pixels[seed])
             .collect();
-        let mut builder = LabelImage::builder(width, height);
+        let mut builder = SegmentationResult::builder(width, height);
         for _ in 0..self.max_iter {
             if self.iterate(pixels, mask, &mut centers, &mut builder) {
                 break;
@@ -172,14 +174,14 @@ mod tests {
     }
 
     #[rstest]
-    #[case(0, 25, 1e-4, KmeansError::InvalidSegments)]
-    #[case(48, 0, 1e-4, KmeansError::InvalidIterations)]
-    #[case(48, 25, -1e-4, KmeansError::InvalidTolerance(-1e-4))]
+    #[case(0, 25, 1e-4, "The number of segments must be greater than zero")]
+    #[case(48, 0, 1e-4, "The number of iterations must be greater than zero")]
+    #[case(48, 25, -1e-4, "Tolerance must be greater than zero and not NaN: -0.0001")]
     fn test_try_from_error(
         #[case] segments: usize,
         #[case] max_iter: usize,
         #[case] tolerance: f64,
-        #[case] expected: KmeansError<f64>,
+        #[case] expected: &str,
     ) {
         // Act
         let config = KmeansConfig::default()
@@ -192,7 +194,7 @@ mod tests {
         assert!(actual.is_err());
 
         let error = actual.unwrap_err();
-        assert_eq!(error, expected);
+        assert_eq!(error.to_string(), expected);
     }
 
     #[test]
@@ -226,13 +228,14 @@ mod tests {
         let width = image_data.width() as usize;
         let height = image_data.height() as usize;
         let pixels: Vec<_> = image_data.pixels().collect();
-        let actual = segmentation.segment(width, height, &pixels);
+        let mask = vec![true; pixels.len()];
+        let input = SegmentationInput::new(width, height, &pixels, &mask).unwrap();
+        let actual = segmentation.segment(&input);
 
         // Assert
         assert!(actual.is_ok());
 
-        let label_image = actual.unwrap();
-        let segments: Vec<_> = label_image.segments().collect();
-        assert_eq!(segments.len(), 24);
+        let result = actual.unwrap();
+        assert_eq!(result.len(), 24);
     }
 }

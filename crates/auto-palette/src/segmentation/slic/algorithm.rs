@@ -4,11 +4,13 @@ use crate::{
     image::{Pixel, LABXY_CHANNELS},
     math::{matrix::MatrixView, DistanceMetric, FloatNumber},
     segmentation::{
+        error::SegmentationError,
         helper::gradient,
-        label::{Builder as SegmentBuilder, LabelImage},
+        input::SegmentationInput,
+        result::{Builder as SegmentBuilder, SegmentationResult},
         seed::SeedGenerator,
         segment::SegmentMetadata,
-        slic::{config::SlicConfig, error::SlicError},
+        slic::config::SlicConfig,
         Segmentation,
     },
 };
@@ -36,20 +38,32 @@ impl<T> TryFrom<SlicConfig<T>> for SlicSegmentation<T>
 where
     T: FloatNumber,
 {
-    type Error = SlicError<T>;
+    type Error = SegmentationError;
 
     fn try_from(config: SlicConfig<T>) -> Result<Self, Self::Error> {
         if config.segments == 0 {
-            return Err(SlicError::InvalidSegments(config.segments));
+            return Err(SegmentationError::InvalidArgument(format!(
+                "The number of segments must be greater than zero: {}",
+                config.segments
+            )));
         }
         if config.compactness <= T::zero() || config.compactness.is_nan() {
-            return Err(SlicError::InvalidCompactness(config.compactness));
+            return Err(SegmentationError::InvalidArgument(format!(
+                "Compactness must be greater than zero: {}",
+                config.compactness
+            )));
         }
         if config.max_iter == 0 {
-            return Err(SlicError::InvalidIterations(config.max_iter));
+            return Err(SegmentationError::InvalidArgument(format!(
+                "Iterations must be greater than zero: {}",
+                config.max_iter
+            )));
         }
         if config.tolerance <= T::zero() || config.tolerance.is_nan() {
-            return Err(SlicError::InvalidTolerance(config.tolerance));
+            return Err(SegmentationError::InvalidArgument(format!(
+                "Tolerance must be greater than zero: {}",
+                config.tolerance
+            )));
         }
         Ok(Self {
             segments: config.segments,
@@ -186,15 +200,15 @@ impl<T> Segmentation<T> for SlicSegmentation<T>
 where
     T: FloatNumber,
 {
-    type Err = SlicError<T>;
-
-    fn segment_with_mask(
+    fn segment(
         &self,
-        width: usize,
-        height: usize,
-        pixels: &[Pixel<T>],
-        mask: &[bool],
-    ) -> Result<LabelImage<T>, Self::Err> {
+        input: &SegmentationInput<'_, T>,
+    ) -> Result<SegmentationResult<T>, SegmentationError> {
+        let width = input.width();
+        let height = input.height();
+        let pixels = input.pixels();
+        let mask = input.mask();
+
         let matrix = MatrixView::new(width, height, pixels)?;
         let seeds = self
             .generator
@@ -208,7 +222,7 @@ where
             })
             .collect();
 
-        let mut builder = LabelImage::builder(width, height);
+        let mut builder = SegmentationResult::builder(width, height);
         for _ in 0..self.max_iter {
             if self.iterate(&matrix, pixels, mask, &mut centers, &mut builder) {
                 break;
@@ -223,15 +237,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::{math::matrix::MatrixError, segmentation::seed::SeedGenerator, ImageData};
-
-    #[must_use]
-    fn sample_pixels<T>(width: usize, height: usize) -> Vec<Pixel<T>>
-    where
-        T: FloatNumber,
-    {
-        vec![[T::zero(); 5]; width * height]
-    }
+    use crate::{segmentation::seed::SeedGenerator, ImageData};
 
     #[test]
     fn test_try_from() {
@@ -268,55 +274,31 @@ mod tests {
         1.0,
         10,
         1e-3,
-        DistanceMetric::Euclidean,
-        SlicError::InvalidSegments(0)
+        "The number of segments must be greater than zero: 0"
     )]
-    #[case::invalid_compactness(
-        64,
-        0.0,
-        10,
-        1e-3,
-        DistanceMetric::Euclidean,
-        SlicError::InvalidCompactness(0.0)
-    )]
-    #[case::invalid_iterations(
-        64,
-        1.0,
-        0,
-        1e-3,
-        DistanceMetric::Euclidean,
-        SlicError::InvalidIterations(0)
-    )]
-    #[case::invalid_tolerance(
-        64,
-        1.0,
-        10,
-        0.0,
-        DistanceMetric::Euclidean,
-        SlicError::InvalidTolerance(0.0)
-    )]
+    #[case::invalid_compactness(64, 0.0, 10, 1e-3, "Compactness must be greater than zero: 0")]
+    #[case::invalid_iterations(64, 1.0, 0, 1e-3, "Iterations must be greater than zero: 0")]
+    #[case::invalid_tolerance(64, 1.0, 10, 0.0, "Tolerance must be greater than zero: 0")]
     fn test_try_from_error(
         #[case] segments: usize,
         #[case] compactness: f64,
         #[case] max_iter: usize,
         #[case] tolerance: f64,
-        #[case] metric: DistanceMetric,
-        #[case] expected: SlicError<f64>,
+        #[case] expected: &str,
     ) {
         // Act
         let config = SlicConfig::default()
             .segments(segments)
             .compactness(compactness)
             .max_iter(max_iter)
-            .tolerance(tolerance)
-            .metric(metric);
-        let actual = SlicSegmentation::try_from(config);
+            .tolerance(tolerance);
+        let actual = SlicSegmentation::<f64>::try_from(config);
 
         // Assert
         assert!(actual.is_err());
 
         let error = actual.unwrap_err();
-        assert_eq!(error, expected);
+        assert_eq!(error.to_string(), expected);
     }
 
     #[test]
@@ -363,38 +345,14 @@ mod tests {
         let width = image_data.width() as usize;
         let height = image_data.height() as usize;
         let pixels: Vec<_> = image_data.pixels().collect();
-        let actual = slic.segment(width, height, &pixels);
+        let mask = vec![true; pixels.len()];
+        let input = SegmentationInput::new(width, height, &pixels, &mask).unwrap();
+        let actual = slic.segment(&input);
 
         // Assert
         assert!(actual.is_ok());
 
-        let label_image = actual.unwrap();
-        let segments: Vec<_> = label_image.segments().collect();
-        assert_eq!(segments.len(), 32);
-    }
-
-    #[test]
-    fn test_segment_unexpected_length() {
-        // Arrange
-        let config = SlicConfig::default().segments(32);
-        let slic = SlicSegmentation::<f64>::try_from(config).unwrap();
-
-        // Act
-        let pixels = sample_pixels::<f64>(48, 26);
-        let actual = slic.segment(48, 27, &pixels);
-
-        // Assert
-        assert!(actual.is_err());
-
-        let error = actual.unwrap_err();
-        assert_eq!(
-            error,
-            SlicError::UnexpectedLength(MatrixError::DimensionMismatch {
-                cols: 48,
-                rows: 27,
-                expected: 48 * 27,
-                actual: 48 * 26,
-            })
-        );
+        let result = actual.unwrap();
+        assert_eq!(result.len(), 32);
     }
 }

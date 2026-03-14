@@ -3,14 +3,16 @@ use crate::{
     image::Pixel,
     math::FloatNumber,
     segmentation::{
+        error::SegmentationError,
+        input::SegmentationInput,
         DbscanConfig,
         DbscanSegmentation,
         FastDbscanConfig,
         FastDbscanSegmentation,
         KmeansConfig,
         KmeansSegmentation,
-        LabelImage,
         Segmentation,
+        SegmentationResult,
         SlicConfig,
         SlicSegmentation,
         SnicConfig,
@@ -58,40 +60,27 @@ where
     /// * `filter` - The filter to apply to the image pixels.
     ///
     /// # Returns
-    /// A `LabelImage` containing the segmented regions, or an error if segmentation fails.
-    pub fn segment<F>(&self, image: &ImageData, filter: &F) -> Result<LabelImage<T>, Error>
+    /// A `SegmentationResult` representing the segmented regions, or an error if segmentation fails.
+    pub fn segment<F>(&self, image: &ImageData, filter: &F) -> Result<SegmentationResult<T>, Error>
     where
         F: Filter,
     {
         let width = image.width() as usize;
         let height = image.height() as usize;
         let (pixels, mask) = collect_pixels_and_mask(image, filter);
+        let input = SegmentationInput::new(width, height, &pixels, &mask).map_err(|e| {
+            Error::PaletteExtractionError {
+                details: e.to_string(),
+            }
+        })?;
         match self {
-            Self::Dbscan(config) => DbscanSegmentation::try_from(*config)
-                .and_then(|s| s.segment_with_mask(width, height, &pixels, &mask))
-                .map_err(|e| Error::PaletteExtractionError {
-                    details: e.to_string(),
-                }),
-            Self::FastDbscan(config) => FastDbscanSegmentation::try_from(*config)
-                .and_then(|s| s.segment_with_mask(width, height, &pixels, &mask))
-                .map_err(|e| Error::PaletteExtractionError {
-                    details: e.to_string(),
-                }),
-            Self::Kmeans(config) => KmeansSegmentation::try_from(*config)
-                .and_then(|s| s.segment_with_mask(width, height, &pixels, &mask))
-                .map_err(|e| Error::PaletteExtractionError {
-                    details: e.to_string(),
-                }),
-            Self::Slic(config) => SlicSegmentation::try_from(*config)
-                .and_then(|s| s.segment_with_mask(width, height, &pixels, &mask))
-                .map_err(|e| Error::PaletteExtractionError {
-                    details: e.to_string(),
-                }),
-            Self::Snic(config) => SnicSegmentation::try_from(*config)
-                .and_then(|s| s.segment_with_mask(width, height, &pixels, &mask))
-                .map_err(|e| Error::PaletteExtractionError {
-                    details: e.to_string(),
-                }),
+            Self::Dbscan(config) => segment_with(DbscanSegmentation::try_from(*config), &input),
+            Self::FastDbscan(config) => {
+                segment_with(FastDbscanSegmentation::try_from(*config), &input)
+            }
+            Self::Kmeans(config) => segment_with(KmeansSegmentation::try_from(*config), &input),
+            Self::Slic(config) => segment_with(SlicSegmentation::try_from(*config), &input),
+            Self::Snic(config) => segment_with(SnicSegmentation::try_from(*config), &input),
         }
     }
 }
@@ -148,6 +137,33 @@ where
     fn from(config: SnicConfig<T>) -> Self {
         Self::Snic(config)
     }
+}
+
+/// Runs a segmentation algorithm on the given input, converting any errors.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
+/// * `S` - The segmentation algorithm type.
+///
+/// # Arguments
+/// * `segmentation` - The result of creating a segmentation algorithm (e.g., via `TryFrom`).
+/// * `input` - The segmentation input to process.
+///
+/// # Returns
+/// A `SegmentationResult`, or an `Error` if creation or segmentation fails.
+fn segment_with<T, S>(
+    segmentation: Result<S, SegmentationError>,
+    input: &SegmentationInput<'_, T>,
+) -> Result<SegmentationResult<T>, Error>
+where
+    T: FloatNumber,
+    S: Segmentation<T>,
+{
+    segmentation
+        .and_then(|s| s.segment(input))
+        .map_err(|e: SegmentationError| Error::PaletteExtractionError {
+            details: e.to_string(),
+        })
 }
 
 /// Collects pixels and a mask from the image data.
@@ -208,8 +224,52 @@ mod tests {
         // Assert
         assert!(actual.is_ok());
 
-        let label_image: LabelImage<f64> = actual.unwrap();
-        assert_eq!(label_image.width(), 0);
-        assert_eq!(label_image.height(), 0);
+        let result = actual.unwrap();
+        assert!(result.is_empty());
+    }
+
+    #[rstest]
+    #[case::dbscan(SegmentationMethod::Dbscan(DbscanConfig::default().segments(32)))]
+    #[case::fast_dbscan(SegmentationMethod::FastDbscan(FastDbscanConfig::default()))]
+    #[case::kmeans(SegmentationMethod::Kmeans(KmeansConfig::default().segments(32)))]
+    #[case::slic(SegmentationMethod::Slic(SlicConfig::default().segments(32)))]
+    #[case::snic(SegmentationMethod::Snic(SnicConfig::default().segments(32)))]
+    #[cfg(feature = "image")]
+    fn test_segment(#[case] method: SegmentationMethod<f64>) {
+        // Arrange
+        let image_data = ImageData::load("../../gfx/flags/za.png").unwrap();
+
+        // Act
+        let actual = method.segment(&image_data, &|_: &Rgba| true);
+
+        // Assert
+        assert!(actual.is_ok());
+
+        let result = actual.unwrap();
+        assert!(!result.is_empty());
+        for segment in result.segments() {
+            assert!(!segment.is_empty());
+        }
+    }
+
+    #[rstest]
+    #[case::dbscan(SegmentationMethod::Dbscan(DbscanConfig::default().segments(32)))]
+    #[case::fast_dbscan(SegmentationMethod::FastDbscan(FastDbscanConfig::default()))]
+    #[case::kmeans(SegmentationMethod::Kmeans(KmeansConfig::default().segments(32)))]
+    #[case::slic(SegmentationMethod::Slic(SlicConfig::default().segments(32)))]
+    #[case::snic(SegmentationMethod::Snic(SnicConfig::default().segments(32)))]
+    #[cfg(feature = "image")]
+    fn test_segment_with_filter(#[case] method: SegmentationMethod<f64>) {
+        // Arrange
+        let image_data = ImageData::load("../../gfx/flags/np.png").unwrap();
+
+        // Act
+        let actual = method.segment(&image_data, &|rgba: &Rgba| rgba[3] != 0);
+
+        // Assert
+        assert!(actual.is_ok());
+
+        let result = actual.unwrap();
+        assert!(!result.is_empty());
     }
 }

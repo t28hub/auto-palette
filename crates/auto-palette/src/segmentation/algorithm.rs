@@ -1,9 +1,16 @@
-use crate::{image::Pixel, math::FloatNumber, segmentation::label::LabelImage};
+use crate::{
+    math::FloatNumber,
+    segmentation::{
+        error::SegmentationError,
+        input::SegmentationInput,
+        result::SegmentationResult,
+    },
+};
 
 /// Trait for segmentation algorithms.
 ///
-/// Implementations receive image `pixels` and split them into a requested
-/// number of coherent segments.
+/// Implementations receive a validated `SegmentationInput` and split it into
+/// coherent segments.
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
@@ -11,44 +18,15 @@ pub trait Segmentation<T>
 where
     T: FloatNumber,
 {
-    /// Error type for the segmentation algorithm.
-    type Err;
-
     /// Splits the given image into segments.
     ///
     /// # Arguments
-    /// * `width` - The width of the image.
-    /// * `height` - The height of the image.
-    /// * `pixels` - The pixels of the image.
+    /// * `input` - A validated segmentation input containing pixels, mask, and dimensions.
     ///
     /// # Returns
-    /// A `LabelImage` containing the segmented image, or an error if segmentation fails.
-    #[allow(dead_code)]
+    /// A `SegmentationResult` representing the segments, or an error if segmentation fails.
     fn segment(
         &self,
-        width: usize,
-        height: usize,
-        pixels: &[Pixel<T>],
-    ) -> Result<LabelImage<T>, Self::Err> {
-        let mask = vec![true; width * height];
-        self.segment_with_mask(width, height, pixels, &mask)
-    }
-
-    /// Splits the given image into segments with a mask.
-    ///
-    /// # Arguments
-    /// * `width` - The width of the image.
-    /// * `height` - The height of the image.
-    /// * `pixels` - The pixels of the image.
-    /// * `mask` - The mask to apply to the pixels.
-    ///
-    /// # Returns
-    /// A `LabelImage` containing the segmented image, or an error if segmentation fails.
-    fn segment_with_mask(
-        &self,
-        width: usize,
-        height: usize,
-        pixels: &[Pixel<T>],
-        mask: &[bool],
-    ) -> Result<LabelImage<T>, Self::Err>;
+        input: &SegmentationInput<'_, T>,
+    ) -> Result<SegmentationResult<T>, SegmentationError>;
 }
