@@ -14,16 +14,28 @@ pub enum SegmentationError {
     UnexpectedLength(#[from] MatrixError),
 }
 
-/// Error returned when constructing a `SegmentationInput` with mismatched dimensions.
+/// Error returned when constructing a `SegmentationInput` with invalid dimensions.
 #[derive(Debug, PartialEq, Error)]
-#[error("dimension mismatch: expected {expected} pixels ({width}x{height}), but got {actual}")]
-pub struct DimensionMismatchError {
-    /// The declared width.
-    pub width: usize,
-    /// The declared height.
-    pub height: usize,
-    /// The expected number of pixels (`width * height`).
-    pub expected: usize,
-    /// The actual number of pixels provided.
-    pub actual: usize,
+pub enum DimensionMismatchError {
+    /// The product of width and height overflows `usize`.
+    #[error("dimension overflow: {width} x {height} exceeds usize")]
+    Overflow {
+        /// The declared width.
+        width: usize,
+        /// The declared height.
+        height: usize,
+    },
+
+    /// The number of pixels or mask entries does not match `width * height`.
+    #[error("dimension mismatch: expected {expected} pixels ({width}x{height}), but got {actual}")]
+    LengthMismatch {
+        /// The declared width.
+        width: usize,
+        /// The declared height.
+        height: usize,
+        /// The expected number of pixels (`width * height`).
+        expected: usize,
+        /// The actual number of pixels provided.
+        actual: usize,
+    },
 }

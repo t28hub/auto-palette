@@ -40,9 +40,11 @@ where
         pixels: &'a [Pixel<T>],
         mask: &'a [bool],
     ) -> Result<Self, DimensionMismatchError> {
-        let expected = width * height;
+        let expected = width
+            .checked_mul(height)
+            .ok_or(DimensionMismatchError::Overflow { width, height })?;
         if pixels.len() != expected {
-            return Err(DimensionMismatchError {
+            return Err(DimensionMismatchError::LengthMismatch {
                 width,
                 height,
                 expected,
@@ -50,7 +52,7 @@ where
             });
         }
         if mask.len() != expected {
-            return Err(DimensionMismatchError {
+            return Err(DimensionMismatchError::LengthMismatch {
                 width,
                 height,
                 expected,
@@ -131,7 +133,7 @@ mod tests {
         let result = SegmentationInput::new(3, 2, &pixels, &mask);
         assert_eq!(
             result,
-            Err(DimensionMismatchError {
+            Err(DimensionMismatchError::LengthMismatch {
                 width: 3,
                 height: 2,
                 expected: 6,
@@ -147,11 +149,25 @@ mod tests {
         let result = SegmentationInput::new(3, 2, &pixels, &mask);
         assert_eq!(
             result,
-            Err(DimensionMismatchError {
+            Err(DimensionMismatchError::LengthMismatch {
                 width: 3,
                 height: 2,
                 expected: 6,
                 actual: 4,
+            })
+        );
+    }
+
+    #[test]
+    fn test_new_dimension_overflow() {
+        let pixels: Vec<[f64; 5]> = Vec::new();
+        let mask: Vec<bool> = Vec::new();
+        let result = SegmentationInput::new(usize::MAX, 4, &pixels, &mask);
+        assert_eq!(
+            result,
+            Err(DimensionMismatchError::Overflow {
+                width: usize::MAX,
+                height: 4,
             })
         );
     }
