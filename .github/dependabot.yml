@@ -13,3 +13,10 @@ updates:
       interval: 'weekly'
     assignees:
       - 't28hub'
+
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    assignees:
+      - 't28hub'
