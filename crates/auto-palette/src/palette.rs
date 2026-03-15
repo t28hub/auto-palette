@@ -5,7 +5,7 @@ use rustc_hash::FxHashMap;
 use crate::{
     algorithm::Algorithm,
     color::{Color, Lab},
-    error::Error,
+    error::{Error, ExtractionError, ExtractionErrorKind, SelectionError},
     image::{
         filter::{AlphaFilter, CompositeFilter, Filter},
         ImageData,
@@ -174,11 +174,10 @@ where
         }
 
         let num_swatches = num_swatches.min(indices.len());
-        let sampling =
-            sampling_factory(scores).map_err(|cause| Error::SwatchSelectionError { cause })?;
+        let sampling = sampling_factory(scores).map_err(SelectionError::from)?;
         let sampled = sampling
             .sample(&colors, num_swatches)
-            .map_err(|cause| Error::SwatchSelectionError { cause })?;
+            .map_err(SelectionError::from)?;
 
         let mut found: Vec<_> = sampled
             .iter()
@@ -413,15 +412,11 @@ where
         T::from_f64(COLOR_MERGE_EPSILON_LAB),
         DistanceMetric::Euclidean,
     )
-    .map_err(|e| Error::PaletteExtractionError {
-        details: e.to_string(),
-    })?;
+    .map_err(|_| ExtractionError::from(ExtractionErrorKind::InvalidParameter))?;
 
     let labels = dbscan
         .run(&colors)
-        .map_err(|e| Error::PaletteExtractionError {
-            details: e.to_string(),
-        })?;
+        .map_err(|_| ExtractionError::from(ExtractionErrorKind::InvalidParameter))?;
 
     let width = T::from_usize(width);
     let height = T::from_usize(height);

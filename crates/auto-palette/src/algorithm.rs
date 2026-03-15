@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    error::Error,
+    error::{Error, UnsupportedError, UnsupportedErrorKind},
     math::FloatNumber,
     segmentation::{
         DbscanConfig,
@@ -47,9 +47,7 @@ impl FromStr for Algorithm {
             "dbscan++" => Ok(Self::DBSCANpp),
             "slic" => Ok(Self::SLIC),
             "snic" => Ok(Self::SNIC),
-            _ => Err(Error::UnsupportedAlgorithm {
-                name: s.to_string(),
-            }),
+            _ => Err(UnsupportedError::new(UnsupportedErrorKind::Algorithm, s).into()),
         }
     }
 }
@@ -122,7 +120,7 @@ mod tests {
         assert!(actual.is_err());
         assert_eq!(
             actual.unwrap_err().to_string(),
-            format!("Unsupported algorithm specified: '{}'", input)
+            format!("unsupported algorithm: '{}'", input)
         );
     }
 

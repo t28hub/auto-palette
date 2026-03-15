@@ -7,11 +7,11 @@ use image::{DynamicImage, RgbImage, RgbaImage};
 
 use crate::{
     color::{rgb_to_xyz, xyz_to_lab, Lab, D65},
-    image::{error::ImageError, Pixel, RGBA_CHANNELS},
+    error::ImageError,
+    image::{Pixel, RGBA_CHANNELS},
     math::normalize,
     Filter,
     FloatNumber,
-    ImageResult,
 };
 
 /// The image data representing the pixel data of an image.
@@ -57,7 +57,7 @@ impl<'a> ImageData<'a> {
     ///
     /// # Errors
     /// Returns an error if the length of the pixel data is not equal to `width * height * 4`.
-    pub fn new(width: u32, height: u32, data: &'a [u8]) -> ImageResult<Self> {
+    pub fn new(width: u32, height: u32, data: &'a [u8]) -> Result<Self, ImageError> {
         let expected_length = (width * height) as usize * RGBA_CHANNELS;
         if data.len() != expected_length {
             return Err(ImageError::UnexpectedLength {
@@ -86,7 +86,7 @@ impl<'a> ImageData<'a> {
     /// Returns an error if the image loading process fails.
     /// Returns an error if the color type of the image is not supported.
     #[cfg(feature = "image")]
-    pub fn load<P>(path: P) -> ImageResult<Self>
+    pub fn load<P>(path: P) -> Result<Self, ImageError>
     where
         P: AsRef<Path>,
     {
@@ -332,7 +332,7 @@ mod tests {
         let error = actual.unwrap_err();
         assert_eq!(
             error.to_string(),
-            "Unexpected data length - expected 16, got 4"
+            "unexpected data length: expected 16, got 4"
         );
     }
 
@@ -363,7 +363,7 @@ mod tests {
         assert!(actual.is_err());
 
         let error = actual.unwrap_err();
-        assert_eq!(error.to_string(), "Unsupported image format or color type");
+        assert_eq!(error.to_string(), "unsupported image format or color type");
     }
 
     #[cfg(all(feature = "image", not(target_os = "windows")))]
@@ -378,7 +378,7 @@ mod tests {
         let error = actual.unwrap_err();
         assert_eq!(
             error.to_string(),
-            "Failed to load image from file: No such file or directory (os error 2)"
+            "failed to load image: No such file or directory (os error 2)"
         );
     }
 
@@ -394,7 +394,7 @@ mod tests {
         let error = actual.unwrap_err();
         assert_eq!(
             error.to_string(),
-            "Failed to load image from file: The system cannot find the file specified. (os error 2)"
+            "failed to load image: The system cannot find the file specified. (os error 2)"
         );
     }
 
@@ -410,7 +410,7 @@ mod tests {
         let error = actual.unwrap_err();
         assert_eq!(
             error.to_string(),
-            "Failed to load image from file: No such file or directory (os error 2)"
+            "failed to load image: No such file or directory (os error 2)"
         );
     }
 
@@ -426,7 +426,7 @@ mod tests {
         let error = actual.unwrap_err();
         assert_eq!(
             error.to_string(),
-            "Failed to load image from file: The system cannot find the file specified. (os error 2)"
+            "failed to load image: The system cannot find the file specified. (os error 2)"
         );
     }
 

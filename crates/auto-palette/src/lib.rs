@@ -10,8 +10,17 @@ mod swatch;
 mod theme;
 
 pub use algorithm::Algorithm;
-pub use error::Error;
-pub use image::{filter::Filter, ImageData, ImageError, ImageResult, Rgba};
+pub use error::{
+    Error,
+    ExtractionError,
+    ExtractionErrorKind,
+    ImageError,
+    SelectionError,
+    SelectionErrorKind,
+    UnsupportedError,
+    UnsupportedErrorKind,
+};
+pub use image::{filter::Filter, ImageData, Rgba};
 pub use math::FloatNumber;
 pub use palette::Palette;
 pub use swatch::Swatch;
