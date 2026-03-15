@@ -2,8 +2,8 @@ use std::{fmt::Debug, str::FromStr};
 
 use crate::{
     color::Gamut,
+    error::{Error, UnsupportedError, UnsupportedErrorKind},
     math::{normalize, FloatNumber},
-    Error,
     Swatch,
 };
 
@@ -127,9 +127,7 @@ impl FromStr for Theme {
             "muted" => Ok(Theme::Muted),
             "light" => Ok(Theme::Light),
             "dark" => Ok(Theme::Dark),
-            _ => Err(Error::UnsupportedTheme {
-                name: s.to_string(),
-            }),
+            _ => Err(UnsupportedError::new(UnsupportedErrorKind::Theme, s).into()),
         }
     }
 }
@@ -330,7 +328,7 @@ mod tests {
         assert!(actual.is_err());
         assert_eq!(
             actual.unwrap_err().to_string(),
-            format!("Unsupported theme specified: '{}'", str),
+            format!("unsupported theme: '{}'", str),
         );
     }
 }
