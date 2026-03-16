@@ -10,7 +10,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.3.14",
     "@types/node": "catalog:",
-    "lefthook": "2.1.0",
+    "lefthook": "2.1.4",
     "rimraf": "6.1.2",
     "tombi": "0.7.31",
     "typescript": "catalog:",
