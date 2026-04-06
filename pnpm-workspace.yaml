@@ -9,7 +9,7 @@ minimumReleaseAgeExclude:
 
 catalog:
     '@types/node': 25.5.0
-    typescript: 5.9.3
+    typescript: 6.0.2
     vitest: 4.0.18
     '@vitest/ui': 4.0.18
     '@vitest/coverage-v8': 4.0.18
