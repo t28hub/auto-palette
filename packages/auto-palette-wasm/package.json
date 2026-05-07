@@ -63,7 +63,7 @@
     "auto-palette": "1.4.0",
     "jest-matcher-utils": "30.2.0",
     "playwright": "1.58.1",
-    "tsdown": "0.20.3",
+    "tsdown": "0.21.10",
     "typescript": "catalog:",
     "wasm-pack": "0.14.0"
   }
