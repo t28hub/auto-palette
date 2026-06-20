@@ -8,7 +8,7 @@ minimumReleaseAgeExclude:
   - "@esbuild/*"
 
 catalog:
-    '@types/node': 25.5.0
+    '@types/node': 25.6.0
     typescript: 6.0.3
     vitest: 4.0.18
     '@vitest/ui': 4.0.18
