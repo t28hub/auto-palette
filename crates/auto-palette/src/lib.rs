@@ -60,7 +60,7 @@ pub use error::{
 };
 pub use image::{filter::Filter, ImageData, Rgba};
 pub use math::FloatNumber;
-pub use palette::{Palette, PaletteBuilder};
+pub use palette::{Palette, PaletteBuilder, SwatchQuery};
 pub use segmentation::SegmentationMethod;
 pub use swatch::Swatch;
 pub use theme::Theme;

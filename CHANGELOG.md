@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Re-export `PaletteBuilder` and `SegmentationMethod` at the crate root.
 - Add a `serde` feature that derives `Serialize`/`Deserialize` for `Palette`, `Swatch`, `Color`, and the color space types (`wasm` remains as a compatible feature alias).
 - Add `From<RGB>` for `Color`, `IntoIterator` for `&Palette`, and `Clone`/`PartialEq` for `ImageData`.
+- Add `Palette::query` returning a `SwatchQuery` builder for swatch selection: `count`, `theme`, custom `score_with` scoring, and an explicit `diversity` trade-off factor can be combined freely. `find_swatches` and `find_swatches_with_theme` remain as shorthands. The WebAssembly `findSwatches` accepts an optional `diversity` argument.
 
 ### Changed
 - Precompute the max-chroma-per-hue table used by theme scoring; themed swatch selection no longer performs ~2,400 gamut evaluations per swatch.

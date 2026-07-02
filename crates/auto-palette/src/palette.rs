@@ -93,7 +93,42 @@ where
         &self.swatches
     }
 
-    /// Finds the swatches in the palette based on the theme.
+    /// Creates a query for selecting swatches from this palette.
+    ///
+    /// The query starts from sensible defaults (population-ratio scoring,
+    /// diversity-based selection, all swatches) and can be refined with
+    /// chained method calls before running it with
+    /// [`execute`](SwatchQuery::execute).
+    ///
+    /// # Returns
+    /// A new [`SwatchQuery`] borrowing this palette.
+    ///
+    /// # Examples
+    /// ```
+    /// #[cfg(feature = "image")]
+    /// {
+    ///     use auto_palette::{ImageData, Palette, Theme};
+    ///
+    ///     let image_data = ImageData::load("../../gfx/flags/za.png").unwrap();
+    ///     let palette: Palette<f64> = Palette::extract(&image_data).unwrap();
+    ///
+    ///     let swatches = palette
+    ///         .query()
+    ///         .count(3)
+    ///         .theme(Theme::Vivid)
+    ///         .execute()
+    ///         .unwrap();
+    ///     assert!(swatches.len() <= 3);
+    /// }
+    /// ```
+    #[must_use]
+    pub fn query(&self) -> SwatchQuery<'_, T> {
+        SwatchQuery::new(self)
+    }
+
+    /// Finds the best swatches in the palette.
+    ///
+    /// This is a shorthand for `self.query().count(num_swatches).execute()`.
     ///
     /// # Arguments
     /// * `num_swatches` - The number of swatches to find.
@@ -101,16 +136,13 @@ where
     /// # Returns
     /// The swatches in the palette.
     pub fn find_swatches(&self, num_swatches: usize) -> Result<Vec<Swatch<T>>, Error> {
-        self.find_swatches_internal(
-            num_swatches,
-            |swatch| swatch.ratio(),
-            |scores| {
-                DiversitySampling::new(T::from_f64(0.6), scores, DistanceMetric::SquaredEuclidean)
-            },
-        )
+        self.query().count(num_swatches).execute()
     }
 
-    /// Finds the swatches in the palette based on the theme.
+    /// Finds the best swatches in the palette based on the theme.
+    ///
+    /// This is a shorthand for
+    /// `self.query().count(num_swatches).theme(theme).execute()`.
     ///
     /// # Arguments
     /// * `num_swatches` - The number of swatches to find.
@@ -123,11 +155,7 @@ where
         num_swatches: usize,
         theme: Theme,
     ) -> Result<Vec<Swatch<T>>, Error> {
-        self.find_swatches_internal(
-            num_swatches,
-            |swatch| theme.score(swatch),
-            |scores| WeightedFarthestSampling::new(scores, DistanceMetric::SquaredEuclidean),
-        )
+        self.query().count(num_swatches).theme(theme).execute()
     }
 
     /// Finds the swatches in the palette using a custom sampling algorithm.
@@ -221,6 +249,202 @@ where
 
     fn into_iter(self) -> Self::IntoIter {
         self.swatches.iter()
+    }
+}
+
+/// The default diversity factor used when no explicit factor is set.
+const DEFAULT_DIVERSITY_FACTOR: f64 = 0.6;
+
+/// The source of the score assigned to each swatch during selection.
+enum ScoreSource<'a, T>
+where
+    T: FloatNumber,
+{
+    /// Score each swatch by its population ratio.
+    Ratio,
+
+    /// Score each swatch by the given theme.
+    Theme(Theme),
+
+    /// Score each swatch with a caller-provided function.
+    Custom(Box<dyn Fn(&Swatch<T>) -> T + 'a>),
+}
+
+/// A query for selecting swatches from a [`Palette`].
+///
+/// Created by [`Palette::query`]. The query collects the selection criteria
+/// through chained method calls and runs when [`execute`](Self::execute) is
+/// called; validation errors are reported by `execute`.
+///
+/// # Defaults
+/// * All swatches are candidates (no count limit).
+/// * Swatches are scored by their population ratio; [`theme`](Self::theme) or
+///   [`score_with`](Self::score_with) replaces the scoring (the last call
+///   wins).
+/// * Selection balances score and color diversity. When a theme or a custom
+///   score is set, the selection maximizes the score-weighted color distance
+///   instead; call [`diversity`](Self::diversity) to switch back to
+///   diversity-based selection with an explicit trade-off factor.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
+///
+/// # Examples
+/// ```
+/// #[cfg(feature = "image")]
+/// {
+///     use auto_palette::{ImageData, Palette};
+///
+///     let image_data = ImageData::load("../../gfx/flags/za.png").unwrap();
+///     let palette: Palette<f64> = Palette::extract(&image_data).unwrap();
+///
+///     // Select up to 4 swatches, preferring light colors.
+///     let swatches = palette
+///         .query()
+///         .count(4)
+///         .score_with(|swatch| swatch.color().lightness() / 100.0)
+///         .execute()
+///         .unwrap();
+///     assert!(swatches.len() <= 4);
+/// }
+/// ```
+#[must_use]
+pub struct SwatchQuery<'a, T>
+where
+    T: FloatNumber,
+{
+    palette: &'a Palette<T>,
+    count: Option<usize>,
+    score: ScoreSource<'a, T>,
+    diversity: Option<T>,
+}
+
+impl<'a, T> SwatchQuery<'a, T>
+where
+    T: FloatNumber,
+{
+    /// Creates a new `SwatchQuery` instance for the given palette.
+    fn new(palette: &'a Palette<T>) -> Self {
+        Self {
+            palette,
+            count: None,
+            score: ScoreSource::Ratio,
+            diversity: None,
+        }
+    }
+
+    /// Sets the maximum number of swatches to select.
+    ///
+    /// When not set, all swatches that pass the scoring are candidates.
+    ///
+    /// # Arguments
+    /// * `count` - The maximum number of swatches to select.
+    pub fn count(mut self, count: usize) -> Self {
+        self.count = Some(count);
+        self
+    }
+
+    /// Scores the swatches by the given theme.
+    ///
+    /// Replaces any previously set scoring (the last call to `theme` or
+    /// [`score_with`](Self::score_with) wins).
+    ///
+    /// # Arguments
+    /// * `theme` - The theme to score the swatches by.
+    pub fn theme(mut self, theme: Theme) -> Self {
+        self.score = ScoreSource::Theme(theme);
+        self
+    }
+
+    /// Scores the swatches with a caller-provided function.
+    ///
+    /// Higher scores are preferred. Swatches scoring below `1e-5` are
+    /// excluded from the selection. Replaces any previously set scoring
+    /// (the last call to [`theme`](Self::theme) or `score_with` wins).
+    ///
+    /// # Arguments
+    /// * `score_fn` - The function assigning a score to each swatch.
+    pub fn score_with<F>(mut self, score_fn: F) -> Self
+    where
+        F: Fn(&Swatch<T>) -> T + 'a,
+    {
+        self.score = ScoreSource::Custom(Box::new(score_fn));
+        self
+    }
+
+    /// Selects the swatches by balancing score against color diversity.
+    ///
+    /// # Arguments
+    /// * `factor` - The trade-off factor in `[0, 1]`: `0` selects purely by
+    ///   score, `1` purely by color diversity. Values outside the range are
+    ///   reported as an error by [`execute`](Self::execute).
+    pub fn diversity(mut self, factor: T) -> Self {
+        self.diversity = Some(factor);
+        self
+    }
+
+    /// Runs the query and returns the selected swatches.
+    ///
+    /// The swatches are sorted by population in descending order. If the
+    /// palette is empty, an empty vector is returned.
+    ///
+    /// # Returns
+    /// The selected swatches, or an error if the query is invalid (e.g., a
+    /// diversity factor outside `[0, 1]`).
+    pub fn execute(self) -> Result<Vec<Swatch<T>>, Error> {
+        let count = self.count.unwrap_or_else(|| self.palette.len());
+        let scored = !matches!(self.score, ScoreSource::Ratio);
+        let score_fn: Box<dyn Fn(&Swatch<T>) -> T + 'a> = match self.score {
+            ScoreSource::Ratio => Box::new(|swatch: &Swatch<T>| swatch.ratio()),
+            ScoreSource::Theme(theme) => Box::new(move |swatch: &Swatch<T>| theme.score(swatch)),
+            ScoreSource::Custom(score_fn) => score_fn,
+        };
+
+        match self.diversity {
+            // An explicit diversity factor always selects with diversity
+            // sampling.
+            Some(factor) => self
+                .palette
+                .find_swatches_internal(count, score_fn, |scores| {
+                    DiversitySampling::new(factor, scores, DistanceMetric::SquaredEuclidean)
+                }),
+            // Themed and custom scoring maximize the score-weighted color
+            // distance by default.
+            None if scored => self
+                .palette
+                .find_swatches_internal(count, score_fn, |scores| {
+                    WeightedFarthestSampling::new(scores, DistanceMetric::SquaredEuclidean)
+                }),
+            // Ratio scoring balances score and diversity by default.
+            None => self
+                .palette
+                .find_swatches_internal(count, score_fn, |scores| {
+                    DiversitySampling::new(
+                        T::from_f64(DEFAULT_DIVERSITY_FACTOR),
+                        scores,
+                        DistanceMetric::SquaredEuclidean,
+                    )
+                }),
+        }
+    }
+}
+
+impl<T> std::fmt::Debug for SwatchQuery<'_, T>
+where
+    T: FloatNumber,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let score = match &self.score {
+            ScoreSource::Ratio => "Ratio".to_string(),
+            ScoreSource::Theme(theme) => format!("Theme({theme:?})"),
+            ScoreSource::Custom(_) => "Custom".to_string(),
+        };
+        let diversity = self.diversity.map(|factor| factor.to_string());
+        f.debug_struct("SwatchQuery")
+            .field("count", &self.count)
+            .field("score", &score)
+            .field("diversity", &diversity)
+            .finish_non_exhaustive()
     }
 }
 
@@ -782,6 +1006,123 @@ mod tests {
 
         // Assert
         assert_eq!(deserialized, palette);
+    }
+
+    #[test]
+    fn test_query_defaults_match_find_swatches() {
+        // Arrange
+        let palette = Palette::new(sample_swatches::<f64>());
+
+        // Act
+        let actual = palette.query().count(4).execute().unwrap();
+        let expected = palette.find_swatches(4).unwrap();
+
+        // Assert
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_query_theme_matches_find_swatches_with_theme() {
+        // Arrange
+        let palette = Palette::new(sample_swatches::<f64>());
+
+        // Act
+        let actual = palette
+            .query()
+            .count(3)
+            .theme(Theme::Vivid)
+            .execute()
+            .unwrap();
+        let expected = palette.find_swatches_with_theme(3, Theme::Vivid).unwrap();
+
+        // Assert
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_query_without_count_selects_all() {
+        // Arrange
+        let palette = Palette::new(sample_swatches::<f64>());
+
+        // Act
+        let actual = palette.query().execute().unwrap();
+
+        // Assert
+        assert_eq!(actual.len(), palette.len());
+    }
+
+    #[test]
+    fn test_query_score_with() {
+        // Arrange
+        let palette = Palette::new(sample_swatches::<f64>());
+
+        // Act: score by lightness; the single selected swatch is the lightest.
+        let actual = palette
+            .query()
+            .count(1)
+            .score_with(|swatch| swatch.color().lightness() / 100.0)
+            .execute()
+            .unwrap();
+
+        // Assert
+        assert_eq!(actual.len(), 1);
+        assert_eq!(actual[0].color().to_hex_string(), "#FFFFFF");
+    }
+
+    #[test]
+    fn test_query_score_last_call_wins() {
+        // Arrange
+        let palette = Palette::new(sample_swatches::<f64>());
+
+        // Act: `score_with` after `theme` replaces the theme scoring.
+        let actual = palette
+            .query()
+            .count(1)
+            .theme(Theme::Dark)
+            .score_with(|swatch| swatch.color().lightness() / 100.0)
+            .execute()
+            .unwrap();
+
+        // Assert
+        assert_eq!(actual.len(), 1);
+        assert_eq!(actual[0].color().to_hex_string(), "#FFFFFF");
+    }
+
+    #[test]
+    fn test_query_invalid_diversity() {
+        // Arrange
+        let palette = Palette::new(sample_swatches::<f64>());
+
+        // Act
+        let actual = palette.query().count(3).diversity(1.5).execute();
+
+        // Assert
+        assert!(actual.is_err());
+    }
+
+    #[test]
+    fn test_query_empty_palette() {
+        // Arrange
+        let palette = Palette::new(Vec::<Swatch<f64>>::new());
+
+        // Act
+        let actual = palette.query().count(3).execute().unwrap();
+
+        // Assert
+        assert!(actual.is_empty());
+    }
+
+    #[test]
+    fn test_query_debug() {
+        // Arrange
+        let palette = Palette::new(sample_swatches::<f64>());
+
+        // Act
+        let actual = format!("{:?}", palette.query().count(3).theme(Theme::Vivid));
+
+        // Assert
+        assert!(actual.contains("count: Some(3)"));
+        assert!(actual.contains("Theme(Vivid)"));
     }
 
     #[test]

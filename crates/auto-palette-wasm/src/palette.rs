@@ -36,9 +36,11 @@ export class Palette {
      *
      * @param n The number of swatches to find.
      * @param theme The theme to use when finding the swatches.
+     * @param diversity The trade-off factor in [0, 1] between score and color
+     *   diversity: 0 selects purely by score, 1 purely by color diversity.
      * @returns The best swatches in this palette.
      */
-    findSwatches(n: number, theme?: Theme): Swatch[];
+    findSwatches(n: number, theme?: Theme, diversity?: number): Swatch[];
 
     /**
      * Extracts a color palette from the given image.
@@ -101,26 +103,27 @@ impl JsPalette {
     ///
     /// @param n The number of swatches to find.
     /// @param theme The theme to use when finding the swatches.
+    /// @param diversity The trade-off factor in [0, 1] between score and color
+    ///   diversity: 0 selects purely by score, 1 purely by color diversity.
     /// @returns The best swatches in this palette.
     #[wasm_bindgen(js_name = findSwatches)]
     pub fn find_swatches(
         &self,
         n: usize,
         theme: Option<JsTheme>,
+        diversity: Option<f64>,
     ) -> Result<Vec<JsSwatch>, JsError> {
-        let found = match theme {
-            Some(name) => {
-                let theme = Theme::try_from(name)?;
-                self.0.find_swatches_with_theme(n, theme).map_err(|e| {
-                    JsError::new(&format!("Failed to find swatches with theme: {e}"))
-                })?
-            }
-            None => self
-                .0
-                .find_swatches(n)
-                .map_err(|e| JsError::new(&format!("Failed to find swatches: {e}")))?,
-        };
+        let mut query = self.0.query().count(n);
+        if let Some(name) = theme {
+            query = query.theme(Theme::try_from(name)?);
+        }
+        if let Some(factor) = diversity {
+            query = query.diversity(factor);
+        }
 
+        let found = query
+            .execute()
+            .map_err(|e| JsError::new(&format!("Failed to find swatches: {e}")))?;
         let swatches = found.into_iter().map(JsSwatch::from).collect::<Vec<_>>();
         Ok(swatches)
     }
