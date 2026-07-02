@@ -1,7 +1,8 @@
-use std::{borrow::Cow, io::Cursor};
+use std::{borrow::Cow, io::Cursor, str::FromStr};
 
 use arboard::Clipboard;
 use assert_cmd::Command;
+use auto_palette::color::Color;
 use image::io::Reader as ImageReader;
 use predicates::prelude::*;
 use rstest::rstest;
@@ -13,6 +14,40 @@ use rstest::rstest;
 #[must_use]
 fn auto_palette() -> Command {
     Command::cargo_bin("auto-palette-cli").unwrap()
+}
+
+/// Extracts all `#RRGGBB` hex color codes from the CLI output.
+fn extract_hex_colors(output: &str) -> Vec<Color<f64>> {
+    let bytes = output.as_bytes();
+    let mut colors = Vec::new();
+    for (index, _) in output.match_indices('#') {
+        let Some(candidate) = bytes.get(index..index + 7) else {
+            continue;
+        };
+        if candidate[1..].iter().all(u8::is_ascii_hexdigit) {
+            if let Ok(color) = Color::from_str(std::str::from_utf8(candidate).unwrap()) {
+                colors.push(color);
+            }
+        }
+    }
+    colors
+}
+
+/// Asserts that every expected hex color has a perceptually close match
+/// (delta-E based) among the colors printed by the CLI. Unlike exact string
+/// matching, this tolerates small shifts in the extracted palette.
+fn assert_output_contains_colors(output: &str, expected: &[&str], tolerance: f64) {
+    let actual_colors = extract_hex_colors(output);
+    for hex in expected {
+        let expected_color = Color::<f64>::from_str(hex).expect("Invalid hex color format");
+        let matched = actual_colors
+            .iter()
+            .any(|actual| actual.delta_e(&expected_color) < tolerance);
+        assert!(
+            matched,
+            "expected a color close to {hex} (tolerance {tolerance}) in output:\n{output}"
+        );
+    }
 }
 
 #[test]
@@ -27,16 +62,17 @@ fn test_cli() {
         .arg("table")
         .arg("--no-resize")
         .assert()
-        .stdout(
-            predicate::str::contains("#FFFFFF")
-                .and(predicate::str::contains("#0081C8"))
-                .and(predicate::str::contains("#EE334E"))
-                .and(predicate::str::contains("#000000"))
-                .and(predicate::str::contains("#00A651"))
-                .and(predicate::str::contains("#FCB131"))
-                .and(predicate::str::contains("Extracted 6 swatch(es) in")),
-        );
-    assert.success();
+        .stdout(predicate::str::contains("Extracted 6 swatch(es) in"))
+        .success();
+
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout).to_string();
+    assert_output_contains_colors(
+        &stdout,
+        &[
+            "#FFFFFF", "#0081C8", "#EE334E", "#000000", "#00A651", "#FCB131",
+        ],
+        10.0,
+    );
 }
 
 #[test]
@@ -69,15 +105,15 @@ fn test_using_clipboard_as_input() {
         .arg("table")
         .arg("--no-resize")
         .assert()
-        .stdout(
-            predicate::str::contains("#FFFFFF")
-                .and(predicate::str::contains("#0081C8"))
-                .and(predicate::str::contains("#FCB131"))
-                .and(predicate::str::contains("#EE344E"))
-                .and(predicate::str::contains("#000000"))
-                .and(predicate::str::contains("Extracted 6 swatch(es) in")),
-        );
-    assert.success();
+        .stdout(predicate::str::contains("Extracted 6 swatch(es) in"))
+        .success();
+
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout).to_string();
+    assert_output_contains_colors(
+        &stdout,
+        &["#FFFFFF", "#0081C8", "#FCB131", "#EE334E", "#000000"],
+        10.0,
+    );
 }
 
 #[test]

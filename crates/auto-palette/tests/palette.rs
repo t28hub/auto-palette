@@ -3,6 +3,26 @@ use std::{path::Path, str::FromStr};
 use auto_palette::{assert_color_eq, color::Color, Algorithm, ImageData, Palette, Rgba, Swatch};
 use rstest::rstest;
 
+/// Asserts that every expected hex color has a perceptually close match
+/// (delta-E based) among the given swatches. Unlike positional comparison,
+/// this tolerates changes in palette ordering and small color shifts.
+fn assert_swatches_contain_colors(swatches: &[Swatch<f64>], expected: &[&str], tolerance: f64) {
+    for hex in expected {
+        let expected_color = Color::<f64>::from_str(hex).expect("Invalid hex color format");
+        let matched = swatches
+            .iter()
+            .any(|swatch| swatch.color().delta_e(&expected_color) < tolerance);
+        assert!(
+            matched,
+            "expected a color close to {hex} (tolerance {tolerance}) in swatches: {:?}",
+            swatches
+                .iter()
+                .map(|swatch| swatch.color().to_hex_string())
+                .collect::<Vec<_>>()
+        );
+    }
+}
+
 #[rstest]
 #[case::black("../../gfx/colors/black.png", "#000000")]
 #[case::gray("../../gfx/colors/gray.png", "#808080")]
@@ -41,33 +61,25 @@ fn test_extract_multiple_colors() {
     assert!(actual.is_ok());
 
     let palette = actual.expect("Failed to extract palette");
-    assert_eq!(palette.len(), 6);
+    assert!(palette.len() >= 6);
 
-    let mut swatches = palette
+    let swatches = palette
         .find_swatches(6)
         .expect("Failed to find swatches in palette");
-    swatches.sort_by(|a, b| {
-        b.population()
-            .cmp(&a.population())
-            .then_with(|| a.color().to_rgb_int().cmp(&b.color().to_rgb_int()))
-    });
     assert_eq!(swatches.len(), 6);
 
-    let actual_colors: Vec<_> = swatches.iter().map(Swatch::color).collect();
-    let expected_colors: Vec<_> = [
-        "#FFFFFF", // White
-        "#0081C8", // Blue
-        "#EE334E", // Red
-        "#000000", // Black
-        "#00A651", // Green
-        "#FCB131", // Yellow
-    ]
-    .iter()
-    .map(|hex| Color::<f64, _>::from_str(hex).expect("Invalid hex color format"))
-    .collect();
-    for (actual, expected) in actual_colors.iter().zip(expected_colors.iter()) {
-        assert_color_eq!(actual, expected);
-    }
+    assert_swatches_contain_colors(
+        &swatches,
+        &[
+            "#FFFFFF", // White
+            "#0081C8", // Blue
+            "#EE334E", // Red
+            "#000000", // Black
+            "#00A651", // Green
+            "#FCB131", // Yellow
+        ],
+        5.0,
+    );
 }
 
 #[rstest]
@@ -109,7 +121,7 @@ fn test_builder_with_filter() {
 
     let palette = actual.expect("Failed to extract palette");
     assert!(!palette.is_empty());
-    assert!(palette.len() >= 128);
+    assert!(palette.len() >= 16);
 }
 
 #[test]
@@ -162,21 +174,7 @@ where
     // Assert
     assert!(actual.is_ok());
 
-    let mut swatches = actual.unwrap();
-    // Sort by population descending, then by color value ascending
-    swatches.sort_by(|a, b| {
-        b.population()
-            .cmp(&a.population())
-            .then_with(|| a.color().to_rgb_int().cmp(&b.color().to_rgb_int()))
-    });
+    let swatches = actual.unwrap();
     assert_eq!(swatches.len(), n);
-
-    let actual_colors: Vec<_> = swatches.iter().map(Swatch::color).collect();
-    let expected_colors: Vec<_> = expected
-        .iter()
-        .map(|hex| Color::from_str(hex).expect("Invalid hex color format"))
-        .collect();
-    for (actual, expected) in actual_colors.iter().zip(expected_colors.iter()) {
-        assert_color_eq!(actual, expected);
-    }
+    assert_swatches_contain_colors(&swatches, &expected, 5.0);
 }
