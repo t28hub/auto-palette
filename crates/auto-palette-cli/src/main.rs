@@ -4,7 +4,6 @@ use anyhow::Context;
 use auto_palette::{Algorithm, ImageData, Palette, Rgba, Theme};
 use clap::Parser;
 use clipboard::get_image_from_clipboard;
-use image::{self, imageops::FilterType};
 
 use crate::{args::Options, context::Context as CLIContext, env::Env};
 
@@ -15,9 +14,6 @@ mod context;
 mod env;
 mod output;
 mod style;
-
-const MAX_IMAGE_WIDTH: f64 = 360.0;
-const MAX_IMAGE_HEIGHT: f64 = 360.0;
 
 // The entry point of the CLI application.
 fn main() -> anyhow::Result<()> {
@@ -40,31 +36,19 @@ fn run(context: &CLIContext) -> anyhow::Result<()> {
         }
     };
 
-    let image_width = image.width() as f64;
-    let image_height = image.height() as f64;
-    let scale = f64::min(
-        MAX_IMAGE_WIDTH / image_width,
-        MAX_IMAGE_HEIGHT / image_height,
-    );
-
-    let resized = if args.no_resize {
-        image
-    } else {
-        image.resize_exact(
-            (image_width * scale) as u32,
-            (image_height * scale) as u32,
-            FilterType::Lanczos3,
-        )
-    };
-
     let image_data =
-        ImageData::try_from(&resized).context("failed to convert the image to image data")?;
+        ImageData::try_from(&image).context("failed to convert the image to image data")?;
 
     let instant = Instant::now();
     let algorithm = Algorithm::from(args.algorithm);
-    let palette = Palette::<f64>::builder()
+    let mut builder = Palette::<f64>::builder()
         .algorithm(algorithm)
-        .filter(|pixel: &Rgba| pixel[3] != 0)
+        .filter(|pixel: &Rgba| pixel[3] != 0);
+    if args.no_resize {
+        // Process every pixel of the original image instead of downsampling.
+        builder = builder.max_pixels(usize::MAX);
+    }
+    let palette = builder
         .build(&image_data)
         .context("failed to extract the color palette from the image")?;
 

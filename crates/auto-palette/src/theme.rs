@@ -1,11 +1,49 @@
-use std::{fmt::Debug, str::FromStr};
+use std::{fmt::Debug, str::FromStr, sync::LazyLock};
 
 use crate::{
-    color::Gamut,
+    color::{Gamut, Hue},
     error::{Error, UnsupportedError, UnsupportedErrorKind},
     math::{normalize, FloatNumber},
     Swatch,
 };
+
+/// Lookup table of the maximum sRGB chroma per hue degree.
+///
+/// Computing the exact maximum chroma requires roughly 2,400 gamut
+/// evaluations per call, which dominates themed swatch selection when done
+/// per swatch. The table is computed once and queried with linear
+/// interpolation instead.
+static MAX_CHROMA_BY_HUE: LazyLock<[f64; 361]> = LazyLock::new(|| {
+    let gamut = Gamut::default();
+    std::array::from_fn(|degrees| gamut.max_chroma::<f64>(Hue::from_degrees(degrees as f64)))
+});
+
+/// Returns the maximum sRGB chroma for the given hue by interpolating the
+/// precomputed lookup table.
+///
+/// # Type Parameters
+/// * `T` - The float number type.
+///
+/// # Arguments
+/// * `hue` - The hue to look up.
+///
+/// # Returns
+/// The interpolated maximum chroma for the hue.
+#[inline]
+#[must_use]
+fn max_chroma_for_hue<T>(hue: Hue<T>) -> T
+where
+    T: FloatNumber,
+{
+    // `Hue` is normalized to [0, 360), so `index + 1 <= 360` always holds.
+    let degrees = hue.to_degrees();
+    let index = degrees.floor().trunc_to_usize().min(359);
+    let fraction = degrees - T::from_usize(index);
+
+    let low = T::from_f64(MAX_CHROMA_BY_HUE[index]);
+    let high = T::from_f64(MAX_CHROMA_BY_HUE[index + 1]);
+    low + (high - low) * fraction
+}
 
 /// The theme representation for scoring the swatches.
 /// The definition of the themes is based on the PCCS (Practical Color Co-ordinate System) color theory.
@@ -93,7 +131,7 @@ impl Theme {
         };
 
         let color = swatch.color();
-        let max_chroma = Gamut::default().max_chroma(color.hue());
+        let max_chroma = max_chroma_for_hue(color.hue());
         let chroma = normalize(color.chroma(), T::zero(), max_chroma);
         let lightness = normalize(
             color.lightness(),

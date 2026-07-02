@@ -88,7 +88,7 @@ where
             }
 
             if let Some(nearest) = center_search.search_nearest(pixel) {
-                builder.get_mut(&nearest.index()).insert(index, pixel);
+                builder.get_mut(&nearest.index()).insert(pixel);
             }
         }
 
@@ -99,12 +99,12 @@ where
             };
 
             let new_center = segment.center();
-            let diff = self.metric.measure(old_center, new_center);
+            let diff = self.metric.measure(old_center, &new_center);
             if diff > self.tolerance {
                 converged = false;
             }
 
-            *old_center = *new_center;
+            *old_center = new_center;
         }
         converged
     }

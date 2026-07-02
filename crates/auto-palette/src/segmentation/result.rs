@@ -249,10 +249,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
-    use rustc_hash::FxHashSet;
-
     use super::*;
     use crate::image::LABXY_CHANNELS;
 
@@ -290,7 +286,7 @@ mod tests {
         assert!(segment.is_empty());
         assert_eq!(segment.len(), 0);
         assert_eq!(segment.label, label);
-        assert_eq!(segment.center, [0.0; LABXY_CHANNELS]);
+        assert_eq!(segment.center(), [0.0; LABXY_CHANNELS]);
     }
 
     #[test]
@@ -332,10 +328,10 @@ mod tests {
         let mut builder = SegmentationResult::<f64>::builder(480, 320);
 
         let label1 = 1usize;
-        builder.get_mut(&label1).insert(0, &[1.0; LABXY_CHANNELS]);
+        builder.get_mut(&label1).insert(&[1.0; LABXY_CHANNELS]);
 
         let label2 = 2usize;
-        builder.get_mut(&label2).insert(1, &[2.0; LABXY_CHANNELS]);
+        builder.get_mut(&label2).insert(&[2.0; LABXY_CHANNELS]);
 
         // Act
         for segment in builder.iter_mut() {
@@ -349,13 +345,13 @@ mod tests {
         assert!(segment1.is_empty());
         assert_eq!(segment1.len(), 0);
         assert_eq!(segment1.label, label1);
-        assert_eq!(segment1.center, [0.0; LABXY_CHANNELS]);
+        assert_eq!(segment1.center(), [0.0; LABXY_CHANNELS]);
 
         let segment2 = builder.get(&label2).unwrap();
         assert!(segment2.is_empty());
         assert_eq!(segment2.len(), 0);
         assert_eq!(segment2.label, label2);
-        assert_eq!(segment2.center, [0.0; LABXY_CHANNELS]);
+        assert_eq!(segment2.center(), [0.0; LABXY_CHANNELS]);
     }
 
     #[test]
@@ -365,14 +361,14 @@ mod tests {
 
         let src_label = 1usize;
         let src = builder.get_mut(&src_label);
-        src.insert(0, &[1.0; LABXY_CHANNELS]);
-        src.insert(1, &[2.0; LABXY_CHANNELS]);
+        src.insert(&[1.0; LABXY_CHANNELS]);
+        src.insert(&[2.0; LABXY_CHANNELS]);
 
         let dst_label = 2usize;
         let dst = builder.get_mut(&dst_label);
-        dst.insert(2, &[3.0; LABXY_CHANNELS]);
-        dst.insert(3, &[4.0; LABXY_CHANNELS]);
-        dst.insert(4, &[5.0; LABXY_CHANNELS]);
+        dst.insert(&[3.0; LABXY_CHANNELS]);
+        dst.insert(&[4.0; LABXY_CHANNELS]);
+        dst.insert(&[5.0; LABXY_CHANNELS]);
 
         // Act
         let actual = builder.merge(&src_label, &dst_label);
@@ -389,10 +385,7 @@ mod tests {
         let dst_segment = dst.unwrap();
         assert_eq!(dst_segment.len(), 5);
         assert_eq!(dst_segment.label, dst_label);
-        assert_eq!(dst_segment.center, [3.0; LABXY_CHANNELS]);
-
-        let dst_indices: HashSet<_> = dst_segment.members().cloned().collect();
-        assert_eq!(dst_indices, HashSet::from([0, 1, 2, 3, 4]));
+        assert_eq!(dst_segment.center(), [3.0; LABXY_CHANNELS]);
     }
 
     #[test]
@@ -401,7 +394,7 @@ mod tests {
         let mut builder = SegmentationResult::<f64>::builder(480, 320);
 
         let label = 1usize;
-        builder.get_mut(&label).insert(0, &[1.0; LABXY_CHANNELS]);
+        builder.get_mut(&label).insert(&[1.0; LABXY_CHANNELS]);
 
         // Act
         let actual = builder.merge(&label, &label);
@@ -438,7 +431,7 @@ mod tests {
         let dst_label = 2usize;
         builder
             .get_mut(&dst_label)
-            .insert(0, &[1.0; LABXY_CHANNELS]);
+            .insert(&[1.0; LABXY_CHANNELS]);
 
         // Act
         let actual = builder.merge(&src_label, &dst_label);
@@ -457,7 +450,7 @@ mod tests {
         let src_label = 1usize;
         builder
             .get_mut(&src_label)
-            .insert(0, &[1.0; LABXY_CHANNELS]);
+            .insert(&[1.0; LABXY_CHANNELS]);
 
         let dst_label = 2usize;
 
@@ -476,7 +469,7 @@ mod tests {
         let mut builder = SegmentationResult::<f64>::builder(480, 320);
 
         let label = 1usize;
-        builder.get_mut(&label).insert(0, &[1.0; LABXY_CHANNELS]);
+        builder.get_mut(&label).insert(&[1.0; LABXY_CHANNELS]);
 
         // Act
         let actual = builder.remove(&label);
@@ -490,8 +483,8 @@ mod tests {
             segment,
             SegmentMetadata {
                 label,
-                center: [1.0; LABXY_CHANNELS],
-                indices: FxHashSet::from_iter([0]),
+                sum: [1.0; LABXY_CHANNELS],
+                count: 1,
             }
         );
     }
@@ -518,13 +511,13 @@ mod tests {
 
         let label1 = 0usize;
         let segment1 = builder.get_mut(&label1);
-        segment1.insert(0, &[1.0; LABXY_CHANNELS]);
-        segment1.insert(1, &[2.0; LABXY_CHANNELS]);
+        segment1.insert(&[1.0; LABXY_CHANNELS]);
+        segment1.insert(&[2.0; LABXY_CHANNELS]);
 
         let label2 = 1usize;
         let segment2 = builder.get_mut(&label2);
-        segment2.insert(2, &[3.0; LABXY_CHANNELS]);
-        segment2.insert(4, &[4.0; LABXY_CHANNELS]);
+        segment2.insert(&[3.0; LABXY_CHANNELS]);
+        segment2.insert(&[4.0; LABXY_CHANNELS]);
 
         // Act
         let actual = builder.build();
@@ -553,7 +546,7 @@ mod tests {
 
         let label2 = 1usize;
         let segment2 = builder.get_mut(&label2);
-        segment2.insert(0, &[1.0; LABXY_CHANNELS]);
+        segment2.insert(&[1.0; LABXY_CHANNELS]);
 
         // Act
         let actual = builder.build();

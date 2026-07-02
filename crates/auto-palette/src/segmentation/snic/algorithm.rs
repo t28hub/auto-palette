@@ -168,7 +168,7 @@ where
             // Assign the nearest cluster label to the point.
             let segment_label = element.segment_label;
             let segment = builder.get_mut(&segment_label);
-            segment.insert(pixel_index, &pixels[pixel_index]);
+            segment.insert(&pixels[pixel_index]);
             labels[pixel_index] = segment_label;
 
             let center_pixel = segment.center();
@@ -177,7 +177,7 @@ where
                 .neighbors(element.col, element.row)
                 .filter(|(neighbor_index, _)| labels[*neighbor_index] == Self::LABEL_UNLABELLED)
                 .for_each(|(neighbor_index, neighbor_pixel)| {
-                    let distance = self.metric.measure(center_pixel, neighbor_pixel);
+                    let distance = self.metric.measure(&center_pixel, neighbor_pixel);
                     let element = Element {
                         col: neighbor_index % width,
                         row: neighbor_index / width,

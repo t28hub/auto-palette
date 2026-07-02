@@ -143,6 +143,47 @@ impl<'a> ImageData<'a> {
         &self.data
     }
 
+    /// Downsamples the image data so that it contains at most `max_pixels` pixels.
+    ///
+    /// The aspect ratio is preserved and pixels are sampled with nearest-neighbor
+    /// selection, so all colors in the result are colors present in the source
+    /// image. This is deterministic and does not require the `image` feature.
+    ///
+    /// # Arguments
+    /// * `max_pixels` - The maximum number of pixels in the resulting image data.
+    ///
+    /// # Returns
+    /// The downsampled `ImageData`, or a copy of the dimensions with borrowed
+    /// data if the image already fits within `max_pixels`.
+    #[must_use]
+    pub(crate) fn downsample(&self, max_pixels: usize) -> ImageData<'static> {
+        let width = self.width as usize;
+        let height = self.height as usize;
+        let total_pixels = width * height;
+
+        let scale = ((max_pixels.max(1) as f64) / (total_pixels as f64)).sqrt();
+        let new_width = ((width as f64 * scale) as usize).max(1);
+        let new_height = ((height as f64 * scale) as usize).max(1);
+
+        let mut data = Vec::with_capacity(new_width * new_height * RGBA_CHANNELS);
+        for row in 0..new_height {
+            // Sample the center of each destination cell to avoid biasing
+            // towards the top-left corner of the image.
+            let src_row = ((row * 2 + 1) * height / (new_height * 2)).min(height - 1);
+            for col in 0..new_width {
+                let src_col = ((col * 2 + 1) * width / (new_width * 2)).min(width - 1);
+                let offset = (src_row * width + src_col) * RGBA_CHANNELS;
+                data.extend_from_slice(&self.data[offset..offset + RGBA_CHANNELS]);
+            }
+        }
+
+        ImageData {
+            width: new_width as u32,
+            height: new_height as u32,
+            data: Cow::Owned(data),
+        }
+    }
+
     /// Returns an iterator over the pixels of the image data.
     ///
     /// # Returns
@@ -503,5 +544,54 @@ mod tests {
         assert_eq!(pixels.len(), 4);
         assert_eq!(mask.len(), 4);
         assert_eq!(mask, vec![true, false, true, false]);
+    }
+
+    #[test]
+    fn test_downsample() {
+        // Arrange: a 4x4 image where every pixel encodes its own coordinates.
+        let data: Vec<u8> = (0..16u8)
+            .flat_map(|index| [index % 4 * 60, index / 4 * 60, 0, 255])
+            .collect();
+        let image_data = ImageData::new(4, 4, &data).unwrap();
+
+        // Act: downsample to at most 4 pixels (2x2).
+        let actual = image_data.downsample(4);
+
+        // Assert
+        assert_eq!(actual.width(), 2);
+        assert_eq!(actual.height(), 2);
+        assert_eq!(actual.data().len(), 2 * 2 * 4);
+        // Every sampled pixel is a pixel of the source image.
+        for rgba in actual.data().chunks_exact(4) {
+            assert!(data.chunks_exact(4).any(|source| source == rgba));
+        }
+    }
+
+    #[test]
+    fn test_downsample_preserves_aspect_ratio() {
+        // Arrange
+        let data = vec![255u8; 8 * 2 * 4];
+        let image_data = ImageData::new(8, 2, &data).unwrap();
+
+        // Act
+        let actual = image_data.downsample(4);
+
+        // Assert: the 4:1 aspect ratio is preserved.
+        assert_eq!(actual.width(), 4);
+        assert_eq!(actual.height(), 1);
+    }
+
+    #[test]
+    fn test_downsample_never_returns_empty() {
+        // Arrange
+        let data = vec![255u8; 4];
+        let image_data = ImageData::new(1, 1, &data).unwrap();
+
+        // Act
+        let actual = image_data.downsample(1);
+
+        // Assert
+        assert_eq!(actual.width(), 1);
+        assert_eq!(actual.height(), 1);
     }
 }

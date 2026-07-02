@@ -100,7 +100,7 @@ where
             .filter(|s| s.len() < min_size)
             .filter_map(|s| {
                 center_search
-                    .search(s.center(), 2)
+                    .search(&s.center(), 2)
                     .into_iter()
                     .find_map(|n| {
                         if labels[n.index()] != s.label() {
@@ -213,7 +213,7 @@ where
             }
 
             let segment = builder.get_mut(&current_label);
-            segment.insert(seed_index, &pixels[seed_index]);
+            segment.insert(&pixels[seed_index]);
             labels[seed_index] = current_label;
 
             // Expand the segment using a queue
@@ -233,7 +233,7 @@ where
 
                 if labels[neighbor_index] == Self::LABEL_NOISE {
                     labels[neighbor_index] = current_label;
-                    segment.insert(neighbor_index, &pixels[neighbor_index]);
+                    segment.insert(&pixels[neighbor_index]);
                 }
 
                 // Check if the neighbor is already labeled or ignored
@@ -242,7 +242,7 @@ where
                 }
 
                 labels[neighbor_index] = current_label;
-                segment.insert(neighbor_index, &pixels[neighbor_index]);
+                segment.insert(&pixels[neighbor_index]);
 
                 find_neighbors(neighbor_index, &mut neighbors);
                 if neighbors.len() >= self.min_pixels {

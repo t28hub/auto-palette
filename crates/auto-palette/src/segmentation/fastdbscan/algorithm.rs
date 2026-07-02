@@ -203,7 +203,7 @@ where
             {
                 continue;
             }
-            builder.get_mut(&core_label).insert(index, pixel);
+            builder.get_mut(&core_label).insert(pixel);
         }
     }
 }

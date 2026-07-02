@@ -83,8 +83,8 @@ pub struct Options {
 
     #[arg(
         long,
-        help = "Disable image resizing before extracting the color palette.",
-        long_help = "Disable image resizing before extracting the color palette. This potentially improve the accuracy of the results by preserving the original image resolution."
+        help = "Disable image downsampling before extracting the color palette.",
+        long_help = "Disable image downsampling before extracting the color palette. This potentially improves the accuracy of the results by preserving the original image resolution, at the cost of a longer extraction time."
     )]
     pub no_resize: bool,
 

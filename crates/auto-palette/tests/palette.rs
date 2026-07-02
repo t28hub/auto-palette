@@ -125,6 +125,28 @@ fn test_builder_with_filter() {
 }
 
 #[test]
+fn test_builder_with_max_pixels() {
+    // Arrange
+    let image_data = ImageData::load("../../gfx/laura-clugston-pwW2iV9TZao-unsplash.jpg").unwrap();
+
+    // Act
+    let actual: Result<Palette<f64>, _> = Palette::builder().max_pixels(16_384).build(&image_data);
+
+    // Assert
+    assert!(actual.is_ok());
+
+    let palette = actual.unwrap();
+    assert!(!palette.is_empty());
+
+    // Swatch positions are reported in the original image coordinates.
+    for swatch in &palette {
+        let (x, y) = swatch.position();
+        assert!(x < image_data.width());
+        assert!(y < image_data.height());
+    }
+}
+
+#[test]
 fn test_builder_with_max_swatches() {
     // Arrange
     let image_data = ImageData::load("../../gfx/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();

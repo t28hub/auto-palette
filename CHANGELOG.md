@@ -4,13 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/t28hub/auto-palette/compare/v0.9.2...HEAD)
+## [Unreleased](https://github.com/t28hub/auto-palette/compare/v0.10.0...HEAD)
 ### Added
 ### Changed
 ### Deprecated
 ### Removed
 ### Fixed
 ### Security
+
+## [v0.10.0](https://github.com/t28hub/auto-palette/compare/v0.9.2...v0.10.0)
+### Added
+- Add `PaletteBuilder::max_pixels` with a default budget of 65,536 pixels: larger images are downsampled before extraction, bounding the extraction time regardless of the input resolution (a 10MP photo drops from ~110s to under 0.1s). Swatch positions are reported in the original image coordinates. Pass `usize::MAX` to process every pixel.
+- Expose the `segmentation` module: `DbscanConfig`, `FastDbscanConfig`, `KmeansConfig`, `SlicConfig`, and `SnicConfig` can now be passed to `PaletteBuilder::algorithm` to tune algorithm parameters.
+- Re-export `PaletteBuilder` and `SegmentationMethod` at the crate root.
+- Add a `serde` feature that derives `Serialize`/`Deserialize` for `Palette`, `Swatch`, `Color`, and the color space types (`wasm` remains as a compatible feature alias).
+- Add `From<RGB>` for `Color`, `IntoIterator` for `&Palette`, and `Clone`/`PartialEq` for `ImageData`.
+
+### Changed
+- Precompute the max-chroma-per-hue table used by theme scoring; themed swatch selection no longer performs ~2,400 gamut evaluations per swatch.
+- Replace per-segment hash sets and running means with count/sum accumulators, and eliminate per-pixel heap allocations in the DBSCAN, SLIC, and sampling hot paths.
+- Make `find_swatches` ordering deterministic; equal-population swatches previously changed order between runs.
+- The CLI now delegates downsampling to the library; `--no-resize` disables it entirely.
+
+### Removed
+- Remove the deprecated `Palette::extract_with_algorithm` and `Theme::Basic`.
+- Make `Palette::find_swatches_internal` private; it referenced crate-private types and was never callable externally.
 
 ## [v0.9.2](https://github.com/t28hub/auto-palette/compare/v0.9.1...v0.9.2) - 2025-09-08
 ### Added

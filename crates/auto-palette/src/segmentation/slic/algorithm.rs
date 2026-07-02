@@ -176,7 +176,7 @@ where
         });
 
         for (index, label) in labels.iter().enumerate() {
-            builder.get_mut(label).insert(index, &pixels[index]);
+            builder.get_mut(label).insert(&pixels[index]);
         }
 
         let mut converged = true;
@@ -190,12 +190,12 @@ where
                 return;
             };
 
-            let diff = self.metric.measure(old_center, new_center);
+            let diff = self.metric.measure(old_center, &new_center);
             if diff > self.tolerance {
                 converged = false;
             }
 
-            *old_center = *new_center;
+            *old_center = new_center;
         });
         converged
     }
