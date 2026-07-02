@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Add `Palette::query` returning a `SwatchQuery` builder for swatch selection: `count`, `theme`, custom `score_with` scoring, and an explicit `diversity` trade-off factor can be combined freely. `find_swatches` and `find_swatches_with_theme` remain as shorthands. The WebAssembly `findSwatches` accepts an optional `diversity` argument.
 
 ### Changed
+- Improve themed swatch selection: theme scores are now weighted by each swatch's population relative to the dominant swatch, so a few perfectly-matching noise pixels no longer outrank prominent colors. The Vivid and Muted chroma scores are one-sided (a color cannot be "too vivid" or "too muted"), and all selection paths now use the same rank-based score/diversity trade-off (the score-weighted farthest-point sampler is removed); themed selection defaults to a score-leaning factor of 0.3.
 - Precompute the max-chroma-per-hue table used by theme scoring; themed swatch selection no longer performs ~2,400 gamut evaluations per swatch.
 - Replace per-segment hash sets and running means with count/sum accumulators, and eliminate per-pixel heap allocations in the DBSCAN, SLIC, and sampling hot paths.
 - Make `find_swatches` ordering deterministic; equal-population swatches previously changed order between runs.

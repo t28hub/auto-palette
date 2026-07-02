@@ -103,30 +103,39 @@ impl Theme {
                 sigma_chroma: T::from_f64(0.18),
                 mean_lightness: T::from_f64(0.60),
                 sigma_lightness: T::from_f64(0.20),
+                chroma_penalty: ChromaPenalty::TwoSided,
             },
+            // A color cannot be "too vivid": chroma above the mean is not
+            // penalized.
             Theme::Vivid => ThemeParams {
                 mean_chroma: T::from_f64(0.90),
                 sigma_chroma: T::from_f64(0.10),
                 mean_lightness: T::from_f64(0.70),
                 sigma_lightness: T::from_f64(0.20),
+                chroma_penalty: ChromaPenalty::BelowOnly,
             },
+            // A color cannot be "too muted": chroma below the mean is not
+            // penalized.
             Theme::Muted => ThemeParams {
                 mean_chroma: T::from_f64(0.20),
                 sigma_chroma: T::from_f64(0.15),
                 mean_lightness: T::from_f64(0.40),
                 sigma_lightness: T::from_f64(0.15),
+                chroma_penalty: ChromaPenalty::AboveOnly,
             },
             Theme::Light => ThemeParams {
                 mean_chroma: T::from_f64(0.60),
                 sigma_chroma: T::from_f64(0.15),
                 mean_lightness: T::from_f64(0.85),
                 sigma_lightness: T::from_f64(0.15),
+                chroma_penalty: ChromaPenalty::TwoSided,
             },
             Theme::Dark => ThemeParams {
                 mean_chroma: T::from_f64(0.25),
                 sigma_chroma: T::from_f64(0.15),
                 mean_lightness: T::from_f64(0.15),
                 sigma_lightness: T::from_f64(0.15),
+                chroma_penalty: ChromaPenalty::TwoSided,
             },
         };
 
@@ -139,6 +148,11 @@ impl Theme {
             T::from_u8(Self::MAX_LIGHTNESS),
         );
 
+        let chroma = match params.chroma_penalty {
+            ChromaPenalty::TwoSided => chroma,
+            ChromaPenalty::BelowOnly => chroma.min(params.mean_chroma),
+            ChromaPenalty::AboveOnly => chroma.max(params.mean_chroma),
+        };
         let dc = (chroma - params.mean_chroma) / params.sigma_chroma;
         let dl = (lightness - params.mean_lightness) / params.sigma_lightness;
         (T::from_f64(-0.5) * (dc * dc + dl * dl)).exp()
@@ -158,6 +172,19 @@ impl FromStr for Theme {
             _ => Err(UnsupportedError::new(UnsupportedErrorKind::Theme, s).into()),
         }
     }
+}
+
+/// The side(s) of the mean on which chroma deviations are penalized.
+#[derive(Debug, PartialEq)]
+enum ChromaPenalty {
+    /// Deviations on both sides of the mean are penalized.
+    TwoSided,
+
+    /// Only chroma below the mean is penalized; higher chroma scores as the mean.
+    BelowOnly,
+
+    /// Only chroma above the mean is penalized; lower chroma scores as the mean.
+    AboveOnly,
 }
 
 /// The mean and standard deviation parameters for the theme scoring.
@@ -180,6 +207,9 @@ where
 
     /// The standard deviation of the lightness values for the theme.
     sigma_lightness: T,
+
+    /// The side(s) of the mean on which chroma deviations are penalized.
+    chroma_penalty: ChromaPenalty,
 }
 
 #[cfg(test)]
@@ -218,15 +248,15 @@ mod tests {
     #[case::black("#000000", 0.0)]
     #[case::gray("#808080", 0.0)]
     #[case::white("#ffffff", 0.0)]
-    #[case::red("#ff0000", 0.426884)]
-    #[case::green("#00ff00", 0.409349)]
-    #[case::blue("#0000ff", 0.102639)]
-    #[case::yellow("#ffff00", 0.241562)]
-    #[case::cyan("#00ffff", 0.347395)]
-    #[case::magenta("#ff00ff", 0.539526)]
-    #[case::orange("#ff8000", 0.599979)]
-    #[case::purple("#8000ff", 0.210622)]
-    #[case::lime("#80ff00", 0.369553)]
+    #[case::red("#ff0000", 0.703813)]
+    #[case::green("#00ff00", 0.674903)]
+    #[case::blue("#0000ff", 0.169223)]
+    #[case::yellow("#ffff00", 0.398269)]
+    #[case::cyan("#00ffff", 0.572758)]
+    #[case::magenta("#ff00ff", 0.889530)]
+    #[case::orange("#ff8000", 0.989199)]
+    #[case::purple("#8000ff", 0.347257)]
+    #[case::lime("#80ff00", 0.609291)]
     fn test_score_vivid(#[case] hex: &str, #[case] expected: f64) {
         // Act
         let color: Color<f64> = Color::from_str(hex).unwrap();
@@ -238,9 +268,9 @@ mod tests {
     }
 
     #[rstest]
-    #[case::black("#000000", 0.011743)]
-    #[case::gray("#808080", 0.273211)]
-    #[case::white("#ffffff", 0.000138)]
+    #[case::black("#000000", 0.028566)]
+    #[case::gray("#808080", 0.663573)]
+    #[case::white("#ffffff", 0.000335)]
     #[case::red("#ff0000", 0.0)]
     #[case::green("#00ff00", 0.0)]
     #[case::blue("#0000ff", 0.0)]

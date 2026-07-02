@@ -12,7 +12,7 @@ use crate::{
     math::{
         clustering::{ClusteringAlgorithm, DBSCAN},
         denormalize,
-        sampling::{DiversitySampling, SamplingAlgorithm, SamplingError, WeightedFarthestSampling},
+        sampling::{DiversitySampling, SamplingAlgorithm, SamplingError},
         DistanceMetric,
         FloatNumber,
     },
@@ -252,8 +252,26 @@ where
     }
 }
 
-/// The default diversity factor used when no explicit factor is set.
+/// The default diversity factor for population-ratio scoring.
 const DEFAULT_DIVERSITY_FACTOR: f64 = 0.6;
+
+/// The default diversity factor for themed and custom scoring.
+///
+/// Smaller than [`DEFAULT_DIVERSITY_FACTOR`] so that the selection leans
+/// towards score fidelity: when a theme is requested, matching the theme
+/// matters more than spreading the colors apart.
+const DEFAULT_SCORED_DIVERSITY_FACTOR: f64 = 0.3;
+
+/// The exponent applied to the normalized population when scoring swatches
+/// against a theme.
+///
+/// The theme score describes only how well a color matches the theme, so a
+/// few noise pixels with a perfectly matching color would otherwise win over
+/// a prominent, slightly-less-matching color. Weighting by
+/// `(population / max_population) ^ EXPONENT` discounts rare colors while the
+/// sub-linear exponent keeps mid-sized swatches competitive against the
+/// dominant one.
+const THEME_POPULATION_EXPONENT: f64 = 0.25;
 
 /// The source of the score assigned to each swatch during selection.
 enum ScoreSource<'a, T>
@@ -280,11 +298,13 @@ where
 /// * All swatches are candidates (no count limit).
 /// * Swatches are scored by their population ratio; [`theme`](Self::theme) or
 ///   [`score_with`](Self::score_with) replaces the scoring (the last call
-///   wins).
-/// * Selection balances score and color diversity. When a theme or a custom
-///   score is set, the selection maximizes the score-weighted color distance
-///   instead; call [`diversity`](Self::diversity) to switch back to
-///   diversity-based selection with an explicit trade-off factor.
+///   wins). Theme scores are additionally weighted by each swatch's
+///   population relative to the dominant swatch, so rare noise colors do not
+///   outrank prominent colors.
+/// * Selection balances score against color diversity. The default trade-off
+///   factor is `0.6` for population-ratio scoring and `0.3` (leaning towards
+///   score fidelity) for themed and custom scoring; set it explicitly with
+///   [`diversity`](Self::diversity).
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
@@ -396,36 +416,40 @@ where
         let scored = !matches!(self.score, ScoreSource::Ratio);
         let score_fn: Box<dyn Fn(&Swatch<T>) -> T + 'a> = match self.score {
             ScoreSource::Ratio => Box::new(|swatch: &Swatch<T>| swatch.ratio()),
-            ScoreSource::Theme(theme) => Box::new(move |swatch: &Swatch<T>| theme.score(swatch)),
+            ScoreSource::Theme(theme) => {
+                // Discount rare colors: the theme score alone would let a few
+                // perfectly-matching noise pixels win over prominent colors.
+                let max_population = self
+                    .palette
+                    .swatches
+                    .iter()
+                    .map(Swatch::population)
+                    .max()
+                    .unwrap_or(1)
+                    .max(1);
+                Box::new(move |swatch: &Swatch<T>| {
+                    let prominence = (T::from_usize(swatch.population())
+                        / T::from_usize(max_population))
+                    .powf(T::from_f64(THEME_POPULATION_EXPONENT));
+                    theme.score(swatch) * prominence
+                })
+            }
             ScoreSource::Custom(score_fn) => score_fn,
         };
 
-        match self.diversity {
-            // An explicit diversity factor always selects with diversity
-            // sampling.
-            Some(factor) => self
-                .palette
-                .find_swatches_internal(count, score_fn, |scores| {
-                    DiversitySampling::new(factor, scores, DistanceMetric::SquaredEuclidean)
-                }),
-            // Themed and custom scoring maximize the score-weighted color
-            // distance by default.
-            None if scored => self
-                .palette
-                .find_swatches_internal(count, score_fn, |scores| {
-                    WeightedFarthestSampling::new(scores, DistanceMetric::SquaredEuclidean)
-                }),
-            // Ratio scoring balances score and diversity by default.
-            None => self
-                .palette
-                .find_swatches_internal(count, score_fn, |scores| {
-                    DiversitySampling::new(
-                        T::from_f64(DEFAULT_DIVERSITY_FACTOR),
-                        scores,
-                        DistanceMetric::SquaredEuclidean,
-                    )
-                }),
-        }
+        // All score sources select with diversity sampling; only the default
+        // trade-off factor differs.
+        let factor = self.diversity.unwrap_or_else(|| {
+            if scored {
+                T::from_f64(DEFAULT_SCORED_DIVERSITY_FACTOR)
+            } else {
+                T::from_f64(DEFAULT_DIVERSITY_FACTOR)
+            }
+        });
+        self.palette
+            .find_swatches_internal(count, score_fn, |scores| {
+                DiversitySampling::new(factor, scores, DistanceMetric::SquaredEuclidean)
+            })
     }
 }
 
@@ -1162,9 +1186,9 @@ mod tests {
     }
 
     #[rstest]
-    #[case::colorful(Theme::Colorful, vec ! ["#EE334E", "#00A651"])]
-    #[case::vivid(Theme::Vivid, vec ! ["#0081C8", "#FCB131"])]
-    #[case::muted(Theme::Muted, vec ! ["#00A651", "#000000"])]
+    #[case::colorful(Theme::Colorful, vec ! ["#0081C8", "#00A651"])]
+    #[case::vivid(Theme::Vivid, vec ! ["#EE334E", "#FCB131"])]
+    #[case::muted(Theme::Muted, vec ! ["#FFFFFF", "#000000"])]
     #[case::light(Theme::Light, vec ! ["#00A651", "#FCB131"])]
     #[case::dark(Theme::Dark, vec ! ["#00A651", "#000000"])]
     fn test_find_swatches_with_theme(#[case] theme: Theme, #[case] expected: Vec<&str>) {
