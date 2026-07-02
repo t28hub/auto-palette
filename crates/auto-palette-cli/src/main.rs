@@ -72,7 +72,9 @@ fn run(context: &CLIContext) -> anyhow::Result<()> {
         return Err(anyhow::Error::new(error).context("failed to print the swatches"));
     }
 
-    println!(
+    // Report the summary on stderr so that stdout stays machine-readable
+    // (e.g. `auto-palette image.png -o json | jq`).
+    eprintln!(
         "Extracted {} swatch(es) in {}.{:03} seconds",
         palette.len(),
         instant.elapsed().as_secs(),

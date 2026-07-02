@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Replace per-segment hash sets and running means with count/sum accumulators, and eliminate per-pixel heap allocations in the DBSCAN, SLIC, and sampling hot paths.
 - Make `find_swatches` ordering deterministic; equal-population swatches previously changed order between runs.
 - The CLI now delegates downsampling to the library; `--no-resize` disables it entirely.
+- The CLI reports the extraction summary on stderr so that stdout stays machine-readable (`auto-palette image.png -o json | jq` previously failed to parse).
 
 ### Removed
 - Remove the deprecated `Palette::extract_with_algorithm` and `Theme::Basic`.

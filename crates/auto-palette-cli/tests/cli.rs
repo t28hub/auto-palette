@@ -62,7 +62,7 @@ fn test_cli() {
         .arg("table")
         .arg("--no-resize")
         .assert()
-        .stdout(predicate::str::contains("Extracted 6 swatch(es) in"))
+        .stderr(predicate::str::contains("Extracted 6 swatch(es) in"))
         .success();
 
     let stdout = String::from_utf8_lossy(&assert.get_output().stdout).to_string();
@@ -105,7 +105,7 @@ fn test_using_clipboard_as_input() {
         .arg("table")
         .arg("--no-resize")
         .assert()
-        .stdout(predicate::str::contains("Extracted 6 swatch(es) in"))
+        .stderr(predicate::str::contains("Extracted 6 swatch(es) in"))
         .success();
 
     let stdout = String::from_utf8_lossy(&assert.get_output().stdout).to_string();
