@@ -772,7 +772,7 @@ mod tests {
     #[test]
     fn test_fmt() {
         // Act & Assert
-        let color: Color<f32> = Color::new(91.114_750, -48.080_950, -14.142_8581);
+        let color: Color<f32> = Color::new(91.114_750, -48.080_950, -14.142_858);
         assert_eq!(
             format!("{}", color),
             "Color(l: 91.11, a: -48.08, b: -14.14)"

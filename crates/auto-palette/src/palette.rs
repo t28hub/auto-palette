@@ -179,12 +179,16 @@ where
             .sample(&colors, num_swatches)
             .map_err(SelectionError::from)?;
 
-        let mut found: Vec<_> = sampled
-            .iter()
-            .map(|&i| {
-                let index = indices[i];
-                self.swatches[index]
-            })
+        // Sort the selected indices first: `sampled` is a `HashSet` whose
+        // iteration order varies between runs, and the stable population sort
+        // below preserves that order for equal populations. Sorting makes the
+        // returned swatch order deterministic.
+        let mut selected: Vec<_> = sampled.iter().map(|&i| indices[i]).collect();
+        selected.sort_unstable();
+
+        let mut found: Vec<_> = selected
+            .into_iter()
+            .map(|index| self.swatches[index])
             .collect();
         found.sort_by_key(|swatch| Reverse(swatch.population()));
         Ok(found)

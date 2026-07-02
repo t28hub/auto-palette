@@ -190,6 +190,36 @@ where
         new_id
     }
 
+    /// Searches for all neighbors within the given radius, collecting the
+    /// results into the provided buffer.
+    ///
+    /// The buffer is cleared before the search, so it can be reused across
+    /// queries to avoid a heap allocation per query. The visit order is
+    /// identical to [`NeighborSearch::search_within_radius`].
+    ///
+    /// # Arguments
+    /// * `query` - The query point.
+    /// * `radius` - Maximum distance from the query point.
+    /// * `neighbors` - The buffer to collect the neighbors into.
+    pub fn search_within_radius_into(
+        &self,
+        query: &Point<T, N>,
+        radius: T,
+        neighbors: &mut Vec<Neighbor<T>>,
+    ) {
+        neighbors.clear();
+
+        let Some(root) = self.root else {
+            return;
+        };
+        if radius < T::zero() {
+            return;
+        }
+
+        let mut strategy = RadiusSearchStrategy { radius, neighbors };
+        self.traverse(root, query, &mut strategy);
+    }
+
     /// Traverses the KD-tree using a given search strategy.
     ///
     /// This method performs a depth-first traversal of the tree, visiting nodes
@@ -275,17 +305,9 @@ where
     }
 
     fn search_within_radius(&self, query: &Point<T, N>, radius: T) -> Vec<Neighbor<T>> {
-        let Some(root) = self.root else {
-            return Vec::new();
-        };
-
-        if radius < T::zero() {
-            return Vec::new();
-        }
-
-        let mut strategy = RadiusSearchStrategy::new(radius);
-        self.traverse(root, query, &mut strategy);
-        strategy.into_result()
+        let mut neighbors = Vec::new();
+        self.search_within_radius_into(query, radius, &mut neighbors);
+        neighbors
     }
 }
 
@@ -448,9 +470,12 @@ where
 
 /// Search strategy for finding all neighbors within a radius.
 ///
+/// Collects the neighbors into a caller-provided buffer so the allocation can
+/// be reused across queries.
+///
 /// # Type Parameters
 /// * `T` - The floating point type used for distances.
-struct RadiusSearchStrategy<T>
+struct RadiusSearchStrategy<'b, T>
 where
     T: FloatNumber,
 {
@@ -458,49 +483,14 @@ where
     radius: T,
 
     /// All neighbors found within the radius.
-    neighbors: Vec<Neighbor<T>>,
+    neighbors: &'b mut Vec<Neighbor<T>>,
 }
 
-impl<T> RadiusSearchStrategy<T>
+impl<T> SearchStrategy<T> for RadiusSearchStrategy<'_, T>
 where
     T: FloatNumber,
 {
-    /// Initial capacity for the neighbors vector to minimize reallocations.
-    const INITIAL_NEIGHBOR_CAPACITY: usize = 128;
-
-    /// Creates a new radius search strategy.
-    ///
-    /// # Arguments
-    /// * `radius` - Maximum distance from the query point.
-    ///
-    /// # Returns
-    /// A new strategy instance with an empty results vector.
-    #[must_use]
-    fn new(radius: T) -> Self {
-        Self::with_capacity(radius, Self::INITIAL_NEIGHBOR_CAPACITY)
-    }
-
-    /// Creates a new radius search strategy with specified initial capacity.
-    ///
-    /// # Arguments
-    /// * `radius` - Maximum distance from the query point.
-    /// * `capacity` - Initial capacity for the neighbors vector.
-    ///
-    /// # Returns
-    /// A new strategy instance with pre-allocated capacity.
-    fn with_capacity(radius: T, capacity: usize) -> Self {
-        Self {
-            radius,
-            neighbors: Vec::with_capacity(capacity),
-        }
-    }
-}
-
-impl<T> SearchStrategy<T> for RadiusSearchStrategy<T>
-where
-    T: FloatNumber,
-{
-    type Result = Vec<Neighbor<T>>;
+    type Result = ();
 
     fn visit_point(&mut self, point_index: usize, distance: T) {
         if distance <= self.radius {
@@ -512,9 +502,7 @@ where
         distance <= self.radius
     }
 
-    fn into_result(self) -> Self::Result {
-        self.neighbors
-    }
+    fn into_result(self) -> Self::Result {}
 }
 
 #[cfg(test)]
@@ -933,30 +921,24 @@ mod tests {
     }
 
     #[test]
-    fn test_radius_search_strategy() {
+    fn test_search_within_radius_into_reuses_buffer() {
         // Arrange
-        let radius = 10.0;
-        let actual = RadiusSearchStrategy::new(radius);
+        let points = sample_points();
+        let search = KdTreeSearch::with_leaf_size(&points, DistanceMetric::Euclidean, 4);
+        let mut neighbors = Vec::new();
 
         // Act
-        assert_eq!(actual.radius, radius);
-        assert_eq!(
-            actual.neighbors.capacity(),
-            RadiusSearchStrategy::<f32>::INITIAL_NEIGHBOR_CAPACITY
-        );
-        assert!(actual.neighbors.is_empty());
-    }
+        search.search_within_radius_into(&[3.0, 5.0, 6.0], 4.5, &mut neighbors);
 
-    #[test]
-    fn test_radius_search_strategy_with_capacity() {
-        // Arrange
-        let radius = 5.0;
-        let capacity = 16;
-        let actual = RadiusSearchStrategy::with_capacity(radius, capacity);
+        // Assert
+        assert_eq!(neighbors.len(), 2);
+        assert_eq!(neighbors[0], Neighbor::new(8, 1.0_f32.sqrt()));
+        assert_eq!(neighbors[1], Neighbor::new(4, 19.0_f32.sqrt()));
 
-        // Act
-        assert_eq!(actual.radius, radius);
-        assert_eq!(actual.neighbors.capacity(), capacity);
-        assert!(actual.neighbors.is_empty());
+        // Act: reuse the same buffer for another query
+        search.search_within_radius_into(&[100.0, 100.0, 100.0], 10.0, &mut neighbors);
+
+        // Assert: the buffer is cleared before the search
+        assert!(neighbors.is_empty());
     }
 }

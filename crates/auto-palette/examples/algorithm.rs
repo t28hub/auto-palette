@@ -18,8 +18,7 @@ fn main() -> Result<(), Error> {
     // Read the algorithm from the command line arguments
     let algorithm = std::env::args()
         .nth(1)
-        .map(|name| Algorithm::from_str(&name).ok())
-        .flatten()
+        .and_then(|name| Algorithm::from_str(&name).ok())
         .unwrap_or(Algorithm::DBSCAN);
 
     // Load the image data from the file

@@ -88,8 +88,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use rstest::rstest;
-
     use super::*;
 
     #[test]

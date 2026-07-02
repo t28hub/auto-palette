@@ -123,6 +123,10 @@ where
         selected.insert(best_index);
 
         let mut similarities = vec![T::max_value(); points.len()];
+        // Scratch buffers for the dissimilarity ranking, reused across
+        // iterations to avoid re-allocating per selected sample.
+        let mut sorted_indices = Vec::with_capacity(points.len());
+        let mut dissimilarity_ranks = Vec::with_capacity(points.len());
         while selected.len() < num_samples {
             // Update similarities with the best point
             for (index, point) in points.iter().enumerate() {
@@ -135,10 +139,14 @@ where
                 }
             }
 
-            let dissimilarity_rankings = RankedScores::new(similarities.clone());
+            compute_ranks_into(
+                &similarities,
+                &mut sorted_indices,
+                &mut dissimilarity_ranks,
+            );
             let best_index = find_best_index(
                 &self.ranked.ranks,
-                &dissimilarity_rankings.ranks,
+                &dissimilarity_ranks,
                 &selected,
                 self.diversity_factor,
             );
@@ -191,19 +199,9 @@ where
     /// A new `RankedScores` instance with computed rankings.
     #[must_use]
     fn new(scores: Vec<T>) -> Self {
-        let mut sorted_indices: Vec<usize> = (0..scores.len()).collect();
-        sorted_indices.sort_by(|&index1, &index2| {
-            scores[index2]
-                .partial_cmp(&scores[index1])
-                .unwrap_or(Ordering::Equal)
-        });
-        let ranks = sorted_indices.iter().enumerate().fold(
-            vec![0; scores.len()],
-            |mut acc, (rank, &index)| {
-                acc[index] = rank;
-                acc
-            },
-        );
+        let mut sorted_indices = Vec::with_capacity(scores.len());
+        let mut ranks = Vec::with_capacity(scores.len());
+        compute_ranks_into(&scores, &mut sorted_indices, &mut ranks);
         RankedScores {
             scores,
             ranks,
@@ -217,6 +215,37 @@ where
     /// The number of scores in this container.
     pub fn len(&self) -> usize {
         self.scores.len()
+    }
+}
+
+/// Computes descending-score rankings into the provided buffers.
+///
+/// Both buffers are cleared and refilled, so they can be reused across calls
+/// to avoid re-allocating.
+///
+/// # Type Parameters
+/// * `T` - The floating point type.
+///
+/// # Arguments
+/// * `scores` - The scores to rank.
+/// * `sorted_indices` - Buffer receiving the indices sorted by score (highest first).
+/// * `ranks` - Buffer receiving the rank of each item (0 = highest score).
+fn compute_ranks_into<T>(scores: &[T], sorted_indices: &mut Vec<usize>, ranks: &mut Vec<usize>)
+where
+    T: FloatNumber,
+{
+    sorted_indices.clear();
+    sorted_indices.extend(0..scores.len());
+    sorted_indices.sort_by(|&index1, &index2| {
+        scores[index2]
+            .partial_cmp(&scores[index1])
+            .unwrap_or(Ordering::Equal)
+    });
+
+    ranks.clear();
+    ranks.resize(scores.len(), 0);
+    for (rank, &index) in sorted_indices.iter().enumerate() {
+        ranks[index] = rank;
     }
 }
 

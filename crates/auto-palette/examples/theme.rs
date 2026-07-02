@@ -18,8 +18,7 @@ fn main() -> Result<(), Error> {
     // Read the theme from the command line arguments
     let theme = std::env::args()
         .nth(1)
-        .map(|name| Theme::from_str(&name).ok())
-        .flatten();
+        .and_then(|name| Theme::from_str(&name).ok());
 
     // Load the image data from the file
     let image_data = ImageData::load("./gfx/laura-clugston-pwW2iV9TZao-unsplash.jpg")

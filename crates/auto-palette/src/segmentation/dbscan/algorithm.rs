@@ -168,22 +168,24 @@ where
         let segment_capacity = (width * height) / self.segments;
 
         let pixel_search = KdTreeSearch::with_leaf_size(pixels, self.metric, Self::MAX_LEAF_SIZE);
-        let find_neighbors = |index: usize| -> Vec<Neighbor<T>> {
+        let find_neighbors = |index: usize, neighbors: &mut Vec<Neighbor<T>>| {
             let seed = &pixels[index];
             let (sx, sy) = Self::index_to_coords(index, width);
-            pixel_search
-                .search_within_radius(seed, self.epsilon)
-                .into_iter()
-                .filter(|neighbor| {
-                    let neighbor_index = neighbor.index();
-                    let (nx, xy) = Self::index_to_coords(neighbor_index, width);
-                    nx.abs_diff(sx) + xy.abs_diff(sy) <= spatial_radius
-                })
-                .collect()
+            pixel_search.search_within_radius_into(seed, self.epsilon, neighbors);
+            neighbors.retain(|neighbor| {
+                let neighbor_index = neighbor.index();
+                let (nx, ny) = Self::index_to_coords(neighbor_index, width);
+                nx.abs_diff(sx) + ny.abs_diff(sy) <= spatial_radius
+            });
         };
 
         let mut builder = SegmentationResult::builder(width, height);
         let mut labels = vec![Self::LABEL_UNLABELLED; pixels.len()];
+
+        // Scratch buffers reused across all queries to avoid an allocation
+        // per visited pixel.
+        let mut neighbors: Vec<Neighbor<T>> = Vec::new();
+        let mut queue: VecDeque<Neighbor<T>> = VecDeque::new();
 
         let mut current_label = 0;
         let mut next_seed_index = 0;
@@ -203,7 +205,7 @@ where
                 continue;
             }
 
-            let neighbors: Vec<_> = find_neighbors(seed_index);
+            find_neighbors(seed_index, &mut neighbors);
             if neighbors.len() < self.min_pixels {
                 labels[seed_index] = Self::LABEL_NOISE;
                 next_seed_index = seed_index + 1;
@@ -215,7 +217,8 @@ where
             labels[seed_index] = current_label;
 
             // Expand the segment using a queue
-            let mut queue: VecDeque<_> = neighbors.into();
+            queue.clear();
+            queue.extend(neighbors.drain(..));
             while let Some(neighbor) = queue.pop_front() {
                 // Check if the segment is full for performance improvement
                 if segment.len() >= segment_capacity {
@@ -241,9 +244,9 @@ where
                 labels[neighbor_index] = current_label;
                 segment.insert(neighbor_index, &pixels[neighbor_index]);
 
-                let secondary_neighbors = find_neighbors(neighbor_index);
-                if secondary_neighbors.len() >= self.min_pixels {
-                    queue.extend(secondary_neighbors);
+                find_neighbors(neighbor_index, &mut neighbors);
+                if neighbors.len() >= self.min_pixels {
+                    queue.extend(neighbors.drain(..));
                 }
             }
 

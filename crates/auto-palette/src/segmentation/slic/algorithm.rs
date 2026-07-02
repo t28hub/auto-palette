@@ -131,9 +131,12 @@ where
     /// * `mask` - The mask for ignoring certain pixels.
     /// * `centers` - The current centroids of the segments.
     /// * `builder` - The segment builder to use for creating segments.
+    /// * `labels` - Scratch buffer for the per-pixel labels, reused across iterations.
+    /// * `distances` - Scratch buffer for the per-pixel distances, reused across iterations.
     ///
     /// # Returns
     /// `true` if the centroids have converged, `false` otherwise.
+    #[allow(clippy::too_many_arguments)]
     #[inline]
     fn iterate(
         &self,
@@ -142,14 +145,16 @@ where
         mask: &[bool],
         centers: &mut FxHashMap<usize, Pixel<T>>,
         builder: &mut SegmentBuilder<T>,
+        labels: &mut [usize],
+        distances: &mut [T],
     ) -> bool {
         builder.iter_mut().for_each(SegmentMetadata::clear);
 
         let s = (T::from_usize(matrix.size()) / T::from_usize(self.segments)).sqrt();
         let radius = (T::from_u8(2) * s).ceil().trunc_to_usize();
 
-        let mut labels = vec![usize::MAX; pixels.len()];
-        let mut distances = vec![T::max_value(); pixels.len()];
+        labels.fill(usize::MAX);
+        distances.fill(T::max_value());
 
         centers.iter().for_each(|(&center_index, center_pixel)| {
             let col = center_index % matrix.cols;
@@ -223,8 +228,18 @@ where
             .collect();
 
         let mut builder = SegmentationResult::builder(width, height);
+        let mut labels = vec![usize::MAX; pixels.len()];
+        let mut distances = vec![T::max_value(); pixels.len()];
         for _ in 0..self.max_iter {
-            if self.iterate(&matrix, pixels, mask, &mut centers, &mut builder) {
+            if self.iterate(
+                &matrix,
+                pixels,
+                mask,
+                &mut centers,
+                &mut builder,
+                &mut labels,
+                &mut distances,
+            ) {
                 break;
             }
         }
