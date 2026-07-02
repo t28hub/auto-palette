@@ -72,6 +72,7 @@ where
     ///
     /// # Returns
     /// `true` if the result contains no segments.
+    #[allow(dead_code)] // Used by the segmentation algorithm tests.
     #[inline]
     #[must_use]
     pub fn is_empty(&self) -> bool {
@@ -82,6 +83,7 @@ where
     ///
     /// # Returns
     /// The number of segments in the result.
+    #[allow(dead_code)] // Used by the segmentation algorithm tests.
     #[inline]
     #[must_use]
     pub fn len(&self) -> usize {

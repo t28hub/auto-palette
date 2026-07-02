@@ -4,7 +4,8 @@ use crate::{math::DistanceMetric, segmentation::seed::SeedGenerator, FloatNumber
 
 /// Configuration for the SNIC segmentation algorithm.
 ///
-/// Use this to customize parameters before creating a [`SnicSegmentation`] via [`TryFrom`].
+/// Pass this to [`PaletteBuilder::algorithm`](crate::PaletteBuilder::algorithm)
+/// to tune the algorithm parameters.
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.

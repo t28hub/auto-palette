@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use num_traits::clamp;
-#[cfg(feature = "wasm")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -37,7 +37,7 @@ use crate::{
 /// assert_eq!(format!("{}", oklab), "Oklab(0.70, 0.27, -0.17)");
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct XYZ<T = f64>
 where
     T: FloatNumber,
@@ -321,7 +321,7 @@ where
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
@@ -339,7 +339,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_serialize() {
         // Act
         let xyz = XYZ::new(0.5928, 0.2848, 0.9699);
@@ -364,7 +364,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_deserialize() {
         // Act
         let xyz = XYZ::new(0.5928, 0.2848, 0.9699);

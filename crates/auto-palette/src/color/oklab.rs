@@ -1,5 +1,5 @@
 use num_traits::clamp;
-#[cfg(feature = "wasm")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -31,7 +31,7 @@ use crate::{
 /// assert_eq!(format!("{}", xyz), "XYZ(0.15, 0.24, 0.20)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Oklab<T = f64>
 where
     T: FloatNumber,
@@ -119,7 +119,7 @@ where
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     use serde_test::{assert_de_tokens, assert_tokens, Token};
 
     use super::*;
@@ -142,7 +142,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_serialize() {
         // Act
         let oklab = Oklab::new(0.607, -0.118, 0.028);
@@ -167,7 +167,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_deserialize() {
         // Act
         let oklab = Oklab::new(0.70, -0.08, 0.05);

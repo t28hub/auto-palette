@@ -1,7 +1,7 @@
 use std::{fmt::Display, marker::PhantomData};
 
 use num_traits::clamp;
-#[cfg(feature = "wasm")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -34,7 +34,7 @@ use crate::{
 /// assert_eq!(format!("{}", lab), "Lab(54.62, 81.55, 42.92)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct LCHab<T = f64, W = D65>
 where
     T: FloatNumber,
@@ -43,7 +43,7 @@ where
     pub l: T,
     pub c: T,
     pub h: Hue<T>,
-    #[cfg_attr(feature = "wasm", serde(skip))]
+    #[cfg_attr(feature = "serde", serde(skip))]
     _marker: PhantomData<W>,
 }
 
@@ -105,7 +105,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
@@ -129,7 +129,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_serialize() {
         // Act
         let lchab = LCHab::<f64>::new(54.617, 92.151, 27.756);
@@ -154,7 +154,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_deserialize() {
         // Act
         let lchab = LCHab::<f64>::new(54.617, 92.151, 27.756);

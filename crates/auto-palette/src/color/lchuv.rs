@@ -1,7 +1,7 @@
 use std::{fmt::Display, marker::PhantomData};
 
 use num_traits::clamp;
-#[cfg(feature = "wasm")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -34,7 +34,7 @@ use crate::{
 /// assert_eq!(format!("{}", luv), "Luv(56.23, -46.00, 21.73)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct LCHuv<T = f64, W = D65>
 where
     T: FloatNumber,
@@ -43,7 +43,7 @@ where
     pub l: T,
     pub c: T,
     pub h: Hue<T>,
-    #[cfg_attr(feature = "wasm", serde(skip))]
+    #[cfg_attr(feature = "serde", serde(skip))]
     _marker: PhantomData<W>,
 }
 
@@ -105,7 +105,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
@@ -129,7 +129,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_serialize() {
         // Act
         let lchuv: LCHuv<f64> = LCHuv::new(56.232, 50.875, 154.710);
@@ -154,7 +154,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_deserialize() {
         // Act
         let lchuv: LCHuv<f64> = LCHuv::new(56.232, 50.875, 154.710);

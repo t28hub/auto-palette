@@ -1,7 +1,7 @@
 use std::{fmt::Display, marker::PhantomData};
 
 use num_traits::clamp;
-#[cfg(feature = "wasm")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -35,7 +35,7 @@ use crate::{
 /// assert_eq!(format!("{}", lchab), "LCH(ab)(87.74, 119.78, 136.02)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Lab<T = f64, W = D65>
 where
     T: FloatNumber,
@@ -44,7 +44,7 @@ where
     pub l: T,
     pub a: T,
     pub b: T,
-    #[cfg_attr(feature = "wasm", serde(skip))]
+    #[cfg_attr(feature = "serde", serde(skip))]
     _marker: PhantomData<W>,
 }
 
@@ -315,7 +315,7 @@ where
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
@@ -333,7 +333,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_serialize() {
         // Act
         let lab = Lab::<_>::new(53.2437, 80.09315, 67.2388);
@@ -358,7 +358,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_deserialize() {
         // Act
         let lab = Lab::<_>::new(66.48, -29.16, 20.62);

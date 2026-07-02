@@ -7,7 +7,7 @@ use crate::math::sampling::SamplingError;
 /// This enum provides a high-level classification of errors by the operation
 /// that failed. The [`Extraction`](Error::Extraction), [`Selection`](Error::Selection),
 /// and [`Unsupported`](Error::Unsupported) variants wrap opaque error structs
-/// whose [`kind()`] method provides a coarse classification.
+/// whose `kind()` method provides a coarse classification.
 /// The [`Image`](Error::Image) variant wraps an [`ImageError`] enum directly.
 ///
 /// Use [`Display`](fmt::Display) for user-facing messages.

@@ -1,6 +1,6 @@
 use std::{fmt, fmt::Display};
 
-#[cfg(feature = "wasm")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -35,7 +35,7 @@ use crate::{
 /// assert_eq!(format!("{}", xyz), "XYZ(0.42, 0.22, 0.07)");
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct RGB {
     pub r: u8,
     pub g: u8,
@@ -221,7 +221,7 @@ where
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
@@ -238,7 +238,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_serialize() {
         // Act
         let rgb = RGB::new(255, 0, 64);
@@ -263,7 +263,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_deserialize() {
         // Act
         let rgb = RGB::new(64, 255, 0);

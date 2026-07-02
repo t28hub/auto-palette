@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use num_traits::clamp;
-#[cfg(feature = "wasm")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -33,7 +33,7 @@ use crate::{
 /// assert_eq!(format!("{}", oklab), "Oklab(0.61, -0.12, 0.03)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Oklch<T = f64>
 where
     T: FloatNumber,
@@ -97,7 +97,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
@@ -120,7 +120,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_serialize() {
         // Act
         let oklch = Oklch::new(0.607, 0.121, 166.651);
@@ -145,7 +145,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_deserialize() {
         // Act
         let oklch = Oklch::new(0.70, 0.10, 148.0);

@@ -2,7 +2,8 @@ use crate::{math::DistanceMetric, FloatNumber};
 
 /// Configuration for the DBSCAN segmentation algorithm.
 ///
-/// Use this to customize parameters before creating a [`DbscanSegmentation`] via [`TryFrom`].
+/// Pass this to [`PaletteBuilder::algorithm`](crate::PaletteBuilder::algorithm)
+/// to tune the algorithm parameters.
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.

@@ -61,7 +61,11 @@ where
     ///
     /// # Returns
     /// A `SegmentationResult` representing the segmented regions, or an error if segmentation fails.
-    pub fn segment<F>(&self, image: &ImageData, filter: &F) -> Result<SegmentationResult<T>, Error>
+    pub(crate) fn segment<F>(
+        &self,
+        image: &ImageData,
+        filter: &F,
+    ) -> Result<SegmentationResult<T>, Error>
     where
         F: Filter,
     {

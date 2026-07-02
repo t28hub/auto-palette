@@ -45,12 +45,15 @@ anyhow     = { workspace = true }
 divan      = { workspace = true }
 image      = { workspace = true, features = ["jpeg", "png"] }
 rstest     = { workspace = true }
+serde_json = { workspace = true }
 serde_test = { workspace = true }
 
 [features]
 default = ["image"]
 image   = ["dep:image"]
-wasm    = ["dep:serde"]
+serde   = ["dep:serde"]
+# Backwards-compatible alias kept for the wasm bindings crate.
+wasm    = ["serde"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(coverage,coverage_nightly)"] }

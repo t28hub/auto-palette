@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[cfg(feature = "wasm")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::math::FloatNumber;
@@ -73,7 +73,7 @@ where
     }
 }
 
-#[cfg(feature = "wasm")]
+#[cfg(feature = "serde")]
 impl<T> Serialize for Hue<T>
 where
     T: FloatNumber + Serialize,
@@ -86,7 +86,7 @@ where
     }
 }
 
-#[cfg(feature = "wasm")]
+#[cfg(feature = "serde")]
 impl<'de, T> Deserialize<'de> for Hue<T>
 where
     T: FloatNumber + Deserialize<'de>,
@@ -136,7 +136,7 @@ mod tests {
     use std::f64::consts::PI;
 
     use rstest::rstest;
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
@@ -188,7 +188,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_serialize() {
         // Act
         let hue = Hue::from_degrees(45.0);
@@ -198,7 +198,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_deserialize() {
         // Act
         let hue = Hue::from_degrees(60.0);

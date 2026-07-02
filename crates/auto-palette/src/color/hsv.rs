@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use num_traits::clamp;
-#[cfg(feature = "wasm")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -31,7 +31,7 @@ use crate::{
 /// assert_eq!(format!("{}", hsv), "HSV(60.00, 1.00, 1.00)");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct HSV<T = f64>
 where
     T: FloatNumber,
@@ -114,7 +114,7 @@ where
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
@@ -152,7 +152,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_serialize() {
         // Act
         let hsv = HSV::new(60.0, 0.75, 0.5);
@@ -177,7 +177,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "wasm")]
+    #[cfg(feature = "serde")]
     fn test_deserialize() {
         // Act
         let hsv = HSV::new(30.0, 0.5, 0.75);

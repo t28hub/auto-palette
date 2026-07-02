@@ -22,6 +22,7 @@ use crate::{color::Color, math::FloatNumber};
 /// assert_eq!(swatch.ratio(), 0.25);
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Swatch<T>
 where
     T: FloatNumber,
@@ -143,5 +144,20 @@ mod tests {
                 ratio: 0.0,
             }
         )
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn test_serde_round_trip() {
+        // Arrange
+        let color = Color::new(80.0, 10.0, -20.0);
+        let swatch: Swatch<f64> = Swatch::new(color, (5, 10), 384, 0.25);
+
+        // Act
+        let serialized = serde_json::to_string(&swatch).unwrap();
+        let deserialized: Swatch<f64> = serde_json::from_str(&serialized).unwrap();
+
+        // Assert
+        assert_eq!(deserialized, swatch);
     }
 }

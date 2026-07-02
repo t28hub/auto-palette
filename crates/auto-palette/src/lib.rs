@@ -5,11 +5,12 @@ mod error;
 mod image;
 mod math;
 mod palette;
-mod segmentation;
+pub mod segmentation;
 mod swatch;
 mod theme;
 
 pub use algorithm::Algorithm;
+pub use segmentation::SegmentationMethod;
 pub use error::{
     Error,
     ExtractionError,
@@ -22,6 +23,6 @@ pub use error::{
 };
 pub use image::{filter::Filter, ImageData, Rgba};
 pub use math::FloatNumber;
-pub use palette::Palette;
+pub use palette::{Palette, PaletteBuilder};
 pub use swatch::Swatch;
 pub use theme::Theme;

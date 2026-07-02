@@ -2,7 +2,8 @@ use crate::{math::DistanceMetric, segmentation::seed::SeedGenerator, FloatNumber
 
 /// Configuration for the SLIC segmentation algorithm.
 ///
-/// Use this to customize parameters before creating a [`SlicSegmentation`] via [`TryFrom`].
+/// Pass this to [`PaletteBuilder::algorithm`](crate::PaletteBuilder::algorithm)
+/// to tune the algorithm parameters.
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.

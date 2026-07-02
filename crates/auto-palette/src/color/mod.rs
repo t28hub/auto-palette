@@ -73,6 +73,14 @@ use crate::{color::error::ColorError, math::FloatNumber};
 /// assert_eq!(format!("{}", lab), "Lab(52.92, 13.59, -60.47)");
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(bound(
+        serialize = "T: serde::Serialize",
+        deserialize = "T: serde::Deserialize<'de>"
+    ))
+)]
 pub struct Color<T, W = D65>
 where
     T: FloatNumber,
@@ -80,6 +88,7 @@ where
     pub(super) l: T,
     pub(super) a: T,
     pub(super) b: T,
+    #[cfg_attr(feature = "serde", serde(skip))]
     _marker: PhantomData<W>,
 }
 
@@ -387,6 +396,26 @@ where
         let (x, y, z) = rgb_to_xyz::<T>(r as u8, g as u8, b as u8);
         let (l, a, b) = xyz_to_lab::<T, D65>(x, y, z);
         Self::new(l, a, b)
+    }
+}
+
+impl<T> From<&RGB> for Color<T>
+where
+    T: FloatNumber,
+{
+    fn from(rgb: &RGB) -> Self {
+        let (x, y, z) = rgb_to_xyz::<T>(rgb.r, rgb.g, rgb.b);
+        let (l, a, b) = xyz_to_lab::<T, D65>(x, y, z);
+        Self::new(l, a, b)
+    }
+}
+
+impl<T> From<RGB> for Color<T>
+where
+    T: FloatNumber,
+{
+    fn from(rgb: RGB) -> Self {
+        Self::from(&rgb)
     }
 }
 

@@ -37,7 +37,7 @@ use crate::{
 ///     assert_eq!(image_data.data(), &pixels);
 /// }
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImageData<'a> {
     width: u32,
     height: u32,

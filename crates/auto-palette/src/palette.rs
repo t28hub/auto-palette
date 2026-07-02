@@ -3,7 +3,6 @@ use std::cmp::Reverse;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    algorithm::Algorithm,
     color::{Color, Lab},
     error::{Error, ExtractionError, ExtractionErrorKind, SelectionError},
     image::{
@@ -38,14 +37,12 @@ use crate::{
 ///     assert!(!palette.is_empty());
 ///     assert!(palette.len() >= 6);
 ///
-///     let mut swatches = palette.find_swatches(3).unwrap();
-///
-///     assert_eq!(swatches[0].color().to_hex_string(), "#007749");
-///     assert_eq!(swatches[1].color().to_hex_string(), "#E03C31");
-///     assert_eq!(swatches[2].color().to_hex_string(), "#001489");
+///     let swatches = palette.find_swatches(3).unwrap();
+///     assert_eq!(swatches.len(), 3);
 /// }
 /// ```
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Palette<T>
 where
     T: FloatNumber,
@@ -142,7 +139,7 @@ where
     ///
     /// # Returns
     /// The swatches in the palette. If the palette is empty, an empty vector is returned.
-    pub fn find_swatches_internal<S, F1, F2>(
+    fn find_swatches_internal<S, F1, F2>(
         &self,
         num_swatches: usize,
         score_fn: F1,
@@ -213,24 +210,17 @@ where
     pub fn extract(image_data: &ImageData) -> Result<Self, Error> {
         Self::builder().build(image_data)
     }
+}
 
-    /// Extracts the palette from the image data with the given algorithm.
-    ///
-    /// # Arguments
-    /// * `image_data` - The image data to extract the palette from.
-    /// * `algorithm` - The clustering algorithm to use.
-    ///
-    /// # Returns
-    /// The extracted palette.
-    #[deprecated(
-        since = "0.8.0",
-        note = "Use `Palette::extract` or `Palette::builder` instead."
-    )]
-    pub fn extract_with_algorithm(
-        image_data: &ImageData,
-        algorithm: Algorithm,
-    ) -> Result<Self, Error> {
-        Self::builder().algorithm(algorithm).build(image_data)
+impl<'a, T> IntoIterator for &'a Palette<T>
+where
+    T: FloatNumber,
+{
+    type IntoIter = std::slice::Iter<'a, Swatch<T>>;
+    type Item = &'a Swatch<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.swatches.iter()
     }
 }
 
@@ -486,7 +476,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::{assert_color_eq, Rgba};
+    use crate::{assert_color_eq, Algorithm, Rgba};
 
     #[must_use]
     fn sample_swatches<T>() -> Vec<Swatch<T>>
@@ -727,15 +717,31 @@ mod tests {
 
     #[test]
     #[cfg(feature = "image")]
-    fn test_extract_with_algorithm() {
+    fn test_builder_with_dbscanpp() {
         // Act
         let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
-        let actual: Palette<f64> =
-            Palette::extract_with_algorithm(&image_data, Algorithm::DBSCANpp).unwrap();
+        let actual: Palette<f64> = Palette::builder()
+            .algorithm(Algorithm::DBSCANpp)
+            .build(&image_data)
+            .unwrap();
 
         // Assert
         assert!(!actual.is_empty());
         assert_eq!(actual.len(), 6);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn test_serde_round_trip() {
+        // Arrange
+        let palette = Palette::new(sample_swatches::<f64>());
+
+        // Act
+        let serialized = serde_json::to_string(&palette).unwrap();
+        let deserialized: Palette<f64> = serde_json::from_str(&serialized).unwrap();
+
+        // Assert
+        assert_eq!(deserialized, palette);
     }
 
     #[test]

@@ -22,10 +22,6 @@ use crate::{
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Theme {
-    /// The theme selects the swatches based on the population of the swatches.
-    /// The swatches are scored based on the population of the swatches.
-    #[deprecated(since = "0.8.0", note = "Use Palette::find_swatches() instead.")]
-    Basic,
     /// The theme selects the swatches based on the moderate chroma and lightness.
     /// The high chroma and lightness swatches are scored higher.
     Colorful,
@@ -64,10 +60,6 @@ impl Theme {
         T: FloatNumber,
     {
         let params = match self {
-            #[allow(deprecated)]
-            Theme::Basic => {
-                return swatch.ratio();
-            }
             Theme::Colorful => ThemeParams {
                 mean_chroma: T::from_f64(0.75),
                 sigma_chroma: T::from_f64(0.18),
@@ -120,8 +112,6 @@ impl FromStr for Theme {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            #[allow(deprecated)]
-            "basic" => Ok(Theme::Basic),
             "colorful" => Ok(Theme::Colorful),
             "vivid" => Ok(Theme::Vivid),
             "muted" => Ok(Theme::Muted),
@@ -162,17 +152,6 @@ mod tests {
 
     use super::*;
     use crate::{assert_approx_eq, color::Color};
-
-    #[test]
-    fn test_score_basic() {
-        // Act
-        let color: Color<f64> = Color::from_str("#ff0080").unwrap();
-        let swatch = Swatch::new(color, (32, 64), 256, 0.25);
-        let actual = Theme::Basic.score(&swatch);
-
-        // Assert
-        assert_approx_eq!(actual, 0.25);
-    }
 
     #[rstest]
     #[case::black("#000000", 0.000001)]
@@ -290,19 +269,16 @@ mod tests {
     }
 
     #[rstest]
-    #[case::basic("basic", Theme::Basic)]
     #[case::colorful("colorful", Theme::Colorful)]
     #[case::vivid("vivid", Theme::Vivid)]
     #[case::muted("muted", Theme::Muted)]
     #[case::light("light", Theme::Light)]
     #[case::dark("dark", Theme::Dark)]
-    #[case::basic_upper("BASIC", Theme::Basic)]
     #[case::colorful_upper("COLORFUL", Theme::Colorful)]
     #[case::vivid_upper("VIVID", Theme::Vivid)]
     #[case::muted_upper("MUTED", Theme::Muted)]
     #[case::light_upper("LIGHT", Theme::Light)]
     #[case::dark_upper("DARK", Theme::Dark)]
-    #[case::basic_capitalized("Basic", Theme::Basic)]
     #[case::colorful_capitalized("Colorful", Theme::Colorful)]
     #[case::vivid_capitalized("Vivid", Theme::Vivid)]
     #[case::muted_capitalized("Muted", Theme::Muted)]
