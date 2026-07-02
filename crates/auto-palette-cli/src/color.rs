@@ -29,20 +29,6 @@ impl ColorMode {
         }
     }
 
-    /// Returns the ANSI color code for foreground.
-    ///
-    /// # Returns
-    /// The ANSI color code for foreground.
-    #[inline]
-    #[must_use]
-    pub fn fg_code(&self) -> String {
-        match self {
-            Self::Ansi16(color) => format!("{}", color.foreground()),
-            Self::Ansi256(color) => format!("38;5;{}", color.code()),
-            Self::TrueColor(color) => format!("38;2;{};{};{}", color.r, color.g, color.b),
-            Self::NoColor => String::from("39"),
-        }
-    }
 }
 
 #[cfg(test)]
@@ -66,18 +52,4 @@ mod tests {
         assert_eq!(color.bg_code(), "49");
     }
 
-    #[test]
-    fn test_fg_code() {
-        let color = ColorMode::Ansi16(Ansi16::bright_blue());
-        assert_eq!(color.fg_code(), "94");
-
-        let color = ColorMode::Ansi256(Ansi256::new(33));
-        assert_eq!(color.fg_code(), "38;5;33");
-
-        let color = ColorMode::TrueColor(RGB::new(0, 102, 255));
-        assert_eq!(color.fg_code(), "38;2;0;102;255");
-
-        let color = ColorMode::NoColor;
-        assert_eq!(color.fg_code(), "39");
-    }
 }

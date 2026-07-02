@@ -2,7 +2,12 @@ use std::io::{BufWriter, Error, Write};
 
 use auto_palette::{color::Color, FloatNumber, Swatch};
 
-use crate::{color::ColorMode, context::Context, output::Printer, style::style};
+use crate::{
+    color::ColorMode,
+    context::Context,
+    output::{measure_swatch_widths, Printer},
+    style::style,
+};
 
 /// The text printer for printing the swatches.
 ///
@@ -87,20 +92,7 @@ impl Printer for TextPrinter<'_> {
     {
         let mut writer = BufWriter::new(output);
 
-        let color_format = self.context.args().color_space;
-        let widths = swatches.iter().fold([0, 0, 0], |acc, swatch| {
-            let color_width = color_format.fmt(swatch.color()).len();
-
-            let (x, y) = swatch.position();
-            let position_width = format!("({x}, {y})").len();
-
-            let population_width = swatch.population().to_string().len();
-            [
-                acc[0].max(color_width),
-                acc[1].max(position_width),
-                acc[2].max(population_width),
-            ]
-        });
+        let widths = measure_swatch_widths(swatches, self.context.args().color_space);
 
         for swatch in swatches {
             let text = self.swatch_to_text(swatch, &widths);

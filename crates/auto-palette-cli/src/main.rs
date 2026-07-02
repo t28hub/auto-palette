@@ -1,4 +1,4 @@
-use std::{process, time::Instant};
+use std::{io::ErrorKind, time::Instant};
 
 use anyhow::Context;
 use auto_palette::{Algorithm, ImageData, Palette, Rgba, Theme};
@@ -21,7 +21,11 @@ const MAX_IMAGE_HEIGHT: f64 = 360.0;
 
 // The entry point of the CLI application.
 fn main() -> anyhow::Result<()> {
-    let context = CLIContext::new(Options::parse(), Env::init());
+    run(&CLIContext::new(Options::parse(), Env::init()))
+}
+
+/// Runs the CLI application with the given context.
+fn run(context: &CLIContext) -> anyhow::Result<()> {
     let args = context.args();
     let image = match (&args.path, args.clipboard) {
         (None, false) => {
@@ -43,7 +47,7 @@ fn main() -> anyhow::Result<()> {
         MAX_IMAGE_HEIGHT / image_height,
     );
 
-    let resized = if context.args().no_resize {
+    let resized = if args.no_resize {
         image
     } else {
         image.resize_exact(
@@ -53,48 +57,36 @@ fn main() -> anyhow::Result<()> {
         )
     };
 
-    let Ok(image_data) = ImageData::try_from(&resized) else {
-        process::exit(1);
-    };
+    let image_data =
+        ImageData::try_from(&resized).context("failed to convert the image to image data")?;
 
     let instant = Instant::now();
-    let algorithm = Algorithm::from(context.args().algorithm);
-    let Ok(palette) = Palette::<f64>::builder()
+    let algorithm = Algorithm::from(args.algorithm);
+    let palette = Palette::<f64>::builder()
         .algorithm(algorithm)
         .filter(|pixel: &Rgba| pixel[3] != 0)
         .build(&image_data)
-    else {
-        process::exit(1);
-    };
+        .context("failed to extract the color palette from the image")?;
 
-    let count = context.args().count;
-    if count < 1 {
-        return Err(anyhow::anyhow!(
-            "invalid value '{}' for '--count <count>': must be a positive integer",
-            count
-        ));
-    }
-    let swatches = context
-        .args()
+    let swatches = args
         .theme
         .map_or_else(
-            || palette.find_swatches(context.args().count),
+            || palette.find_swatches(args.count),
             |option| {
                 let theme = Theme::from(option);
-                palette.find_swatches_with_theme(context.args().count, theme)
+                palette.find_swatches_with_theme(args.count, theme)
             },
         )
-        .with_context(|| {
-            format!(
-                "failed to find swatches with theme {:?}",
-                context.args().theme
-            )
-        })?;
-    context
-        .args()
-        .output_format
-        .print(&context, &swatches)
-        .unwrap();
+        .with_context(|| format!("failed to find swatches with theme {:?}", args.theme))?;
+
+    if let Err(error) = args.output_format.print(context, &swatches) {
+        // Exit quietly when the output is piped to a consumer that stops
+        // reading (e.g. `auto-palette image.png | head`).
+        if error.kind() == ErrorKind::BrokenPipe {
+            return Ok(());
+        }
+        return Err(anyhow::Error::new(error).context("failed to print the swatches"));
+    }
 
     println!(
         "Extracted {} swatch(es) in {}.{:03} seconds",

@@ -2,7 +2,10 @@ use std::io::{BufWriter, Error, Write};
 
 use auto_palette::{FloatNumber, Swatch};
 
-use crate::{context::Context, output::Printer};
+use crate::{
+    context::Context,
+    output::{measure_swatch_widths, Printer},
+};
 
 const HEADINGS: [&str; 4] = ["#", "Color", "Position", "Population"];
 
@@ -36,30 +39,13 @@ impl Printer for TablePrinter<'_> {
         let mut writer = BufWriter::new(output);
 
         let color_format = self.context.args().color_space;
-        let initial_widths = [
-            HEADINGS[0].len(),
-            HEADINGS[1].len(),
-            HEADINGS[2].len(),
-            HEADINGS[3].len(),
+        let swatch_widths = measure_swatch_widths(swatches, color_format);
+        let widths = [
+            HEADINGS[0].len().max(swatches.len().to_string().len()),
+            HEADINGS[1].len().max(swatch_widths[0]),
+            HEADINGS[2].len().max(swatch_widths[1]),
+            HEADINGS[3].len().max(swatch_widths[2]),
         ];
-        let widths = swatches
-            .iter()
-            .enumerate()
-            .fold(initial_widths, |acc, (i, swatch)| {
-                let number_width = (i + 1).to_string().len();
-                let color_width = color_format.fmt(swatch.color()).len();
-
-                let (x, y) = swatch.position();
-                let position_width = format!("({x}, {y})").len();
-
-                let population_width = swatch.population().to_string().len();
-                [
-                    acc[0].max(number_width),
-                    acc[1].max(color_width),
-                    acc[2].max(position_width),
-                    acc[3].max(population_width),
-                ]
-            });
 
         // Write the header.
         write_horizontal_separator(&mut writer, &widths, 1)?;

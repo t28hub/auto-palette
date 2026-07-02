@@ -54,7 +54,8 @@ pub struct Options {
         short = 'n',
         value_name = "N",
         help = "Number of swatches",
-        default_value = "5"
+        default_value = "5",
+        value_parser = parse_count,
     )]
     pub count: usize,
 
@@ -89,6 +90,15 @@ pub struct Options {
 
     #[arg(long, help = "Read image from system clipboard instead of a file.")]
     pub clipboard: bool,
+}
+
+/// Parses the number of swatches, rejecting zero so that invalid counts fail
+/// before any image decoding or palette extraction happens.
+fn parse_count(s: &str) -> Result<usize, String> {
+    match s.parse::<usize>() {
+        Ok(count) if count >= 1 => Ok(count),
+        _ => Err(String::from("must be a positive integer")),
+    }
 }
 
 /// The algorithm options for extracting the color palette from the image.

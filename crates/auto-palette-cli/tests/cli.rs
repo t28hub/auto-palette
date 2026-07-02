@@ -3,7 +3,7 @@ use std::{borrow::Cow, io::Cursor, str::FromStr};
 use arboard::Clipboard;
 use assert_cmd::Command;
 use auto_palette::color::Color;
-use image::io::Reader as ImageReader;
+use image::ImageReader;
 use predicates::prelude::*;
 use rstest::rstest;
 
@@ -206,7 +206,7 @@ fn test_invalid_count() {
         .arg("0")
         .assert()
         .stderr(predicate::str::contains(
-            "invalid value '0' for '--count <count>': must be a positive integer",
+            "invalid value '0' for '--count <N>': must be a positive integer",
         ));
     assert.failure();
 }
