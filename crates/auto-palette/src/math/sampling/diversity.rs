@@ -139,11 +139,7 @@ where
                 }
             }
 
-            compute_ranks_into(
-                &similarities,
-                &mut sorted_indices,
-                &mut dissimilarity_ranks,
-            );
+            compute_ranks_into(&similarities, &mut sorted_indices, &mut dissimilarity_ranks);
             let best_index = find_best_index(
                 &self.ranked.ranks,
                 &dissimilarity_ranks,

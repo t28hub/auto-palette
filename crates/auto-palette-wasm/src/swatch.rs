@@ -106,6 +106,13 @@ impl JsSwatch {
         to_value(&self.position).map_err(|cause| JsError::new(&cause.to_string()))
     }
 
+    /// Returns the position of this swatch as a tuple, without crossing the
+    /// JS boundary.
+    #[inline]
+    pub(crate) fn position_tuple(&self) -> (u32, u32) {
+        (self.position.x, self.position.y)
+    }
+
     /// Returns the population of this swatch.
     ///
     /// @returns The population of this swatch.

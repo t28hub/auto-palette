@@ -742,7 +742,9 @@ mod tests {
         assert_eq!(actual.len(), 6);
 
         // Every color of the Olympic logo is present, in any order.
-        let expected = ["#FFFFFF", "#0081C8", "#EE334E", "#000000", "#00A651", "#FCB131"];
+        let expected = [
+            "#FFFFFF", "#0081C8", "#EE334E", "#000000", "#00A651", "#FCB131",
+        ];
         for hex in expected {
             let expected_color = Color::<f64>::from_str(hex).unwrap();
             let matched = actual

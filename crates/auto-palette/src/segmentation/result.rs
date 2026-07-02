@@ -429,9 +429,7 @@ mod tests {
         let src_label = 1usize;
 
         let dst_label = 2usize;
-        builder
-            .get_mut(&dst_label)
-            .insert(&[1.0; LABXY_CHANNELS]);
+        builder.get_mut(&dst_label).insert(&[1.0; LABXY_CHANNELS]);
 
         // Act
         let actual = builder.merge(&src_label, &dst_label);
@@ -448,9 +446,7 @@ mod tests {
         let mut builder = SegmentationResult::<f64>::builder(480, 320);
 
         let src_label = 1usize;
-        builder
-            .get_mut(&src_label)
-            .insert(&[1.0; LABXY_CHANNELS]);
+        builder.get_mut(&src_label).insert(&[1.0; LABXY_CHANNELS]);
 
         let dst_label = 2usize;
 

@@ -55,7 +55,7 @@ Options:
   -n, --count <N>               Number of swatches [default: 5]
   -c, --color-space <SPACE>     Output color space [default: hex] [possible values: hex, rgb, cmyk, hsl, hsv, lab, luv, lchab, lchuv, oklab, oklch, xyz]
   -o, --output-format <FORMAT>  Output format [default: text] [possible values: json, text, table]
-      --no-resize               Disable image resizing before extracting the color palette.
+      --no-resize               Disable image downsampling before extracting the color palette.
       --clipboard               Read image from system clipboard instead of a file.
   -h, --help                    Print help (see more with '--help')
   -V, --version                 Print version

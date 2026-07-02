@@ -28,7 +28,6 @@ impl ColorMode {
             Self::NoColor => String::from("49"),
         }
     }
-
 }
 
 #[cfg(test)]
@@ -51,5 +50,4 @@ mod tests {
         let color = ColorMode::NoColor;
         assert_eq!(color.bg_code(), "49");
     }
-
 }

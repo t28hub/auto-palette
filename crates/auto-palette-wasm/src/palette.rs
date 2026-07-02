@@ -1,10 +1,8 @@
 use auto_palette::{Algorithm, ImageData, Palette, Rgba, Swatch, Theme};
-use serde_wasm_bindgen::from_value;
 use wasm_bindgen::{prelude::wasm_bindgen, JsError};
 use web_sys::ImageData as ImageSource;
 
 use crate::{
-    position::JsPosition,
     swatch::JsSwatch,
     types::{JsAlgorithm, JsTheme},
 };
@@ -47,10 +45,12 @@ export class Palette {
      *
      * @param image The image to extract the palette from.
      * @param algorithm The algorithm to use for palette extraction. Defaults to 'dbscan'.
+     * @param maxPixels The maximum number of pixels to process. Larger images are
+     *   downsampled before extraction. Defaults to 65,536 (256x256).
      * @returns A new `Palette` instance.
      * @throws Error if the image is invalid or the palette extraction fails.
      */
-    static extract(image: ImageData, algorithm?: Algorithm): Palette;
+    static extract(image: ImageData, algorithm?: Algorithm, maxPixels?: number): Palette;
 }
 "#;
 
@@ -66,27 +66,19 @@ impl JsPalette {
     /// @param swatches The swatches in the palette.
     /// @returns A new `Palette` instance.
     #[wasm_bindgen(constructor)]
-    pub fn new(swatches: Vec<JsSwatch>) -> Result<Self, JsError> {
+    pub fn new(swatches: Vec<JsSwatch>) -> Self {
         let swatches = swatches
             .into_iter()
-            .filter_map(|swatch| {
-                let color = swatch.color();
-                let position = swatch
-                    .position()
-                    .map(|value| from_value::<JsPosition>(value).map(|p| (p.x, p.y)).ok())
-                    .ok()
-                    .flatten()?;
-
-                Some(Swatch::new(
-                    color.0,
-                    position,
+            .map(|swatch| {
+                Swatch::new(
+                    swatch.color().0,
+                    swatch.position_tuple(),
                     swatch.population(),
                     swatch.ratio(),
-                ))
+                )
             })
             .collect();
-        let palette = Palette::new(swatches);
-        Ok(Self(palette))
+        Self(Palette::new(swatches))
     }
 
     /// Returns the number of swatches in this palette.
@@ -137,10 +129,16 @@ impl JsPalette {
     ///
     /// @param image The image to extract the palette from.
     /// @param algorithm The algorithm to use for palette extraction. Defaults to 'dbscan'.
+    /// @param maxPixels The maximum number of pixels to process. Larger images are
+    ///   downsampled before extraction. Defaults to 65,536 (256x256).
     /// @returns A new `Palette` instance.
     /// @throws Error if the image is invalid or the palette extraction fails.
     #[wasm_bindgen]
-    pub fn extract(image: &ImageSource, algorithm: Option<JsAlgorithm>) -> Result<Self, JsError> {
+    pub fn extract(
+        image: &ImageSource,
+        algorithm: Option<JsAlgorithm>,
+        max_pixels: Option<usize>,
+    ) -> Result<Self, JsError> {
         let width = image.width();
         let height = image.height();
         let data = image.data();
@@ -151,9 +149,13 @@ impl JsPalette {
             .map(Algorithm::try_from)
             .unwrap_or(Ok(Algorithm::DBSCAN))?;
 
-        let palette = Palette::builder()
+        let mut builder = Palette::builder()
             .algorithm(algorithm)
-            .filter(|pixel: &Rgba| pixel[3] != 0)
+            .filter(|pixel: &Rgba| pixel[3] != 0);
+        if let Some(max_pixels) = max_pixels {
+            builder = builder.max_pixels(max_pixels);
+        }
+        let palette = builder
             .build(&image_data)
             .map_err(|e| JsError::new(&format!("Failed to extract palette from image: {e}")))?;
         Ok(Self(palette))

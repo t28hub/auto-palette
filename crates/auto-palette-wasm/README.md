@@ -2,12 +2,32 @@
 
 > A WebAssembly binding for [`auto-palette`](https://crates.io/crates/auto-palette), allowing it to automatically extract color palettes from images.
 
+## Usage
+
+```typescript
+import { Palette } from '@auto-palette/wasm';
+
+const canvas = document.querySelector('canvas');
+const context = canvas.getContext('2d');
+const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+// Extract a palette (algorithm and pixel budget are optional).
+const palette = Palette.extract(imageData, 'dbscan');
+const swatches = palette.findSwatches(5, 'vivid');
+for (const swatch of swatches) {
+  console.log(swatch.color.toHexString(), swatch.position, swatch.population);
+}
+```
+
 ## Development
 
 ### Run unit tests
 
+The unit tests are browser tests, so they must be compiled for the
+`wasm32-unknown-unknown` target:
+
 ```sh
-cargo nextest run --tests --package auto-palette-wasm
+cargo test --tests --package auto-palette-wasm --target wasm32-unknown-unknown
 ```
 
 ### Run wasm-pack tests
