@@ -145,11 +145,13 @@ where
     /// `self.query().count(num_swatches).theme(theme).execute()`.
     ///
     /// # Arguments
-    /// * `num_swatches` - The number of swatches to find.
+    /// * `num_swatches` - The maximum number of swatches to find.
     /// * `theme` - The theme to use.
     ///
     /// # Returns
-    /// The swatches in the palette based on the theme.
+    /// The swatches in the palette based on the theme. Fewer swatches than
+    /// requested may be returned when the palette has few colors matching
+    /// the theme.
     pub fn find_swatches_with_theme(
         &self,
         num_swatches: usize,
@@ -163,6 +165,8 @@ where
     /// # Arguments
     /// * `num_swatches` - The number of swatches to find.
     /// * `score_fn` - The function to score the swatches.
+    /// * `min_score_ratio` - When set, swatches scoring below this fraction of
+    ///   the best score are excluded before sampling.
     /// * `sampling_factory` - The function to create the sampling algorithm.
     ///
     /// # Returns
@@ -171,6 +175,7 @@ where
         &self,
         num_swatches: usize,
         score_fn: F1,
+        min_score_ratio: Option<T>,
         sampling_factory: F2,
     ) -> Result<Vec<Swatch<T>>, Error>
     where
@@ -196,6 +201,26 @@ where
             colors.push([color.l, color.a, color.b]);
             scores.push(score);
             indices.push(index);
+        }
+
+        // Filter out swatches scoring well below the best candidate, so that
+        // the sampling below chooses for diversity among qualified candidates
+        // instead of trading score fidelity against visual variety.
+        if let Some(ratio) = min_score_ratio {
+            let max_score = scores.iter().copied().fold(T::zero(), T::max);
+            let cutoff = max_score * ratio;
+            let mut kept = 0;
+            for i in 0..scores.len() {
+                if scores[i] >= cutoff {
+                    colors.swap(kept, i);
+                    scores.swap(kept, i);
+                    indices.swap(kept, i);
+                    kept += 1;
+                }
+            }
+            colors.truncate(kept);
+            scores.truncate(kept);
+            indices.truncate(kept);
         }
 
         let num_swatches = num_swatches.min(indices.len());
@@ -255,11 +280,25 @@ where
 /// The default diversity factor for population-ratio scoring.
 const DEFAULT_DIVERSITY_FACTOR: f64 = 0.6;
 
-/// The default diversity factor for themed and custom scoring.
+/// The fraction of the best theme score below which candidates are excluded.
 ///
-/// Smaller than [`DEFAULT_DIVERSITY_FACTOR`] so that the selection leans
-/// towards score fidelity: when a theme is requested, matching the theme
-/// matters more than spreading the colors apart.
+/// Themed selection first drops swatches scoring well below the best
+/// candidate, then samples for diversity among the remaining qualified
+/// candidates. Without this cutoff the selection has to trade score fidelity
+/// against visual variety, which tends to pick several close shades of the
+/// best-scoring hue.
+const THEME_CANDIDATE_SCORE_RATIO: f64 = 0.1;
+
+/// The default diversity factor for themed scoring.
+///
+/// Theme fit is already guaranteed by [`THEME_CANDIDATE_SCORE_RATIO`], so the
+/// selection can lean towards visual variety among the qualified candidates.
+const DEFAULT_THEME_DIVERSITY_FACTOR: f64 = 0.85;
+
+/// The default diversity factor for custom scoring.
+///
+/// Custom scores have no candidate cutoff, so the selection stays closer to
+/// score fidelity.
 const DEFAULT_SCORED_DIVERSITY_FACTOR: f64 = 0.3;
 
 /// The exponent applied to the normalized population when scoring swatches
@@ -301,10 +340,14 @@ where
 ///   wins). Theme scores are additionally weighted by each swatch's
 ///   population relative to the dominant swatch, so rare noise colors do not
 ///   outrank prominent colors.
-/// * Selection balances score against color diversity. The default trade-off
-///   factor is `0.6` for population-ratio scoring and `0.3` (leaning towards
-///   score fidelity) for themed and custom scoring; set it explicitly with
-///   [`diversity`](Self::diversity).
+/// * Themed selection first excludes candidates scoring below 10% of the
+///   best score, then selects for visual variety among the qualified
+///   candidates (trade-off factor `0.85`). Because of this cutoff, fewer
+///   swatches than requested may be returned when the palette has few colors
+///   matching the theme.
+/// * Population-ratio scoring uses a balanced trade-off factor of `0.6`;
+///   custom scoring stays close to score fidelity (`0.3`) and applies no
+///   cutoff. Set the factor explicitly with [`diversity`](Self::diversity).
 ///
 /// # Type Parameters
 /// * `T` - The floating point type.
@@ -413,7 +456,16 @@ where
     /// diversity factor outside `[0, 1]`).
     pub fn execute(self) -> Result<Vec<Swatch<T>>, Error> {
         let count = self.count.unwrap_or_else(|| self.palette.len());
-        let scored = !matches!(self.score, ScoreSource::Ratio);
+        let (default_factor, min_score_ratio) = match self.score {
+            ScoreSource::Ratio => (DEFAULT_DIVERSITY_FACTOR, None),
+            // Theme fit is guaranteed by the candidate cutoff, so the
+            // selection can lean towards visual variety.
+            ScoreSource::Theme(_) => (
+                DEFAULT_THEME_DIVERSITY_FACTOR,
+                Some(T::from_f64(THEME_CANDIDATE_SCORE_RATIO)),
+            ),
+            ScoreSource::Custom(_) => (DEFAULT_SCORED_DIVERSITY_FACTOR, None),
+        };
         let score_fn: Box<dyn Fn(&Swatch<T>) -> T + 'a> = match self.score {
             ScoreSource::Ratio => Box::new(|swatch: &Swatch<T>| swatch.ratio()),
             ScoreSource::Theme(theme) => {
@@ -438,16 +490,12 @@ where
         };
 
         // All score sources select with diversity sampling; only the default
-        // trade-off factor differs.
-        let factor = self.diversity.unwrap_or_else(|| {
-            if scored {
-                T::from_f64(DEFAULT_SCORED_DIVERSITY_FACTOR)
-            } else {
-                T::from_f64(DEFAULT_DIVERSITY_FACTOR)
-            }
-        });
+        // trade-off factor and the candidate cutoff differ.
+        let factor = self
+            .diversity
+            .unwrap_or_else(|| T::from_f64(default_factor));
         self.palette
-            .find_swatches_internal(count, score_fn, |scores| {
+            .find_swatches_internal(count, score_fn, min_score_ratio, |scores| {
                 DiversitySampling::new(factor, scores, DistanceMetric::SquaredEuclidean)
             })
     }
@@ -1186,11 +1234,13 @@ mod tests {
     }
 
     #[rstest]
-    #[case::colorful(Theme::Colorful, vec ! ["#0081C8", "#00A651"])]
-    #[case::vivid(Theme::Vivid, vec ! ["#EE334E", "#FCB131"])]
-    #[case::muted(Theme::Muted, vec ! ["#FFFFFF", "#000000"])]
-    #[case::light(Theme::Light, vec ! ["#00A651", "#FCB131"])]
-    #[case::dark(Theme::Dark, vec ! ["#00A651", "#000000"])]
+    #[case::colorful(Theme::Colorful, vec ! ["#EE334E", "#00A651"])]
+    #[case::vivid(Theme::Vivid, vec ! ["#0081C8", "#FCB131"])]
+    // Only black passes the muted/dark candidate cutoff on this fixture, so
+    // fewer swatches than requested are returned.
+    #[case::muted(Theme::Muted, vec ! ["#000000"])]
+    #[case::light(Theme::Light, vec ! ["#EE334E", "#00A651"])]
+    #[case::dark(Theme::Dark, vec ! ["#000000"])]
     fn test_find_swatches_with_theme(#[case] theme: Theme, #[case] expected: Vec<&str>) {
         // Arrange
         let swatches = sample_swatches::<f64>();
@@ -1202,14 +1252,9 @@ mod tests {
             .expect("Failed to find swatches with theme");
 
         // Assert
-        assert_eq!(actual.len(), 2);
-        assert_color_eq!(
-            actual[0].color(),
-            Color::<f64>::from_str(expected[0]).unwrap()
-        );
-        assert_color_eq!(
-            actual[1].color(),
-            Color::<f64>::from_str(expected[1]).unwrap()
-        );
+        assert_eq!(actual.len(), expected.len());
+        for (actual, expected) in actual.iter().zip(expected.iter()) {
+            assert_color_eq!(actual.color(), Color::<f64>::from_str(expected).unwrap());
+        }
     }
 }
