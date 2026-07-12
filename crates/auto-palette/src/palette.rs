@@ -14,7 +14,7 @@ use crate::{
     math::{
         clustering::{ClusteringAlgorithm, DBSCAN},
         denormalize,
-        sampling::{DiversitySampling, SamplingAlgorithm, SamplingError, WeightedFarthestSampling},
+        sampling::{DiversitySampling, MmrSampling, SamplingAlgorithm, SamplingError},
         DistanceMetric,
     },
     segmentation::{segment::SegmentMetadata, SegmentationMethod},
@@ -125,6 +125,7 @@ impl Palette {
         self.select_swatches(
             count,
             |swatch| swatch.ratio(),
+            |color| [color.l, color.a, color.b],
             |scores| DiversitySampling::new(0.6, scores, DistanceMetric::SquaredEuclidean),
         )
     }
@@ -144,10 +145,24 @@ impl Palette {
     /// The found swatches, sorted by population in descending order.
     #[must_use]
     pub fn find_swatches_with_theme(&self, count: usize, theme: Theme) -> Vec<Swatch> {
+        // A theme constrains chroma and lightness, so the perceived variation
+        // of the selected swatches comes almost entirely from the hue. The
+        // lightness axis is therefore downweighted when measuring diversity:
+        // otherwise two lightness variants of the same hue count as "diverse"
+        // and crowd out genuinely different hues.
         self.select_swatches(
             count,
             |swatch| theme.score(swatch),
-            |scores| WeightedFarthestSampling::new(scores, DistanceMetric::SquaredEuclidean),
+            |color| [THEME_LIGHTNESS_WEIGHT * color.l, color.a, color.b],
+            |scores| {
+                MmrSampling::new(
+                    THEME_DIVERSITY_FACTOR,
+                    THEME_RELEVANCE_GATE,
+                    scores,
+                    DistanceMetric::Euclidean,
+                )
+                .map(|sampling| sampling.with_min_separation(THEME_MIN_SEPARATION))
+            },
         )
     }
 
@@ -156,19 +171,23 @@ impl Palette {
     /// # Arguments
     /// * `count` - The maximum number of swatches to select.
     /// * `score_fn` - The function to score the swatches.
+    /// * `color_fn` - The function projecting a color into the space in which
+    ///   diversity is measured.
     /// * `sampling_factory` - The function to create the sampling algorithm.
     ///
     /// # Returns
     /// The selected swatches, sorted by population in descending order.
-    fn select_swatches<S, F1, F2>(
+    fn select_swatches<S, F1, F2, F3>(
         &self,
         count: usize,
         score_fn: F1,
+        color_fn: F3,
         sampling_factory: F2,
     ) -> Vec<Swatch>
     where
         S: SamplingAlgorithm<f64>,
         F1: Fn(&Swatch) -> f64,
+        F3: Fn(&Color) -> [f64; 3],
         F2: FnOnce(Vec<f64>) -> Result<S, SamplingError>,
     {
         if self.swatches.is_empty() || count == 0 {
@@ -185,8 +204,7 @@ impl Palette {
                 continue;
             }
 
-            let color = swatch.color();
-            colors.push([color.l, color.a, color.b]);
+            colors.push(color_fn(swatch.color()));
             scores.push(score);
             indices.push(index);
         }
@@ -409,6 +427,33 @@ impl Default for PaletteBuilder {
         Self::new()
     }
 }
+
+/// The diversity factor λ for theme-based swatch selection.
+/// The Maximal Marginal Relevance criterion balances theme relevance
+/// (1 - λ) against perceptual diversity (λ) in the CIELAB color space.
+/// Diversity dominates because the relevance gate below already guarantees
+/// that every candidate fits the theme; the remaining job is to spread the
+/// selection perceptually.
+const THEME_DIVERSITY_FACTOR: f64 = 0.7;
+
+/// The weight of the lightness axis when measuring the diversity of
+/// theme-based selections. Themes constrain chroma and lightness, so hue
+/// (the a and b axes) is the main source of perceived variation; lightness
+/// variants of the same hue should count as near-duplicates.
+const THEME_LIGHTNESS_WEIGHT: f64 = 0.25;
+
+/// The relative relevance gate for theme-based swatch selection.
+/// Only swatches scoring at least this fraction of the best score are
+/// eligible. For the Gaussian theme scores this corresponds to roughly a
+/// 2.4σ band around the best-fitting swatch, which keeps every selected
+/// swatch within the theme while the MMR stage maximizes diversity.
+const THEME_RELEVANCE_GATE: f64 = 0.05;
+
+/// The minimum separation between theme-selected swatches, measured in the
+/// lightness-downweighted CIELAB space. Roughly the difference at which two
+/// colors read as clearly distinct hues; swatches closer than this are only
+/// selected once no sufficiently distinct candidate remains.
+const THEME_MIN_SEPARATION: f64 = 20.0;
 
 /// The minimum score threshold for swatches.
 /// Swatches with a score below this value are ignored to filter out noise and less significant colors.
@@ -835,8 +880,11 @@ mod tests {
     #[case::colorful(Theme::Colorful, vec ! ["#EE334E", "#00A651"])]
     #[case::vivid(Theme::Vivid, vec ! ["#0081C8", "#FCB131"])]
     #[case::muted(Theme::Muted, vec ! ["#00A651", "#000000"])]
-    #[case::light(Theme::Light, vec ! ["#00A651", "#FCB131"])]
-    #[case::dark(Theme::Dark, vec ! ["#00A651", "#000000"])]
+    #[case::light(Theme::Light, vec ! ["#EE334E", "#00A651"])]
+    // Only black passes the relevance gate for the dark theme: every other
+    // sample swatch is far too bright or saturated. Fewer swatches than
+    // requested are returned rather than padding with off-theme colors.
+    #[case::dark(Theme::Dark, vec ! ["#000000"])]
     fn test_find_swatches_with_theme(#[case] theme: Theme, #[case] expected: Vec<&str>) {
         // Arrange
         let swatches = sample_swatches();
@@ -846,8 +894,9 @@ mod tests {
         let actual = palette.find_swatches_with_theme(2, theme);
 
         // Assert
-        assert_eq!(actual.len(), 2);
-        assert_color_eq!(actual[0].color(), Color::from_str(expected[0]).unwrap());
-        assert_color_eq!(actual[1].color(), Color::from_str(expected[1]).unwrap());
+        assert_eq!(actual.len(), expected.len());
+        for (actual, expected) in actual.iter().zip(expected.iter()) {
+            assert_color_eq!(actual.color(), Color::from_str(expected).unwrap());
+        }
     }
 }

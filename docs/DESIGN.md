@@ -148,7 +148,7 @@ serialized data, and the JS API are unaffected. Deprecated items
 | | SLIC (windowed) | `O(iter · n)` |
 | | SNIC (priority queue) | `O(n log n)` |
 | Color merge | DBSCAN over `k` segment centers | `O(k log k)` |
-| Swatch selection | farthest-point sampling | `O(s²)` worst case, `s ≤ 256` |
+| Swatch selection | gated MMR / diversity sampling | `O(s²)` worst case, `s ≤ 256` |
 
 Two properties keep the pipeline predictable:
 
@@ -203,6 +203,12 @@ wasm-pack pipeline.
   requirements are clear.
 * An `f32` pipeline (halves memory bandwidth on mobile) can be introduced as a
   cargo feature without public API changes.
+* Theme-based selection uses gated Maximal Marginal Relevance
+  (`math/sampling/mmr.rs`): a relevance gate keeps every candidate within the
+  theme band, and an additive, normalized relevance/diversity criterion with a
+  minimum-separation constraint maximizes perceived variety, measured in a
+  lightness-downweighted CIELAB space (themes constrain chroma/lightness, so
+  hue is the main source of perceived variation).
 * SLIC/SNIC currently ignore their `compactness` parameter (the 5-D metric is
   unweighted); fixing this changes extraction results and is deferred to a
   behavior-change release.
