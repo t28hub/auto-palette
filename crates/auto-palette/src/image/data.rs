@@ -5,11 +5,8 @@ use std::path::Path;
 use image::{DynamicImage, RgbImage, RgbaImage};
 
 use crate::{
-    color::{rgb_to_xyz, xyz_to_lab, Lab, D65},
     error::Error,
-    image::{Pixel, RGBA_CHANNELS},
-    math::{normalize, FloatNumber},
-    Filter,
+    image::{RawImage, RGBA_CHANNELS},
 };
 
 /// The image data representing the pixel data of an image.
@@ -18,6 +15,12 @@ use crate::{
 /// The pixel data is stored in a linear array of bytes and owned by this
 /// struct, so an `ImageData` can be freely sent across threads and language
 /// boundaries (WebAssembly, Android, iOS).
+///
+/// Constructing an `ImageData` from a borrowed slice copies the buffer; pass
+/// an owned `Vec<u8>` to avoid the copy, or use
+/// [`PaletteBuilder::build_from_raw`](crate::PaletteBuilder::build_from_raw)
+/// to extract a palette directly from a borrowed buffer without creating an
+/// `ImageData` at all.
 ///
 /// # Example
 /// ```
@@ -48,7 +51,9 @@ impl ImageData {
     /// * `width` - The width of the image data.
     /// * `height` - The height of the image data.
     /// * `data` - The pixel data in RGBA order. Accepts any type convertible
-    ///   into `Vec<u8>` (e.g. `Vec<u8>`, `&[u8]`, `&[u8; N]`).
+    ///   into `Vec<u8>` (e.g. `Vec<u8>`, `&[u8]`, `&[u8; N]`). Passing an
+    ///   owned `Vec<u8>` transfers ownership without copying; passing a
+    ///   borrowed slice copies it.
     ///
     /// # Returns
     /// The `ImageData` with the given width, height, and pixel data.
@@ -71,6 +76,17 @@ impl ImageData {
             height,
             data,
         })
+    }
+
+    /// Creates a new `ImageData` from parts that already uphold the length
+    /// invariant (`data.len() == width * height * 4`).
+    pub(crate) fn from_parts(width: u32, height: u32, data: Vec<u8>) -> Self {
+        debug_assert_eq!(data.len(), (width * height) as usize * RGBA_CHANNELS);
+        Self {
+            width,
+            height,
+            data,
+        }
     }
 
     /// Loads the image data from the given path.
@@ -143,122 +159,12 @@ impl ImageData {
         &self.data
     }
 
-    /// Downsamples the image with nearest-neighbor sampling so that the
-    /// result contains at most `max_pixels` pixels.
-    ///
-    /// The aspect ratio is approximately preserved. If the image already
-    /// contains `max_pixels` pixels or fewer, a clone of the image is
-    /// returned.
-    ///
-    /// # Arguments
-    /// * `max_pixels` - The maximum number of pixels in the result.
+    /// Returns a borrowed [`RawImage`] view over this image data.
     ///
     /// # Returns
-    /// The downsampled image data.
-    pub(crate) fn downsample(&self, max_pixels: usize) -> Self {
-        let area = self.area();
-        if max_pixels == 0 || area <= max_pixels {
-            return self.clone();
-        }
-
-        let stride = ((area as f64 / max_pixels as f64).sqrt().ceil() as u32).max(1);
-        let width = self.width.div_ceil(stride);
-        let height = self.height.div_ceil(stride);
-
-        let mut data = Vec::with_capacity((width * height) as usize * RGBA_CHANNELS);
-        for row in 0..height {
-            let src_row = (row * stride) as usize;
-            for col in 0..width {
-                let src_col = (col * stride) as usize;
-                let offset = (src_row * self.width as usize + src_col) * RGBA_CHANNELS;
-                data.extend_from_slice(&self.data[offset..offset + RGBA_CHANNELS]);
-            }
-        }
-        Self {
-            width,
-            height,
-            data,
-        }
-    }
-
-    /// Returns an iterator over the pixels of the image data.
-    ///
-    /// # Returns
-    /// An iterator over the pixels of the image data.
-    #[allow(dead_code)]
-    pub(crate) fn pixels<'b, T>(&'b self) -> impl Iterator<Item = Pixel<T>> + 'b
-    where
-        T: FloatNumber + 'b,
-    {
-        self.data
-            .chunks_exact(RGBA_CHANNELS)
-            .enumerate()
-            .map(move |(index, rgba)| self.chunk_to_pixel(index, rgba))
-    }
-
-    /// Returns an iterator over the pixels of the image data together with the result of applying the `filter`.
-    ///
-    /// # Type Parameters
-    /// * `T` - The floating point type.
-    /// * `F` - The filter type.
-    ///
-    /// # Arguments
-    /// * `filter` - The filter to apply to the pixels.
-    ///
-    /// # Returns
-    /// An iterator over the pixels of the image data and the result of applying the filter.
-    pub(crate) fn pixels_with_filter<'b, T, F>(
-        &'b self,
-        filter: &'b F,
-    ) -> impl Iterator<Item = (Pixel<T>, bool)> + 'b
-    where
-        T: FloatNumber + 'b,
-        F: Filter,
-    {
-        self.data
-            .chunks_exact(RGBA_CHANNELS)
-            .enumerate()
-            .map(move |(index, chunk)| {
-                (
-                    self.chunk_to_pixel::<T>(index, chunk),
-                    filter.test(&[chunk[0], chunk[1], chunk[2], chunk[3]]),
-                )
-            })
-    }
-
-    /// Converts a chunk of pixel data to a pixel representation.
-    ///
-    /// # Type Parameters
-    /// * `T` - The floating point type.
-    ///
-    /// # Arguments
-    /// * `index` - The index of the pixel in the image data.
-    /// * `chunk` - The chunk of pixel data.
-    ///
-    /// # Returns
-    /// The pixel representation of the chunk of pixel data.
-    #[inline(always)]
-    #[must_use]
-    fn chunk_to_pixel<T>(&self, index: usize, chunk: &[u8]) -> Pixel<T>
-    where
-        T: FloatNumber,
-    {
-        let (x, y, z) = rgb_to_xyz(chunk[0], chunk[1], chunk[2]);
-        let (l, a, b) = xyz_to_lab::<D65>(x, y, z);
-
-        let coord_x = T::from_usize((index % self.width as usize) + 1);
-        let coord_y = T::from_usize((index / self.width as usize) + 1);
-
-        let width_f = T::from_u32(self.width);
-        let height_f = T::from_u32(self.height);
-
-        [
-            T::from_f64(Lab::normalize_l(l)),
-            T::from_f64(Lab::normalize_a(a)),
-            T::from_f64(Lab::normalize_b(b)),
-            normalize(coord_x, T::zero(), width_f),
-            normalize(coord_y, T::zero(), height_f),
-        ]
+    /// A borrowed view of the pixel data.
+    pub(crate) fn as_raw(&self) -> RawImage<'_> {
+        RawImage::new_unchecked(self.width, self.height, &self.data)
     }
 }
 
@@ -311,7 +217,6 @@ impl From<&RgbaImage> for ImageData {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{assert_approx_eq, Rgba};
 
     #[test]
     fn test_new() {
@@ -375,38 +280,18 @@ mod tests {
     }
 
     #[test]
-    fn test_downsample() {
+    fn test_as_raw() {
         // Arrange
-        let mut pixels = Vec::with_capacity(8 * 8 * 4);
-        for index in 0..64u8 {
-            pixels.extend_from_slice(&[index, index, index, 255]);
-        }
-        let image_data = ImageData::new(8, 8, pixels).unwrap();
-
-        // Act
-        let actual = image_data.downsample(16);
-
-        // Assert
-        assert_eq!(actual.width(), 4);
-        assert_eq!(actual.height(), 4);
-        assert_eq!(actual.area(), 16);
-        // Nearest-neighbor sampling picks every 2nd pixel of every 2nd row.
-        assert_eq!(actual.data()[0], 0);
-        assert_eq!(actual.data()[4], 2);
-        assert_eq!(actual.data()[16], 16);
-    }
-
-    #[test]
-    fn test_downsample_no_op() {
-        // Arrange
-        let pixels = vec![255; 2 * 2 * 4];
+        let pixels = [255u8; 2 * 2 * 4];
         let image_data = ImageData::new(2, 2, pixels).unwrap();
 
         // Act
-        let actual = image_data.downsample(4);
+        let raw = image_data.as_raw();
 
         // Assert
-        assert_eq!(actual, image_data);
+        assert_eq!(raw.width(), 2);
+        assert_eq!(raw.height(), 2);
+        assert_eq!(raw.area(), 4);
     }
 
     #[cfg(feature = "image")]
@@ -469,47 +354,5 @@ mod tests {
             error.to_string(),
             "failed to load image: The system cannot find the file specified. (os error 2)"
         );
-    }
-
-    #[test]
-    fn test_pixels() {
-        // Arrange
-        let pixels = [
-            255, 255, 255, 255, // White
-            0, 0, 0, 255, // Black
-        ];
-        let image_data = ImageData::new(2, 1, pixels).unwrap();
-
-        // Act
-        let actual: Vec<_> = image_data.pixels::<f64>().collect();
-
-        // Assert
-        assert_eq!(actual.len(), 2);
-        // White pixel: L = 100 normalized to 1.0
-        assert_approx_eq!(actual[0][0], 1.0, 1e-3);
-        // Black pixel: L = 0 normalized to 0.0
-        assert_approx_eq!(actual[1][0], 0.0, 1e-3);
-        // 1-indexed normalized coordinates
-        assert_approx_eq!(actual[0][3], 0.5);
-        assert_approx_eq!(actual[1][3], 1.0);
-    }
-
-    #[test]
-    fn test_pixels_with_filter() {
-        // Arrange
-        let pixels = [
-            255, 255, 255, 255, // White, opaque
-            0, 0, 0, 0, // Black, transparent
-        ];
-        let image_data = ImageData::new(2, 1, pixels).unwrap();
-        let filter = |rgba: &Rgba| rgba[3] != 0;
-
-        // Act
-        let actual: Vec<_> = image_data.pixels_with_filter::<f64, _>(&filter).collect();
-
-        // Assert
-        assert_eq!(actual.len(), 2);
-        assert!(actual[0].1);
-        assert!(!actual[1].1);
     }
 }

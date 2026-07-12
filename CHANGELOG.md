@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 - Add `Position` struct with named `x`/`y` fields, replacing the `(u32, u32)` tuple returned by `Swatch::position`.
 - Add `PaletteBuilder::max_pixels` to bound the number of processed pixels: larger images are downsampled before segmentation, bounding the extraction time regardless of input resolution.
+- Add `PaletteBuilder::build_from_raw(width, height, &[u8])` to extract a palette directly from a borrowed RGBA buffer without copying it into an `ImageData`.
 - Add `Result<T>` alias and `Display` implementation for `Theme`.
 - Add `docs/DESIGN.md` describing the API design, complexity guarantees, and the Android/iOS (UniFFI) roadmap.
 

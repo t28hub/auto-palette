@@ -303,7 +303,7 @@ mod tests {
         // Act
         let width = image_data.width() as usize;
         let height = image_data.height() as usize;
-        let pixels = image_data.pixels().collect::<Vec<_>>();
+        let pixels = image_data.as_raw().pixels().collect::<Vec<_>>();
         let mask = vec![true; pixels.len()];
         let input = SegmentationInput::new(width, height, &pixels, &mask).unwrap();
         let actual = snic.segment(&input);

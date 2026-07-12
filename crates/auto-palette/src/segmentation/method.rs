@@ -1,6 +1,6 @@
 use crate::{
     error::Error,
-    image::Pixel,
+    image::{Pixel, RawImage},
     math::FloatNumber,
     segmentation::{
         error::SegmentationError,
@@ -19,7 +19,6 @@ use crate::{
         SnicSegmentation,
     },
     Filter,
-    ImageData,
 };
 
 /// The segmentation method to use for splitting an image into regions.
@@ -56,12 +55,16 @@ where
     /// Segments the image into regions using the configured algorithm.
     ///
     /// # Arguments
-    /// * `image` - The image data to segment.
+    /// * `image` - The image to segment.
     /// * `filter` - The filter to apply to the image pixels.
     ///
     /// # Returns
     /// A `SegmentationResult` representing the segmented regions, or an error if segmentation fails.
-    pub fn segment<F>(&self, image: &ImageData, filter: &F) -> Result<SegmentationResult<T>, Error>
+    pub fn segment<F>(
+        &self,
+        image: RawImage<'_>,
+        filter: &F,
+    ) -> Result<SegmentationResult<T>, Error>
     where
         F: Filter,
     {
@@ -179,7 +182,7 @@ where
 /// # Returns
 /// A tuple of `(pixels, mask)` where `mask[i]` indicates whether `pixels[i]` passed the filter.
 #[must_use]
-fn collect_pixels_and_mask<T, F>(image: &ImageData, filter: &F) -> (Vec<Pixel<T>>, Vec<bool>)
+fn collect_pixels_and_mask<T, F>(image: RawImage<'_>, filter: &F) -> (Vec<Pixel<T>>, Vec<bool>)
 where
     T: FloatNumber,
     F: Filter,
@@ -205,7 +208,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::Rgba;
+    use crate::{ImageData, Rgba};
 
     #[rstest]
     #[case::dbscan(SegmentationMethod::Dbscan(DbscanConfig::default()))]
@@ -219,7 +222,7 @@ mod tests {
         let image_data = ImageData::new(0, 0, pixels).expect("Failed to create empty image data");
 
         // Act
-        let actual = method.segment(&image_data, &|rgba: &Rgba| rgba[0] != 0);
+        let actual = method.segment(image_data.as_raw(), &|rgba: &Rgba| rgba[0] != 0);
 
         // Assert
         assert!(actual.is_ok());
@@ -240,7 +243,7 @@ mod tests {
         let image_data = ImageData::load("../../gfx/flags/za.png").unwrap();
 
         // Act
-        let actual = method.segment(&image_data, &|_: &Rgba| true);
+        let actual = method.segment(image_data.as_raw(), &|_: &Rgba| true);
 
         // Assert
         assert!(actual.is_ok());
@@ -264,7 +267,7 @@ mod tests {
         let image_data = ImageData::load("../../gfx/flags/np.png").unwrap();
 
         // Act
-        let actual = method.segment(&image_data, &|rgba: &Rgba| rgba[3] != 0);
+        let actual = method.segment(image_data.as_raw(), &|rgba: &Rgba| rgba[3] != 0);
 
         // Assert
         assert!(actual.is_ok());
@@ -278,7 +281,8 @@ mod tests {
         // Arrange
         let pixels: Vec<u8> = Vec::new();
         let image_data = ImageData::new(0, 0, pixels).unwrap();
-        let (pixels, mask) = collect_pixels_and_mask::<f64, _>(&image_data, &|_: &Rgba| true);
+        let (pixels, mask) =
+            collect_pixels_and_mask::<f64, _>(image_data.as_raw(), &|_: &Rgba| true);
         let input = SegmentationInput::new(0, 0, &pixels, &mask).unwrap();
 
         // Act
@@ -299,7 +303,8 @@ mod tests {
         // Arrange
         let pixels: Vec<u8> = Vec::new();
         let image_data = ImageData::new(0, 0, pixels).unwrap();
-        let (pixels, mask) = collect_pixels_and_mask::<f64, _>(&image_data, &|_: &Rgba| true);
+        let (pixels, mask) =
+            collect_pixels_and_mask::<f64, _>(image_data.as_raw(), &|_: &Rgba| true);
         let input = SegmentationInput::new(0, 0, &pixels, &mask).unwrap();
         let matrix_error = crate::math::matrix::MatrixError::DimensionMismatch {
             cols: 2,

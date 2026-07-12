@@ -355,7 +355,7 @@ mod tests {
         // Act
         let width = image_data.width() as usize;
         let height = image_data.height() as usize;
-        let pixels: Vec<_> = image_data.pixels().collect();
+        let pixels: Vec<_> = image_data.as_raw().pixels().collect();
         let mask = vec![true; pixels.len()];
         let input = SegmentationInput::new(width, height, &pixels, &mask).unwrap();
         let actual = segmentation.segment(&input);
@@ -384,6 +384,7 @@ mod tests {
         let width = image_data.width() as usize;
         let height = image_data.height() as usize;
         let (pixels, mask) = image_data
+            .as_raw()
             .pixels_with_filter::<f64, _>(&|rgba: &Rgba| rgba[3] != 0)
             .fold(
                 (

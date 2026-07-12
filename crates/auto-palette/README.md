@@ -160,7 +160,18 @@ let palette = Palette::builder()
     .algorithm(Algorithm::DbscanPlusPlus) // Use DBSCAN++ algorithm for extraction
     .filter(|pixel| pixel[3] < 64) // Filter out pixels with alpha < 64
     .max_swatches(128) // Limit the maximum number of swatches to 128
+    .max_pixels(160_000) // Downsample large images to bound the extraction time
     .build(&image_data) // Build the palette from the image data
+    .unwrap();
+```
+
+To extract a palette from a borrowed RGBA buffer without copying it into an
+`ImageData` (e.g. a camera frame or a canvas), use `build_from_raw`:
+
+```rust
+// width * height * 4 bytes in RGBA order
+let palette = Palette::builder()
+    .build_from_raw(width, height, &rgba_bytes)
     .unwrap();
 ```
 

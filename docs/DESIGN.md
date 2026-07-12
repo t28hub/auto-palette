@@ -87,6 +87,12 @@ feature flag without changing the public API. Because `f64` was the universal
 instantiation, all extraction results are bit-identical to the previous
 version.
 
+For callers that only hold a borrowed buffer,
+`PaletteBuilder::build_from_raw(width, height, &[u8])` extracts a palette
+directly from the slice — internally the pipeline runs on a borrowed
+`RawImage<'_>` view, so no copy of the pixel data is made. `ImageData` remains
+the owned, FFI-facing representation.
+
 The `W: WhitePoint` parameter on `Color`/`Lab`/`Luv` is likewise gone from the
 public API; conversions use D65, and the white-point machinery stays internal.
 

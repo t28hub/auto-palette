@@ -9,6 +9,7 @@ use crate::{
     image::{
         filter::{AlphaFilter, Filter, FilterChain},
         ImageData,
+        RawImage,
     },
     math::{
         clustering::{ClusteringAlgorithm, DBSCAN},
@@ -327,14 +328,61 @@ impl PaletteBuilder {
     /// # Returns
     /// The `Palette` instance built from the image data.
     pub fn build(self, image_data: &ImageData) -> Result<Palette, Error> {
+        self.build_raw(image_data.as_raw())
+    }
+
+    /// Builds the palette directly from a borrowed RGBA pixel buffer.
+    ///
+    /// This is the zero-copy counterpart of [`build`](Self::build): the
+    /// buffer is only borrowed for the duration of the extraction and is
+    /// never copied (unless [`max_pixels`](Self::max_pixels) triggers
+    /// downsampling, which allocates only the smaller image). Use this when
+    /// the pixel data lives in a buffer you cannot or do not want to hand
+    /// over to [`ImageData`], e.g. a frame from a camera or a canvas.
+    ///
+    /// # Arguments
+    /// * `width` - The width of the image.
+    /// * `height` - The height of the image.
+    /// * `data` - The pixel data in RGBA order (`width * height * 4` bytes).
+    ///
+    /// # Returns
+    /// The `Palette` instance built from the pixel data.
+    ///
+    /// # Errors
+    /// Returns [`Error::InvalidImageData`] if the length of the pixel data is
+    /// not equal to `width * height * 4`.
+    ///
+    /// # Examples
+    /// ```
+    /// use auto_palette::Palette;
+    ///
+    /// // A 128x128 image filled with red pixels.
+    /// let pixels: Vec<u8> = [255, 0, 0, 255].repeat(128 * 128);
+    /// let palette = Palette::builder()
+    ///     .build_from_raw(128, 128, &pixels)
+    ///     .unwrap();
+    /// assert_eq!(palette.len(), 1);
+    /// ```
+    pub fn build_from_raw(self, width: u32, height: u32, data: &[u8]) -> Result<Palette, Error> {
+        self.build_raw(RawImage::new(width, height, data)?)
+    }
+
+    /// Builds the palette from a borrowed image view.
+    ///
+    /// # Arguments
+    /// * `raw` - The borrowed image to extract the palette from.
+    ///
+    /// # Returns
+    /// The `Palette` instance built from the image.
+    fn build_raw(self, raw: RawImage<'_>) -> Result<Palette, Error> {
         // Downsample the image if a pixel budget is set.
         let downsampled;
         let image = match self.max_pixels {
-            Some(max_pixels) if image_data.area() > max_pixels => {
-                downsampled = image_data.downsample(max_pixels);
-                &downsampled
+            Some(max_pixels) if raw.area() > max_pixels => {
+                downsampled = raw.downsample(max_pixels);
+                downsampled.as_raw()
             }
-            _ => image_data,
+            _ => raw,
         };
 
         // Group the points into clusters using the specified algorithm.
@@ -344,8 +392,8 @@ impl PaletteBuilder {
         // reported in the original image coordinates, while the ratio is
         // relative to the (possibly downsampled) segmented image.
         let mut swatches = to_swatches(
-            image_data.width(),
-            image_data.height(),
+            raw.width(),
+            raw.height(),
             result.width() * result.height(),
             result.segments(),
         )?;
@@ -657,6 +705,39 @@ mod tests {
             assert!(position.y < image_data.height());
             assert!(swatch.ratio() <= 1.0);
         }
+    }
+
+    #[cfg(feature = "image")]
+    #[test]
+    fn test_builder_build_from_raw() {
+        // Arrange
+        let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
+
+        // Act
+        let actual = Palette::builder()
+            .build_from_raw(image_data.width(), image_data.height(), image_data.data())
+            .expect("Failed to extract palette from raw pixel data");
+
+        // Assert
+        // Extracting from a borrowed buffer is equivalent to extracting from
+        // the owned ImageData.
+        let expected = Palette::extract(&image_data).unwrap();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_builder_build_from_raw_invalid_length() {
+        // Act
+        let actual = Palette::builder().build_from_raw(2, 2, &[255, 255, 255, 255]);
+
+        // Assert
+        assert!(matches!(
+            actual.unwrap_err(),
+            Error::InvalidImageData {
+                expected: 16,
+                actual: 4,
+            }
+        ));
     }
 
     #[test]
