@@ -29,7 +29,7 @@ fn main() -> Result<(), Error> {
     let start = Instant::now();
 
     // Extract the color palette from the image data
-    let palette: Palette<f64> = Palette::extract(&image_data)
+    let palette = Palette::extract(&image_data)
         .with_context(|| "Failed to extract the palette from the image data".to_string())?;
 
     // Measure the duration of the extraction
@@ -42,19 +42,17 @@ fn main() -> Result<(), Error> {
     );
 
     // Find the 5 dominant colors in the palette and print their information
-    let swatches = palette
-        .find_swatches(5)
-        .with_context(|| "Failed to find swatches in the palette".to_string())?;
+    let swatches = palette.find_swatches(5);
     println!(
         "{:>2} | {:<7} | {:<12} | {:<10} | {:<6}",
         "#", "Color", "Position", "Population", "Ratio"
     );
     for (i, swatch) in swatches.iter().enumerate() {
         println!(
-            "{:>2} | {:<7} | {:>4?} | {:>10} | {:>5.2}",
+            "{:>2} | {:<7} | {:>12} | {:>10} | {:>5.2}",
             i + 1,
             swatch.color().to_hex_string(),
-            swatch.position(),
+            swatch.position().to_string(),
             swatch.population(),
             swatch.ratio()
         );

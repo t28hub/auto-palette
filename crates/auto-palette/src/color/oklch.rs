@@ -4,18 +4,12 @@ use num_traits::clamp;
 #[cfg(feature = "wasm")]
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    color::{Hue, Oklab},
-    math::FloatNumber,
-};
+use crate::color::{Hue, Oklab};
 
 /// The Oklch color representation.
 ///
 /// See the following for more details:
 /// [The Oklab color space](https://bottosson.github.io/posts/oklab/#the-oklab-color-space)
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
 ///
 /// # Fields
 /// * `l` - The lightness component.
@@ -26,27 +20,21 @@ use crate::{
 /// ```
 /// use auto_palette::color::{Oklab, Oklch};
 ///
-/// let oklch: Oklch<f32> = Oklch::new(0.607, 0.121, 166.651);
+/// let oklch = Oklch::new(0.607, 0.121, 166.651);
 /// assert_eq!(format!("{}", oklch), "Oklch(0.61, 0.12, 166.65)");
 ///
-/// let oklab: Oklab<_> = (&oklch).into();
+/// let oklab: Oklab = (&oklch).into();
 /// assert_eq!(format!("{}", oklab), "Oklab(0.61, -0.12, 0.03)");
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
-pub struct Oklch<T = f64>
-where
-    T: FloatNumber,
-{
-    pub l: T,
-    pub c: T,
-    pub h: Hue<T>,
+pub struct Oklch {
+    pub l: f64,
+    pub c: f64,
+    pub h: Hue,
 }
 
-impl<T> Oklch<T>
-where
-    T: FloatNumber,
-{
+impl Oklch {
     /// Creates a new `Oklch` instance.
     ///
     /// # Arguments
@@ -57,19 +45,16 @@ where
     /// # Returns
     /// A new `Oklch` instance.
     #[must_use]
-    pub fn new(l: T, c: T, h: T) -> Self {
+    pub fn new(l: f64, c: f64, h: f64) -> Self {
         Self {
-            l: clamp(l, T::zero(), T::from_u32(100)),
-            c: clamp(c, T::zero(), T::from_u32(180)),
+            l: clamp(l, 0.0, 100.0),
+            c: clamp(c, 0.0, 180.0),
             h: Hue::from_degrees(h),
         }
     }
 }
 
-impl<T> Display for Oklch<T>
-where
-    T: FloatNumber,
-{
+impl Display for Oklch {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
@@ -81,11 +66,8 @@ where
     }
 }
 
-impl<T> From<&Oklab<T>> for Oklch<T>
-where
-    T: FloatNumber,
-{
-    fn from(oklab: &Oklab<T>) -> Self {
+impl From<&Oklab> for Oklch {
+    fn from(oklab: &Oklab) -> Self {
         // This implementation is based on the formulae from the following sources:
         // http://www.brucelindbloom.com/index.html?Eqn_Lab_to_LCH.html
         let l = oklab.l;
@@ -182,12 +164,12 @@ mod tests {
     #[test]
     fn test_from_oklab() {
         // Act
-        let oklab: Oklab<f32> = Oklab::new(0.607, -0.118, 0.028);
+        let oklab = Oklab::new(0.607, -0.118, 0.028);
         let actual = Oklch::from(&oklab);
 
         // Assert
         assert_approx_eq!(actual.l, 0.607);
-        assert_approx_eq!(actual.c, 0.121276);
-        assert_approx_eq!(actual.h.to_degrees(), 166.651275);
+        assert_approx_eq!(actual.c, 0.121_276_5);
+        assert_approx_eq!(actual.h.to_degrees(), 166.651273);
     }
 }

@@ -3,12 +3,7 @@ use std::fmt::Display;
 #[cfg(feature = "wasm")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::math::FloatNumber;
-
 /// The hue component of a color.
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
 ///
 /// # Examples
 /// ```
@@ -21,21 +16,16 @@ use crate::math::FloatNumber;
 /// assert_eq!(hue.to_radians(), 240.0 / 180.0 * PI);
 /// assert_eq!(format!("{}", hue), "240.00");
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Hue<T = f64>(T)
-where
-    T: FloatNumber;
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Hue(f64);
 
-impl<T> Hue<T>
-where
-    T: FloatNumber,
-{
+impl Hue {
     /// Returns the value of the hue in degrees.
     ///
     /// # Returns
     /// The value of the hue in degrees.
     #[inline]
-    pub fn to_degrees(&self) -> T {
+    pub fn to_degrees(&self) -> f64 {
         self.0
     }
 
@@ -44,7 +34,7 @@ where
     /// # Returns
     /// The value of the hue in radians.
     #[inline]
-    pub fn to_radians(&self) -> T {
+    pub fn to_radians(&self) -> f64 {
         self.0.to_radians()
     }
 
@@ -56,7 +46,7 @@ where
     /// # Returns
     /// A new `Hue` instance.
     #[must_use]
-    pub fn from_degrees(degrees: T) -> Self {
+    pub fn from_degrees(degrees: f64) -> Self {
         Self(normalize(degrees))
     }
 
@@ -68,16 +58,13 @@ where
     /// # Returns
     /// A new `Hue` instance.
     #[must_use]
-    pub fn from_radians(radians: T) -> Self {
+    pub fn from_radians(radians: f64) -> Self {
         Self(normalize(radians.to_degrees()))
     }
 }
 
 #[cfg(feature = "wasm")]
-impl<T> Serialize for Hue<T>
-where
-    T: FloatNumber + Serialize,
-{
+impl Serialize for Hue {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -87,23 +74,17 @@ where
 }
 
 #[cfg(feature = "wasm")]
-impl<'de, T> Deserialize<'de> for Hue<T>
-where
-    T: FloatNumber + Deserialize<'de>,
-{
+impl<'de> Deserialize<'de> for Hue {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        let value = T::deserialize(deserializer)?;
+        let value = f64::deserialize(deserializer)?;
         Ok(Hue::from_degrees(value))
     }
 }
 
-impl<T> Display for Hue<T>
-where
-    T: FloatNumber,
-{
+impl Display for Hue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:.2}", self.0)
     }
@@ -118,11 +99,8 @@ where
 /// The normalized value in the range [0, 360).
 #[inline]
 #[must_use]
-fn normalize<T>(value: T) -> T
-where
-    T: FloatNumber,
-{
-    let max = T::from_f32(360.0);
+fn normalize(value: f64) -> f64 {
+    let max = 360.0;
     let value = value % max;
     if value.is_sign_negative() {
         value + max

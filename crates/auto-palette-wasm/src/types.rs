@@ -76,7 +76,7 @@ mod tests {
 
         // Assert
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), Algorithm::DBSCAN);
+        assert_eq!(result.unwrap(), Algorithm::Dbscan);
     }
 
     #[wasm_bindgen_test]

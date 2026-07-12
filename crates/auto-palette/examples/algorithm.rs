@@ -18,9 +18,8 @@ fn main() -> Result<(), Error> {
     // Read the algorithm from the command line arguments
     let algorithm = std::env::args()
         .nth(1)
-        .map(|name| Algorithm::from_str(&name).ok())
-        .flatten()
-        .unwrap_or(Algorithm::DBSCAN);
+        .and_then(|name| Algorithm::from_str(&name).ok())
+        .unwrap_or(Algorithm::Dbscan);
 
     // Load the image data from the file
     let image_data = ImageData::load("./gfx/laura-clugston-pwW2iV9TZao-unsplash.jpg")
@@ -30,7 +29,7 @@ fn main() -> Result<(), Error> {
     let start = Instant::now();
 
     // Extract the palette from the image data
-    let palette: Palette<f64> = Palette::builder()
+    let palette = Palette::builder()
         .algorithm(algorithm)
         .build(&image_data)
         .with_context(|| "Failed to extract the palette from the image data")?;
@@ -45,19 +44,17 @@ fn main() -> Result<(), Error> {
     );
 
     // Find the top 5 swatches in the palette
-    let swatches = palette
-        .find_swatches(5)
-        .with_context(|| "Failed to find swatches in the palette")?;
+    let swatches = palette.find_swatches(5);
     println!(
         "{:>2} | {:<7} | {:<12} | {:<10} | {:<6}",
         "#", "Color", "Position", "Population", "Ratio"
     );
     for (i, swatch) in swatches.iter().enumerate() {
         println!(
-            "{:>2} | {:<7} | {:>4?} | {:>10} | {:>5.2}",
+            "{:>2} | {:<7} | {:>12} | {:>10} | {:>5.2}",
             i + 1,
             swatch.color().to_hex_string(),
-            swatch.position(),
+            swatch.position().to_string(),
             swatch.population(),
             swatch.ratio()
         );

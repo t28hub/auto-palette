@@ -1,7 +1,7 @@
 use std::{process, time::Instant};
 
 use anyhow::Context;
-use auto_palette::{Algorithm, ImageData, Palette, Rgba, Theme};
+use auto_palette::{Algorithm, ImageData, Palette, Theme};
 use clap::Parser;
 use clipboard::get_image_from_clipboard;
 use image::{self, imageops::FilterType};
@@ -59,11 +59,7 @@ fn main() -> anyhow::Result<()> {
 
     let instant = Instant::now();
     let algorithm = Algorithm::from(context.args().algorithm);
-    let Ok(palette) = Palette::<f64>::builder()
-        .algorithm(algorithm)
-        .filter(|pixel: &Rgba| pixel[3] != 0)
-        .build(&image_data)
-    else {
+    let Ok(palette) = Palette::builder().algorithm(algorithm).build(&image_data) else {
         process::exit(1);
     };
 
@@ -74,22 +70,13 @@ fn main() -> anyhow::Result<()> {
             count
         ));
     }
-    let swatches = context
-        .args()
-        .theme
-        .map_or_else(
-            || palette.find_swatches(context.args().count),
-            |option| {
-                let theme = Theme::from(option);
-                palette.find_swatches_with_theme(context.args().count, theme)
-            },
-        )
-        .with_context(|| {
-            format!(
-                "failed to find swatches with theme {:?}",
-                context.args().theme
-            )
-        })?;
+    let swatches = context.args().theme.map_or_else(
+        || palette.find_swatches(context.args().count),
+        |option| {
+            let theme = Theme::from(option);
+            palette.find_swatches_with_theme(context.args().count, theme)
+        },
+    );
     context
         .args()
         .output_format

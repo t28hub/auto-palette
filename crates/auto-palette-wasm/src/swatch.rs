@@ -123,11 +123,13 @@ impl JsSwatch {
     }
 }
 
-impl From<Swatch<f64>> for JsSwatch {
-    fn from(swatch: Swatch<f64>) -> Self {
+impl From<Swatch> for JsSwatch {
+    fn from(swatch: Swatch) -> Self {
         let color = JsColor(*swatch.color());
-        let (x, y) = swatch.position();
-        let position = JsPosition { x, y };
+        let position = JsPosition {
+            x: swatch.position().x,
+            y: swatch.position().y,
+        };
         let population = swatch.population();
         let ratio = swatch.ratio();
 
@@ -183,7 +185,7 @@ mod tests {
         let position = JsPosition { x: 10, y: 20 };
         let population = 256;
         let ratio = 0.25;
-        let swatch = Swatch::new(color.clone(), (position.x, position.y), population, ratio);
+        let swatch = Swatch::new(color, (position.x, position.y), population, ratio);
         let actual = JsSwatch::from(swatch);
 
         // Assert

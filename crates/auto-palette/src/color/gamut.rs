@@ -1,6 +1,6 @@
-use crate::{
-    color::{Hue, WhitePoint, D65},
-    FloatNumber,
+use crate::color::{
+    white_point::{WhitePoint, D65},
+    Hue,
 };
 
 /// The gamut representation for the color space.
@@ -43,23 +43,16 @@ impl Gamut {
 
     /// Calculates the maximum chroma at a given hue within the specified gamut.
     ///
-    /// # Type Parameters
-    /// * `T` - The float number type.
-    ///
     /// # Arguments
     /// * `hue` - The hue to calculate the maximum chroma for.
-    /// * `gamut` - The gamut to use for the calculation.
     ///
     /// # Returns
     /// The maximum chroma at the specified hue within the gamut.
     #[inline]
     #[must_use]
-    pub fn max_chroma<T>(&self, hue: Hue<T>) -> T
-    where
-        T: FloatNumber,
-    {
-        (Self::MIN_LIGHTNESS..=Self::MAX_LIGHTNESS).fold(T::zero(), |max, step| {
-            let lightness = T::from_u8(step);
+    pub fn max_chroma(&self, hue: Hue) -> f64 {
+        (Self::MIN_LIGHTNESS..=Self::MAX_LIGHTNESS).fold(0.0, |max, step| {
+            let lightness = f64::from(step);
             let chroma = self.max_chroma_at_lightness(hue, lightness);
             if chroma > max {
                 chroma
@@ -71,9 +64,6 @@ impl Gamut {
 
     /// Calculates the maximum chroma at a given hue and lightness within the specified gamut.
     ///
-    /// # Type Parameters
-    /// * `T` - The float number type.
-    ///
     /// # Arguments
     /// * `hue` - The hue to calculate the maximum chroma for.
     /// * `lightness` - The lightness to calculate the maximum chroma for.
@@ -82,14 +72,11 @@ impl Gamut {
     /// The maximum chroma at the specified lightness and hue within the gamut.
     #[inline]
     #[must_use]
-    pub fn max_chroma_at_lightness<T>(&self, hue: Hue<T>, lightness: T) -> T
-    where
-        T: FloatNumber,
-    {
-        let mut min_chroma = T::from_u8(Self::MIN_CHROMA);
-        let mut max_chroma = T::from_u8(Self::MAX_CHROMA);
-        while max_chroma - min_chroma > T::from_f64(Self::EPSILON) {
-            let mid_chroma = (min_chroma + max_chroma) / T::from_f64(2.0);
+    pub fn max_chroma_at_lightness(&self, hue: Hue, lightness: f64) -> f64 {
+        let mut min_chroma = f64::from(Self::MIN_CHROMA);
+        let mut max_chroma = f64::from(Self::MAX_CHROMA);
+        while max_chroma - min_chroma > Self::EPSILON {
+            let mid_chroma = (min_chroma + max_chroma) / 2.0;
             if self.in_gamut(hue, lightness, mid_chroma) {
                 min_chroma = mid_chroma;
             } else {
@@ -101,9 +88,6 @@ impl Gamut {
 
     /// Checks if the given XYZ color is within the gamut of the color space.
     ///
-    /// # Type Parameters
-    /// * `T` - The float number type.
-    ///
     /// # Arguments
     /// * `hue` - The hue of the color.
     /// * `lightness` - The lightness of the color.
@@ -113,21 +97,15 @@ impl Gamut {
     /// `true` if the color is within the gamut, `false` otherwise.
     #[inline]
     #[must_use]
-    fn in_gamut<T>(&self, hue: Hue<T>, lightness: T, chroma: T) -> bool
-    where
-        T: FloatNumber,
-    {
+    fn in_gamut(&self, hue: Hue, lightness: f64, chroma: f64) -> bool {
         let radians = hue.to_radians();
-        let xyz = lab_to_xyz::<T, D65>([lightness, chroma * radians.cos(), chroma * radians.sin()]);
+        let xyz = lab_to_xyz::<D65>([lightness, chroma * radians.cos(), chroma * radians.sin()]);
         self.xyz_to_rgb(xyz)
             .iter()
-            .all(|&c| T::zero() <= c && c <= T::one())
+            .all(|&c| (0.0..=1.0).contains(&c))
     }
 
     /// Converts the XYZ color to RGB color space based on the gamut.
-    ///
-    /// # Type Parameters
-    /// * `T` - The float number type.
     ///
     /// # Arguments
     /// * `[x, y, z]` - The XYZ color components.
@@ -140,43 +118,40 @@ impl Gamut {
     /// [Color space conversion RGB-XYZ conversion](https://fujiwaratko.sakura.ne.jp/infosci/colorspace/colorspace2.html)
     #[inline]
     #[must_use]
-    fn xyz_to_rgb<T>(&self, [x, y, z]: [T; 3]) -> [T; 3]
-    where
-        T: FloatNumber,
-    {
-        let m = match *self {
+    fn xyz_to_rgb(&self, [x, y, z]: [f64; 3]) -> [f64; 3] {
+        let m: [f64; 9] = match *self {
             Gamut::AdobeRgb => [
-                T::from_f32(2.041588),
-                T::from_f32(-0.565007),
-                T::from_f32(-0.344731),
-                T::from_f32(-0.969244),
-                T::from_f32(1.875968),
-                T::from_f32(0.041555),
-                T::from_f32(0.013444),
-                T::from_f32(-0.118362),
-                T::from_f32(1.015175),
+                f64::from(2.041588_f32),
+                f64::from(-0.565007_f32),
+                f64::from(-0.344731_f32),
+                f64::from(-0.969244_f32),
+                f64::from(1.875968_f32),
+                f64::from(0.041555_f32),
+                f64::from(0.013444_f32),
+                f64::from(-0.118362_f32),
+                f64::from(1.015175_f32),
             ],
             Gamut::DisplayP3 => [
-                T::from_f32(2.493497),
-                T::from_f32(-0.931384),
-                T::from_f32(-0.402711),
-                T::from_f32(-0.829489),
-                T::from_f32(1.762664),
-                T::from_f32(0.023625),
-                T::from_f32(0.035846),
-                T::from_f32(-0.076172),
-                T::from_f32(0.956885),
+                f64::from(2.493497_f32),
+                f64::from(-0.931384_f32),
+                f64::from(-0.402711_f32),
+                f64::from(-0.829489_f32),
+                f64::from(1.762664_f32),
+                f64::from(0.023625_f32),
+                f64::from(0.035846_f32),
+                f64::from(-0.076172_f32),
+                f64::from(0.956885_f32),
             ],
             Gamut::Srgb => [
-                T::from_f32(3.24097),
-                T::from_f32(-1.537383),
-                T::from_f32(-0.498611),
-                T::from_f32(-0.969244),
-                T::from_f32(1.875968),
-                T::from_f32(0.041555),
-                T::from_f32(0.055630),
-                T::from_f32(-0.203977),
-                T::from_f32(1.056972),
+                f64::from(3.24097_f32),
+                f64::from(-1.537383_f32),
+                f64::from(-0.498611_f32),
+                f64::from(-0.969244_f32),
+                f64::from(1.875968_f32),
+                f64::from(0.041555_f32),
+                f64::from(0.055630_f32),
+                f64::from(-0.203977_f32),
+                f64::from(1.056972_f32),
             ],
         };
         [
@@ -189,16 +164,15 @@ impl Gamut {
 
 #[inline]
 #[must_use]
-fn lab_to_xyz<T, WP>([l, a, b]: [T; 3]) -> [T; 3]
+fn lab_to_xyz<W>([l, a, b]: [f64; 3]) -> [f64; 3]
 where
-    T: FloatNumber,
-    WP: WhitePoint,
+    W: WhitePoint,
 {
-    let epsilon = T::from_f64(6.0 / 29.0);
-    let kappa = T::from_f64(108.0 / 841.0); // 3.0 * ((6.0 / 29.0) ^ 2)
-    let delta = T::from_f64(4.0 / 29.0);
+    let epsilon = 6.0 / 29.0;
+    let kappa = 108.0 / 841.0; // 3.0 * ((6.0 / 29.0) ^ 2)
+    let delta = 4.0 / 29.0;
 
-    let f = |t: T| -> T {
+    let f = |t: f64| -> f64 {
         if t > epsilon {
             t.powi(3)
         } else {
@@ -206,14 +180,14 @@ where
         }
     };
 
-    let l2 = (l + T::from_f64(16.0)) / T::from_f64(116.0);
-    let fx = f(a / T::from_f64(500.0) + l2);
+    let l2 = (l + 16.0) / 116.0;
+    let fx = f(a / 500.0 + l2);
     let fy = f(l2);
-    let fz = f(l2 - b / T::from_f32(200.0));
+    let fz = f(l2 - b / 200.0);
 
-    let x = WP::x::<T>() * fx;
-    let y = WP::y::<T>() * fy;
-    let z = WP::z::<T>() * fz;
+    let x = W::x() * fx;
+    let y = W::y() * fy;
+    let z = W::z() * fz;
     [x, y, z]
 }
 

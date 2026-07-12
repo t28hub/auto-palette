@@ -232,7 +232,7 @@ pub fn style() -> Style {
 
 #[cfg(test)]
 mod tests {
-    use auto_palette::color::{Ansi16, Ansi256, RGB};
+    use auto_palette::color::{Ansi16, Ansi256, Rgb};
     use rstest::rstest;
 
     use super::*;
@@ -313,7 +313,7 @@ mod tests {
     #[test]
     fn test_color_true_color() {
         // Arrange
-        let color = ColorMode::TrueColor(RGB::new(30, 215, 96));
+        let color = ColorMode::TrueColor(Rgb::new(30, 215, 96));
 
         // Act
         let actual = style().color(color.clone());
@@ -338,7 +338,7 @@ mod tests {
     #[test]
     fn test_background() {
         // Arrange
-        let color = ColorMode::TrueColor(RGB::new(30, 215, 96));
+        let color = ColorMode::TrueColor(Rgb::new(30, 215, 96));
 
         // Act
         let actual = style().background(color.clone());
@@ -410,8 +410,8 @@ mod tests {
     fn test_styled_multiple_styles() {
         // Act
         let actual = style()
-            .color(ColorMode::TrueColor(RGB::new(255, 255, 255)))
-            .background(ColorMode::TrueColor(RGB::new(30, 215, 96)))
+            .color(ColorMode::TrueColor(Rgb::new(255, 255, 255)))
+            .background(ColorMode::TrueColor(Rgb::new(30, 215, 96)))
             .bold()
             .italic()
             .underline()
@@ -421,8 +421,8 @@ mod tests {
         assert_eq!(
             actual,
             Style {
-                foreground: Some(ColorMode::TrueColor(RGB::new(255, 255, 255))),
-                background: Some(ColorMode::TrueColor(RGB::new(30, 215, 96))),
+                foreground: Some(ColorMode::TrueColor(Rgb::new(255, 255, 255))),
+                background: Some(ColorMode::TrueColor(Rgb::new(30, 215, 96))),
                 attributes: [
                     Attribute::Bold,
                     Attribute::Italic,

@@ -25,6 +25,7 @@ where
     _marker: PhantomData<T>,
 }
 
+#[allow(dead_code)] // retained for the internal configuration API and tests
 impl<T> SnicConfig<T>
 where
     T: FloatNumber,

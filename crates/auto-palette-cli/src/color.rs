@@ -8,7 +8,7 @@ pub enum ColorMode {
     /// The 8-bit ANSI color.
     Ansi256(color::Ansi256),
     /// The 24-bit true color.
-    TrueColor(color::RGB),
+    TrueColor(color::Rgb),
     /// No color.
     NoColor,
 }
@@ -47,7 +47,7 @@ impl ColorMode {
 
 #[cfg(test)]
 mod tests {
-    use auto_palette::color::{Ansi16, Ansi256, RGB};
+    use auto_palette::color::{Ansi16, Ansi256, Rgb};
 
     use super::*;
 
@@ -59,7 +59,7 @@ mod tests {
         let color = ColorMode::Ansi256(Ansi256::new(33));
         assert_eq!(color.bg_code(), "48;5;33");
 
-        let color = ColorMode::TrueColor(RGB::new(0, 102, 255));
+        let color = ColorMode::TrueColor(Rgb::new(0, 102, 255));
         assert_eq!(color.bg_code(), "48;2;0;102;255");
 
         let color = ColorMode::NoColor;
@@ -74,7 +74,7 @@ mod tests {
         let color = ColorMode::Ansi256(Ansi256::new(33));
         assert_eq!(color.fg_code(), "38;5;33");
 
-        let color = ColorMode::TrueColor(RGB::new(0, 102, 255));
+        let color = ColorMode::TrueColor(Rgb::new(0, 102, 255));
         assert_eq!(color.fg_code(), "38;2;0;102;255");
 
         let color = ColorMode::NoColor;

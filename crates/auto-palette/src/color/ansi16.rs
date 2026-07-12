@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 #[cfg(feature = "wasm")]
 use serde::{Deserialize, Serialize};
 
-use crate::color::{error::ColorError, RGB};
+use crate::color::{error::ColorError, Rgb};
 
 /// The 4-bit ANSI 16 color representation.
 ///
@@ -12,9 +12,9 @@ use crate::color::{error::ColorError, RGB};
 ///
 /// # Examples
 /// ```
-/// use auto_palette::color::{Ansi16, RGB};
+/// use auto_palette::color::{Ansi16, Rgb};
 ///
-/// let rgb = RGB::new(30, 215, 96);
+/// let rgb = Rgb::new(30, 215, 96);
 /// let ansi16 = Ansi16::from(&rgb);
 /// assert_eq!(ansi16.foreground(), 92);
 /// assert_eq!(ansi16.background(), 102);
@@ -230,8 +230,8 @@ impl Display for Ansi16 {
     }
 }
 
-impl From<&RGB> for Ansi16 {
-    fn from(rgb: &RGB) -> Self {
+impl From<&Rgb> for Ansi16 {
+    fn from(rgb: &Rgb) -> Self {
         let code = from_rgb(rgb.r, rgb.g, rgb.b);
         Self { code }
     }
@@ -366,7 +366,7 @@ mod tests {
     #[case::bright_white((255, 255, 255), Ansi16::bright_white())]
     fn test_from_rgb(#[case] rgb: (u8, u8, u8), #[case] expected: Ansi16) {
         // Act
-        let rgb = RGB::new(rgb.0, rgb.1, rgb.2);
+        let rgb = Rgb::new(rgb.0, rgb.1, rgb.2);
         let actual = Ansi16::from(&rgb);
 
         // Assert

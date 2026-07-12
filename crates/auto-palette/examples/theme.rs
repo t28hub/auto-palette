@@ -18,8 +18,7 @@ fn main() -> Result<(), Error> {
     // Read the theme from the command line arguments
     let theme = std::env::args()
         .nth(1)
-        .map(|name| Theme::from_str(&name).ok())
-        .flatten();
+        .and_then(|name| Theme::from_str(&name).ok());
 
     // Load the image data from the file
     let image_data = ImageData::load("./gfx/laura-clugston-pwW2iV9TZao-unsplash.jpg")
@@ -29,7 +28,7 @@ fn main() -> Result<(), Error> {
     let start = Instant::now();
 
     // Extract the palette from the image data
-    let palette: Palette<f64> = Palette::extract(&image_data)
+    let palette = Palette::extract(&image_data)
         .with_context(|| "failed to extract the palette".to_string())?;
 
     // Measure the duration of the extraction
@@ -43,12 +42,8 @@ fn main() -> Result<(), Error> {
 
     // Find the top 5 swatches in the palette
     let swatches = match theme {
-        Some(theme) => palette
-            .find_swatches_with_theme(5, theme)
-            .with_context(|| format!("failed to find swatches with theme {:?}", theme))?,
-        None => palette
-            .find_swatches(5)
-            .with_context(|| "failed to find swatches in the palette".to_string())?,
+        Some(theme) => palette.find_swatches_with_theme(5, theme),
+        None => palette.find_swatches(5),
     };
     println!(
         "{:>2} | {:<7} | {:<12} | {:<10} | {:<6}",
@@ -56,10 +51,10 @@ fn main() -> Result<(), Error> {
     );
     for (i, swatch) in swatches.iter().enumerate() {
         println!(
-            "{:>2} | {:<7} | {:>4?} | {:>10} | {:>5.2}",
+            "{:>2} | {:<7} | {:>12} | {:>10} | {:>5.2}",
             i + 1,
             swatch.color().to_hex_string(),
-            swatch.position(),
+            swatch.position().to_string(),
             swatch.population(),
             swatch.ratio()
         );

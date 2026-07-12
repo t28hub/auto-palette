@@ -52,7 +52,7 @@ To use `auto-palette` in your Rust project, add it to your `Cargo.toml`.
 
 ```toml
 [dependencies]
-auto-palette = "0.9.2"
+auto-palette = "0.10.0"
 ```
 
 ### CLI Tool
@@ -78,14 +78,14 @@ fn main() {
   let image_data = ImageData::load("./gfx/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
 
   // Extract the color palette from the image data
-  let palette: Palette<f64> = Palette::extract(&image_data).unwrap();
+  let palette = Palette::extract(&image_data).unwrap();
   println!("Extracted {} swatches", palette.len());
 
   // Find the 5 prominent colors in the palette and print their information
-  let swatches = palette.find_swatches(5).unwrap();
+  let swatches = palette.find_swatches(5);
   for swatch in swatches {
     println!("Color: {}", swatch.color().to_hex_string());
-    println!("Position: {:?}", swatch.position());
+    println!("Position: {}", swatch.position());
     println!("Population: {}", swatch.population());
     println!("Ratio: {}", swatch.ratio());
   }

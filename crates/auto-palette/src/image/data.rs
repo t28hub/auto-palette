@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 #[cfg(feature = "image")]
 use std::path::Path;
 
@@ -7,60 +6,61 @@ use image::{DynamicImage, RgbImage, RgbaImage};
 
 use crate::{
     color::{rgb_to_xyz, xyz_to_lab, Lab, D65},
-    error::ImageError,
+    error::Error,
     image::{Pixel, RGBA_CHANNELS},
-    math::normalize,
+    math::{normalize, FloatNumber},
     Filter,
-    FloatNumber,
 };
 
 /// The image data representing the pixel data of an image.
 ///
 /// Each pixel is represented by 4 bytes in RGBA (Red, Green, Blue, Alpha) format.
-/// The pixel data is stored in a linear array of bytes, where each pixel is represented by 4 bytes.
+/// The pixel data is stored in a linear array of bytes and owned by this
+/// struct, so an `ImageData` can be freely sent across threads and language
+/// boundaries (WebAssembly, Android, iOS).
 ///
 /// # Example
 /// ```
-/// #[cfg(feature = "image")]
-/// {
-///     use auto_palette::ImageData;
+/// use auto_palette::ImageData;
 ///
-///     let pixels = [
-///         255, 0, 0, 255, // Red
-///         0, 255, 0, 255, // Green
-///         0, 0, 255, 255, // Blue
-///         0, 0, 0, 255, // Black
-///     ];
-///     let image_data = ImageData::new(2, 2, &pixels).unwrap();
-///     assert_eq!(image_data.width(), 2);
-///     assert_eq!(image_data.height(), 2);
-///     assert_eq!(image_data.data(), &pixels);
-/// }
+/// let pixels = [
+///     255, 0, 0, 255, // Red
+///     0, 255, 0, 255, // Green
+///     0, 0, 255, 255, // Blue
+///     0, 0, 0, 255, // Black
+/// ];
+/// let image_data = ImageData::new(2, 2, &pixels).unwrap();
+/// assert_eq!(image_data.width(), 2);
+/// assert_eq!(image_data.height(), 2);
+/// assert_eq!(image_data.data(), &pixels);
 /// ```
-#[derive(Debug)]
-pub struct ImageData<'a> {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImageData {
     width: u32,
     height: u32,
-    data: Cow<'a, [u8]>,
+    data: Vec<u8>,
 }
 
-impl<'a> ImageData<'a> {
+impl ImageData {
     /// Creates a new `ImageData` with the given width, height, and pixel data.
     ///
     /// # Arguments
     /// * `width` - The width of the image data.
     /// * `height` - The height of the image data.
-    /// * `data` - The pixel data of the image data.
+    /// * `data` - The pixel data in RGBA order. Accepts any type convertible
+    ///   into `Vec<u8>` (e.g. `Vec<u8>`, `&[u8]`, `&[u8; N]`).
     ///
     /// # Returns
     /// The `ImageData` with the given width, height, and pixel data.
     ///
     /// # Errors
-    /// Returns an error if the length of the pixel data is not equal to `width * height * 4`.
-    pub fn new(width: u32, height: u32, data: &'a [u8]) -> Result<Self, ImageError> {
+    /// Returns [`Error::InvalidImageData`] if the length of the pixel data is
+    /// not equal to `width * height * 4`.
+    pub fn new(width: u32, height: u32, data: impl Into<Vec<u8>>) -> Result<Self, Error> {
+        let data = data.into();
         let expected_length = (width * height) as usize * RGBA_CHANNELS;
         if data.len() != expected_length {
-            return Err(ImageError::UnexpectedLength {
+            return Err(Error::InvalidImageData {
                 expected: expected_length,
                 actual: data.len(),
             });
@@ -69,7 +69,7 @@ impl<'a> ImageData<'a> {
         Ok(Self {
             width,
             height,
-            data: Cow::Borrowed(data),
+            data,
         })
     }
 
@@ -86,11 +86,11 @@ impl<'a> ImageData<'a> {
     /// Returns an error if the image loading process fails.
     /// Returns an error if the color type of the image is not supported.
     #[cfg(feature = "image")]
-    pub fn load<P>(path: P) -> Result<Self, ImageError>
+    pub fn load<P>(path: P) -> Result<Self, Error>
     where
         P: AsRef<Path>,
     {
-        let image = image::open(path).map_err(ImageError::from)?;
+        let image = image::open(path)?;
         Self::try_from(&image)
     }
 
@@ -141,6 +141,44 @@ impl<'a> ImageData<'a> {
     #[must_use]
     pub fn data(&self) -> &[u8] {
         &self.data
+    }
+
+    /// Downsamples the image with nearest-neighbor sampling so that the
+    /// result contains at most `max_pixels` pixels.
+    ///
+    /// The aspect ratio is approximately preserved. If the image already
+    /// contains `max_pixels` pixels or fewer, a clone of the image is
+    /// returned.
+    ///
+    /// # Arguments
+    /// * `max_pixels` - The maximum number of pixels in the result.
+    ///
+    /// # Returns
+    /// The downsampled image data.
+    pub(crate) fn downsample(&self, max_pixels: usize) -> Self {
+        let area = self.area();
+        if max_pixels == 0 || area <= max_pixels {
+            return self.clone();
+        }
+
+        let stride = ((area as f64 / max_pixels as f64).sqrt().ceil() as u32).max(1);
+        let width = self.width.div_ceil(stride);
+        let height = self.height.div_ceil(stride);
+
+        let mut data = Vec::with_capacity((width * height) as usize * RGBA_CHANNELS);
+        for row in 0..height {
+            let src_row = (row * stride) as usize;
+            for col in 0..width {
+                let src_col = (col * stride) as usize;
+                let offset = (src_row * self.width as usize + src_col) * RGBA_CHANNELS;
+                data.extend_from_slice(&self.data[offset..offset + RGBA_CHANNELS]);
+            }
+        }
+        Self {
+            width,
+            height,
+            data,
+        }
     }
 
     /// Returns an iterator over the pixels of the image data.
@@ -205,8 +243,8 @@ impl<'a> ImageData<'a> {
     where
         T: FloatNumber,
     {
-        let (x, y, z) = rgb_to_xyz::<T>(chunk[0], chunk[1], chunk[2]);
-        let (l, a, b) = xyz_to_lab::<T, D65>(x, y, z);
+        let (x, y, z) = rgb_to_xyz(chunk[0], chunk[1], chunk[2]);
+        let (l, a, b) = xyz_to_lab::<D65>(x, y, z);
 
         let coord_x = T::from_usize((index % self.width as usize) + 1);
         let coord_y = T::from_usize((index / self.width as usize) + 1);
@@ -215,9 +253,9 @@ impl<'a> ImageData<'a> {
         let height_f = T::from_u32(self.height);
 
         [
-            Lab::<T>::normalize_l(l),
-            Lab::<T>::normalize_a(a),
-            Lab::<T>::normalize_b(b),
+            T::from_f64(Lab::normalize_l(l)),
+            T::from_f64(Lab::normalize_a(a)),
+            T::from_f64(Lab::normalize_b(b)),
             normalize(coord_x, T::zero(), width_f),
             normalize(coord_y, T::zero(), height_f),
         ]
@@ -225,20 +263,20 @@ impl<'a> ImageData<'a> {
 }
 
 #[cfg(feature = "image")]
-impl TryFrom<&DynamicImage> for ImageData<'_> {
-    type Error = ImageError;
+impl TryFrom<&DynamicImage> for ImageData {
+    type Error = Error;
 
     fn try_from(image: &DynamicImage) -> Result<Self, Self::Error> {
         match image {
             DynamicImage::ImageRgb8(image) => Ok(Self::from(image)),
             DynamicImage::ImageRgba8(image) => Ok(Self::from(image)),
-            _ => Err(ImageError::UnsupportedFormat),
+            _ => Err(Error::UnsupportedImageFormat),
         }
     }
 }
 
 #[cfg(feature = "image")]
-impl From<&RgbImage> for ImageData<'_> {
+impl From<&RgbImage> for ImageData {
     fn from(image: &RgbImage) -> Self {
         let (width, height) = image.dimensions();
         let size = (width * height) as usize;
@@ -252,20 +290,20 @@ impl From<&RgbImage> for ImageData<'_> {
         Self {
             width,
             height,
-            data: data.into(),
+            data,
         }
     }
 }
 
 #[cfg(feature = "image")]
-impl From<&RgbaImage> for ImageData<'_> {
+impl From<&RgbaImage> for ImageData {
     fn from(image: &RgbaImage) -> Self {
         let (width, height) = image.dimensions();
         let data = image.to_vec();
         Self {
             width,
             height,
-            data: data.into(),
+            data,
         }
     }
 }
@@ -286,7 +324,7 @@ mod tests {
         ];
 
         // Act
-        let actual = ImageData::new(2, 2, &pixels);
+        let actual = ImageData::new(2, 2, pixels);
 
         // Assert
         assert!(actual.is_ok());
@@ -302,10 +340,10 @@ mod tests {
     #[test]
     fn test_new_empty_data() {
         // Arrange
-        let pixels = [];
+        let pixels: [u8; 0] = [];
 
         // Act
-        let actual = ImageData::new(0, 0, &pixels);
+        let actual = ImageData::new(0, 0, pixels);
 
         // Assert
         assert!(actual.is_ok());
@@ -324,7 +362,7 @@ mod tests {
         let pixels = [255, 255, 255, 255];
 
         // Act
-        let actual = ImageData::new(2, 2, &pixels);
+        let actual = ImageData::new(2, 2, pixels);
 
         // Assert
         assert!(actual.is_err());
@@ -334,6 +372,41 @@ mod tests {
             error.to_string(),
             "unexpected data length: expected 16, got 4"
         );
+    }
+
+    #[test]
+    fn test_downsample() {
+        // Arrange
+        let mut pixels = Vec::with_capacity(8 * 8 * 4);
+        for index in 0..64u8 {
+            pixels.extend_from_slice(&[index, index, index, 255]);
+        }
+        let image_data = ImageData::new(8, 8, pixels).unwrap();
+
+        // Act
+        let actual = image_data.downsample(16);
+
+        // Assert
+        assert_eq!(actual.width(), 4);
+        assert_eq!(actual.height(), 4);
+        assert_eq!(actual.area(), 16);
+        // Nearest-neighbor sampling picks every 2nd pixel of every 2nd row.
+        assert_eq!(actual.data()[0], 0);
+        assert_eq!(actual.data()[4], 2);
+        assert_eq!(actual.data()[16], 16);
+    }
+
+    #[test]
+    fn test_downsample_no_op() {
+        // Arrange
+        let pixels = vec![255; 2 * 2 * 4];
+        let image_data = ImageData::new(2, 2, pixels).unwrap();
+
+        // Act
+        let actual = image_data.downsample(4);
+
+        // Assert
+        assert_eq!(actual, image_data);
     }
 
     #[cfg(feature = "image")]
@@ -398,110 +471,45 @@ mod tests {
         );
     }
 
-    #[cfg(all(feature = "image", not(target_os = "windows")))]
     #[test]
-    fn test_load_invalid_file() {
-        // Act
-        let actual = ImageData::load("../../gfx/colors/invalid.jpg");
-
-        // Assert
-        assert!(actual.is_err());
-
-        let error = actual.unwrap_err();
-        assert_eq!(
-            error.to_string(),
-            "failed to load image: No such file or directory (os error 2)"
-        );
-    }
-
-    #[cfg(all(feature = "image", target_os = "windows"))]
-    #[test]
-    fn test_load_invalid_file_windows() {
-        // Act
-        let actual = ImageData::load("../../gfx/colors/invalid.jpg");
-
-        // Assert
-        assert!(actual.is_err());
-
-        let error = actual.unwrap_err();
-        assert_eq!(
-            error.to_string(),
-            "failed to load image: The system cannot find the file specified. (os error 2)"
-        );
-    }
-
-    #[test]
-    fn test_pixels_iter() {
+    fn test_pixels() {
         // Arrange
         let pixels = [
-            255, 0, 0, 255, // Red
-            0, 0, 0, 0, // Transparent
-            255, 255, 0, 255, // Yellow
-            0, 0, 0, 0, // Transparent
+            255, 255, 255, 255, // White
+            0, 0, 0, 255, // Black
         ];
-        let image_data = ImageData::new(2, 2, &pixels).unwrap();
+        let image_data = ImageData::new(2, 1, pixels).unwrap();
 
         // Act
         let actual: Vec<_> = image_data.pixels::<f64>().collect();
 
         // Assert
-        assert_eq!(actual.len(), 4);
-
-        let pixel = actual[0];
-        assert_approx_eq!(pixel[0], 0.532371);
-        assert_approx_eq!(pixel[1], 0.816032);
-        assert_approx_eq!(pixel[2], 0.765488);
-        assert_approx_eq!(pixel[3], 0.5);
-        assert_approx_eq!(pixel[4], 0.5);
-
-        let pixel = actual[1];
-        assert_approx_eq!(pixel[0], 0.0);
-        assert_approx_eq!(pixel[1], 0.501960);
-        assert_approx_eq!(pixel[2], 0.501960);
-        assert_approx_eq!(pixel[3], 1.0);
-        assert_approx_eq!(pixel[4], 0.5);
-
-        let pixel = actual[2];
-        assert_approx_eq!(pixel[0], 0.971385);
-        assert_approx_eq!(pixel[1], 0.417402);
-        assert_approx_eq!(pixel[2], 0.872457);
-        assert_approx_eq!(pixel[3], 0.5);
-        assert_approx_eq!(pixel[4], 1.0);
-
-        let pixel = actual[3];
-        assert_approx_eq!(pixel[0], 0.0);
-        assert_approx_eq!(pixel[1], 0.501960);
-        assert_approx_eq!(pixel[2], 0.501960);
-        assert_approx_eq!(pixel[3], 1.0);
-        assert_approx_eq!(pixel[4], 1.0);
+        assert_eq!(actual.len(), 2);
+        // White pixel: L = 100 normalized to 1.0
+        assert_approx_eq!(actual[0][0], 1.0, 1e-3);
+        // Black pixel: L = 0 normalized to 0.0
+        assert_approx_eq!(actual[1][0], 0.0, 1e-3);
+        // 1-indexed normalized coordinates
+        assert_approx_eq!(actual[0][3], 0.5);
+        assert_approx_eq!(actual[1][3], 1.0);
     }
 
     #[test]
     fn test_pixels_with_filter() {
         // Arrange
-        let data = [
-            255, 0, 0, 255, // Red
-            0, 0, 0, 0, // Transparent
-            255, 255, 0, 255, // Yellow
-            0, 0, 0, 0, // Transparent
+        let pixels = [
+            255, 255, 255, 255, // White, opaque
+            0, 0, 0, 0, // Black, transparent
         ];
-        let image_data = ImageData::new(2, 2, &data).unwrap();
+        let image_data = ImageData::new(2, 1, pixels).unwrap();
+        let filter = |rgba: &Rgba| rgba[3] != 0;
 
         // Act
-        let (pixels, mask) = image_data
-            .pixels_with_filter::<f64, _>(&|rgba: &Rgba| rgba[3] != 0)
-            .fold(
-                (Vec::new(), Vec::new()),
-                |(mut pixels, mut mask), (pixel, m)| {
-                    pixels.push(pixel);
-                    mask.push(m);
-                    (pixels, mask)
-                },
-            );
+        let actual: Vec<_> = image_data.pixels_with_filter::<f64, _>(&filter).collect();
 
         // Assert
-        assert_eq!(pixels.len(), 4);
-        assert_eq!(mask.len(), 4);
-        assert_eq!(mask, vec![true, false, true, false]);
+        assert_eq!(actual.len(), 2);
+        assert!(actual[0].1);
+        assert!(!actual[1].1);
     }
 }

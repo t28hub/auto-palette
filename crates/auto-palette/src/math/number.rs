@@ -27,6 +27,7 @@ use num_traits::Float;
 ///     normalized * T::from_f32(100.0)
 /// }
 /// ```
+#[allow(dead_code)] // f32 support and helpers are exercised by tests only
 pub trait FloatNumber:
     Sized
     + Copy

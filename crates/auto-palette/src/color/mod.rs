@@ -19,37 +19,31 @@ mod xyz;
 use std::{
     fmt,
     fmt::{Display, Formatter},
-    marker::PhantomData,
     str::FromStr,
 };
 
 pub use ansi16::Ansi16;
 pub use ansi256::Ansi256;
-pub use cmyk::CMYK;
+pub use cmyk::Cmyk;
+pub use error::ColorError;
 pub use gamut::Gamut;
-pub use hsl::HSL;
-pub use hsv::HSV;
+pub use hsl::Hsl;
+pub use hsv::Hsv;
 pub use hue::Hue;
 pub(crate) use lab::xyz_to_lab;
 pub use lab::Lab;
-pub use lchab::LCHab;
-pub use lchuv::LCHuv;
+pub use lchab::Lchab;
+pub use lchuv::Lchuv;
 pub use luv::Luv;
 use num_traits::clamp;
 pub use oklab::Oklab;
 pub use oklch::Oklch;
-pub use rgb::RGB;
-pub use white_point::*;
+pub use rgb::Rgb;
+pub(crate) use white_point::*;
 pub(crate) use xyz::rgb_to_xyz;
-pub use xyz::XYZ;
-
-use crate::{color::error::ColorError, math::FloatNumber};
+pub use xyz::Xyz;
 
 /// The color representation.
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
-/// * `W` - The white point type.
 ///
 /// # Examples
 /// ```
@@ -57,7 +51,7 @@ use crate::{color::error::ColorError, math::FloatNumber};
 ///
 /// use auto_palette::color::Color;
 ///
-/// let color: Color<f32> = Color::from_str("#2c7de7").unwrap();
+/// let color = Color::from_str("#2c7de7").unwrap();
 /// assert!(color.is_light());
 /// assert!(color.lightness() - 52.917 < 1e-3);
 /// assert!(color.chroma() - 61.981 < 1e-3);
@@ -72,22 +66,14 @@ use crate::{color::error::ColorError, math::FloatNumber};
 /// let lab = color.to_lab();
 /// assert_eq!(format!("{}", lab), "Lab(52.92, 13.59, -60.47)");
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Color<T, W = D65>
-where
-    T: FloatNumber,
-{
-    pub(super) l: T,
-    pub(super) a: T,
-    pub(super) b: T,
-    _marker: PhantomData<W>,
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Color {
+    pub(crate) l: f64,
+    pub(crate) a: f64,
+    pub(crate) b: f64,
 }
 
-impl<T, W> Color<T, W>
-where
-    T: FloatNumber,
-    W: WhitePoint,
-{
+impl Color {
     /// Creates a new `Color` instance.
     ///
     /// # Arguments
@@ -98,13 +84,8 @@ where
     /// # Returns
     /// A new `Color` instance.
     #[must_use]
-    pub(crate) fn new(l: T, a: T, b: T) -> Self {
-        Self {
-            l,
-            a,
-            b,
-            _marker: PhantomData,
-        }
+    pub(crate) fn new(l: f64, a: f64, b: f64) -> Self {
+        Self { l, a, b }
     }
 
     /// Returns whether this color is light.
@@ -113,7 +94,7 @@ where
     /// `true` if the color is light, otherwise `false`.
     #[must_use]
     pub fn is_light(&self) -> bool {
-        self.l > T::from_f32(50.0)
+        self.l > 50.0
     }
 
     /// Returns whether this color is dark.
@@ -130,7 +111,7 @@ where
     /// # Returns
     /// The lightness of this color.
     #[must_use]
-    pub fn lightness(&self) -> T {
+    pub fn lightness(&self) -> f64 {
         self.l
     }
 
@@ -139,7 +120,7 @@ where
     /// # Returns
     /// The chroma of this color.
     #[must_use]
-    pub fn chroma(&self) -> T {
+    pub fn chroma(&self) -> f64 {
         (self.a.powi(2) + self.b.powi(2)).sqrt()
     }
 
@@ -156,7 +137,7 @@ where
     /// [Color difference CIE76 - Wikipedia](https://en.wikipedia.org/wiki/Color_difference#CIE76)
     #[inline]
     #[must_use]
-    pub fn delta_e(&self, other: &Self) -> T {
+    pub fn delta_e(&self, other: &Self) -> f64 {
         let delta_l = self.l - other.l;
         let delta_a = self.a - other.a;
         let delta_b = self.b - other.b;
@@ -168,7 +149,7 @@ where
     /// # Returns
     /// The hue of this color.
     #[must_use]
-    pub fn hue(&self) -> Hue<T> {
+    pub fn hue(&self) -> Hue {
         let degrees = self.b.atan2(self.a).to_degrees();
         Hue::from_degrees(degrees)
     }
@@ -179,53 +160,53 @@ where
     /// The hexadecimal string representation of this color.
     #[must_use]
     pub fn to_hex_string(&self) -> String {
-        let RGB { r, g, b } = self.to_rgb();
+        let Rgb { r, g, b } = self.to_rgb();
         format!("#{r:02X}{g:02X}{b:02X}")
     }
 
     /// Converts this color to the RGB color space.
     ///
     /// # Returns
-    /// The converted `RGB` color.
+    /// The converted `Rgb` color.
     #[must_use]
-    pub fn to_rgb(&self) -> RGB {
-        RGB::from(&self.to_xyz())
+    pub fn to_rgb(&self) -> Rgb {
+        Rgb::from(&self.to_xyz())
     }
 
     /// Converts this color to the CMYK color space.
     ///
     /// # Returns
-    /// The converted `CMYK` color.
+    /// The converted `Cmyk` color.
     #[must_use]
-    pub fn to_cmyk(&self) -> CMYK<T> {
-        CMYK::from(&self.to_rgb())
+    pub fn to_cmyk(&self) -> Cmyk {
+        Cmyk::from(&self.to_rgb())
     }
 
     /// Converts this color to the HSL color space.
     ///
     /// # Returns
-    /// The converted `HSL` color.
+    /// The converted `Hsl` color.
     #[must_use]
-    pub fn to_hsl(&self) -> HSL<T> {
-        HSL::from(&self.to_rgb())
+    pub fn to_hsl(&self) -> Hsl {
+        Hsl::from(&self.to_rgb())
     }
 
     /// Converts this color to the HSV color space.
     ///
     /// # Returns
-    /// The converted `HSV` color.
+    /// The converted `Hsv` color.
     #[must_use]
-    pub fn to_hsv(&self) -> HSV<T> {
-        HSV::from(&self.to_rgb())
+    pub fn to_hsv(&self) -> Hsv {
+        Hsv::from(&self.to_rgb())
     }
 
     /// Converts this color to the CIE XYZ color space.
     ///
     /// # Returns
-    /// The converted `XYZ` color.
+    /// The converted `Xyz` color.
     #[must_use]
-    pub fn to_xyz(&self) -> XYZ<T> {
-        XYZ::from(&self.to_lab())
+    pub fn to_xyz(&self) -> Xyz {
+        Xyz::from(&self.to_lab())
     }
 
     /// Converts this color to the CIE L*u*v* color space.
@@ -233,17 +214,17 @@ where
     /// # Returns
     /// The converted `Luv` color.
     #[must_use]
-    pub fn to_luv(&self) -> Luv<T, W> {
-        Luv::<T, W>::from(&self.to_xyz())
+    pub fn to_luv(&self) -> Luv {
+        Luv::from(&self.to_xyz())
     }
 
     /// Converts this color to the CIE LCH(uv) color space.
     ///
     /// # Returns
-    /// The converted `LCHuv` color.
+    /// The converted `Lchuv` color.
     #[must_use]
-    pub fn to_lchuv(&self) -> LCHuv<T, W> {
-        LCHuv::<T, W>::from(&self.to_luv())
+    pub fn to_lchuv(&self) -> Lchuv {
+        Lchuv::from(&self.to_luv())
     }
 
     /// Converts this color to the CIE L*a*b* color space.
@@ -251,17 +232,17 @@ where
     /// # Returns
     /// The converted `Lab` color.
     #[must_use]
-    pub fn to_lab(&self) -> Lab<T, W> {
-        Lab::<T, W>::new(self.l, self.a, self.b)
+    pub fn to_lab(&self) -> Lab {
+        Lab::new(self.l, self.a, self.b)
     }
 
     /// Converts this color to the CIE LCH(ab) color space.
     ///
     /// # Returns
-    /// The converted `LCHab` color.
+    /// The converted `Lchab` color.
     #[must_use]
-    pub fn to_lchab(&self) -> LCHab<T, W> {
-        LCHab::<T, W>::from(&self.to_lab())
+    pub fn to_lchab(&self) -> Lchab {
+        Lchab::from(&self.to_lab())
     }
 
     /// Converts this color to the CIE Oklab color space.
@@ -269,7 +250,7 @@ where
     /// # Returns
     /// The converted `Oklab` color.
     #[must_use]
-    pub fn to_oklab(&self) -> Oklab<T> {
+    pub fn to_oklab(&self) -> Oklab {
         Oklab::from(&self.to_xyz())
     }
 
@@ -278,7 +259,7 @@ where
     /// # Returns
     /// The converted `Oklch` color.
     #[must_use]
-    pub fn to_oklch(&self) -> Oklch<T> {
+    pub fn to_oklch(&self) -> Oklch {
         Oklch::from(&self.to_oklab())
     }
 
@@ -338,35 +319,27 @@ where
     /// # Returns
     /// A new `Color` instance that is the result of mixing the two colors.
     #[must_use]
-    pub fn mix(&self, other: &Self, fraction: T) -> Self {
-        let fraction = clamp(fraction, T::zero(), T::one());
+    pub fn mix(&self, other: &Self, fraction: f64) -> Self {
+        let fraction = clamp(fraction, 0.0, 1.0);
         Self {
             l: self.l + fraction * (other.l - self.l),
             a: self.a + fraction * (other.a - self.a),
             b: self.b + fraction * (other.b - self.b),
-            _marker: PhantomData,
         }
     }
 }
 
-impl<T> Default for Color<T>
-where
-    T: FloatNumber,
-{
+impl Default for Color {
     fn default() -> Self {
         Self {
-            l: T::zero(),
-            a: T::zero(),
-            b: T::zero(),
-            _marker: PhantomData,
+            l: 0.0,
+            a: 0.0,
+            b: 0.0,
         }
     }
 }
 
-impl<T> Display for Color<T>
-where
-    T: FloatNumber,
-{
+impl Display for Color {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -376,24 +349,18 @@ where
     }
 }
 
-impl<T> From<u32> for Color<T>
-where
-    T: FloatNumber,
-{
+impl From<u32> for Color {
     fn from(value: u32) -> Self {
         let r = (value >> 16) & 0xFF;
         let g = (value >> 8) & 0xFF;
         let b = value & 0xFF;
-        let (x, y, z) = rgb_to_xyz::<T>(r as u8, g as u8, b as u8);
-        let (l, a, b) = xyz_to_lab::<T, D65>(x, y, z);
+        let (x, y, z) = rgb_to_xyz(r as u8, g as u8, b as u8);
+        let (l, a, b) = xyz_to_lab::<D65>(x, y, z);
         Self::new(l, a, b)
     }
 }
 
-impl<T> FromStr for Color<T>
-where
-    T: FloatNumber,
-{
+impl FromStr for Color {
     type Err = ColorError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -451,8 +418,8 @@ where
             _ => return Err(ColorError::InvalidHexValue(s.to_string())),
         };
 
-        let (x, y, z) = rgb_to_xyz::<T>(r, g, b);
-        let (l, a, b) = xyz_to_lab::<T, D65>(x, y, z);
+        let (x, y, z) = rgb_to_xyz(r, g, b);
+        let (l, a, b) = xyz_to_lab::<D65>(x, y, z);
         Ok(Self::new(l, a, b))
     }
 }
@@ -467,7 +434,7 @@ mod tests {
     #[test]
     fn test_new() {
         // Act
-        let actual: Color<f32> = Color::new(80.0, 0.0, 0.0);
+        let actual = Color::new(80.0, 0.0, 0.0);
 
         // Assert
         assert_eq!(actual.l, 80.0);
@@ -480,9 +447,9 @@ mod tests {
     #[case((50.0, 0.0, 0.0), false)]
     #[case((50.1, 0.0, 0.0), true)]
     #[case((80.0, 0.0, 0.0), true)]
-    fn test_color_is_light(#[case] input: (f32, f32, f32), #[case] expected: bool) {
+    fn test_color_is_light(#[case] input: (f64, f64, f64), #[case] expected: bool) {
         // Act
-        let color: Color<f32> = Color::new(input.0, input.1, input.2);
+        let color = Color::new(input.0, input.1, input.2);
         let actual = color.is_light();
 
         // Assert
@@ -494,9 +461,9 @@ mod tests {
     #[case((50.0, 0.0, 0.0), true)]
     #[case((50.1, 0.0, 0.0), false)]
     #[case((80.0, 0.0, 0.0), false)]
-    fn test_color_is_dark(#[case] input: (f32, f32, f32), #[case] expected: bool) {
+    fn test_color_is_dark(#[case] input: (f64, f64, f64), #[case] expected: bool) {
         // Act
-        let color: Color<f32> = Color::new(input.0, input.1, input.2);
+        let color = Color::new(input.0, input.1, input.2);
         let actual = color.is_dark();
 
         // Assert
@@ -506,7 +473,7 @@ mod tests {
     #[test]
     fn test_lightness() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.lightness();
 
         // Assert
@@ -516,18 +483,18 @@ mod tests {
     #[test]
     fn test_chroma() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.chroma();
 
         // Assert
-        assert_approx_eq!(actual, 50.120_117);
+        assert_approx_eq!(actual, 50.120_116);
     }
 
     #[test]
     fn test_delta_e() {
         // Arrange
-        let color1: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
-        let color2: Color<f32> = Color::new(53.237_144, 80.088_320, 67.199_460);
+        let color1 = Color::new(91.1120, -48.0806, -14.1521);
+        let color2 = Color::new(53.237_144, 80.088_320, 67.199_460);
 
         // Act
         let actual = color1.delta_e(&color2);
@@ -545,9 +512,9 @@ mod tests {
     #[case::cyan((91.114_750, - 48.080_950, - 14.142_858), 196.391_080,)]
     #[case::magenta((60.322_700, 98.235_580, - 60.842_370), 328.227_940,)]
     #[case::yellow((97.138_580, - 21.562_368, 94.476_760), 102.856_380)]
-    fn test_hue(#[case] input: (f32, f32, f32), #[case] expected: f32) {
+    fn test_hue(#[case] input: (f64, f64, f64), #[case] expected: f64) {
         // Act
-        let color: Color<f32> = Color::new(input.0, input.1, input.2);
+        let color = Color::new(input.0, input.1, input.2);
         let actual = color.hue();
 
         // Assert
@@ -557,7 +524,7 @@ mod tests {
     #[test]
     fn test_to_hex_string() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.to_hex_string();
 
         // Assert
@@ -567,27 +534,27 @@ mod tests {
     #[test]
     fn test_to_rgb() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.to_rgb();
 
         // Assert
-        assert_eq!(actual, RGB::new(0, 255, 255));
+        assert_eq!(actual, Rgb::new(0, 255, 255));
     }
 
     #[test]
     fn test_to_cmyk() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.to_cmyk();
 
         // Assert
-        assert_eq!(actual, CMYK::new(1.0, 0.0, 0.0, 0.0));
+        assert_eq!(actual, Cmyk::new(1.0, 0.0, 0.0, 0.0));
     }
 
     #[test]
     fn test_to_hsl() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.to_hsl();
 
         // Assert
@@ -599,7 +566,7 @@ mod tests {
     #[test]
     fn test_to_hsv() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.to_hsv();
 
         // Assert
@@ -611,8 +578,8 @@ mod tests {
     #[test]
     fn test_to_xyz() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
-        let actual: XYZ<f32> = color.to_xyz();
+        let color = Color::new(91.1120, -48.0806, -14.1521);
+        let actual = color.to_xyz();
 
         // Assert
         assert_approx_eq!(actual.x, 0.5380, 1e-3);
@@ -623,7 +590,7 @@ mod tests {
     #[test]
     fn test_to_luv() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.to_luv();
 
         // Assert
@@ -635,7 +602,7 @@ mod tests {
     #[test]
     fn test_to_lchuv() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.to_lchuv();
 
         // Assert
@@ -647,7 +614,7 @@ mod tests {
     #[test]
     fn test_to_lab() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.to_lab();
 
         // Assert
@@ -659,7 +626,7 @@ mod tests {
     #[test]
     fn test_to_oklab() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.to_oklab();
 
         // Assert
@@ -671,7 +638,7 @@ mod tests {
     #[test]
     fn test_to_oklch() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.to_oklch();
 
         // Assert
@@ -683,7 +650,7 @@ mod tests {
     #[test]
     fn test_to_lchab() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.to_lchab();
 
         // Assert
@@ -695,7 +662,7 @@ mod tests {
     #[test]
     fn test_to_anis16() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.to_ansi16();
 
         // Assert
@@ -705,7 +672,7 @@ mod tests {
     #[test]
     fn test_to_ansi256() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.to_ansi256();
 
         // Assert
@@ -715,7 +682,7 @@ mod tests {
     #[test]
     fn test_to_rgb_int() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.to_rgb_int();
 
         // Assert
@@ -725,7 +692,7 @@ mod tests {
     #[test]
     fn test_to_rgba_int() {
         // Act
-        let color: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
+        let color = Color::new(91.1120, -48.0806, -14.1521);
         let actual = color.to_rgba_int(128);
 
         // Assert
@@ -738,10 +705,10 @@ mod tests {
     #[case::mix_full(1.0, (54.8888, 84.5321, 4.0656))]
     #[case::mix_over(1.5, (54.8888, 84.5321, 4.0656))]
     #[case::mix_negative(-0.5, (91.1120, -48.0806, -14.1521))]
-    fn test_mix(#[case] fraction: f32, #[case] (l, a, b): (f32, f32, f32)) {
+    fn test_mix(#[case] fraction: f64, #[case] (l, a, b): (f64, f64, f64)) {
         // Arrange
-        let color1: Color<f32> = Color::new(91.1120, -48.0806, -14.1521);
-        let color2: Color<f32> = Color::new(54.8888, 84.5321, 4.0656);
+        let color1 = Color::new(91.1120, -48.0806, -14.1521);
+        let color2 = Color::new(54.8888, 84.5321, 4.0656);
 
         // Act
         let actual = color1.mix(&color2, fraction);
@@ -755,7 +722,7 @@ mod tests {
     #[test]
     fn test_default() {
         // Act
-        let actual: Color<f64> = Color::default();
+        let actual = Color::default();
 
         // Assert
         assert_eq!(
@@ -764,7 +731,6 @@ mod tests {
                 l: 0.0,
                 a: 0.0,
                 b: 0.0,
-                _marker: PhantomData
             }
         );
     }
@@ -772,7 +738,7 @@ mod tests {
     #[test]
     fn test_fmt() {
         // Act & Assert
-        let color: Color<f32> = Color::new(91.114_750, -48.080_950, -14.142_8581);
+        let color = Color::new(91.114_750, -48.080_950, -14.142_858_1);
         assert_eq!(
             format!("{}", color),
             "Color(l: 91.11, a: -48.08, b: -14.14)"
@@ -782,7 +748,7 @@ mod tests {
     #[test]
     fn test_from_u32() {
         // Act
-        let actual: Color<f32> = Color::from(0xff0080);
+        let actual = Color::from(0xff0080);
 
         // Assert
         assert_approx_eq!(actual.l, 54.8888, 1e-3);
@@ -823,9 +789,9 @@ mod tests {
     #[case::cyan_rrggbbaa("#00ffffff", 91.114_750, - 48.080_950, - 14.142_858)]
     #[case::magenta_rrggbbaa("#ff00ffff", 60.322_700, 98.235_580, - 60.842_370)]
     #[case::yellow_rrggbbaa("#ffff00ff", 97.138_580, - 21.562_368, 94.476_760)]
-    fn test_from_str(#[case] input: &str, #[case] l: f32, #[case] a: f32, #[case] b: f32) {
+    fn test_from_str(#[case] input: &str, #[case] l: f64, #[case] a: f64, #[case] b: f64) {
         // Act
-        let actual: Color<f32> = Color::from_str(input).unwrap();
+        let actual = Color::from_str(input).unwrap();
 
         // Assert
         assert_approx_eq!(actual.l, l, 1e-3);
@@ -850,7 +816,7 @@ mod tests {
     #[case::invalid_rrggbbaa_a("#0000000g")]
     fn test_from_str_error(#[case] input: &str) {
         // Act
-        let actual = Color::<f32>::from_str(input);
+        let actual = Color::from_str(input);
 
         // Assert
         assert!(actual.is_err());

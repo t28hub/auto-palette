@@ -1,6 +1,6 @@
 use std::io::{BufWriter, Error, Write};
 
-use auto_palette::{FloatNumber, Swatch};
+use auto_palette::Swatch;
 use serde_json::{Map, Value};
 
 use crate::{context::Context, output::Printer};
@@ -32,10 +32,7 @@ impl<'a> JsonPrinter<'a> {
 
     #[inline]
     #[must_use]
-    fn swatch_to_json<T>(&self, swatch: &Swatch<T>) -> Value
-    where
-        T: FloatNumber,
-    {
+    fn swatch_to_json(&self, swatch: &Swatch) -> Value {
         let mut swatch_map = Map::with_capacity(3);
 
         let color_format = self.context.args().color_space;
@@ -44,9 +41,9 @@ impl<'a> JsonPrinter<'a> {
 
         swatch_map.insert(KEY_POSITION.into(), {
             let mut position_map = Map::with_capacity(2);
-            let (x, y) = swatch.position();
-            position_map.insert(KEY_POSITION_X.into(), Value::Number(x.into()));
-            position_map.insert(KEY_POSITION_Y.into(), Value::Number(y.into()));
+            let position = swatch.position();
+            position_map.insert(KEY_POSITION_X.into(), Value::Number(position.x.into()));
+            position_map.insert(KEY_POSITION_Y.into(), Value::Number(position.y.into()));
             Value::Object(position_map)
         });
 
@@ -57,9 +54,8 @@ impl<'a> JsonPrinter<'a> {
 }
 
 impl Printer for JsonPrinter<'_> {
-    fn print<T, W>(&self, swatches: &[Swatch<T>], output: &mut W) -> Result<(), Error>
+    fn print<W>(&self, swatches: &[Swatch], output: &mut W) -> Result<(), Error>
     where
-        T: FloatNumber,
         W: Write,
     {
         let swatch_array = Value::Array(

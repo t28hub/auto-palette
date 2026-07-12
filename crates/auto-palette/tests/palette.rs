@@ -16,7 +16,7 @@ where
 {
     // Act
     let image_data = ImageData::load(path).expect("Failed to load image data");
-    let actual: Result<Palette<f64>, _> = Palette::extract(&image_data);
+    let actual = Palette::extract(&image_data);
 
     // Assert
     assert!(actual.is_ok());
@@ -26,7 +26,7 @@ where
 
     let swatches = palette.swatches();
     let actual = swatches[0].color();
-    let expected = Color::<f64, _>::from_str(expected).expect("Invalid hex color format");
+    let expected = Color::from_str(expected).expect("Invalid hex color format");
     assert_color_eq!(actual, expected);
 }
 
@@ -35,7 +35,7 @@ fn test_extract_multiple_colors() {
     // Act
     let image_data =
         ImageData::load("../../gfx/olympic_logo.png").expect("Failed to load image data");
-    let actual: Result<Palette<f64>, _> = Palette::extract(&image_data);
+    let actual = Palette::extract(&image_data);
 
     // Assert
     assert!(actual.is_ok());
@@ -43,9 +43,7 @@ fn test_extract_multiple_colors() {
     let palette = actual.expect("Failed to extract palette");
     assert_eq!(palette.len(), 6);
 
-    let mut swatches = palette
-        .find_swatches(6)
-        .expect("Failed to find swatches in palette");
+    let mut swatches = palette.find_swatches(6);
     swatches.sort_by(|a, b| {
         b.population()
             .cmp(&a.population())
@@ -63,7 +61,7 @@ fn test_extract_multiple_colors() {
         "#FCB131", // Yellow
     ]
     .iter()
-    .map(|hex| Color::<f64, _>::from_str(hex).expect("Invalid hex color format"))
+    .map(|hex| Color::from_str(hex).expect("Invalid hex color format"))
     .collect();
     for (actual, expected) in actual_colors.iter().zip(expected_colors.iter()) {
         assert_color_eq!(actual, expected);
@@ -82,8 +80,7 @@ fn test_builder_with_algorithm(#[case] name: &str) {
     let algorithm = Algorithm::from_str(name).unwrap();
 
     // Act
-    let actual: Result<Palette<f64>, _> =
-        Palette::builder().algorithm(algorithm).build(&image_data);
+    let actual = Palette::builder().algorithm(algorithm).build(&image_data);
 
     // Assert
     assert!(actual.is_ok());
@@ -100,7 +97,7 @@ fn test_builder_with_filter() {
         .expect("Failed to load image data");
 
     // Act
-    let actual: Result<Palette<f64>, _> = Palette::builder()
+    let actual = Palette::builder()
         .filter(|pixel: &Rgba| pixel[3] != 0)
         .build(&image_data);
 
@@ -118,7 +115,7 @@ fn test_builder_with_max_swatches() {
     let image_data = ImageData::load("../../gfx/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
 
     // Act
-    let actual: Result<Palette<f64>, _> = Palette::builder().max_swatches(16).build(&image_data);
+    let actual = Palette::builder().max_swatches(16).build(&image_data);
 
     // Assert
     assert!(actual.is_ok());
@@ -129,10 +126,31 @@ fn test_builder_with_max_swatches() {
 }
 
 #[test]
+fn test_builder_with_max_pixels() {
+    // Arrange
+    let image_data = ImageData::load("../../gfx/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
+
+    // Act
+    let actual = Palette::builder().max_pixels(160_000).build(&image_data);
+
+    // Assert
+    assert!(actual.is_ok());
+
+    let palette = actual.unwrap();
+    assert!(!palette.is_empty());
+    for swatch in palette.swatches() {
+        let position = swatch.position();
+        assert!(position.x < image_data.width());
+        assert!(position.y < image_data.height());
+        assert!(swatch.ratio() <= 1.0);
+    }
+}
+
+#[test]
 fn test_builder_transparent() {
     // Act
     let image_data = ImageData::load("../../gfx/colors/transparent.png").unwrap();
-    let actual: Result<Palette<f64>, _> = Palette::builder()
+    let actual = Palette::builder()
         .filter(|pixel: &Rgba| pixel[3] != 0)
         .build(&image_data);
 
@@ -156,13 +174,10 @@ where
 {
     // Act
     let image_data = ImageData::load(path).unwrap();
-    let palette: Palette<f64> = Palette::extract(&image_data).unwrap();
-    let actual = palette.find_swatches(n);
+    let palette = Palette::extract(&image_data).unwrap();
+    let mut swatches = palette.find_swatches(n);
 
     // Assert
-    assert!(actual.is_ok());
-
-    let mut swatches = actual.unwrap();
     // Sort by population descending, then by color value ascending
     swatches.sort_by(|a, b| {
         b.population()

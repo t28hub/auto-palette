@@ -1,22 +1,18 @@
-use std::{fmt::Display, marker::PhantomData};
+use std::fmt::Display;
 
 use num_traits::clamp;
 #[cfg(feature = "wasm")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    color::{white_point::WhitePoint, LCHab, D65, XYZ},
-    math::{denormalize, normalize, FloatNumber},
+    color::{white_point::WhitePoint, Lchab, Xyz, D65},
+    math::{denormalize, normalize},
 };
 
 /// The CIE L*a*b* color representation.
 ///
 /// See the following for more details:
 /// [CIELAB color space - Wikipedia](https://en.wikipedia.org/wiki/CIELAB_color_space)
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
-/// * `W` - The white point type.
 ///
 /// # Fields
 /// * `l` - The L component.
@@ -25,34 +21,24 @@ use crate::{
 ///
 /// # Examples
 /// ```
-/// use auto_palette::color::{LCHab, Lab, D65, XYZ};
+/// use auto_palette::color::{Lab, Lchab, Xyz};
 ///
-/// let xyz = XYZ::new(0.3576, 0.7152, 0.1192);
-/// let lab = Lab::<_>::from(&xyz);
+/// let xyz = Xyz::new(0.3576, 0.7152, 0.1192);
+/// let lab = Lab::from(&xyz);
 /// assert_eq!(format!("{}", lab), "Lab(87.74, -86.18, 83.18)");
 ///
-/// let lchab: LCHab<_> = (&lab).into();
+/// let lchab: Lchab = (&lab).into();
 /// assert_eq!(format!("{}", lchab), "LCH(ab)(87.74, 119.78, 136.02)");
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
-pub struct Lab<T = f64, W = D65>
-where
-    T: FloatNumber,
-    W: WhitePoint,
-{
-    pub l: T,
-    pub a: T,
-    pub b: T,
-    #[cfg_attr(feature = "wasm", serde(skip))]
-    _marker: PhantomData<W>,
+pub struct Lab {
+    pub l: f64,
+    pub a: f64,
+    pub b: f64,
 }
 
-impl<T, W> Lab<T, W>
-where
-    T: FloatNumber,
-    W: WhitePoint,
-{
+impl Lab {
     /// Creates a new `Lab` instance.
     ///
     /// # Arguments
@@ -63,91 +49,72 @@ where
     /// # Returns
     /// A new `Lab` instance.
     #[must_use]
-    pub fn new(l: T, a: T, b: T) -> Self {
+    pub fn new(l: f64, a: f64, b: f64) -> Self {
         Self {
-            l: clamp(l, Lab::<T, W>::min_l(), Lab::<T, W>::max_l()),
-            a: clamp(a, Lab::<T, W>::min_a(), Lab::<T, W>::max_a()),
-            b: clamp(b, Lab::<T, W>::min_b(), Lab::<T, W>::max_b()),
-            _marker: PhantomData,
+            l: clamp(l, Lab::min_l(), Lab::max_l()),
+            a: clamp(a, Lab::min_a(), Lab::max_a()),
+            b: clamp(b, Lab::min_b(), Lab::max_b()),
         }
     }
 
     /// Returns the minimum value of the L component.
     ///
-    /// # Type Parameters
-    /// * `T` - The floating point type.
-    ///
     /// # Returns
     /// The minimum value of the L component.
     #[inline]
     #[must_use]
-    pub(crate) fn min_l() -> T {
-        T::zero()
+    pub(crate) fn min_l() -> f64 {
+        0.0
     }
 
     /// Returns the maximum value of the L component.
-    ///
-    /// # Type Parameters
-    /// * `T` - The floating point type.
     ///
     /// # Returns
     /// The maximum value of the L component.
     #[inline]
     #[must_use]
-    pub(crate) fn max_l() -> T {
-        T::from_f32(100.0)
+    pub(crate) fn max_l() -> f64 {
+        100.0
     }
 
     /// Returns the minimum value of the a component.
-    ///
-    /// # Type Parameters
-    /// * `T` - The floating point type.
     ///
     /// # Returns
     /// The minimum value of the a component.
     #[inline]
     #[must_use]
-    pub(crate) fn min_a() -> T {
-        T::from_f32(-128.0)
+    pub(crate) fn min_a() -> f64 {
+        -128.0
     }
 
     /// Returns the maximum value of the a component.
-    ///
-    /// # Type Parameters
-    /// * `T` - The floating point type.
     ///
     /// # Returns
     /// The maximum value of the a component.
     #[inline]
     #[must_use]
-    pub(crate) fn max_a() -> T {
-        T::from_f32(127.0)
+    pub(crate) fn max_a() -> f64 {
+        127.0
     }
 
     /// Returns the minimum value of the b component.
-    ///
-    /// # Type Parameters
-    /// * `T` - The floating point type.
     ///
     /// # Returns
     /// The minimum value of the b component.
     #[inline]
     #[must_use]
-    pub(crate) fn min_b() -> T {
-        T::from_f32(-128.0)
+    pub(crate) fn min_b() -> f64 {
+        -128.0
     }
 
     /// Returns the maximum value of the b component.
-    ///
-    /// # Type Parameters
-    /// * `T` - The floating point type.
     ///
     /// # Returns
     /// The maximum value of the b component.
     #[inline]
     #[must_use]
-    pub(crate) fn max_b() -> T {
-        T::from_f32(127.0)
+    pub(crate) fn max_b() -> f64 {
+        127.0
     }
 
     /// Normalizes the L component to the range of [0, 1].
@@ -159,8 +126,8 @@ where
     /// The normalized L component in the range of [0, 1].
     #[inline(always)]
     #[must_use]
-    pub(crate) fn normalize_l(l: T) -> T {
-        normalize(l, Lab::<T, W>::min_l(), Lab::<T, W>::max_l())
+    pub(crate) fn normalize_l(l: f64) -> f64 {
+        normalize(l, Lab::min_l(), Lab::max_l())
     }
 
     /// Denormalizes the L component from the range of [0, 1] to the original range.
@@ -172,8 +139,8 @@ where
     /// The denormalized L component in the original range.
     #[inline(always)]
     #[must_use]
-    pub(crate) fn denormalize_l(l: T) -> T {
-        denormalize(l, Lab::<T, W>::min_l(), Lab::<T, W>::max_l())
+    pub(crate) fn denormalize_l(l: f64) -> f64 {
+        denormalize(l, Lab::min_l(), Lab::max_l())
     }
 
     /// Normalizes the a component to the range of [0, 1].
@@ -185,8 +152,8 @@ where
     /// The normalized a component in the range of [0, 1].
     #[inline(always)]
     #[must_use]
-    pub(crate) fn normalize_a(a: T) -> T {
-        normalize(a, Lab::<T, W>::min_a(), Lab::<T, W>::max_a())
+    pub(crate) fn normalize_a(a: f64) -> f64 {
+        normalize(a, Lab::min_a(), Lab::max_a())
     }
 
     /// Denormalizes the a component from the range of [0, 1] to the original range.
@@ -198,8 +165,8 @@ where
     /// The denormalized a component in the original range.
     #[inline(always)]
     #[must_use]
-    pub(crate) fn denormalize_a(a: T) -> T {
-        denormalize(a, Lab::<T, W>::min_a(), Lab::<T, W>::max_a())
+    pub(crate) fn denormalize_a(a: f64) -> f64 {
+        denormalize(a, Lab::min_a(), Lab::max_a())
     }
 
     /// Normalizes the b component to the range of [0, 1].
@@ -211,8 +178,8 @@ where
     /// The normalized b component in the range of [0, 1].
     #[inline(always)]
     #[must_use]
-    pub(crate) fn normalize_b(b: T) -> T {
-        normalize(b, Lab::<T, W>::min_b(), Lab::<T, W>::max_b())
+    pub(crate) fn normalize_b(b: f64) -> f64 {
+        normalize(b, Lab::min_b(), Lab::max_b())
     }
 
     /// Denormalizes the b component from the range of [0, 1] to the original range.
@@ -224,37 +191,26 @@ where
     /// The denormalized b component in the original range.
     #[inline(always)]
     #[must_use]
-    pub(crate) fn denormalize_b(b: T) -> T {
-        denormalize(b, Lab::<T, W>::min_b(), Lab::<T, W>::max_b())
+    pub(crate) fn denormalize_b(b: f64) -> f64 {
+        denormalize(b, Lab::min_b(), Lab::max_b())
     }
 }
 
-impl<T> Display for Lab<T>
-where
-    T: FloatNumber,
-{
+impl Display for Lab {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Lab({:.2}, {:.2}, {:.2})", self.l, self.a, self.b)
     }
 }
 
-impl<T, W> From<&XYZ<T>> for Lab<T, W>
-where
-    T: FloatNumber,
-    W: WhitePoint,
-{
-    fn from(xyz: &XYZ<T>) -> Self {
-        let (l, a, b) = xyz_to_lab::<T, W>(xyz.x, xyz.y, xyz.z);
+impl From<&Xyz> for Lab {
+    fn from(xyz: &Xyz) -> Self {
+        let (l, a, b) = xyz_to_lab::<D65>(xyz.x, xyz.y, xyz.z);
         Lab::new(l, a, b)
     }
 }
 
-impl<T, W> From<&LCHab<T, W>> for Lab<T, W>
-where
-    T: FloatNumber,
-    W: WhitePoint,
-{
-    fn from(lch: &LCHab<T, W>) -> Self {
+impl From<&Lchab> for Lab {
+    fn from(lch: &Lchab) -> Self {
         // This implementation is based on the formulae from the following sources:
         // http://www.brucelindbloom.com/index.html?Eqn_Lab_to_LCH.html
         let l = lch.l;
@@ -269,7 +225,6 @@ where
 /// Converts the CIE XYZ color space to the CIE L*a*b* color space.
 ///
 /// # Type Parameters
-/// * `T` - The floating point type.
 /// * `W` - The white point type.
 ///
 /// # Arguments
@@ -281,16 +236,15 @@ where
 /// The L*a*b* color space representation of the XYZ color. The tuple contains the L, a, and b components.
 #[inline(always)]
 #[must_use]
-pub fn xyz_to_lab<T, W>(x: T, y: T, z: T) -> (T, T, T)
+pub(crate) fn xyz_to_lab<W>(x: f64, y: f64, z: f64) -> (f64, f64, f64)
 where
-    T: FloatNumber,
     W: WhitePoint,
 {
-    let epsilon = T::from_f64(6.0 / 29.0).powi(3);
-    let kappa = T::from_f64(841.0 / 108.0); // ((29.0 / 6.0) ^ 2) / 3.0
-    let delta = T::from_f64(4.0 / 29.0);
+    let epsilon = (6.0_f64 / 29.0).powi(3);
+    let kappa = 841.0 / 108.0; // ((29.0 / 6.0) ^ 2) / 3.0
+    let delta = 4.0 / 29.0;
 
-    let f = |t: T| -> T {
+    let f = |t: f64| -> f64 {
         if t > epsilon {
             t.cbrt()
         } else {
@@ -302,13 +256,13 @@ where
     let fy = f(y / W::y());
     let fz = f(z / W::z());
 
-    let l = T::from_f32(116.0) * fy - T::from_f32(16.0);
-    let a = T::from_f32(500.0) * (fx - fy);
-    let b = T::from_f32(200.0) * (fy - fz);
+    let l = 116.0 * fy - 16.0;
+    let a = 500.0 * (fx - fy);
+    let b = 200.0 * (fy - fz);
     (
-        clamp(l, Lab::<T, W>::min_l(), Lab::<T, W>::max_l()),
-        clamp(a, Lab::<T, W>::min_a(), Lab::<T, W>::max_a()),
-        clamp(b, Lab::<T, W>::min_b(), Lab::<T, W>::max_b()),
+        clamp(l, Lab::min_l(), Lab::max_l()),
+        clamp(a, Lab::min_a(), Lab::max_a()),
+        clamp(b, Lab::min_b(), Lab::max_b()),
     )
 }
 
@@ -319,12 +273,12 @@ mod tests {
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
     use super::*;
-    use crate::{assert_approx_eq, color::white_point::D65};
+    use crate::assert_approx_eq;
 
     #[test]
     fn test_new() {
         // Act
-        let actual = Lab::<_>::new(53.2437, 80.09315, 67.2388);
+        let actual = Lab::new(53.2437, 80.09315, 67.2388);
 
         // Assert
         assert_eq!(actual.l, 53.2437);
@@ -336,7 +290,7 @@ mod tests {
     #[cfg(feature = "wasm")]
     fn test_serialize() {
         // Act
-        let lab = Lab::<_>::new(53.2437, 80.09315, 67.2388);
+        let lab = Lab::new(53.2437, 80.09315, 67.2388);
 
         // Assert
         assert_ser_tokens(
@@ -361,7 +315,7 @@ mod tests {
     #[cfg(feature = "wasm")]
     fn test_deserialize() {
         // Act
-        let lab = Lab::<_>::new(66.48, -29.16, 20.62);
+        let lab = Lab::new(66.48, -29.16, 20.62);
 
         // Assert
         assert_de_tokens(
@@ -385,7 +339,7 @@ mod tests {
     #[test]
     fn test_fmt() {
         // Act
-        let lab = Lab::<_>::new(53.2437, 80.09315, 67.2388);
+        let lab = Lab::new(53.2437, 80.09315, 67.2388);
         let actual = format!("{}", lab);
 
         // Assert
@@ -395,8 +349,8 @@ mod tests {
     #[test]
     fn test_from_xyz() {
         // Act
-        let xyz: XYZ<f64> = XYZ::new(0.3576, 0.7152, 0.1192);
-        let actual: Lab<f64> = Lab::<_>::from(&xyz);
+        let xyz = Xyz::new(0.3576, 0.7152, 0.1192);
+        let actual = Lab::from(&xyz);
 
         // Assert
         assert_approx_eq!(actual.l, 87.737033);
@@ -407,7 +361,7 @@ mod tests {
     #[test]
     fn test_from_lchab() {
         // Act
-        let lchab: LCHab<f64> = LCHab::new(54.617, 92.151, 27.756);
+        let lchab = Lchab::new(54.617, 92.151, 27.756);
         let actual = Lab::from(&lchab);
 
         // Assert
@@ -425,9 +379,9 @@ mod tests {
     #[case::cyan((0.53802, 0.7873, 1.0698), (91.1120, - 48.0806, - 14.1521))]
     #[case::magenta((0.5928, 0.2848, 0.9699), (60.3199, 98.2302, - 60.8496))]
     #[case::yellow((0.7700, 0.9278, 0.1385), (97.1382, - 21.5551, 94.4825))]
-    fn test_xyz_to_lab(#[case] xyz: (f32, f32, f32), #[case] lab: (f32, f32, f32)) {
+    fn test_xyz_to_lab(#[case] xyz: (f64, f64, f64), #[case] lab: (f64, f64, f64)) {
         // Act
-        let (l, a, b) = xyz_to_lab::<f32, D65>(xyz.0, xyz.1, xyz.2);
+        let (l, a, b) = xyz_to_lab::<D65>(xyz.0, xyz.1, xyz.2);
 
         // Assert
         assert_approx_eq!(l, lab.0, 1e-3);

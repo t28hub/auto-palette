@@ -1,6 +1,6 @@
 use std::{io::Error, path::PathBuf};
 
-use auto_palette::{color::Color, Algorithm, FloatNumber, Swatch, Theme};
+use auto_palette::{color::Color, Algorithm, Swatch, Theme};
 use clap::{crate_authors, crate_description, crate_version, Parser, ValueEnum, ValueHint};
 
 use crate::{
@@ -125,11 +125,11 @@ pub enum AlgorithmOption {
 impl From<AlgorithmOption> for Algorithm {
     fn from(option: AlgorithmOption) -> Self {
         match option {
-            AlgorithmOption::Dbscan => Algorithm::DBSCAN,
-            AlgorithmOption::DbscanPlusPlus => Algorithm::DBSCANpp,
+            AlgorithmOption::Dbscan => Algorithm::Dbscan,
+            AlgorithmOption::DbscanPlusPlus => Algorithm::DbscanPlusPlus,
             AlgorithmOption::Kmeans => Algorithm::KMeans,
-            AlgorithmOption::Slic => Algorithm::SLIC,
-            AlgorithmOption::Snic => Algorithm::SNIC,
+            AlgorithmOption::Slic => Algorithm::Slic,
+            AlgorithmOption::Snic => Algorithm::Snic,
         }
     }
 }
@@ -200,10 +200,7 @@ impl ColorSpace {
     /// # Returns
     /// The string representation of the color space.
     #[must_use]
-    pub fn fmt<T>(&self, color: &Color<T>) -> String
-    where
-        T: FloatNumber,
-    {
+    pub fn fmt(&self, color: &Color) -> String {
         match *self {
             Self::Hex => color.to_hex_string(),
             Self::Rgb => color.to_rgb().to_string(),
@@ -241,10 +238,7 @@ impl OutputFormat {
     ///
     /// # Returns
     /// The result of the operation.
-    pub fn print<T>(&self, context: &Context, swatches: &[Swatch<T>]) -> Result<(), Error>
-    where
-        T: FloatNumber,
-    {
+    pub fn print(&self, context: &Context, swatches: &[Swatch]) -> Result<(), Error> {
         match *self {
             OutputFormat::Json => JsonPrinter::new(context).print(swatches, &mut std::io::stdout()),
             OutputFormat::Text => TextPrinter::new(context).print(swatches, &mut std::io::stdout()),

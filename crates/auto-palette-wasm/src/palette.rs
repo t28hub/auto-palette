@@ -1,4 +1,4 @@
-use auto_palette::{Algorithm, ImageData, Palette, Rgba, Swatch, Theme};
+use auto_palette::{Algorithm, ImageData, Palette, Swatch, Theme};
 use serde_wasm_bindgen::from_value;
 use wasm_bindgen::{prelude::wasm_bindgen, JsError};
 use web_sys::ImageData as ImageSource;
@@ -57,7 +57,7 @@ export class Palette {
 /// The `Palette` class represents a color palette extracted from an image.
 #[derive(Debug)]
 #[wasm_bindgen(js_name = Palette, skip_typescript)]
-pub struct JsPalette(Palette<f64>);
+pub struct JsPalette(Palette);
 
 #[wasm_bindgen(js_class = Palette)]
 impl JsPalette {
@@ -119,14 +119,9 @@ impl JsPalette {
         let found = match theme {
             Some(name) => {
                 let theme = Theme::try_from(name)?;
-                self.0.find_swatches_with_theme(n, theme).map_err(|e| {
-                    JsError::new(&format!("Failed to find swatches with theme: {e}"))
-                })?
+                self.0.find_swatches_with_theme(n, theme)
             }
-            None => self
-                .0
-                .find_swatches(n)
-                .map_err(|e| JsError::new(&format!("Failed to find swatches: {e}")))?,
+            None => self.0.find_swatches(n),
         };
 
         let swatches = found.into_iter().map(JsSwatch::from).collect::<Vec<_>>();
@@ -144,16 +139,15 @@ impl JsPalette {
         let width = image.width();
         let height = image.height();
         let data = image.data();
-        let image_data = ImageData::new(width, height, &data)
+        let image_data = ImageData::new(width, height, data.0)
             .map_err(|e| JsError::new(&format!("Failed to create ImageData from image: {e}")))?;
 
         let algorithm = algorithm
             .map(Algorithm::try_from)
-            .unwrap_or(Ok(Algorithm::DBSCAN))?;
+            .unwrap_or(Ok(Algorithm::Dbscan))?;
 
         let palette = Palette::builder()
             .algorithm(algorithm)
-            .filter(|pixel: &Rgba| pixel[3] != 0)
             .build(&image_data)
             .map_err(|e| JsError::new(&format!("Failed to extract palette from image: {e}")))?;
         Ok(Self(palette))

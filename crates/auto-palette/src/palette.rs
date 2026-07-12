@@ -5,9 +5,9 @@ use rustc_hash::FxHashMap;
 use crate::{
     algorithm::Algorithm,
     color::{Color, Lab},
-    error::{Error, ExtractionError, ExtractionErrorKind, SelectionError},
+    error::Error,
     image::{
-        filter::{AlphaFilter, CompositeFilter, Filter},
+        filter::{AlphaFilter, Filter, FilterChain},
         ImageData,
     },
     math::{
@@ -15,48 +15,37 @@ use crate::{
         denormalize,
         sampling::{DiversitySampling, SamplingAlgorithm, SamplingError, WeightedFarthestSampling},
         DistanceMetric,
-        FloatNumber,
     },
     segmentation::{segment::SegmentMetadata, SegmentationMethod},
     theme::Theme,
     Swatch,
 };
 
-/// The color palette representation extracted from the image data.
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
+/// The color palette extracted from an image.
 ///
 /// # Examples
 /// ```
 /// #[cfg(feature = "image")]
 /// {
-///     use auto_palette::{color::Color, ImageData, Palette, Swatch, Theme};
+///     use auto_palette::{ImageData, Palette};
 ///
 ///     let image_data = ImageData::load("../../gfx/flags/za.png").unwrap();
-///     let palette: Palette<f64> = Palette::extract(&image_data).unwrap();
+///     let palette = Palette::extract(&image_data).unwrap();
 ///     assert!(!palette.is_empty());
 ///     assert!(palette.len() >= 6);
 ///
-///     let mut swatches = palette.find_swatches(3).unwrap();
-///
+///     let swatches = palette.find_swatches(3);
 ///     assert_eq!(swatches[0].color().to_hex_string(), "#007749");
 ///     assert_eq!(swatches[1].color().to_hex_string(), "#E03C31");
 ///     assert_eq!(swatches[2].color().to_hex_string(), "#001489");
 /// }
 /// ```
 #[derive(Debug, Clone, PartialEq)]
-pub struct Palette<T>
-where
-    T: FloatNumber,
-{
-    swatches: Vec<Swatch<T>>,
+pub struct Palette {
+    swatches: Vec<Swatch>,
 }
 
-impl<T> Palette<T>
-where
-    T: FloatNumber,
-{
+impl Palette {
     /// Creates a new `Palette` instance.
     ///
     /// # Arguments
@@ -65,8 +54,30 @@ where
     /// # Returns
     /// A new `Palette` instance.
     #[must_use]
-    pub fn new(swatches: Vec<Swatch<T>>) -> Self {
+    pub fn new(swatches: Vec<Swatch>) -> Self {
         Self { swatches }
+    }
+
+    /// Extracts the palette from the image data with the default settings
+    /// (DBSCAN segmentation, transparent pixels ignored).
+    ///
+    /// Use [`Palette::builder`] to customize the extraction.
+    ///
+    /// # Arguments
+    /// * `image_data` - The image data to extract the palette from.
+    ///
+    /// # Returns
+    /// The extracted palette.
+    pub fn extract(image_data: &ImageData) -> Result<Self, Error> {
+        Self::builder().build(image_data)
+    }
+
+    /// Creates a new [`PaletteBuilder`] for customizing palette extraction.
+    ///
+    /// # Returns
+    /// A new `PaletteBuilder` instance.
+    pub fn builder() -> PaletteBuilder {
+        PaletteBuilder::new()
     }
 
     /// Returns the number of swatches in the palette.
@@ -92,69 +103,75 @@ where
     /// # Returns
     /// The swatches in the palette.
     #[must_use]
-    pub fn swatches(&self) -> &[Swatch<T>] {
+    pub fn swatches(&self) -> &[Swatch] {
         &self.swatches
     }
 
-    /// Finds the swatches in the palette based on the theme.
+    /// Finds up to `count` prominent swatches in the palette.
+    ///
+    /// The swatches are selected to be both prominent (large population) and
+    /// perceptually diverse, and are returned in descending order of
+    /// population. If the palette contains fewer than `count` eligible
+    /// swatches, fewer swatches are returned.
     ///
     /// # Arguments
-    /// * `num_swatches` - The number of swatches to find.
+    /// * `count` - The maximum number of swatches to find.
     ///
     /// # Returns
-    /// The swatches in the palette.
-    pub fn find_swatches(&self, num_swatches: usize) -> Result<Vec<Swatch<T>>, Error> {
-        self.find_swatches_internal(
-            num_swatches,
+    /// The found swatches, sorted by population in descending order.
+    #[must_use]
+    pub fn find_swatches(&self, count: usize) -> Vec<Swatch> {
+        self.select_swatches(
+            count,
             |swatch| swatch.ratio(),
-            |scores| {
-                DiversitySampling::new(T::from_f64(0.6), scores, DistanceMetric::SquaredEuclidean)
-            },
+            |scores| DiversitySampling::new(0.6, scores, DistanceMetric::SquaredEuclidean),
         )
     }
 
-    /// Finds the swatches in the palette based on the theme.
+    /// Finds up to `count` swatches matching the given theme.
+    ///
+    /// The swatches are scored against the theme, and high-scoring,
+    /// perceptually diverse swatches are returned in descending order of
+    /// population. If the palette contains fewer than `count` eligible
+    /// swatches, fewer swatches are returned.
     ///
     /// # Arguments
-    /// * `num_swatches` - The number of swatches to find.
-    /// * `theme` - The theme to use.
+    /// * `count` - The maximum number of swatches to find.
+    /// * `theme` - The theme to score the swatches against.
     ///
     /// # Returns
-    /// The swatches in the palette based on the theme.
-    pub fn find_swatches_with_theme(
-        &self,
-        num_swatches: usize,
-        theme: Theme,
-    ) -> Result<Vec<Swatch<T>>, Error> {
-        self.find_swatches_internal(
-            num_swatches,
+    /// The found swatches, sorted by population in descending order.
+    #[must_use]
+    pub fn find_swatches_with_theme(&self, count: usize, theme: Theme) -> Vec<Swatch> {
+        self.select_swatches(
+            count,
             |swatch| theme.score(swatch),
             |scores| WeightedFarthestSampling::new(scores, DistanceMetric::SquaredEuclidean),
         )
     }
 
-    /// Finds the swatches in the palette using a custom sampling algorithm.
+    /// Selects swatches using a scoring function and a sampling algorithm.
     ///
     /// # Arguments
-    /// * `num_swatches` - The number of swatches to find.
+    /// * `count` - The maximum number of swatches to select.
     /// * `score_fn` - The function to score the swatches.
     /// * `sampling_factory` - The function to create the sampling algorithm.
     ///
     /// # Returns
-    /// The swatches in the palette. If the palette is empty, an empty vector is returned.
-    pub fn find_swatches_internal<S, F1, F2>(
+    /// The selected swatches, sorted by population in descending order.
+    fn select_swatches<S, F1, F2>(
         &self,
-        num_swatches: usize,
+        count: usize,
         score_fn: F1,
         sampling_factory: F2,
-    ) -> Result<Vec<Swatch<T>>, Error>
+    ) -> Vec<Swatch>
     where
-        S: SamplingAlgorithm<T>,
-        F1: Fn(&Swatch<T>) -> T,
-        F2: FnOnce(Vec<T>) -> Result<S, SamplingError>,
+        S: SamplingAlgorithm<f64>,
+        F1: Fn(&Swatch) -> f64,
+        F2: FnOnce(Vec<f64>) -> Result<S, SamplingError>,
     {
-        if self.swatches.is_empty() {
-            return Ok(vec![]);
+        if self.swatches.is_empty() || count == 0 {
+            return Vec::new();
         }
 
         let mut colors = Vec::with_capacity(self.swatches.len());
@@ -162,7 +179,7 @@ where
         let mut indices = Vec::with_capacity(self.swatches.len());
         for (index, swatch) in self.swatches.iter().enumerate() {
             let score = score_fn(swatch);
-            if score < T::from_f64(SWATCH_SCORE_THRESHOLD) {
+            if score < SWATCH_SCORE_THRESHOLD {
                 // Skip swatches with a score below the threshold
                 continue;
             }
@@ -173,78 +190,39 @@ where
             indices.push(index);
         }
 
-        let num_swatches = num_swatches.min(indices.len());
-        let sampling = sampling_factory(scores).map_err(SelectionError::from)?;
-        let sampled = sampling
-            .sample(&colors, num_swatches)
-            .map_err(SelectionError::from)?;
-
-        let mut found: Vec<_> = sampled
-            .iter()
-            .map(|&i| {
-                let index = indices[i];
-                self.swatches[index]
-            })
-            .collect();
+        let count = count.min(indices.len());
+        let sampled = sampling_factory(scores.clone()).and_then(|s| s.sample(&colors, count));
+        let mut found: Vec<Swatch> = match sampled {
+            Ok(sampled) => sampled.iter().map(|&i| self.swatches[indices[i]]).collect(),
+            Err(_) => {
+                // Sampling cannot fail for non-empty, equally sized inputs;
+                // fall back to the highest-scored swatches just in case.
+                let mut ranked: Vec<_> = indices.iter().zip(scores.iter()).collect();
+                ranked.sort_by(|(_, a), (_, b)| {
+                    b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal)
+                });
+                ranked
+                    .into_iter()
+                    .take(count)
+                    .map(|(&index, _)| self.swatches[index])
+                    .collect()
+            }
+        };
         found.sort_by_key(|swatch| Reverse(swatch.population()));
-        Ok(found)
-    }
-
-    /// Creates a new `PaletteBuilder` instance.
-    ///
-    /// # Returns
-    /// A new `PaletteBuilder` instance.
-    #[must_use]
-    pub fn builder() -> PaletteBuilder<T, AlphaFilter> {
-        PaletteBuilder::new()
-    }
-
-    /// Extracts the palette from the image data. The default clustering algorithm is DBSCAN.
-    ///
-    /// # Arguments
-    /// * `image_data` - The image data to extract the palette from.
-    ///
-    /// # Returns
-    /// The extracted palette.
-    pub fn extract(image_data: &ImageData) -> Result<Self, Error> {
-        Self::builder().build(image_data)
-    }
-
-    /// Extracts the palette from the image data with the given algorithm.
-    ///
-    /// # Arguments
-    /// * `image_data` - The image data to extract the palette from.
-    /// * `algorithm` - The clustering algorithm to use.
-    ///
-    /// # Returns
-    /// The extracted palette.
-    #[deprecated(
-        since = "0.8.0",
-        note = "Use `Palette::extract` or `Palette::builder` instead."
-    )]
-    pub fn extract_with_algorithm(
-        image_data: &ImageData,
-        algorithm: Algorithm,
-    ) -> Result<Self, Error> {
-        Self::builder().algorithm(algorithm).build(image_data)
+        found
     }
 }
 
-/// The builder for creating a `Palette` instance.
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
-/// * `F` - The filter function type.
+/// The builder for customizing palette extraction.
 ///
 /// # Examples
 /// ```
-/// use auto_palette::Rgba;
 /// #[cfg(feature = "image")]
 /// {
 ///     use auto_palette::{Algorithm, ImageData, Palette, Rgba};
 ///
 ///     let image_data = ImageData::load("../../gfx/flags/za.png").unwrap();
-///     let palette: Palette<f64> = Palette::builder()
+///     let palette = Palette::builder()
 ///         .algorithm(Algorithm::KMeans)
 ///         .filter(|pixel: &Rgba| pixel[3] >= 64)
 ///         .build(&image_data)
@@ -254,75 +232,57 @@ where
 ///     assert!(palette.len() >= 6);
 /// }
 /// ```
-pub struct PaletteBuilder<T, F>
-where
-    T: FloatNumber,
-    F: Filter,
-{
-    algorithm: SegmentationMethod<T>,
-    filter: F,
+#[must_use]
+pub struct PaletteBuilder {
+    method: SegmentationMethod<f64>,
+    filters: FilterChain,
     max_swatches: usize,
+    max_pixels: Option<usize>,
 }
 
-impl<T> PaletteBuilder<T, AlphaFilter>
-where
-    T: FloatNumber,
-{
+impl PaletteBuilder {
     /// The default maximum number of swatches to extract.
     const DEFAULT_MAX_SWATCHES: usize = 256;
 
-    /// Creates a new `PaletteBuilder` instance.
+    /// Creates a new `PaletteBuilder` with the default settings.
     ///
     /// # Returns
     /// A new `PaletteBuilder` instance.
-    #[must_use]
     fn new() -> Self {
-        PaletteBuilder {
-            algorithm: SegmentationMethod::default(),
-            filter: AlphaFilter::default(),
+        let mut filters = FilterChain::default();
+        filters.push(AlphaFilter::default());
+        Self {
+            method: SegmentationMethod::default(),
+            filters,
             max_swatches: Self::DEFAULT_MAX_SWATCHES,
+            max_pixels: None,
         }
     }
-}
 
-impl<T, F> PaletteBuilder<T, F>
-where
-    T: FloatNumber,
-    F: Filter,
-{
     /// Sets the clustering algorithm to use.
     ///
     /// # Arguments
     /// * `algorithm` - The clustering algorithm to use.
     ///
     /// # Returns
-    /// A `PaletteBuilder` instance with the algorithm applied.
-    #[must_use]
-    pub fn algorithm(mut self, algorithm: impl Into<SegmentationMethod<T>>) -> Self {
-        self.algorithm = algorithm.into();
+    /// The `PaletteBuilder` with the algorithm applied.
+    pub fn algorithm(mut self, algorithm: Algorithm) -> Self {
+        self.method = algorithm.into();
         self
     }
 
-    /// Sets the filter to use.
-    ///
-    /// # Type Parameters
-    /// * `F2` - The filter type.
+    /// Adds a pixel filter. All filters must accept a pixel for it to
+    /// participate in palette extraction. Fully transparent pixels are always
+    /// ignored.
     ///
     /// # Arguments
-    /// * `filter` - The filter to use.
+    /// * `filter` - The filter to add. Any `Fn(&Rgba) -> bool` closure works.
     ///
     /// # Returns
-    /// A `PaletteBuilder` instance with the filter applied.
-    #[must_use]
-    pub fn filter<F2>(self, filter: F2) -> PaletteBuilder<T, CompositeFilter<F, F2>>
-    where
-        F2: Filter,
-    {
-        PaletteBuilder {
-            algorithm: self.algorithm,
-            filter: self.filter.composite(filter),
-            max_swatches: self.max_swatches,
-        }
+    /// The `PaletteBuilder` with the filter added.
+    pub fn filter(mut self, filter: impl Filter) -> Self {
+        self.filters.push(filter);
+        self
     }
 
     /// Sets the maximum number of swatches to extract.
@@ -331,33 +291,74 @@ where
     /// * `max_swatches` - The maximum number of swatches to extract.
     ///
     /// # Returns
-    /// A `PaletteBuilder` instance with the maximum swatches applied.
-    #[must_use]
+    /// The `PaletteBuilder` with the maximum swatches applied.
     pub fn max_swatches(mut self, max_swatches: usize) -> Self {
         self.max_swatches = max_swatches;
         self
     }
 
-    /// Builds the palette from the image data.
+    /// Limits the number of pixels processed during extraction.
     ///
-    /// # Type Parameters
-    /// * `T` - The floating point type.
+    /// Images larger than `max_pixels` are downsampled with nearest-neighbor
+    /// sampling before segmentation, bounding the running time regardless of
+    /// the input resolution. Swatch positions are always reported in the
+    /// coordinates of the original image.
+    ///
+    /// Palette extraction is at best linear in the number of pixels, so this
+    /// is the most effective knob for processing large photographs quickly.
+    /// A budget in the range of `100_000..=250_000` pixels is usually
+    /// indistinguishable from processing the full image.
+    ///
+    /// # Arguments
+    /// * `max_pixels` - The maximum number of pixels to process.
+    ///
+    /// # Returns
+    /// The `PaletteBuilder` with the pixel budget applied.
+    pub fn max_pixels(mut self, max_pixels: usize) -> Self {
+        self.max_pixels = Some(max_pixels);
+        self
+    }
+
+    /// Builds the palette from the image data.
     ///
     /// # Arguments
     /// * `image_data` - The image data to extract the palette from.
     ///
     /// # Returns
     /// The `Palette` instance built from the image data.
-    pub fn build(self, image_data: &ImageData) -> Result<Palette<T>, Error> {
-        // Group the points into clusters using the specified algorithm.
-        let result = self.algorithm.segment(image_data, &self.filter)?;
+    pub fn build(self, image_data: &ImageData) -> Result<Palette, Error> {
+        // Downsample the image if a pixel budget is set.
+        let downsampled;
+        let image = match self.max_pixels {
+            Some(max_pixels) if image_data.area() > max_pixels => {
+                downsampled = image_data.downsample(max_pixels);
+                &downsampled
+            }
+            _ => image_data,
+        };
 
-        // Merge similar color clusters and create swatches.
-        let mut swatches = to_swatches(result.width(), result.height(), result.segments())?;
+        // Group the points into clusters using the specified algorithm.
+        let result = self.method.segment(image, &self.filters)?;
+
+        // Merge similar color clusters and create swatches. Positions are
+        // reported in the original image coordinates, while the ratio is
+        // relative to the (possibly downsampled) segmented image.
+        let mut swatches = to_swatches(
+            image_data.width(),
+            image_data.height(),
+            result.width() * result.height(),
+            result.segments(),
+        )?;
         swatches.sort_by_key(|swatch| Reverse(swatch.population()));
 
         let palette = Palette::new(swatches.into_iter().take(self.max_swatches).collect());
         Ok(palette)
+    }
+}
+
+impl Default for PaletteBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -378,20 +379,19 @@ const COLOR_MERGE_EPSILON_LAB: f64 = 2.3;
 /// Converts the segments to swatches.
 ///
 /// # Arguments
-/// * `width` - The width of the image.
-/// * `height` - The height of the image.
+/// * `width` - The width of the original image, used for swatch positions.
+/// * `height` - The height of the original image, used for swatch positions.
+/// * `area` - The number of pixels in the segmented image, used for ratios.
 /// * `segments` - The segments to convert.
 ///
 /// # Returns
 /// A vector of swatches extracted from the segments.
-fn to_swatches<T>(
-    width: usize,
-    height: usize,
-    segments: &[SegmentMetadata<T>],
-) -> Result<Vec<Swatch<T>>, Error>
-where
-    T: FloatNumber,
-{
+fn to_swatches(
+    width: u32,
+    height: u32,
+    area: usize,
+    segments: &[SegmentMetadata<f64>],
+) -> Result<Vec<Swatch>, Error> {
     let (indexed_segments, colors): (Vec<_>, Vec<_>) = segments
         .iter()
         .map(|segment| {
@@ -399,9 +399,9 @@ where
             (
                 segment,
                 [
-                    Lab::<T>::denormalize_l(center_pixel[0]),
-                    Lab::<T>::denormalize_a(center_pixel[1]),
-                    Lab::<T>::denormalize_b(center_pixel[2]),
+                    Lab::denormalize_l(center_pixel[0]),
+                    Lab::denormalize_a(center_pixel[1]),
+                    Lab::denormalize_b(center_pixel[2]),
                 ],
             )
         })
@@ -409,18 +409,20 @@ where
 
     let dbscan = DBSCAN::new(
         COLOR_MERGE_MIN_POINTS,
-        T::from_f64(COLOR_MERGE_EPSILON_LAB),
+        COLOR_MERGE_EPSILON_LAB,
         DistanceMetric::Euclidean,
     )
-    .map_err(|_| ExtractionError::from(ExtractionErrorKind::InvalidParameter))?;
+    .map_err(|e| Error::InvalidParameter {
+        reason: e.to_string(),
+    })?;
 
-    let labels = dbscan
-        .run(&colors)
-        .map_err(|_| ExtractionError::from(ExtractionErrorKind::InvalidParameter))?;
+    let labels = dbscan.run(&colors).map_err(|e| Error::InvalidParameter {
+        reason: e.to_string(),
+    })?;
 
-    let width = T::from_usize(width);
-    let height = T::from_usize(height);
-    let area = width * height;
+    let width = f64::from(width);
+    let height = f64::from(height);
+    let area = area as f64;
 
     let mut swatches = FxHashMap::default();
     let mut populations = FxHashMap::default();
@@ -441,8 +443,7 @@ where
         // Calculate the fraction of the segment's population relative to the total population
         // (current swatch population + existing swatch population).
         // The fraction is to determine the weight of the segment's color in the mix.
-        let fraction =
-            T::from_usize(segment.len()) / T::from_usize(segment.len() + swatch.population());
+        let fraction = segment.len() as f64 / (segment.len() + swatch.population()) as f64;
 
         // Blend the current swatch color with the segment's color based on the fraction.
         let best_color = swatch.color().mix(&color, fraction);
@@ -456,11 +457,11 @@ where
             *swatch = Swatch::new(
                 best_color,
                 (
-                    denormalize(center_pixel[3], T::zero(), width).trunc_to_u32(),
-                    denormalize(center_pixel[4], T::zero(), height).trunc_to_u32(),
+                    denormalize(center_pixel[3], 0.0, width).trunc() as u32,
+                    denormalize(center_pixel[4], 0.0, height).trunc() as u32,
                 ),
                 total_population,
-                T::from_usize(total_population) / area,
+                total_population as f64 / area,
             );
             *population = segment.len();
         } else {
@@ -468,7 +469,7 @@ where
                 best_color,
                 swatch.position(),
                 total_population,
-                T::from_usize(total_population) / area,
+                total_population as f64 / area,
             );
         };
     }
@@ -485,56 +486,35 @@ mod tests {
     use crate::{assert_color_eq, Rgba};
 
     #[must_use]
-    fn sample_swatches<T>() -> Vec<Swatch<T>>
-    where
-        T: FloatNumber,
-    {
+    fn sample_swatches() -> Vec<Swatch> {
         vec![
             Swatch::new(
                 Color::from_str("#FFFFFF").unwrap(),
                 (159, 106),
                 61228,
-                T::from_f64(0.9214),
+                0.9214,
             ),
-            Swatch::new(
-                Color::from_str("#EE334E").unwrap(),
-                (238, 89),
-                1080,
-                T::from_f64(0.0163),
-            ),
-            Swatch::new(
-                Color::from_str("#0081C8").unwrap(),
-                (82, 88),
-                1064,
-                T::from_f64(0.0160),
-            ),
+            Swatch::new(Color::from_str("#EE334E").unwrap(), (238, 89), 1080, 0.0163),
+            Swatch::new(Color::from_str("#0081C8").unwrap(), (82, 88), 1064, 0.0160),
             Swatch::new(
                 Color::from_str("#00A651").unwrap(),
                 (197, 123),
                 1037,
-                T::from_f64(0.0156),
+                0.0156,
             ),
-            Swatch::new(
-                Color::from_str("#000000").unwrap(),
-                (157, 95),
-                1036,
-                T::from_f64(0.0156),
-            ),
+            Swatch::new(Color::from_str("#000000").unwrap(), (157, 95), 1036, 0.0156),
             Swatch::new(
                 Color::from_str("#FCB131").unwrap(),
                 (119, 123),
                 1005,
-                T::from_f64(0.0151),
+                0.0151,
             ),
         ]
     }
 
     #[must_use]
-    fn collect_sorted_swatches<T>(palette: &Palette<T>) -> Vec<Swatch<T>>
-    where
-        T: FloatNumber,
-    {
-        let mut swatches = palette.swatches().iter().copied().collect::<Vec<_>>();
+    fn collect_sorted_swatches(palette: &Palette) -> Vec<Swatch> {
+        let mut swatches = palette.swatches().to_vec();
         swatches.sort_by(|a, b| {
             a.population()
                 .cmp(&b.population())
@@ -548,9 +528,9 @@ mod tests {
     fn test_new() {
         // Act
         let swatches = vec![
-            Swatch::<f64>::new(Color::from_str("#FFFFFF").unwrap(), (5, 10), 256, 0.5714),
-            Swatch::<f64>::new(Color::from_str("#C8102E").unwrap(), (15, 20), 128, 0.2857),
-            Swatch::<f64>::new(Color::from_str("#012169").unwrap(), (30, 30), 64, 0.1429),
+            Swatch::new(Color::from_str("#FFFFFF").unwrap(), (5, 10), 256, 0.5714),
+            Swatch::new(Color::from_str("#C8102E").unwrap(), (15, 20), 128, 0.2857),
+            Swatch::new(Color::from_str("#012169").unwrap(), (30, 30), 64, 0.1429),
         ];
         let actual = Palette::new(swatches.clone());
 
@@ -564,7 +544,7 @@ mod tests {
     fn test_new_empty() {
         // Act
         let swatches = vec![];
-        let actual: Palette<f64> = Palette::new(swatches.clone());
+        let actual = Palette::new(swatches.clone());
 
         // Assert
         assert!(actual.is_empty());
@@ -582,7 +562,7 @@ mod tests {
         // Act
         let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
         let algorithm = Algorithm::from_str(name).unwrap();
-        let actual: Palette<f64> = Palette::builder()
+        let actual = Palette::builder()
             .algorithm(algorithm)
             .build(&image_data)
             .expect("Failed to extract palette with algorithm");
@@ -597,7 +577,7 @@ mod tests {
     fn test_builder_with_filter() {
         // Arrange
         let image_data = ImageData::load("../../gfx/flags/np.png").unwrap();
-        let actual: Palette<f64> = Palette::builder()
+        let actual = Palette::builder()
             .filter(|rgba: &Rgba| rgba[3] != 0)
             .build(&image_data)
             .expect("Failed to extract palette with filter");
@@ -609,15 +589,15 @@ mod tests {
         let swatches = collect_sorted_swatches(&actual);
         assert_color_eq!(
             swatches[0].color(),
-            Color::<f64>::from_str("#DC143C").expect("Invalid color format")
+            Color::from_str("#DC143C").expect("Invalid color format")
         );
         assert_color_eq!(
             swatches[1].color(),
-            Color::<f64>::from_str("#003893").expect("Invalid color format")
+            Color::from_str("#003893").expect("Invalid color format")
         );
         assert_color_eq!(
             swatches[2].color(),
-            Color::<f64>::from_str("#FFFFFF").expect("Invalid color format")
+            Color::from_str("#FFFFFF").expect("Invalid color format")
         );
     }
 
@@ -628,7 +608,7 @@ mod tests {
         let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
 
         // Act
-        let actual: Palette<f64> = Palette::builder()
+        let actual = Palette::builder()
             .max_swatches(3)
             .build(&image_data)
             .expect("Failed to extract palette with max swatches");
@@ -640,24 +620,51 @@ mod tests {
         let swatches = collect_sorted_swatches(&actual);
         assert_color_eq!(
             swatches[0].color(),
-            Color::<f64>::from_str("#FFFFFF").expect("Invalid color format")
+            Color::from_str("#FFFFFF").expect("Invalid color format")
         );
         assert_color_eq!(
             swatches[1].color(),
-            Color::<f64>::from_str("#0081C8").expect("Invalid color format")
+            Color::from_str("#0081C8").expect("Invalid color format")
         );
         assert_color_eq!(
             swatches[2].color(),
-            Color::<f64>::from_str("#EE334E").expect("Invalid color format")
+            Color::from_str("#EE334E").expect("Invalid color format")
         );
+    }
+
+    #[cfg(feature = "image")]
+    #[test]
+    fn test_builder_max_pixels() {
+        // Arrange
+        let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
+
+        // Act
+        let actual = Palette::builder()
+            .max_pixels(image_data.area() / 4)
+            .build(&image_data)
+            .expect("Failed to extract palette with max pixels");
+
+        // Assert
+        assert!(!actual.is_empty());
+
+        // The dominant colors survive downsampling, and the positions are
+        // reported in the original image coordinates.
+        let swatches = collect_sorted_swatches(&actual);
+        assert_color_eq!(swatches[0].color(), Color::from_str("#FFFFFF").unwrap());
+        for swatch in &swatches {
+            let position = swatch.position();
+            assert!(position.x < image_data.width());
+            assert!(position.y < image_data.height());
+            assert!(swatch.ratio() <= 1.0);
+        }
     }
 
     #[test]
     fn test_builder_empty_image_data() {
         // Act
         let data: Vec<u8> = Vec::new();
-        let image_data = ImageData::new(0, 0, &data).unwrap();
-        let actual = Palette::<f64>::builder().build(&image_data);
+        let image_data = ImageData::new(0, 0, data).unwrap();
+        let actual = Palette::builder().build(&image_data);
 
         // Assert
         assert!(actual.is_ok());
@@ -671,8 +678,8 @@ mod tests {
     fn test_extract_transparent_image() {
         // Act
         let data: Vec<u8> = vec![0; 4 * 10 * 10]; // 10x10 transparent image
-        let image_data = ImageData::new(10, 10, &data).unwrap();
-        let actual: Result<Palette<f64>, _> = Palette::builder().build(&image_data);
+        let image_data = ImageData::new(10, 10, data).unwrap();
+        let actual = Palette::builder().build(&image_data);
 
         // Assert
         assert!(actual.is_ok());
@@ -687,87 +694,60 @@ mod tests {
     fn test_extract() {
         // Act
         let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
-        let actual: Palette<f64> =
-            Palette::extract(&image_data).expect("Failed to extract palette");
+        let actual = Palette::extract(&image_data).expect("Failed to extract palette");
 
         // Assert
         assert!(!actual.is_empty());
         assert_eq!(actual.len(), 6);
 
         let swatches = collect_sorted_swatches(&actual);
-        assert_color_eq!(
-            swatches[0].color(),
-            Color::<f64>::from_str("#FFFFFF").unwrap()
-        );
-        assert_color_eq!(
-            swatches[1].color(),
-            Color::<f64>::from_str("#0081C8").unwrap()
-        );
-        assert_color_eq!(
-            swatches[2].color(),
-            Color::<f64>::from_str("#EE334E").unwrap()
-        );
-        assert_color_eq!(
-            swatches[3].color(),
-            Color::<f64>::from_str("#000000").unwrap()
-        );
-        assert_color_eq!(
-            swatches[4].color(),
-            Color::<f64>::from_str("#00A651").unwrap()
-        );
-        assert_color_eq!(
-            swatches[5].color(),
-            Color::<f64>::from_str("#FCB131").unwrap()
-        );
-    }
-
-    #[test]
-    #[cfg(feature = "image")]
-    fn test_extract_with_algorithm() {
-        // Act
-        let image_data = ImageData::load("../../gfx/olympic_logo.png").unwrap();
-        let actual: Palette<f64> =
-            Palette::extract_with_algorithm(&image_data, Algorithm::DBSCANpp).unwrap();
-
-        // Assert
-        assert!(!actual.is_empty());
-        assert_eq!(actual.len(), 6);
+        assert_color_eq!(swatches[0].color(), Color::from_str("#FFFFFF").unwrap());
+        assert_color_eq!(swatches[1].color(), Color::from_str("#0081C8").unwrap());
+        assert_color_eq!(swatches[2].color(), Color::from_str("#EE334E").unwrap());
+        assert_color_eq!(swatches[3].color(), Color::from_str("#000000").unwrap());
+        assert_color_eq!(swatches[4].color(), Color::from_str("#00A651").unwrap());
+        assert_color_eq!(swatches[5].color(), Color::from_str("#FCB131").unwrap());
     }
 
     #[test]
     fn test_find_swatches() {
         // Arrange
-        let swatches = sample_swatches::<f64>();
+        let swatches = sample_swatches();
         let palette = Palette::new(swatches.clone());
 
         // Act
         let actual = palette.find_swatches(4);
 
         // Assert
-        assert!(actual.is_ok());
-
-        let swatches = actual.expect("Failed to find swatches");
-        assert_eq!(swatches.len(), 4);
-        assert_eq!(swatches[0].color().to_hex_string(), "#FFFFFF");
-        assert_eq!(swatches[1].color().to_hex_string(), "#EE334E");
-        assert_eq!(swatches[2].color().to_hex_string(), "#00A651");
-        assert_eq!(swatches[3].color().to_hex_string(), "#000000");
+        assert_eq!(actual.len(), 4);
+        assert_eq!(actual[0].color().to_hex_string(), "#FFFFFF");
+        assert_eq!(actual[1].color().to_hex_string(), "#EE334E");
+        assert_eq!(actual[2].color().to_hex_string(), "#00A651");
+        assert_eq!(actual[3].color().to_hex_string(), "#000000");
     }
 
     #[test]
     fn test_find_swatches_empty() {
         // Arrange
-        let swatches: Vec<Swatch<f64>> = Vec::new();
-        let palette = Palette::new(swatches.clone());
+        let palette = Palette::new(Vec::new());
 
         // Act
         let actual = palette.find_swatches(10);
 
         // Assert
-        assert!(actual.is_ok());
+        assert!(actual.is_empty());
+    }
 
-        let swatches = actual.expect("Failed to find swatches in empty palette");
-        assert!(swatches.is_empty());
+    #[test]
+    fn test_find_swatches_zero_count() {
+        // Arrange
+        let palette = Palette::new(sample_swatches());
+
+        // Act
+        let actual = palette.find_swatches(0);
+
+        // Assert
+        assert!(actual.is_empty());
     }
 
     #[rstest]
@@ -778,23 +758,15 @@ mod tests {
     #[case::dark(Theme::Dark, vec ! ["#00A651", "#000000"])]
     fn test_find_swatches_with_theme(#[case] theme: Theme, #[case] expected: Vec<&str>) {
         // Arrange
-        let swatches = sample_swatches::<f64>();
+        let swatches = sample_swatches();
         let palette = Palette::new(swatches.clone());
 
         // Act
-        let actual = palette
-            .find_swatches_with_theme(2, theme)
-            .expect("Failed to find swatches with theme");
+        let actual = palette.find_swatches_with_theme(2, theme);
 
         // Assert
         assert_eq!(actual.len(), 2);
-        assert_color_eq!(
-            actual[0].color(),
-            Color::<f64>::from_str(expected[0]).unwrap()
-        );
-        assert_color_eq!(
-            actual[1].color(),
-            Color::<f64>::from_str(expected[1]).unwrap()
-        );
+        assert_color_eq!(actual[0].color(), Color::from_str(expected[0]).unwrap());
+        assert_color_eq!(actual[1].color(), Color::from_str(expected[1]).unwrap());
     }
 }

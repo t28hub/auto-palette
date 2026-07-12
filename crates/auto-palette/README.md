@@ -37,7 +37,7 @@ Using `auto-palette` in your Rust project, add it to your `Cargo.toml`.
 
 ```toml
 [dependencies]
-auto-palette = "0.9.2"
+auto-palette = "0.10.0"
 ```
 
 > [!NOTE]
@@ -55,14 +55,14 @@ fn main() {
   let image_data = ImageData::load("../../gfx/holly-booth-hLZWGXy5akM-unsplash.jpg").unwrap();
 
   // Extract the color palette from the image data
-  let palette: Palette<f64> = Palette::extract(&image_data).unwrap();
+  let palette = Palette::extract(&image_data).unwrap();
   println!("Extracted {} swatches", palette.len());
 
   // Find the 5 prominent colors in the palette and print their information
-  let swatches = palette.find_swatches(5).unwrap();
+  let swatches = palette.find_swatches(5);
   for swatch in swatches {
     println!("Color: {}", swatch.color().to_hex_string());
-    println!("Position: {:?}", swatch.position());
+    println!("Position: {}", swatch.position());
     println!("Population: {}", swatch.population());
   }
 }
@@ -94,7 +94,7 @@ This method requires the `image` feature to be enabled. The `image` feature is e
 
 ```toml
 [dependencies]
-auto-palette = { version = "0.9.2", features = ["image"] }
+auto-palette = { version = "0.10.0", features = ["image"] }
 image        = { version = "0.25.6", features = ["jpeg"] } # if you want to load jpeg images
 ```
 
@@ -142,7 +142,7 @@ This method is used to extract the color palette with the default `Algorithm`(DB
 let image_data = ImageData::load("path/to/image.jpg").unwrap();
 
 // Extract the color palette from the image data
-let palette: Palette<f64> = Palette::extract(&image_data).unwrap();
+let palette = Palette::extract(&image_data).unwrap();
 ```
 
 <a id="palette-extract-with-algorithm"></a>
@@ -156,8 +156,8 @@ This method allows you to specify the algorithm, color filter, and other options
 // Load the image data from the file
 let image_data = ImageData::load("path/to/image.jpg").unwrap();
 // Extract the color palette from the image data with the specified algorithm
-let palette: Palette<f64> = Palette::builder()
-    .algorithm(Algorithm::DBSCANpp) // Use DBSCAN++ algorithm for extraction
+let palette = Palette::builder()
+    .algorithm(Algorithm::DbscanPlusPlus) // Use DBSCAN++ algorithm for extraction
     .filter(|pixel| pixel[3] < 64) // Filter out pixels with alpha < 64
     .max_swatches(128) // Limit the maximum number of swatches to 128
     .build(&image_data) // Build the palette from the image data
@@ -200,7 +200,7 @@ let swatches = palette.find_swatches(5);
 for swatch in swatches {
     // Get the color, position, and population of the swatch
     println!("Color: {:?}", swatch.color());
-    println!("Position: {:?}", swatch.position());
+    println!("Position: {}", swatch.position());
     println!("Population: {}", swatch.population());
     println!("Ratio: {}", swatch.ratio());
 }

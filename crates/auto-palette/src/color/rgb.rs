@@ -3,10 +3,7 @@ use std::{fmt, fmt::Display};
 #[cfg(feature = "wasm")]
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    color::{hsl::HSL, xyz::XYZ, HSV},
-    math::FloatNumber,
-};
+use crate::color::{hsl::Hsl, hsv::Hsv, xyz::Xyz};
 
 /// The RGB color representation.
 ///
@@ -20,33 +17,33 @@ use crate::{
 ///
 /// # Examples
 /// ```
-/// use auto_palette::color::{HSL, HSV, RGB, XYZ};
+/// use auto_palette::color::{Hsl, Hsv, Rgb, Xyz};
 ///
-/// let rgb = RGB::new(255, 0, 64);
+/// let rgb = Rgb::new(255, 0, 64);
 /// assert_eq!(format!("{}", rgb), "RGB(255, 0, 64)");
 ///
-/// let hsl: HSL<f32> = (&rgb).into();
+/// let hsl: Hsl = (&rgb).into();
 /// assert_eq!(format!("{}", hsl), "HSL(344.94, 1.00, 0.50)");
 ///
-/// let hsv: HSV<f32> = (&rgb).into();
+/// let hsv: Hsv = (&rgb).into();
 /// assert_eq!(format!("{}", hsv), "HSV(344.94, 1.00, 1.00)");
 ///
-/// let xyz: XYZ<f32> = (&rgb).into();
+/// let xyz: Xyz = (&rgb).into();
 /// assert_eq!(format!("{}", xyz), "XYZ(0.42, 0.22, 0.07)");
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
-pub struct RGB {
+pub struct Rgb {
     pub r: u8,
     pub g: u8,
     pub b: u8,
 }
 
-impl RGB {
+impl Rgb {
     /// The maximum value of the RGB color space.
     const MAX: u8 = 255;
 
-    /// Creates a new `RGB` instance.
+    /// Creates a new `Rgb` instance.
     ///
     /// # Arguments
     /// * `r` - The red component.
@@ -54,7 +51,7 @@ impl RGB {
     /// * `b` - The blue component.
     ///
     /// # Returns
-    /// A new `RGB` instance.
+    /// A new `Rgb` instance.
     #[must_use]
     pub fn new(r: u8, g: u8, b: u8) -> Self {
         Self { r, g, b }
@@ -66,30 +63,24 @@ impl RGB {
     /// The maximum value of the RGB color space.
     #[inline]
     #[must_use]
-    pub(crate) fn max_value<T>() -> T
-    where
-        T: FloatNumber,
-    {
-        T::from_u8(Self::MAX)
+    pub(crate) fn max_value() -> f64 {
+        f64::from(Self::MAX)
     }
 }
 
-impl Display for RGB {
+impl Display for Rgb {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "RGB({}, {}, {})", self.r, self.g, self.b)
     }
 }
 
-impl<T> From<&HSL<T>> for RGB
-where
-    T: FloatNumber,
-{
-    fn from(hsl: &HSL<T>) -> Self {
+impl From<&Hsl> for Rgb {
+    fn from(hsl: &Hsl) -> Self {
         let hue = hsl.h.to_degrees();
 
-        let c = (T::one() - (T::from_u8(2) * hsl.l - T::one()).abs()) * hsl.s;
-        let x = (T::one() - (((hue / T::from_f32(60.0)) % T::from_u8(2)) - T::one()).abs()) * c;
-        let m = hsl.l - (c / T::from_u8(2));
+        let c = (1.0 - (2.0 * hsl.l - 1.0).abs()) * hsl.s;
+        let x = (1.0 - (((hue / 60.0) % 2.0) - 1.0).abs()) * c;
+        let m = hsl.l - (c / 2.0);
 
         let (r, g, b) = hue_to_rgb(hue, c, x);
 
@@ -101,15 +92,12 @@ where
     }
 }
 
-impl<T> From<&HSV<T>> for RGB
-where
-    T: FloatNumber,
-{
-    fn from(hsv: &HSV<T>) -> Self {
+impl From<&Hsv> for Rgb {
+    fn from(hsv: &Hsv) -> Self {
         let hue = hsv.h.to_degrees();
 
         let c = hsv.v * hsv.s;
-        let x = (T::one() - (((hue / T::from_f32(60.0)) % T::from_u8(2)) - T::one()).abs()) * c;
+        let x = (1.0 - (((hue / 60.0) % 2.0) - 1.0).abs()) * c;
         let m = hsv.v - c;
 
         let (r, g, b) = hue_to_rgb(hue, c, x);
@@ -122,20 +110,14 @@ where
     }
 }
 
-impl<T> From<&XYZ<T>> for RGB
-where
-    T: FloatNumber,
-{
-    fn from(xyz: &XYZ<T>) -> Self {
+impl From<&Xyz> for Rgb {
+    fn from(xyz: &Xyz) -> Self {
         let (r, g, b) = xyz_to_rgb(xyz.x, xyz.y, xyz.z);
         Self { r, g, b }
     }
 }
 
 /// Clamps a floating point value to the range [0, 255] and converts it to u8.
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
 ///
 /// # Arguments
 /// * `value` - The floating point value to clamp.
@@ -144,18 +126,12 @@ where
 /// The clamped value as u8.
 #[inline]
 #[must_use]
-fn clamp_to_u8<T>(value: T) -> u8
-where
-    T: FloatNumber,
-{
-    let max = T::from_u8(RGB::MAX);
-    (value * max).round().trunc_to_u8()
+fn clamp_to_u8(value: f64) -> u8 {
+    let max = f64::from(Rgb::MAX);
+    (value * max).round() as u8
 }
 
 /// Converts a hue value to RGB components.
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
 ///
 /// # Arguments
 /// * `hue` - The hue value.
@@ -166,29 +142,23 @@ where
 /// The RGB components as a tuple (r, g, b).
 #[inline]
 #[must_use]
-fn hue_to_rgb<T>(hue: T, c: T, x: T) -> (T, T, T)
-where
-    T: FloatNumber,
-{
-    if hue < T::from_f32(60.0) {
-        (c, x, T::zero())
-    } else if hue < T::from_f32(120.0) {
-        (x, c, T::zero())
-    } else if hue < T::from_f32(180.0) {
-        (T::zero(), c, x)
-    } else if hue < T::from_f32(240.0) {
-        (T::zero(), x, c)
-    } else if hue < T::from_f32(300.0) {
-        (x, T::zero(), c)
+fn hue_to_rgb(hue: f64, c: f64, x: f64) -> (f64, f64, f64) {
+    if hue < 60.0 {
+        (c, x, 0.0)
+    } else if hue < 120.0 {
+        (x, c, 0.0)
+    } else if hue < 180.0 {
+        (0.0, c, x)
+    } else if hue < 240.0 {
+        (0.0, x, c)
+    } else if hue < 300.0 {
+        (x, 0.0, c)
     } else {
-        (c, T::zero(), x)
+        (c, 0.0, x)
     }
 }
 
 /// Converts the CIE XYZ color space to the RGB color space.
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
 ///
 /// # Arguments
 /// * `x` - The X component of the XYZ color.
@@ -199,22 +169,24 @@ where
 /// The RGB color space representation of the XYZ color. The tuple contains the red, green, and blue components.
 #[inline]
 #[must_use]
-pub fn xyz_to_rgb<T>(x: T, y: T, z: T) -> (u8, u8, u8)
-where
-    T: FloatNumber,
-{
-    let f = |t: T| -> T {
-        if t > T::from_f32(0.003_130_8) {
-            T::from_f32(1.055) * t.powf(T::from_f32(1.0 / 2.4)) - T::from_f32(0.055)
+pub(crate) fn xyz_to_rgb(x: f64, y: f64, z: f64) -> (u8, u8, u8) {
+    let f = |t: f64| -> f64 {
+        if t > f64::from(0.003_130_8_f32) {
+            f64::from(1.055_f32) * t.powf(f64::from(1.0_f32 / 2.4_f32)) - f64::from(0.055_f32)
         } else {
-            T::from_f32(12.92) * t
+            f64::from(12.92_f32) * t
         }
     };
 
-    let r = f(T::from_f32(3.240_97) * x - T::from_f32(1.537_383) * y - T::from_f32(0.498_611) * z);
-    let g =
-        f(-T::from_f32(0.969_244) * x + T::from_f32(1.875_968) * y + T::from_f32(0.041_555) * z);
-    let b = f(T::from_f32(0.055_630) * x - T::from_f32(0.203_977) * y + T::from_f32(1.056_972) * z);
+    let r = f(f64::from(3.240_97_f32) * x
+        - f64::from(1.537_383_f32) * y
+        - f64::from(0.498_611_f32) * z);
+    let g = f(-f64::from(0.969_244_f32) * x
+        + f64::from(1.875_968_f32) * y
+        + f64::from(0.041_555_f32) * z);
+    let b =
+        f(f64::from(0.055_630_f32) * x - f64::from(0.203_977_f32) * y
+            + f64::from(1.056_972_f32) * z);
     (clamp_to_u8(r), clamp_to_u8(g), clamp_to_u8(b))
 }
 
@@ -229,7 +201,7 @@ mod tests {
     #[test]
     fn test_new() {
         // Act
-        let actual = RGB::new(255, 0, 64);
+        let actual = Rgb::new(255, 0, 64);
 
         // Assert
         assert_eq!(actual.r, 255);
@@ -241,14 +213,14 @@ mod tests {
     #[cfg(feature = "wasm")]
     fn test_serialize() {
         // Act
-        let rgb = RGB::new(255, 0, 64);
+        let rgb = Rgb::new(255, 0, 64);
 
         // Act
         assert_ser_tokens(
             &rgb,
             &[
                 Token::Struct {
-                    name: "RGB",
+                    name: "Rgb",
                     len: 3,
                 },
                 Token::Str("r"),
@@ -266,14 +238,14 @@ mod tests {
     #[cfg(feature = "wasm")]
     fn test_deserialize() {
         // Act
-        let rgb = RGB::new(64, 255, 0);
+        let rgb = Rgb::new(64, 255, 0);
 
         // Act
         assert_de_tokens(
             &rgb,
             &[
                 Token::Struct {
-                    name: "RGB",
+                    name: "Rgb",
                     len: 3,
                 },
                 Token::Str("r"),
@@ -290,7 +262,7 @@ mod tests {
     #[test]
     fn test_fmt() {
         // Act
-        let rgb = RGB::new(255, 0, 64);
+        let rgb = Rgb::new(255, 0, 64);
         let actual = format!("{}", rgb);
 
         // Assert
@@ -306,10 +278,10 @@ mod tests {
     #[case::yellow((60.0, 1.0, 0.5), (255, 255, 0))]
     #[case::cyan((180.0, 1.0, 0.5), (0, 255, 255))]
     #[case::magenta((300.0, 1.0, 0.5), (255, 0, 255))]
-    fn test_from_hsl(#[case] hsl: (f32, f32, f32), #[case] rgb: (u8, u8, u8)) {
+    fn test_from_hsl(#[case] hsl: (f64, f64, f64), #[case] rgb: (u8, u8, u8)) {
         // Act
         let (h, s, l) = hsl;
-        let actual = RGB::from(&HSL::new(h, s, l));
+        let actual = Rgb::from(&Hsl::new(h, s, l));
 
         // Assert
         assert_eq!(actual.r, rgb.0);
@@ -326,10 +298,10 @@ mod tests {
     #[case::yellow((60.0, 1.0, 1.0), (255, 255, 0))]
     #[case::cyan((180.0, 1.0, 1.0), (0, 255, 255))]
     #[case::magenta((300.0, 1.0, 1.0), (255, 0, 255))]
-    fn test_from_hsv(#[case] hsv: (f32, f32, f32), #[case] rgb: (u8, u8, u8)) {
+    fn test_from_hsv(#[case] hsv: (f64, f64, f64), #[case] rgb: (u8, u8, u8)) {
         // Act
         let (h, s, v) = hsv;
-        let actual = RGB::from(&HSV::new(h, s, v));
+        let actual = Rgb::from(&Hsv::new(h, s, v));
 
         // Assert
         assert_eq!(actual.r, rgb.0);
@@ -339,8 +311,8 @@ mod tests {
 
     #[test]
     fn test_from_xyz() {
-        let xyz = XYZ::new(0.3576, 0.7152, 0.119);
-        let actual = RGB::from(&xyz);
+        let xyz = Xyz::new(0.3576, 0.7152, 0.119);
+        let actual = Rgb::from(&xyz);
 
         // Assert
         assert_eq!(actual.r, 0);
@@ -357,7 +329,7 @@ mod tests {
     #[case::cyan((0.53802, 0.7873, 1.0698), (0, 255, 255))]
     #[case::magenta((0.5928, 0.2848, 0.9699), (255, 0, 255))]
     #[case::yellow((0.7700, 0.9278, 0.1385), (255, 255, 0))]
-    fn test_xyz_to_rgb(#[case] xyz: (f32, f32, f32), #[case] rgb: (u8, u8, u8)) {
+    fn test_xyz_to_rgb(#[case] xyz: (f64, f64, f64), #[case] rgb: (u8, u8, u8)) {
         // Act
         let (r, g, b) = xyz_to_rgb(xyz.0, xyz.1, xyz.2);
 

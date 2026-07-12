@@ -115,31 +115,31 @@ mod test {
 
     #[test]
     fn test_assert_color_eq() {
-        let color1: Color<f64> = Color::from_str("#eb367f").unwrap();
-        let color2: Color<f64> = Color::from_str("#eb367f").unwrap();
+        let color1 = Color::from_str("#eb367f").unwrap();
+        let color2 = Color::from_str("#eb367f").unwrap();
         assert_color_eq!(color1, color2);
     }
 
     #[test]
     fn test_assert_color_eq_with_tolerance() {
-        let color1: Color<f64> = Color::from_str("#eb367f").unwrap();
-        let color2: Color<f64> = Color::from_str("#ec367f").unwrap();
+        let color1 = Color::from_str("#eb367f").unwrap();
+        let color2 = Color::from_str("#ec367f").unwrap();
         assert_color_eq!(color1, color2, 1.0);
     }
 
     #[test]
     #[should_panic(expected = "assertion failed: `|left-right| >= tolerance`")]
     fn test_assert_color_eq_fail() {
-        let color1: Color<f64> = Color::from_str("#eb367f").unwrap();
-        let color2: Color<f64> = Color::from_str("#ee367f").unwrap();
+        let color1 = Color::from_str("#eb367f").unwrap();
+        let color2 = Color::from_str("#ee367f").unwrap();
         assert_color_eq!(color1, color2);
     }
 
     #[test]
     #[should_panic(expected = "assertion failed: `|left-right| >= tolerance`")]
     fn test_assert_color_eq_fail_with_tolerance() {
-        let color1: Color<f64> = Color::from_str("#eb367f").unwrap();
-        let color2: Color<f64> = Color::from_str("#ec367f").unwrap();
+        let color1 = Color::from_str("#eb367f").unwrap();
+        let color2 = Color::from_str("#ec367f").unwrap();
         assert_color_eq!(color1, color2, 1e-6);
     }
 
@@ -148,8 +148,8 @@ mod test {
         expected = "tolerance must be greater than or equal to zero, but got: `-0.0001`"
     )]
     fn test_assert_color_eq_zero_tolerance() {
-        let color1: Color<f64> = Color::from_str("#eb367f").unwrap();
-        let color2: Color<f64> = Color::from_str("#ec367f").unwrap();
+        let color1 = Color::from_str("#eb367f").unwrap();
+        let color2 = Color::from_str("#ec367f").unwrap();
         assert_color_eq!(color1, color2, -1e-4);
     }
 }

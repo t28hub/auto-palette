@@ -1,22 +1,15 @@
-use std::{fmt::Display, marker::PhantomData};
+use std::fmt::Display;
 
 use num_traits::clamp;
 #[cfg(feature = "wasm")]
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    color::{Hue, Lab, WhitePoint, D65},
-    math::FloatNumber,
-};
+use crate::color::{Hue, Lab};
 
-/// The LCHab color representation.
+/// The LCH(ab) color representation.
 ///
 /// See the following for more details:
 /// [CIE LCHab color space - Wikipedia](https://en.wikipedia.org/wiki/CIELAB#Cylindrical_representation_(CIELCh))
-///
-/// # Type Parameters
-/// * `T` - The floating point type.
-/// * `W` - The white point type.
 ///
 /// # Fields
 /// * `l` - The lightness component.
@@ -25,34 +18,24 @@ use crate::{
 ///
 /// # Examples
 /// ```
-/// use auto_palette::color::{LCHab, Lab, D65};
+/// use auto_palette::color::{Lab, Lchab};
 ///
-/// let lchab: LCHab<_> = LCHab::new(54.617, 92.151, 27.756);
+/// let lchab = Lchab::new(54.617, 92.151, 27.756);
 /// assert_eq!(format!("{}", lchab), "LCH(ab)(54.62, 92.15, 27.76)");
 ///
-/// let lab: Lab<_> = (&lchab).into();
+/// let lab: Lab = (&lchab).into();
 /// assert_eq!(format!("{}", lab), "Lab(54.62, 81.55, 42.92)");
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "wasm", derive(Serialize, Deserialize))]
-pub struct LCHab<T = f64, W = D65>
-where
-    T: FloatNumber,
-    W: WhitePoint,
-{
-    pub l: T,
-    pub c: T,
-    pub h: Hue<T>,
-    #[cfg_attr(feature = "wasm", serde(skip))]
-    _marker: PhantomData<W>,
+pub struct Lchab {
+    pub l: f64,
+    pub c: f64,
+    pub h: Hue,
 }
 
-impl<T, W> LCHab<T, W>
-where
-    T: FloatNumber,
-    W: WhitePoint,
-{
-    /// Creates a new `LCHab` instance.
+impl Lchab {
+    /// Creates a new `Lchab` instance.
     ///
     /// # Arguments
     /// * `l` - The lightness component.
@@ -60,23 +43,18 @@ where
     /// * `h` - The hue component.
     ///
     /// # Returns
-    /// A new `LCHab` instance.
+    /// A new `Lchab` instance.
     #[must_use]
-    pub fn new(l: T, c: T, h: T) -> Self {
+    pub fn new(l: f64, c: f64, h: f64) -> Self {
         Self {
-            l: clamp(l, T::zero(), T::from_u32(100)),
-            c: clamp(c, T::zero(), T::from_u32(180)),
+            l: clamp(l, 0.0, 100.0),
+            c: clamp(c, 0.0, 180.0),
             h: Hue::from_degrees(h),
-            _marker: PhantomData,
         }
     }
 }
 
-impl<T, W> Display for LCHab<T, W>
-where
-    T: FloatNumber,
-    W: WhitePoint,
-{
+impl Display for Lchab {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -88,12 +66,8 @@ where
     }
 }
 
-impl<T, W> From<&Lab<T, W>> for LCHab<T, W>
-where
-    T: FloatNumber,
-    W: WhitePoint,
-{
-    fn from(lab: &Lab<T, W>) -> Self {
+impl From<&Lab> for Lchab {
+    fn from(lab: &Lab) -> Self {
         // This implementation is based on the formulae from the following sources:
         // http://www.brucelindbloom.com/index.html?Eqn_Lab_to_LCH.html
         let l = lab.l;
@@ -114,16 +88,15 @@ mod tests {
     #[test]
     fn test_new() {
         // Act
-        let actual = LCHab::<_>::new(54.617, 92.151, 27.756);
+        let actual = Lchab::new(54.617, 92.151, 27.756);
 
         // Assert
         assert_eq!(
             actual,
-            LCHab {
+            Lchab {
                 l: 54.617,
                 c: 92.151,
                 h: Hue::from_degrees(27.756),
-                _marker: PhantomData,
             }
         );
     }
@@ -132,14 +105,14 @@ mod tests {
     #[cfg(feature = "wasm")]
     fn test_serialize() {
         // Act
-        let lchab = LCHab::<f64>::new(54.617, 92.151, 27.756);
+        let lchab = Lchab::new(54.617, 92.151, 27.756);
 
         // Assert
         assert_ser_tokens(
             &lchab,
             &[
                 Token::Struct {
-                    name: "LCHab",
+                    name: "Lchab",
                     len: 3,
                 },
                 Token::Str("l"),
@@ -157,14 +130,14 @@ mod tests {
     #[cfg(feature = "wasm")]
     fn test_deserialize() {
         // Act
-        let lchab = LCHab::<f64>::new(54.617, 92.151, 27.756);
+        let lchab = Lchab::new(54.617, 92.151, 27.756);
 
         // Assert
         assert_de_tokens(
             &lchab,
             &[
                 Token::Struct {
-                    name: "LCHab",
+                    name: "Lchab",
                     len: 3,
                 },
                 Token::Str("l"),
@@ -181,7 +154,7 @@ mod tests {
     #[test]
     fn test_fmt() {
         // Act
-        let lchab = LCHab::<f32>::new(54.617, 92.151, 27.756);
+        let lchab = Lchab::new(54.617, 92.151, 27.756);
         let actual = format!("{}", lchab);
 
         // Assert
@@ -191,12 +164,12 @@ mod tests {
     #[test]
     fn test_from_lab() {
         // Arrange
-        let lab: Lab<f32> = Lab::new(54.617, 81.549, 42.915);
-        let actual = LCHab::from(&lab);
+        let lab = Lab::new(54.617, 81.549, 42.915);
+        let actual = Lchab::from(&lab);
 
         // Assert
         assert_approx_eq!(actual.l, 54.617);
-        assert_approx_eq!(actual.c, 92.151710);
+        assert_approx_eq!(actual.c, 92.151704);
         assert_approx_eq!(actual.h.to_degrees(), 27.755500);
     }
 }

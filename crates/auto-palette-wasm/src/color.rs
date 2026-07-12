@@ -297,11 +297,11 @@ export class Color {
 }
 "#;
 
-/// `JsColor` is a struct for wrapping `Color<f64>` to expose it to JavaScript.
+/// `JsColor` is a struct for wrapping `Color` to expose it to JavaScript.
 /// This struct is used to wrap the `Color` type from the auto-palette crate so that it can be used in JavaScript.
 #[derive(Debug, PartialEq, Clone)]
 #[wasm_bindgen(js_name = Color, skip_typescript)]
-pub struct JsColor(pub(crate) Color<f64>);
+pub struct JsColor(pub(crate) Color);
 
 #[wasm_bindgen(js_class = Color)]
 impl JsColor {
@@ -540,18 +540,18 @@ mod tests {
         color::{
             Ansi16,
             Ansi256,
+            Cmyk,
+            Hsl,
+            Hsv,
             Hue,
-            LCHab,
-            LCHuv,
             Lab,
+            Lchab,
+            Lchuv,
             Luv,
             Oklab,
             Oklch,
-            CMYK,
-            HSL,
-            HSV,
-            RGB,
-            XYZ,
+            Rgb,
+            Xyz,
         },
     };
     use serde_wasm_bindgen::from_value;
@@ -619,7 +619,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff8000);
         let value = color.to_rgb().unwrap();
-        let actual: RGB = from_value(value).unwrap();
+        let actual: Rgb = from_value(value).unwrap();
 
         // Assert
         assert_eq!(actual.r, 255);
@@ -632,7 +632,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff8000);
         let value = color.to_cmyk().unwrap();
-        let actual: CMYK = from_value(value).unwrap();
+        let actual: Cmyk = from_value(value).unwrap();
 
         // Assert
         assert_approx_eq!(actual.c, 0.0, 0.1);
@@ -646,7 +646,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff0080);
         let value = color.to_hsl().unwrap();
-        let actual: HSL = from_value(value).unwrap();
+        let actual: Hsl = from_value(value).unwrap();
 
         // Assert
         assert_approx_eq!(actual.h.to_degrees(), 329.882352);
@@ -659,7 +659,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff0080);
         let value = color.to_hsv().unwrap();
-        let actual: HSV = from_value(value).unwrap();
+        let actual: Hsv = from_value(value).unwrap();
 
         // Assert
         assert_approx_eq!(actual.h.to_degrees(), 329.882352);
@@ -672,7 +672,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff8000);
         let value = color.to_xyz().unwrap();
-        let actual: XYZ = from_value(value).unwrap();
+        let actual: Xyz = from_value(value).unwrap();
 
         // Assert
         assert_approx_eq!(actual.x, 0.489579);
@@ -711,7 +711,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff8000);
         let value = color.to_lchab().unwrap();
-        let actual: LCHab = from_value(value).unwrap();
+        let actual: Lchab = from_value(value).unwrap();
 
         // Assert
         assert_approx_eq!(actual.l, 67.052536);
@@ -750,7 +750,7 @@ mod tests {
         // Act
         let color = JsColor::from_int(0xff8000);
         let value = color.to_lchuv().unwrap();
-        let actual: LCHuv = from_value(value).unwrap();
+        let actual: Lchuv = from_value(value).unwrap();
 
         // Assert
         assert_approx_eq!(actual.l, 67.052536);

@@ -6,9 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased](https://github.com/t28hub/auto-palette/compare/v0.9.2...HEAD)
 ### Added
+- Add `Position` struct with named `x`/`y` fields, replacing the `(u32, u32)` tuple returned by `Swatch::position`.
+- Add `PaletteBuilder::max_pixels` to bound the number of processed pixels: larger images are downsampled before segmentation, bounding the extraction time regardless of input resolution.
+- Add `Result<T>` alias and `Display` implementation for `Theme`.
+- Add `docs/DESIGN.md` describing the API design, complexity guarantees, and the Android/iOS (UniFFI) roadmap.
+
 ### Changed
+- **Breaking:** Remove generics from the public API. `Palette`, `Swatch`, `Color`, and all color space types are now monomorphic (`f64` internally); `Palette::<f64>::extract(...)` becomes `Palette::extract(...)`. The `FloatNumber` trait is no longer public. Extraction results are unchanged.
+- **Breaking:** `ImageData` now owns its pixel buffer (no lifetime parameter). `ImageData::new` accepts anything convertible into `Vec<u8>`.
+- **Breaking:** Flatten the error hierarchy into a single `Error` enum (`thiserror`); `ImageError`, `ExtractionError`, `SelectionError`, and `UnsupportedError` are removed.
+- **Breaking:** `Palette::find_swatches` and `Palette::find_swatches_with_theme` return `Vec<Swatch>` instead of `Result<Vec<Swatch>, Error>`.
+- **Breaking:** Rename types to follow RFC 430 naming conventions: `RGB`→`Rgb`, `HSL`→`Hsl`, `HSV`→`Hsv`, `CMYK`→`Cmyk`, `XYZ`→`Xyz`, `LCHab`→`Lchab`, `LCHuv`→`Lchuv`, and `Algorithm::{DBSCAN, DBSCANpp, SLIC, SNIC}`→`Algorithm::{Dbscan, DbscanPlusPlus, Slic, Snic}`. String representations (`"dbscan++"`, etc.) are unchanged.
+- **Breaking:** `PaletteBuilder` is now a plain (non-generic) struct; filters are boxed internally and `filter()` can be called repeatedly. `WhitePoint`/`D50`/`D65` and the `CompositeFilter` type are no longer public.
+
 ### Deprecated
 ### Removed
+- **Breaking:** Remove deprecated `Theme::Basic` and `Palette::extract_with_algorithm`.
+
 ### Fixed
 ### Security
 

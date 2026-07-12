@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    error::{Error, UnsupportedError, UnsupportedErrorKind},
+    error::Error,
     math::FloatNumber,
     segmentation::{
         DbscanConfig,
@@ -17,24 +17,34 @@ use crate::{
 };
 
 /// The clustering algorithm to use for color palette extraction.
-#[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, Default, Clone, PartialEq)]
+///
+/// # Examples
+/// ```
+/// use std::str::FromStr;
+///
+/// use auto_palette::Algorithm;
+///
+/// let algorithm = Algorithm::from_str("dbscan++").unwrap();
+/// assert_eq!(algorithm, Algorithm::DbscanPlusPlus);
+/// assert_eq!(algorithm.to_string(), "dbscan++");
+/// ```
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Algorithm {
     /// K-means clustering algorithm.
     KMeans,
 
     /// DBSCAN clustering algorithm.
     #[default]
-    DBSCAN,
+    Dbscan,
 
     /// DBSCAN++ clustering algorithm.
-    DBSCANpp,
+    DbscanPlusPlus,
 
     /// SLIC (Simple Linear Iterative Clustering) algorithm.
-    SLIC,
+    Slic,
 
     /// SNIC (Simple Non-Iterative Clustering) algorithm.
-    SNIC,
+    Snic,
 }
 
 impl FromStr for Algorithm {
@@ -43,11 +53,11 @@ impl FromStr for Algorithm {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "kmeans" => Ok(Self::KMeans),
-            "dbscan" => Ok(Self::DBSCAN),
-            "dbscan++" => Ok(Self::DBSCANpp),
-            "slic" => Ok(Self::SLIC),
-            "snic" => Ok(Self::SNIC),
-            _ => Err(UnsupportedError::new(UnsupportedErrorKind::Algorithm, s).into()),
+            "dbscan" => Ok(Self::Dbscan),
+            "dbscan++" => Ok(Self::DbscanPlusPlus),
+            "slic" => Ok(Self::Slic),
+            "snic" => Ok(Self::Snic),
+            _ => Err(Error::UnknownAlgorithm(s.to_string())),
         }
     }
 }
@@ -56,10 +66,10 @@ impl Display for Algorithm {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::KMeans => write!(f, "kmeans"),
-            Self::DBSCAN => write!(f, "dbscan"),
-            Self::DBSCANpp => write!(f, "dbscan++"),
-            Self::SLIC => write!(f, "slic"),
-            Self::SNIC => write!(f, "snic"),
+            Self::Dbscan => write!(f, "dbscan"),
+            Self::DbscanPlusPlus => write!(f, "dbscan++"),
+            Self::Slic => write!(f, "slic"),
+            Self::Snic => write!(f, "snic"),
         }
     }
 }
@@ -71,10 +81,10 @@ where
     fn from(algorithm: Algorithm) -> Self {
         match algorithm {
             Algorithm::KMeans => Self::Kmeans(KmeansConfig::default()),
-            Algorithm::DBSCAN => Self::Dbscan(DbscanConfig::default()),
-            Algorithm::DBSCANpp => Self::FastDbscan(FastDbscanConfig::default()),
-            Algorithm::SLIC => Self::Slic(SlicConfig::default()),
-            Algorithm::SNIC => Self::Snic(SnicConfig::default()),
+            Algorithm::Dbscan => Self::Dbscan(DbscanConfig::default()),
+            Algorithm::DbscanPlusPlus => Self::FastDbscan(FastDbscanConfig::default()),
+            Algorithm::Slic => Self::Slic(SlicConfig::default()),
+            Algorithm::Snic => Self::Snic(SnicConfig::default()),
         }
     }
 }
@@ -87,20 +97,20 @@ mod tests {
 
     #[rstest]
     #[case::kmeans("kmeans", Algorithm::KMeans)]
-    #[case::dbscan("dbscan", Algorithm::DBSCAN)]
-    #[case::dbscanpp("dbscan++", Algorithm::DBSCANpp)]
-    #[case::slic("slic", Algorithm::SLIC)]
-    #[case::snic("snic", Algorithm::SNIC)]
+    #[case::dbscan("dbscan", Algorithm::Dbscan)]
+    #[case::dbscanpp("dbscan++", Algorithm::DbscanPlusPlus)]
+    #[case::slic("slic", Algorithm::Slic)]
+    #[case::snic("snic", Algorithm::Snic)]
     #[case::kmeans_upper("KMEANS", Algorithm::KMeans)]
-    #[case::dbscan_upper("DBSCAN", Algorithm::DBSCAN)]
-    #[case::dbscanpp_upper("DBSCAN++", Algorithm::DBSCANpp)]
-    #[case::slic_upper("SLIC", Algorithm::SLIC)]
-    #[case::snic_upper("SNIC", Algorithm::SNIC)]
+    #[case::dbscan_upper("DBSCAN", Algorithm::Dbscan)]
+    #[case::dbscanpp_upper("DBSCAN++", Algorithm::DbscanPlusPlus)]
+    #[case::slic_upper("SLIC", Algorithm::Slic)]
+    #[case::snic_upper("SNIC", Algorithm::Snic)]
     #[case::kmeans_capitalized("Kmeans", Algorithm::KMeans)]
-    #[case::dbscan_capitalized("Dbscan", Algorithm::DBSCAN)]
-    #[case::dbscanpp_capitalized("Dbscan++", Algorithm::DBSCANpp)]
-    #[case::slic_capitalized("Slic", Algorithm::SLIC)]
-    #[case::snic_capitalized("Snic", Algorithm::SNIC)]
+    #[case::dbscan_capitalized("Dbscan", Algorithm::Dbscan)]
+    #[case::dbscanpp_capitalized("Dbscan++", Algorithm::DbscanPlusPlus)]
+    #[case::slic_capitalized("Slic", Algorithm::Slic)]
+    #[case::snic_capitalized("Snic", Algorithm::Snic)]
     fn test_from_str(#[case] input: &str, #[case] expected: Algorithm) {
         // Act
         let actual = Algorithm::from_str(input).unwrap();
@@ -126,10 +136,10 @@ mod tests {
 
     #[rstest]
     #[case::kmeans(Algorithm::KMeans, "kmeans")]
-    #[case::dbscan(Algorithm::DBSCAN, "dbscan")]
-    #[case::dbscanpp(Algorithm::DBSCANpp, "dbscan++")]
-    #[case::slic(Algorithm::SLIC, "slic")]
-    #[case::snic(Algorithm::SNIC, "snic")]
+    #[case::dbscan(Algorithm::Dbscan, "dbscan")]
+    #[case::dbscanpp(Algorithm::DbscanPlusPlus, "dbscan++")]
+    #[case::slic(Algorithm::Slic, "slic")]
+    #[case::snic(Algorithm::Snic, "snic")]
     fn test_fmt(#[case] algorithm: Algorithm, #[case] expected: &str) {
         // Act
         let actual = format!("{}", algorithm);
@@ -140,13 +150,13 @@ mod tests {
 
     #[rstest]
     #[case::kmeans(Algorithm::KMeans, SegmentationMethod::Kmeans(KmeansConfig::default()))]
-    #[case::dbscan(Algorithm::DBSCAN, SegmentationMethod::Dbscan(DbscanConfig::default()))]
+    #[case::dbscan(Algorithm::Dbscan, SegmentationMethod::Dbscan(DbscanConfig::default()))]
     #[case::dbscanpp(
-        Algorithm::DBSCANpp,
+        Algorithm::DbscanPlusPlus,
         SegmentationMethod::FastDbscan(FastDbscanConfig::default())
     )]
-    #[case::slic(Algorithm::SLIC, SegmentationMethod::Slic(SlicConfig::default()))]
-    #[case::snic(Algorithm::SNIC, SegmentationMethod::Snic(SnicConfig::default()))]
+    #[case::slic(Algorithm::Slic, SegmentationMethod::Slic(SlicConfig::default()))]
+    #[case::snic(Algorithm::Snic, SegmentationMethod::Snic(SnicConfig::default()))]
     fn test_into_segmentation_method(
         #[case] algorithm: Algorithm,
         #[case] expected: SegmentationMethod<f64>,

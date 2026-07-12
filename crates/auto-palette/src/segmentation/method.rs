@@ -1,5 +1,5 @@
 use crate::{
-    error::{Error, ExtractionError, ExtractionErrorKind},
+    error::Error,
     image::Pixel,
     math::FloatNumber,
     segmentation::{
@@ -69,7 +69,7 @@ where
         let height = image.height() as usize;
         let (pixels, mask) = collect_pixels_and_mask(image, filter);
         let input = SegmentationInput::new(width, height, &pixels, &mask)
-            .map_err(|_| ExtractionError::from(ExtractionErrorKind::DimensionMismatch))?;
+            .map_err(|_| Error::DimensionMismatch)?;
         match self {
             Self::Dbscan(config) => segment_with(DbscanSegmentation::try_from(*config), &input),
             Self::FastDbscan(config) => {
@@ -160,12 +160,8 @@ where
         .and_then(|s| s.segment(input))
         .map_err(|e: SegmentationError| -> Error {
             match e {
-                SegmentationError::InvalidArgument(_) => {
-                    ExtractionError::from(ExtractionErrorKind::InvalidParameter).into()
-                }
-                SegmentationError::UnexpectedLength(_) => {
-                    ExtractionError::from(ExtractionErrorKind::DimensionMismatch).into()
-                }
+                SegmentationError::InvalidArgument(reason) => Error::InvalidParameter { reason },
+                SegmentationError::UnexpectedLength(_) => Error::DimensionMismatch,
             }
         })
 }
@@ -209,7 +205,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::{error::ExtractionErrorKind, Rgba};
+    use crate::Rgba;
 
     #[rstest]
     #[case::dbscan(SegmentationMethod::Dbscan(DbscanConfig::default()))]
@@ -219,8 +215,8 @@ mod tests {
     #[case::snic(SegmentationMethod::Snic(SnicConfig::default()))]
     fn test_segment_empty(#[case] method: SegmentationMethod<f64>) {
         // Arrange
-        let pixels: Vec<_> = Vec::new();
-        let image_data = ImageData::new(0, 0, &pixels).expect("Failed to create empty image data");
+        let pixels: Vec<u8> = Vec::new();
+        let image_data = ImageData::new(0, 0, pixels).expect("Failed to create empty image data");
 
         // Act
         let actual = method.segment(&image_data, &|rgba: &Rgba| rgba[0] != 0);
@@ -280,8 +276,8 @@ mod tests {
     #[test]
     fn test_segment_with_invalid_argument_error() {
         // Arrange
-        let pixels: Vec<_> = Vec::new();
-        let image_data = ImageData::new(0, 0, &pixels).unwrap();
+        let pixels: Vec<u8> = Vec::new();
+        let image_data = ImageData::new(0, 0, pixels).unwrap();
         let (pixels, mask) = collect_pixels_and_mask::<f64, _>(&image_data, &|_: &Rgba| true);
         let input = SegmentationInput::new(0, 0, &pixels, &mask).unwrap();
 
@@ -292,17 +288,17 @@ mod tests {
         );
 
         // Assert
-        let Error::Extraction(e) = actual.unwrap_err() else {
-            panic!("expected Error::Extraction");
+        let Error::InvalidParameter { reason } = actual.unwrap_err() else {
+            panic!("expected Error::InvalidParameter");
         };
-        assert_eq!(e.kind(), ExtractionErrorKind::InvalidParameter);
+        assert_eq!(reason, "test");
     }
 
     #[test]
     fn test_segment_with_unexpected_length_error() {
         // Arrange
-        let pixels: Vec<_> = Vec::new();
-        let image_data = ImageData::new(0, 0, &pixels).unwrap();
+        let pixels: Vec<u8> = Vec::new();
+        let image_data = ImageData::new(0, 0, pixels).unwrap();
         let (pixels, mask) = collect_pixels_and_mask::<f64, _>(&image_data, &|_: &Rgba| true);
         let input = SegmentationInput::new(0, 0, &pixels, &mask).unwrap();
         let matrix_error = crate::math::matrix::MatrixError::DimensionMismatch {
@@ -319,9 +315,6 @@ mod tests {
         );
 
         // Assert
-        let Error::Extraction(e) = actual.unwrap_err() else {
-            panic!("expected Error::Extraction");
-        };
-        assert_eq!(e.kind(), ExtractionErrorKind::DimensionMismatch);
+        assert!(matches!(actual.unwrap_err(), Error::DimensionMismatch));
     }
 }

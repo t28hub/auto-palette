@@ -1,6 +1,6 @@
 use std::io::{BufWriter, Error, Write};
 
-use auto_palette::{FloatNumber, Swatch};
+use auto_palette::Swatch;
 
 use crate::{context::Context, output::Printer};
 
@@ -28,9 +28,8 @@ impl<'a> TablePrinter<'a> {
 }
 
 impl Printer for TablePrinter<'_> {
-    fn print<T, W>(&self, swatches: &[Swatch<T>], output: &mut W) -> Result<(), Error>
+    fn print<W>(&self, swatches: &[Swatch], output: &mut W) -> Result<(), Error>
     where
-        T: FloatNumber,
         W: Write,
     {
         let mut writer = BufWriter::new(output);
@@ -49,8 +48,7 @@ impl Printer for TablePrinter<'_> {
                 let number_width = (i + 1).to_string().len();
                 let color_width = color_format.fmt(swatch.color()).len();
 
-                let (x, y) = swatch.position();
-                let position_width = format!("({x}, {y})").len();
+                let position_width = swatch.position().to_string().len();
 
                 let population_width = swatch.population().to_string().len();
                 [
@@ -76,7 +74,7 @@ impl Printer for TablePrinter<'_> {
             let color = color_format.fmt(swatch.color());
             write!(writer, "| {:<width$} ", color, width = widths[1])?;
 
-            let position = format!("{:?}", swatch.position());
+            let position = swatch.position().to_string();
             write!(writer, "| {:<width$} ", position, width = widths[2])?;
 
             let population = swatch.population();

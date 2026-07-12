@@ -1,6 +1,6 @@
 use std::io::{BufWriter, Error, Write};
 
-use auto_palette::{color::Color, FloatNumber, Swatch};
+use auto_palette::{color::Color, Swatch};
 
 use crate::{color::ColorMode, context::Context, output::Printer, style::style};
 
@@ -26,10 +26,7 @@ impl<'a> TextPrinter<'a> {
 
     #[inline]
     #[must_use]
-    fn swatch_to_text<T>(&self, swatch: &Swatch<T>, widths: &[usize]) -> String
-    where
-        T: FloatNumber,
-    {
+    fn swatch_to_text(&self, swatch: &Swatch, widths: &[usize]) -> String {
         let color_mode = self.color_mode(swatch.color());
         let sample_str = if color_mode == ColorMode::NoColor {
             "".to_string()
@@ -42,8 +39,7 @@ impl<'a> TextPrinter<'a> {
         let color = color_format.fmt(swatch.color());
         let color_str = format!("{:<width$}", color, width = widths[0]);
 
-        let (x, y) = swatch.position();
-        let position_str = format!("({x}, {y})");
+        let position_str = swatch.position().to_string();
 
         let population = swatch.population();
         let population_str = format!("{:<width$}", population, width = widths[2]);
@@ -53,10 +49,7 @@ impl<'a> TextPrinter<'a> {
 
     #[inline]
     #[must_use]
-    fn color_mode<T>(&self, color: &Color<T>) -> ColorMode
-    where
-        T: FloatNumber,
-    {
+    fn color_mode(&self, color: &Color) -> ColorMode {
         let env = self.context.env();
         if env.no_color.as_deref().is_some() {
             return ColorMode::NoColor;
@@ -80,9 +73,8 @@ impl<'a> TextPrinter<'a> {
 }
 
 impl Printer for TextPrinter<'_> {
-    fn print<T, W>(&self, swatches: &[Swatch<T>], output: &mut W) -> Result<(), Error>
+    fn print<W>(&self, swatches: &[Swatch], output: &mut W) -> Result<(), Error>
     where
-        T: FloatNumber,
         W: Write,
     {
         let mut writer = BufWriter::new(output);
@@ -91,8 +83,7 @@ impl Printer for TextPrinter<'_> {
         let widths = swatches.iter().fold([0, 0, 0], |acc, swatch| {
             let color_width = color_format.fmt(swatch.color()).len();
 
-            let (x, y) = swatch.position();
-            let position_width = format!("({x}, {y})").len();
+            let position_width = swatch.position().to_string().len();
 
             let population_width = swatch.population().to_string().len();
             [

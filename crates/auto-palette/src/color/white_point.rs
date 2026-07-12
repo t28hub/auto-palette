@@ -1,7 +1,5 @@
 use std::fmt::Debug;
 
-use crate::math::FloatNumber;
-
 /// The white point representation.
 ///
 /// See the following for more details:
@@ -9,39 +7,24 @@ use crate::math::FloatNumber;
 pub trait WhitePoint: Copy + Clone + Debug + Default + PartialEq {
     /// Returns the X component of the white point.
     ///
-    /// # Type Parameters
-    /// * `T` - The floating point type.
-    ///
     /// # Returns
     /// The X component of the white point.
     #[must_use]
-    fn x<T>() -> T
-    where
-        T: FloatNumber;
+    fn x() -> f64;
 
     /// Returns the Y component of the white point.
-    ///
-    /// # Type Parameters
-    /// * `T` - The floating point type.
     ///
     /// # Returns
     /// The Y component of the white point.
     #[must_use]
-    fn y<T>() -> T
-    where
-        T: FloatNumber;
+    fn y() -> f64;
 
     /// Returns the Z component of the white point.
-    ///
-    /// # Type Parameters
-    /// * `T` - The floating point type.
     ///
     /// # Returns
     /// The Z component of the white point.
     #[must_use]
-    fn z<T>() -> T
-    where
-        T: FloatNumber;
+    fn z() -> f64;
 }
 
 /// The D50 white point representation.
@@ -51,8 +34,10 @@ pub trait WhitePoint: Copy + Clone + Debug + Default + PartialEq {
 /// See the following for more details:
 /// [Illuminant D50](https://en.wikipedia.org/wiki/Illuminant_D50)
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[allow(dead_code)]
 pub struct D50;
 
+#[allow(dead_code)]
 impl D50 {
     const X: f64 = 0.964_22;
     const Y: f64 = 1.0;
@@ -61,27 +46,18 @@ impl D50 {
 
 impl WhitePoint for D50 {
     #[inline]
-    fn x<T>() -> T
-    where
-        T: FloatNumber,
-    {
-        T::from_f64(Self::X)
+    fn x() -> f64 {
+        Self::X
     }
 
     #[inline]
-    fn y<T>() -> T
-    where
-        T: FloatNumber,
-    {
-        T::from_f64(Self::Y)
+    fn y() -> f64 {
+        Self::Y
     }
 
     #[inline]
-    fn z<T>() -> T
-    where
-        T: FloatNumber,
-    {
-        T::from_f64(Self::Z)
+    fn z() -> f64 {
+        Self::Z
     }
 }
 
@@ -102,27 +78,18 @@ impl D65 {
 
 impl WhitePoint for D65 {
     #[inline]
-    fn x<T>() -> T
-    where
-        T: FloatNumber,
-    {
-        T::from_f64(Self::X)
+    fn x() -> f64 {
+        Self::X
     }
 
     #[inline]
-    fn y<T>() -> T
-    where
-        T: FloatNumber,
-    {
-        T::from_f64(Self::Y)
+    fn y() -> f64 {
+        Self::Y
     }
 
     #[inline]
-    fn z<T>() -> T
-    where
-        T: FloatNumber,
-    {
-        T::from_f64(Self::Z)
+    fn z() -> f64 {
+        Self::Z
     }
 }
 
@@ -132,25 +99,25 @@ mod tests {
 
     #[test]
     fn test_d50() {
-        let x: f64 = D50::x();
+        let x = D50::x();
         assert_eq!(x, D50::X);
 
-        let y: f64 = D50::y();
+        let y = D50::y();
         assert_eq!(y, D50::Y);
 
-        let z: f64 = D50::z();
+        let z = D50::z();
         assert_eq!(z, D50::Z);
     }
 
     #[test]
     fn test_d65() {
-        let x: f64 = D65::x();
+        let x = D65::x();
         assert_eq!(x, D65::X);
 
-        let y: f64 = D65::y();
+        let y = D65::y();
         assert_eq!(y, D65::Y);
 
-        let z: f64 = D65::z();
+        let z = D65::z();
         assert_eq!(z, D65::Z);
     }
 }

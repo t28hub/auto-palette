@@ -24,6 +24,7 @@ where
     pub(crate) metric: DistanceMetric,
 }
 
+#[allow(dead_code)] // retained for the internal configuration API and tests
 impl<T> FastDbscanConfig<T>
 where
     T: FloatNumber,

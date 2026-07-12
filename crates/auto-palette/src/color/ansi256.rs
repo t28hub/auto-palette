@@ -6,7 +6,7 @@ use std::{
 #[cfg(feature = "wasm")]
 use serde::{Deserialize, Serialize};
 
-use crate::color::{Ansi16, RGB};
+use crate::color::{Ansi16, Rgb};
 
 /// The 8-bit ANSI 256 color.
 ///
@@ -15,9 +15,9 @@ use crate::color::{Ansi16, RGB};
 ///
 /// # Examples
 /// ```
-/// use auto_palette::color::{Ansi256, RGB};
+/// use auto_palette::color::{Ansi256, Rgb};
 ///
-/// let rgb = RGB::new(30, 215, 96);
+/// let rgb = Rgb::new(30, 215, 96);
 /// let ansi256 = Ansi256::from(&rgb);
 /// assert_eq!(ansi256.code(), 41);
 /// assert_eq!(format!("{}", ansi256), "ANSI256(41)");
@@ -57,8 +57,8 @@ impl Display for Ansi256 {
     }
 }
 
-impl From<&RGB> for Ansi256 {
-    fn from(rgb: &RGB) -> Self {
+impl From<&Rgb> for Ansi256 {
+    fn from(rgb: &Rgb) -> Self {
         let code = from_rgb(rgb.r, rgb.g, rgb.b);
         Self { code }
     }
@@ -185,7 +185,7 @@ mod tests {
     #[case::magenta((192, 0, 192), 127)]
     fn test_from_rgb(#[case] rgb: (u8, u8, u8), #[case] expected: u8) {
         // Act
-        let rgb = RGB::new(rgb.0, rgb.1, rgb.2);
+        let rgb = Rgb::new(rgb.0, rgb.1, rgb.2);
         let actual = Ansi256::from(&rgb);
 
         // Assert
