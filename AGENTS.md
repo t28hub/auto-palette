@@ -5,13 +5,11 @@
 - `crates/auto-palette-cli/`: CLI entrypoint + integration tests.
 - `crates/auto-palette-wasm/`: Wasm bindings (Rust, built with `wasm-pack`).
 - `packages/auto-palette-wasm/`: TypeScript wrapper, bundling, Vitest.
-- `gfx/`: Fixture images. `benches/`, `coverage/`: benches and reports.
+- `gfx/`: Fixture images. `crates/auto-palette/benches/`: benchmarks. `coverage/`: coverage reports.
 
 ## Agent Workflow
-- Plan first, then edit
-  - Read only relevant files; propose minimal, localized diffs.
 - Keep changes small & reversible
-  - Avoid unrelated rewrites; prefer incremental patches.
+  - Prefer minimal, localized diffs; avoid unrelated rewrites.
 - Format/lint before tests
   - `just format` then `just lint`.
 - Default tests
@@ -44,7 +42,7 @@
 - Rust
   - rustfmt nightly per `.rustfmt.toml`; group imports; format docs. Run `cargo +nightly fmt --all`.
 - TOML
-  - Tombi with alignment rules (`tombi.toml`).
+  - Tombi with alignment rules (`.tombi.toml`).
 - TS/JSON
   - Biome, 2-space indent, single quotes (`biome.json`).
 - Naming
@@ -85,5 +83,5 @@
   - Optional: coordinate npm publication for `packages/auto-palette-wasm` if/when distribution is enabled (not automated here).
 
 ## Tooling & Environment
-- MSRV: Rust 1.86.0 (see crate `rust-version`). Toolchain file installs `rustfmt`/`clippy`.
-- Node ≥18, `pnpm` 10.11.0. Install `wasm-pack` for Wasm builds.
+- MSRV: see `rust-version` in each crate's `Cargo.toml`. Toolchain file installs `rustfmt`/`clippy`.
+- Node and pnpm versions: see `engines` and `packageManager` in `package.json`. Install `wasm-pack` for Wasm builds.

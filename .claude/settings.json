@@ -1,20 +1,24 @@
 {
-  "includeCoAuthoredBy": false,
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "permissions": {
     "defaultMode": "default",
     "allow": [],
+    "ask": ["Bash(git push *)"],
     "deny": [
-      "Bash(rm:)",
-      "Bash(sudo:*)",
-      "Bash(curl:*)",
-      "Bash(wget:*)",
-      "Bash(git push:)",
-      "Bash(git rebase:)",
-      "Bash(git rm:)",
-      "Bash(pnpm publish:*)",
-      "Bash(cargo publish:*)",
-      "Read(./.env)",
-      "Read(./.env.*)",
+      "Bash(rm *)",
+      "Bash(sudo *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(git rebase *)",
+      "Bash(git rm *)",
+      "Bash(pnpm publish *)",
+      "Bash(cargo publish *)",
+      "Read(/.env)",
+      "Read(/.env.*)",
+      "Read(/secrets/**)",
       "Read(*.local.*)"
     ]
   },
