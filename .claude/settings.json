@@ -16,9 +16,9 @@
       "Bash(git rm *)",
       "Bash(pnpm publish *)",
       "Bash(cargo publish *)",
-      "Read(./.env)",
-      "Read(./.env.*)",
-      "Read(./secrets/**)",
+      "Read(/.env)",
+      "Read(/.env.*)",
+      "Read(/secrets/**)",
       "Read(*.local.*)"
     ]
   },
