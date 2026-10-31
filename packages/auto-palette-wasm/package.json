@@ -65,6 +65,6 @@
     "playwright": "1.58.1",
     "tsdown": "0.21.10",
     "typescript": "catalog:",
-    "wasm-pack": "0.14.0"
+    "wasm-pack": "0.15.0"
   }
 }
