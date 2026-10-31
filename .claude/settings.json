@@ -4,9 +4,8 @@
     "pr": ""
   },
   "permissions": {
-    "defaultMode": "default",
     "allow": [],
-    "ask": ["Bash(git push *)"],
+    "ask": ["Bash(git push *)", "Bash(git * push *)", "Bash(git * push)"],
     "deny": [
       "Bash(rm *)",
       "Bash(sudo *)",
