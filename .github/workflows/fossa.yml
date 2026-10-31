@@ -17,16 +17,16 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Run FOSSA scan
-        uses: fossas/fossa-action@v1.9.0
+        uses: fossas/fossa-action@v2.0.0
         with:
           debug: true
           api-key: ${{ secrets.FOSSA_API_KEY }}
 
       - name: Run FOSSA test
-        uses: fossas/fossa-action@v1.9.0
+        uses: fossas/fossa-action@v2.0.0
         with:
           debug: true
           api-key: ${{ secrets.FOSSA_API_KEY }}
