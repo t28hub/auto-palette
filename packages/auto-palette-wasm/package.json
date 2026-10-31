@@ -40,7 +40,7 @@
     "webassembly"
   ],
   "scripts": {
-    "clean": "rimraf dist",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "dev": "tsdown --no-dts --watch",
     "dev:wasm": "wasm-pack build --dev --target web --out-name auto_palette --out-dir ./dist ../../crates/auto-palette-wasm",
     "build": "pnpm build:wasm && pnpm build:ts",
