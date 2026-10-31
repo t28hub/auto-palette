@@ -26,11 +26,10 @@ interface AutoPaletteMatchers<R = unknown> {
   toBeSimilarColor(expected: unknown, threshold?: number): R;
 }
 
+// Vitest 5 merges `Matchers` into both `expect()` assertions and asymmetric matchers.
 declare module 'vitest' {
-  // biome-ignore lint/suspicious/noExplicitAny: The generic type 'T' could be any type.
-  interface Assertion<T = any> extends AutoPaletteMatchers<T> {}
-
-  interface AsymmetricMatchersContaining extends AutoPaletteMatchers {}
+  interface Matchers<R extends void | Promise<void> = void | Promise<void>, T = unknown>
+    extends AutoPaletteMatchers<R> {}
 }
 
 expect.extend({
