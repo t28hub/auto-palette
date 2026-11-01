@@ -8,7 +8,7 @@ use image::{DynamicImage, RgbImage, RgbaImage};
 use crate::{
     color::{rgb_to_xyz, xyz_to_lab, Lab, D65},
     error::ImageError,
-    image::{Pixel, RGBA_CHANNELS},
+    image::{Pixel, Rgba, RGBA_CHANNELS},
     math::normalize,
     Filter,
     FloatNumber,
@@ -153,7 +153,9 @@ impl<'a> ImageData<'a> {
         T: FloatNumber + 'b,
     {
         self.data
-            .chunks_exact(RGBA_CHANNELS)
+            .as_chunks::<RGBA_CHANNELS>()
+            .0
+            .iter()
             .enumerate()
             .map(move |(index, rgba)| self.chunk_to_pixel(index, rgba))
     }
@@ -178,14 +180,11 @@ impl<'a> ImageData<'a> {
         F: Filter,
     {
         self.data
-            .chunks_exact(RGBA_CHANNELS)
+            .as_chunks::<RGBA_CHANNELS>()
+            .0
+            .iter()
             .enumerate()
-            .map(move |(index, chunk)| {
-                (
-                    self.chunk_to_pixel::<T>(index, chunk),
-                    filter.test(&[chunk[0], chunk[1], chunk[2], chunk[3]]),
-                )
-            })
+            .map(move |(index, chunk)| (self.chunk_to_pixel::<T>(index, chunk), filter.test(chunk)))
     }
 
     /// Converts a chunk of pixel data to a pixel representation.
@@ -201,7 +200,7 @@ impl<'a> ImageData<'a> {
     /// The pixel representation of the chunk of pixel data.
     #[inline(always)]
     #[must_use]
-    fn chunk_to_pixel<T>(&self, index: usize, chunk: &[u8]) -> Pixel<T>
+    fn chunk_to_pixel<T>(&self, index: usize, chunk: &Rgba) -> Pixel<T>
     where
         T: FloatNumber,
     {
