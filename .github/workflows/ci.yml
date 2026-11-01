@@ -67,6 +67,24 @@ jobs:
       - name: Check for security vulnerabilities
         run: cargo audit
 
+  msrv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-hack
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-hack
+
+      - name: Check with the rust-version in Cargo.toml
+        run: cargo hack check --rust-version --workspace --all-features
+
   test-lib:
     name: "test auto-palette crate on ${{ matrix.os }}"
     needs:

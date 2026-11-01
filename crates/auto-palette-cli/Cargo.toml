@@ -5,7 +5,7 @@ authors.workspace    = true
 edition.workspace    = true
 # `cargo msrv` does not support `rust-version.workspace` yet.
 # https://github.com/foresterre/cargo-msrv/issues/590
-rust-version         = "1.86.0"
+rust-version         = "1.88.0"
 description          = "🎨 CLI tool to extract a prominent color palette from an image."
 readme               = "./README.md"
 homepage.workspace   = true
