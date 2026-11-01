@@ -1,6 +1,14 @@
 packages:
   - packages/*
 
+saveExact: true
+
+# These install scripts were already skipped under pnpm 10. `lefthook install` runs from `prepare`.
+allowBuilds:
+  auto-palette: false
+  lefthook: false
+  wasm-pack: false
+
 minimumReleaseAge: 4320 # 3 days in minutes
 
 minimumReleaseAgeExclude:
