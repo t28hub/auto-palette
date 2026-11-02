@@ -48,9 +48,10 @@ rstest     = { workspace = true }
 serde_test = { workspace = true }
 
 [features]
-default = ["image"]
-image   = ["dep:image"]
-wasm    = ["dep:serde"]
+default       = ["image"]
+image         = ["dep:image"]
+unstable-next = []
+wasm          = ["dep:serde"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(coverage,coverage_nightly)"] }

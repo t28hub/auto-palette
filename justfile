@@ -68,7 +68,8 @@ lint: lint-rust lint-js
 # Lint Rust files
 [group('lint')]
 lint-rust:
-  cargo clippy -- -D warnings
+  cargo clippy --package auto-palette -- -D warnings
+  cargo clippy --all-features -- -D warnings
 
 # Lint JavaScript and TypeScript files
 [group('lint')]
