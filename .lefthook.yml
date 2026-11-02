@@ -21,7 +21,7 @@ pre-push:
   jobs:
     - name: lint rust
       glob: "**/*.rs"
-      run: cargo clippy -- -D warnings
+      run: just lint-rust
 
     - name: lint js
       glob: "**/*.{js,ts}"

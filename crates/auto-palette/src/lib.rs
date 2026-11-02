@@ -4,6 +4,9 @@ pub mod color;
 mod error;
 mod image;
 mod math;
+#[cfg(feature = "unstable-next")]
+#[doc(hidden)]
+pub mod next;
 mod palette;
 mod segmentation;
 mod swatch;
