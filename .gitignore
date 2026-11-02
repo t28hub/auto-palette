@@ -30,6 +30,12 @@ pnpm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 
+# Secrets
+.env
+.env.*
+secrets/
+.claude/settings.local.json
+
 # Misc
 .DS_Store
 *.suo
