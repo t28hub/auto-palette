@@ -22,6 +22,7 @@ cd auto-palette
 2. Install dependencies
 
 This project uses [just](https://just.systems/) as a task runner. Run `just` to see all available commands.
+Install it from one of the [packages](https://github.com/casey/just#packages), e.g. `brew install just`, `cargo install just`, or `pnpm add -g rust-just`.
 
 ```sh
 just setup    # Install cargo tools (nextest, llvm-cov, etc.) and Node.js dependencies
@@ -38,7 +39,7 @@ git checkout -b feat/short-description
 5. Format, lint, and test
 
 ```sh
-just ready    # Run formatting, linting, and tests
+just ready    # Run formatting, linting, tests, and checks
 ```
 
 Or run each step individually:
@@ -49,6 +50,8 @@ just lint     # Lint all files
 just test     # Run all tests (lib, cli, wasm)
 just check    # Run lint, audit, and udeps
 ```
+
+CI runs these recipes too, with `format-check` in place of `format`, plus `msrv`, `test-doc`, `examples`, and `test-wasm-js-all`.
 
 6. Ensure no regressions and update docs/CHANGELOG if user-visible
 

@@ -8,12 +8,12 @@ pre-commit:
 
     - name: format js
       glob: "**/*.{js,ts,json}"
-      run: biome format --write {staged_files}
+      run: pnpm exec biome format --write {staged_files}
       stage_fixed: true
 
     - name: format toml
       glob: "**/*.toml"
-      run: tombi format {staged_files}
+      run: pnpm exec tombi format {staged_files}
       stage_fixed: true
 
 pre-push:
@@ -25,4 +25,4 @@ pre-push:
 
     - name: lint js
       glob: "**/*.{js,ts}"
-      run: biome lint {push_files}
+      run: pnpm exec biome lint {push_files}

@@ -12,7 +12,6 @@ workflows:
         - 'dtolnay/rust-toolchain@stable'
         - 'pnpm/action-setup@v6.0.10'
         - 'taiki-e/install-action@v2.89.0'
-        - 'tombi-toml/setup-tombi@v1.9.8'
     '.github/workflows/codsspeed.yml':
         - 'actions/checkout@v7.0.1'
         - 'codspeedhq/action@v5.6.1'
@@ -100,8 +99,3 @@ dependencies:
         commit: 'sha1-1919c4a95903d2c33e4a221102edca87309fc14b'
         owner_id: 43724913
         repo_id: 442947557
-    'tombi-toml/setup-tombi@v1.9.8':
-        ref: 'v1.9.8'
-        commit: 'sha1-88295e71426671820b98934ea75ea352d73eba8b'
-        owner_id: 192336641
-        repo_id: 980084562
