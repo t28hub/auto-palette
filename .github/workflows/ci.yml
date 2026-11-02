@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@nightly
@@ -34,7 +34,7 @@ jobs:
         run: cargo +nightly fmt --all -- --check
 
       - name: Install tombi
-        uses: tombi-toml/setup-tombi@v1
+        uses: tombi-toml/setup-tombi@v1.9.8
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -46,7 +46,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@nightly
@@ -57,7 +57,7 @@ jobs:
         run: cargo clippy -- -D warnings
 
       - name: Install cargo-udeps and cargo-audit
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.89.0
         with:
           tool: cargo-udeps, cargo-audit
 
@@ -72,18 +72,35 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install cargo-hack
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.89.0
         with:
           tool: cargo-hack
 
       - name: Check with the rust-version in Cargo.toml
         run: cargo hack check --rust-version --workspace --all-features
+
+  lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install gh-actions-lock
+        run: gh extension install github/gh-actions-lock --pin v0.2.0
+
+      - name: Verify the workflow lockfile
+        run: gh actions-lock --verify
 
   test-lib:
     name: "test auto-palette crate on ${{ matrix.os }}"
@@ -97,13 +114,13 @@ jobs:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install cargo-nextest and cargo-llvm-cov
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.89.0
         with:
           tool: cargo-nextest, cargo-llvm-cov
 
@@ -144,13 +161,13 @@ jobs:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install cargo-nextest
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.89.0
         with:
           tool: cargo-nextest
 
@@ -166,7 +183,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -177,7 +194,7 @@ jobs:
         run: rustup target add wasm32-unknown-unknown
 
       - name: Install cargo-binstall
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.89.0
         with:
           tool: cargo-binstall
 
@@ -194,7 +211,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -209,7 +226,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -218,7 +235,7 @@ jobs:
         run: cargo build --package auto-palette-cli --bins --release
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: auto-palette
           path: target/release/auto-palette-cli
@@ -230,15 +247,15 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
 
       - name: Setup pnpm with ${{ env.PNPM_VERSION }} version
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@v6.0.10
         with:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node.js with ${{ env.NODE_VERSION }} version
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v7.1.0
         with:
           cache: 'pnpm'
           node-version: ${{ env.NODE_VERSION }}
