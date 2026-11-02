@@ -15,6 +15,7 @@ permissions:
 env:
   NODE_VERSION: 22.x
   PNPM_VERSION: 12.16.1
+  JUST_VERSION: 1.59.0
   CARGO_TERM_COLOR: always
 
 jobs:
@@ -30,16 +31,30 @@ jobs:
         with:
           components: rustfmt
 
-      - name: Check .rs files
-        run: cargo +nightly fmt --all -- --check
+      - name: Install just
+        uses: taiki-e/install-action@v2.89.0
+        with:
+          tool: just@${{ env.JUST_VERSION }}
 
-      - name: Install tombi
-        uses: tombi-toml/setup-tombi@v1.9.8
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup pnpm with ${{ env.PNPM_VERSION }} version
+        uses: pnpm/action-setup@v6.0.10
+        with:
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: Check .toml files
-        run: tombi format --check
+      - name: Setup Node.js with ${{ env.NODE_VERSION }} version
+        uses: actions/setup-node@v7.1.0
+        with:
+          cache: 'pnpm'
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install root dependencies (Biome and tombi)
+        run: pnpm install --frozen-lockfile --filter @auto-palette/monorepo
+
+      - name: Check formatting
+        run: just format-check
+
+      - name: Lint .js and .ts files
+        run: just lint-js
 
   check:
     runs-on: ubuntu-latest
@@ -53,19 +68,19 @@ jobs:
         with:
           components: clippy
 
-      - name: Lint with clippy
-        run: cargo clippy -- -D warnings
-
-      - name: Install cargo-udeps and cargo-audit
+      - name: Install just, cargo-udeps and cargo-audit
         uses: taiki-e/install-action@v2.89.0
         with:
-          tool: cargo-udeps, cargo-audit
+          tool: just@${{ env.JUST_VERSION }}, cargo-udeps, cargo-audit
+
+      - name: Lint with clippy
+        run: just lint-rust
 
       - name: Check for unused dependencies
-        run: cargo +nightly udeps --all-features --all-targets
+        run: just udeps
 
       - name: Check for security vulnerabilities
-        run: cargo audit
+        run: just audit
 
   msrv:
     runs-on: ubuntu-latest
@@ -77,13 +92,13 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install cargo-hack
+      - name: Install just and cargo-hack
         uses: taiki-e/install-action@v2.89.0
         with:
-          tool: cargo-hack
+          tool: just@${{ env.JUST_VERSION }}, cargo-hack
 
       - name: Check with the rust-version in Cargo.toml
-        run: cargo hack check --rust-version --workspace --all-features
+        run: just msrv
 
   lockfile:
     runs-on: ubuntu-latest
@@ -119,27 +134,24 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install cargo-nextest and cargo-llvm-cov
+      - name: Install just, cargo-nextest and cargo-llvm-cov
         uses: taiki-e/install-action@v2.89.0
         with:
-          tool: cargo-nextest, cargo-llvm-cov
+          tool: just@${{ env.JUST_VERSION }}, cargo-nextest, cargo-llvm-cov
 
       - name: Run unit tests
-        run: cargo nextest run --tests --all-features --package auto-palette --retries 2
+        run: just test-lib --retries 2
 
       - name: Run examples
-        run: |
-          cargo run --example simple
-          cargo run --example algorithm
-          cargo run --example theme
+        run: just examples
 
       - name: Run doc tests
         if: matrix.os == 'ubuntu-latest'
-        run: cargo test --doc --all-features --package auto-palette
+        run: just test-doc
 
       - name: Run unit tests with coverage
         if: matrix.os == 'ubuntu-latest'
-        run: cargo llvm-cov nextest --all-features --package auto-palette --codecov --output-path codecov.json
+        run: just coverage --codecov --output-path codecov.json
 
       - name: Upload coverage reports to Codecov
         if: matrix.os == 'ubuntu-latest'
@@ -166,13 +178,13 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install cargo-nextest
+      - name: Install just and cargo-nextest
         uses: taiki-e/install-action@v2.89.0
         with:
-          tool: cargo-nextest
+          tool: just@${{ env.JUST_VERSION }}, cargo-nextest
 
       - name: Run unit tests
-        run: cargo nextest run --tests --all-features --package auto-palette-cli
+        run: just test-cli
 
   test-wasm:
     name: "test auto-palette-wasm crate"
@@ -193,16 +205,16 @@ jobs:
       - name: Add wasm target
         run: rustup target add wasm32-unknown-unknown
 
-      - name: Install cargo-binstall
+      - name: Install just and cargo-binstall
         uses: taiki-e/install-action@v2.89.0
         with:
-          tool: cargo-binstall
+          tool: just@${{ env.JUST_VERSION }}, cargo-binstall
 
       - name: Install wasm-bindgen-cli
         run: cargo binstall wasm-bindgen-cli --no-confirm
 
       - name: Run unit tests
-        run: cargo test --tests --package auto-palette-wasm --target wasm32-unknown-unknown
+        run: just test-wasm
 
   build-lib:
     needs:
@@ -216,8 +228,13 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install just
+        uses: taiki-e/install-action@v2.89.0
+        with:
+          tool: just@${{ env.JUST_VERSION }}
+
       - name: Build library in release mode
-        run: cargo build --package auto-palette --lib --release
+        run: just build-lib
 
   build-cli:
     needs:
@@ -231,8 +248,13 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install just
+        uses: taiki-e/install-action@v2.89.0
+        with:
+          tool: just@${{ env.JUST_VERSION }}
+
       - name: Build CLI in release mode
-        run: cargo build --package auto-palette-cli --bins --release
+        run: just build-cli
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7.0.2
@@ -263,10 +285,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install just
+        uses: taiki-e/install-action@v2.89.0
+        with:
+          tool: just@${{ env.JUST_VERSION }}
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @auto-palette/wasm test:e2e:install
+
       - name: Build the wasm package
-        working-directory: ./packages/auto-palette-wasm
-        run: pnpm build
+        run: just build-wasm
 
       - name: Run the unit tests and e2e tests
-        working-directory: ./packages/auto-palette-wasm
-        run: pnpm test:e2e:install && pnpm test
+        run: just test-wasm-js-all
