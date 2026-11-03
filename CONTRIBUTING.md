@@ -66,6 +66,13 @@ CI runs these recipes too, with `format-check` in place of `format`, plus `msrv`
 - TOML: [Tombi](https://github.com/tombi-toml/tombi) (`.tombi.toml`).
 - JavaScript/TypeScript/JSON: [Biome](https://biomejs.dev/) (`biome.json`).
 
+### Cargo Features
+
+- Use lowercase kebab-case, except that a feature named after a dependency keeps the crate's name.
+- Name a feature after what it enables, without `use-`, `with-`, or `no-` prefixes.
+- Prefix features that are not covered by semver with `unstable-`.
+- If the public API takes or returns a dependency's types, add the dependency's version to the feature name: `<crate>-<major>_<minor>` for 0.x (e.g. `image-0_25`) and `<crate>-<major>` for 1.0 and later. For a new version, add a feature such as `image-0_26` backed by a renamed dependency.
+
 ## License
 
 By contributing, you agree that your contributions are licensed under the repository [LICENSE](LICENSE).
