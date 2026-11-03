@@ -32,6 +32,9 @@ pub enum ErrorKind {
     /// The image data does not match the given size, pixel format, or row stride, or the image
     /// is too large for this platform.
     InvalidImage,
+    /// The image uses a pixel format that is not supported, such as 16-bit or floating-point
+    /// channels.
+    UnsupportedPixelFormat,
 }
 
 impl Error {
@@ -46,6 +49,8 @@ impl Error {
             | ErrorDetail::DataTooShort { .. }
             | ErrorDetail::RowStrideTooShort { .. }
             | ErrorDetail::ImageTooLarge { .. } => ErrorKind::InvalidImage,
+            #[cfg(feature = "image-0_25")]
+            ErrorDetail::UnsupportedColorType { .. } => ErrorKind::UnsupportedPixelFormat,
         }
     }
 }
@@ -104,6 +109,12 @@ pub(crate) enum ErrorDetail {
         height: u32,
         format: PixelFormat,
     },
+
+    /// The `image` crate image has a color type with no matching [`PixelFormat`].
+    #[cfg(feature = "image-0_25")]
+    #[error("unsupported pixel format {color}, convert the image with to_rgba8() first")]
+    // A name, not `image::ColorType`, so every `image-*` feature can share this variant.
+    UnsupportedColorType { color: String },
 }
 
 #[cfg(test)]
@@ -113,27 +124,46 @@ mod tests {
     use super::*;
 
     #[rstest]
-    #[case::data_length_mismatch(ErrorDetail::DataLengthMismatch {
-        width: 2,
-        height: 2,
-        format: PixelFormat::Rgba8,
-        expected: 16,
-        actual: 15,
-    })]
-    #[case::data_too_short(ErrorDetail::DataTooShort {
-        width: 2,
-        height: 3,
-        format: PixelFormat::Rgb8,
-        required: 22,
-        actual: 21,
-    })]
-    #[case::row_stride_too_short(ErrorDetail::RowStrideTooShort { bytes_per_row: 5, min: 6 })]
-    #[case::image_too_large(ErrorDetail::ImageTooLarge {
-        width: 1,
-        height: 3,
-        format: PixelFormat::Rgb8,
-    })]
-    fn test_kind(#[case] detail: ErrorDetail) {
+    #[case::data_length_mismatch(
+        ErrorDetail::DataLengthMismatch {
+            width: 2,
+            height: 2,
+            format: PixelFormat::Rgba8,
+            expected: 16,
+            actual: 15,
+        },
+        ErrorKind::InvalidImage
+    )]
+    #[case::data_too_short(
+        ErrorDetail::DataTooShort {
+            width: 2,
+            height: 3,
+            format: PixelFormat::Rgb8,
+            required: 22,
+            actual: 21,
+        },
+        ErrorKind::InvalidImage
+    )]
+    #[case::row_stride_too_short(
+        ErrorDetail::RowStrideTooShort { bytes_per_row: 5, min: 6 },
+        ErrorKind::InvalidImage
+    )]
+    #[case::image_too_large(
+        ErrorDetail::ImageTooLarge {
+            width: 1,
+            height: 3,
+            format: PixelFormat::Rgb8,
+        },
+        ErrorKind::InvalidImage
+    )]
+    #[cfg_attr(
+        feature = "image-0_25",
+        case::unsupported_color_type(
+            ErrorDetail::UnsupportedColorType { color: "Rgba16".to_string() },
+            ErrorKind::UnsupportedPixelFormat
+        )
+    )]
+    fn test_kind(#[case] detail: ErrorDetail, #[case] expected: ErrorKind) {
         // Arrange
         let error = Error::from(detail);
 
@@ -141,7 +171,7 @@ mod tests {
         let actual = error.kind();
 
         // Assert
-        assert_eq!(actual, ErrorKind::InvalidImage);
+        assert_eq!(actual, expected);
     }
 
     #[rstest]
@@ -176,6 +206,13 @@ mod tests {
             format: PixelFormat::Rgb8,
         },
         "a 1x3 Rgb8 image is too large for this platform"
+    )]
+    #[cfg_attr(
+        feature = "image-0_25",
+        case::unsupported_color_type(
+            ErrorDetail::UnsupportedColorType { color: "Rgba16".to_string() },
+            "unsupported pixel format Rgba16, convert the image with to_rgba8() first"
+        )
     )]
     fn test_display(#[case] detail: ErrorDetail, #[case] expected: &str) {
         // Arrange
