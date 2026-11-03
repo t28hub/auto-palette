@@ -50,6 +50,8 @@ serde_test = { workspace = true }
 [features]
 default       = ["image"]
 image         = ["dep:image"]
+# Conversions from `image` 0.25 for the 1.0.0 API; enables the same dependency as `image` for now.
+image-0_25    = ["dep:image"]
 unstable-next = []
 wasm          = ["dep:serde"]
 
