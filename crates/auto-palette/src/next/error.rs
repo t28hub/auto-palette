@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{convert::Infallible, fmt};
 
 use super::PixelFormat;
 
@@ -66,6 +66,13 @@ impl std::error::Error for Error {}
 impl From<ErrorDetail> for Error {
     fn from(detail: ErrorDetail) -> Self {
         Self { detail }
+    }
+}
+
+/// Allows inputs that always convert to an `ImageRef`, such as `ImageRef` itself.
+impl From<Infallible> for Error {
+    fn from(never: Infallible) -> Self {
+        match never {}
     }
 }
 
