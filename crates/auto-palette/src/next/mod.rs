@@ -3,7 +3,9 @@
 //! Unstable: not covered by semver, and may change or be removed in any release.
 
 mod error;
+mod extract;
 mod image;
 
 pub use error::{Error, ErrorKind};
+pub use extract::{Extraction, Extractor};
 pub use image::{ImageRef, PixelFormat};
