@@ -1,7 +1,11 @@
 use std::fmt;
 
-use super::PixelFormat;
-use crate::next::{error::ErrorDetail, Error};
+use super::{PixelFormat, Size};
+use crate::next::{
+    color::{AlphaColor, Srgb8},
+    error::ErrorDetail,
+    Error,
+};
 
 /// A borrowed view of 8-bit image data.
 ///
@@ -26,13 +30,8 @@ use crate::next::{error::ErrorDetail, Error};
 /// ```
 #[derive(Clone, Copy)]
 pub struct ImageRef<'a> {
-    #[expect(
-        dead_code,
-        reason = "read by the color extractor, which is not implemented yet"
-    )]
     data: &'a [u8],
-    width: u32,
-    height: u32,
+    size: Size,
     bytes_per_row: usize,
     format: PixelFormat,
 }
@@ -185,8 +184,7 @@ impl<'a> ImageRef<'a> {
 
         Ok(Self {
             data: &data[..required],
-            width,
-            height,
+            size: Size::new(width, height),
             bytes_per_row,
             format,
         })
@@ -199,7 +197,7 @@ impl<'a> ImageRef<'a> {
     #[inline]
     #[must_use]
     pub fn width(&self) -> u32 {
-        self.width
+        self.size.width
     }
 
     /// Returns the height of the image in pixels.
@@ -209,7 +207,7 @@ impl<'a> ImageRef<'a> {
     #[inline]
     #[must_use]
     pub fn height(&self) -> u32 {
-        self.height
+        self.size.height
     }
 
     /// Returns the pixel format of the image.
@@ -221,14 +219,76 @@ impl<'a> ImageRef<'a> {
     pub fn format(&self) -> PixelFormat {
         self.format
     }
+
+    /// Returns the size of the image.
+    ///
+    /// # Returns
+    /// The width and height of the image in pixels.
+    #[inline]
+    pub(crate) fn size(&self) -> Size {
+        self.size
+    }
+
+    /// Reads the pixels row by row, top to bottom and left to right.
+    ///
+    /// # Returns
+    /// An iterator over the rows, each an iterator over the colors of its pixels.
+    pub(crate) fn pixel_rows(
+        &self,
+    ) -> impl Iterator<Item = impl Iterator<Item = AlphaColor<Srgb8, u8>> + 'a> + 'a {
+        let image = *self;
+        (0..self.size.height).map(move |y| {
+            image
+                .row(y)
+                .chunks_exact(image.format.bytes_per_pixel())
+                .map(move |pixel| image.format.to_srgba8(pixel))
+        })
+    }
+
+    /// Reads the pixel at a position.
+    ///
+    /// # Arguments
+    /// * `x` - The column, from 0 to `width - 1`.
+    /// * `y` - The row, from 0 to `height - 1`.
+    ///
+    /// # Returns
+    /// The color of the pixel.
+    ///
+    /// # Panics
+    /// Panics if the position is outside the image.
+    #[inline]
+    pub(crate) fn pixel(&self, x: u32, y: u32) -> AlphaColor<Srgb8, u8> {
+        assert!(
+            x < self.size.width && y < self.size.height,
+            "the position is outside the image"
+        );
+        let bytes_per_pixel = self.format.bytes_per_pixel();
+        // Not through `row(y)`: one offset and one slice are faster when called for every pixel.
+        let start = y as usize * self.bytes_per_row + x as usize * bytes_per_pixel;
+        let pixel = &self.data[start..][..bytes_per_pixel];
+        self.format.to_srgba8(pixel)
+    }
+
+    /// Returns one row of the image without any padding.
+    ///
+    /// # Arguments
+    /// * `y` - The row, from 0 to `height - 1`.
+    ///
+    /// # Returns
+    /// The bytes of the row, `width * format.bytes_per_pixel()` long.
+    #[inline]
+    fn row(&self, y: u32) -> &'a [u8] {
+        let row_len = self.size.width as usize * self.format.bytes_per_pixel();
+        &self.data[y as usize * self.bytes_per_row..][..row_len]
+    }
 }
 
 impl fmt::Debug for ImageRef<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // The pixel data is left out: it is large and says nothing about the image's shape.
         f.debug_struct("ImageRef")
-            .field("width", &self.width)
-            .field("height", &self.height)
+            .field("width", &self.size.width)
+            .field("height", &self.size.height)
             .field("format", &self.format)
             .field("bytes_per_row", &self.bytes_per_row)
             .finish_non_exhaustive()
@@ -396,6 +456,52 @@ mod tests {
         let error = actual.unwrap_err();
         assert_eq!(error.kind(), ErrorKind::InvalidImage);
         assert_eq!(error.to_string(), message);
+    }
+
+    #[test]
+    fn test_pixel_rows_skip_padding() {
+        // Arrange: 1x2 Luma8 pixels, rows 3 bytes apart.
+        let pixels = [1, 0, 0, 2];
+        let image = ImageRef::with_stride(&pixels, 1, 2, 3, PixelFormat::Luma8).unwrap();
+
+        // Act
+        let actual: Vec<Vec<_>> = image.pixel_rows().map(Iterator::collect).collect();
+
+        // Assert
+        assert_eq!(
+            actual,
+            [
+                [AlphaColor::opaque(Srgb8::new(1, 1, 1))],
+                [AlphaColor::opaque(Srgb8::new(2, 2, 2))],
+            ]
+        );
+    }
+
+    #[test]
+    fn test_pixel() {
+        // Arrange: 2x2 RGBA pixels, rows 12 bytes apart.
+        let pixels = [
+            1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 0, 0, //
+            9, 10, 11, 12, 13, 14, 15, 16,
+        ];
+        let image = ImageRef::with_stride(&pixels, 2, 2, 12, PixelFormat::Rgba8).unwrap();
+
+        // Act
+        let actual = image.pixel(1, 1);
+
+        // Assert
+        assert_eq!(actual, AlphaColor::new_u8(Srgb8::new(13, 14, 15), 16));
+    }
+
+    #[test]
+    #[should_panic(expected = "the position is outside the image")]
+    fn test_pixel_outside() {
+        // Arrange
+        let pixels = [0; 4];
+        let image = ImageRef::from_rgba8(&pixels, 1, 1).unwrap();
+
+        // Act
+        let _ = image.pixel(1, 0);
     }
 
     #[test]

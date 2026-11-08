@@ -2,6 +2,7 @@
 //!
 //! Unstable: not covered by semver, and may change or be removed in any release.
 
+mod color;
 mod error;
 mod extract;
 mod image;
