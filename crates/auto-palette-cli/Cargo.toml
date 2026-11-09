@@ -19,8 +19,12 @@ anyhow       = { workspace = true }
 arboard      = { workspace = true }
 auto-palette = { workspace = true, features = ["image"] }
 clap         = { workspace = true, features = ["derive"] }
-image        = { workspace = true, default-features = true }
 serde_json   = { workspace = true }
+
+# The default formats except `avif`, which only encodes, `exr` and `hdr`, which need tone mapping, and the rare `ff`.
+[dependencies.image]
+workspace = true
+features  = ["bmp", "dds", "gif", "ico", "jpeg", "png", "pnm", "qoi", "tga", "tiff", "webp"]
 
 [dev-dependencies]
 assert_cmd = { workspace = true }
