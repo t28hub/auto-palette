@@ -7,10 +7,17 @@ on:
   pull_request:
     branches:
       - 'main'
+  schedule:
+    # Every Monday at 00:00 UTC.
+    - cron: '0 0 * * 1'
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
 
 env:
   NODE_VERSION: 22.x
@@ -68,16 +75,29 @@ jobs:
         with:
           components: clippy
 
-      - name: Install just, cargo-udeps and cargo-audit
+      - name: Install just and cargo-udeps
         uses: taiki-e/install-action@v2.89.0
         with:
-          tool: just@${{ env.JUST_VERSION }}, cargo-udeps, cargo-audit
+          tool: just@${{ env.JUST_VERSION }}, cargo-udeps
 
       - name: Lint with clippy
         run: just lint-rust
 
       - name: Check for unused dependencies
         run: just udeps
+
+  audit:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Install just and cargo-audit
+        uses: taiki-e/install-action@v2.89.0
+        with:
+          tool: just@${{ env.JUST_VERSION }}, cargo-audit
 
       - name: Check for security vulnerabilities
         run: just audit
@@ -119,9 +139,6 @@ jobs:
 
   test-lib:
     name: "test auto-palette crate on ${{ matrix.os }}"
-    needs:
-      - style
-      - check
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
@@ -163,9 +180,6 @@ jobs:
 
   test-cli:
     name: "test auto-palette-cli crate on ${{ matrix.os }}"
-    needs:
-      - style
-      - check
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
@@ -188,9 +202,6 @@ jobs:
 
   test-wasm:
     name: "test auto-palette-wasm crate"
-    needs:
-      - style
-      - check
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -217,8 +228,7 @@ jobs:
         run: just test-wasm
 
   build-lib:
-    needs:
-      - test-lib
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -237,8 +247,7 @@ jobs:
         run: just build-lib
 
   build-cli:
-    needs:
-      - test-cli
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -263,8 +272,6 @@ jobs:
           path: target/release/auto-palette-cli
 
   build-wasm:
-    needs:
-      - test-wasm
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
