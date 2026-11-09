@@ -141,6 +141,8 @@ jobs:
     name: "test auto-palette crate on ${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
+    env:
+      NEXTEST_RETRIES: 2
     strategy:
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
@@ -157,14 +159,8 @@ jobs:
           tool: just@${{ env.JUST_VERSION }}, cargo-nextest, cargo-llvm-cov
 
       - name: Run unit tests
-        run: just test-lib --retries 2
-
-      - name: Run examples
-        run: just examples
-
-      - name: Run doc tests
-        if: matrix.os == 'ubuntu-latest'
-        run: just test-doc
+        if: matrix.os != 'ubuntu-latest'
+        run: just test-lib
 
       - name: Run unit tests with coverage
         if: matrix.os == 'ubuntu-latest'
@@ -177,6 +173,14 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: codecov.json
           fail_ci_if_error: true
+
+      - name: Run doc tests
+        if: matrix.os == 'ubuntu-latest'
+        run: just test-doc
+
+      - name: Run examples
+        if: matrix.os == 'ubuntu-latest'
+        run: just examples
 
   test-cli:
     name: "test auto-palette-cli crate on ${{ matrix.os }}"
@@ -212,9 +216,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
-
-      - name: Add wasm target
-        run: rustup target add wasm32-unknown-unknown
 
       - name: Install just and cargo-binstall
         uses: taiki-e/install-action@v2.89.0
