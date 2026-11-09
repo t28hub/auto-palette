@@ -2,13 +2,6 @@ use super::LinearRgb;
 
 /// A color in OKLab.
 #[derive(Debug, Clone, Copy)]
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "read by the segmentation, which is not implemented yet"
-    )
-)]
 pub(crate) struct Oklab {
     /// The perceived lightness, from 0.0 (black) to 1.0 (white).
     pub(crate) l: f64,
@@ -31,6 +24,19 @@ impl Oklab {
     #[inline]
     pub(crate) const fn new(l: f64, a: f64, b: f64) -> Self {
         Self { l, a, b }
+    }
+
+    /// Returns the squared Euclidean distance to another color.
+    ///
+    /// # Arguments
+    /// * `other` - The color to measure the distance to.
+    ///
+    /// # Returns
+    /// The squared distance between the two colors in OKLab.
+    #[inline]
+    pub(crate) fn distance_squared(self, other: Self) -> f64 {
+        let (dl, da, db) = (self.l - other.l, self.a - other.a, self.b - other.b);
+        dl * dl + da * da + db * db
     }
 }
 
@@ -74,5 +80,20 @@ mod tests {
         assert_approx_eq!(actual.l, expected.l, 1e-5);
         assert_approx_eq!(actual.a, expected.a, 1e-5);
         assert_approx_eq!(actual.b, expected.b, 1e-5);
+    }
+
+    #[rstest]
+    #[case::same(Oklab::new(0.5, 0.1, -0.1), 0.0)]
+    #[case::lightness(Oklab::new(0.8, 0.1, -0.1), 0.09)]
+    #[case::all_axes(Oklab::new(0.6, 0.3, 0.1), 0.01 + 0.04 + 0.04)]
+    fn test_distance_squared(#[case] other: Oklab, #[case] expected: f64) {
+        // Arrange
+        let color = Oklab::new(0.5, 0.1, -0.1);
+
+        // Act
+        let actual = color.distance_squared(other);
+
+        // Assert
+        assert_approx_eq!(actual, expected);
     }
 }

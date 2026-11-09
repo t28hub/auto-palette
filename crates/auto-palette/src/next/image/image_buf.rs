@@ -1,6 +1,6 @@
 use super::Size;
 
-/// An image that owns its pixels.
+/// An image that owns its pixels, which are colors.
 pub(crate) struct ImageBuf<P> {
     /// The size of the image.
     size: Size,
@@ -33,13 +33,6 @@ impl<P> ImageBuf<P> {
     ///
     /// # Returns
     /// The width and height of the image in pixels.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "read by the segmentation, which is not implemented yet"
-        )
-    )]
     pub(crate) fn size(&self) -> Size {
         self.size
     }
@@ -48,13 +41,6 @@ impl<P> ImageBuf<P> {
     ///
     /// # Returns
     /// The pixels, row by row.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "read by the segmentation, which is not implemented yet"
-        )
-    )]
     pub(crate) fn pixels(&self) -> &[P] {
         &self.pixels
     }
