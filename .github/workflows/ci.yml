@@ -24,6 +24,7 @@ env:
   PNPM_VERSION: 12.16.1
   JUST_VERSION: 1.59.0
   CARGO_TERM_COLOR: always
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
 
 jobs:
   style:
@@ -153,6 +154,12 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2.9.3
+        with:
+          cache-bin: false
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
       - name: Install just, cargo-nextest and cargo-llvm-cov
         uses: taiki-e/install-action@v2.89.0
         with:
@@ -196,6 +203,12 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2.9.3
+        with:
+          cache-bin: false
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
       - name: Install just and cargo-nextest
         uses: taiki-e/install-action@v2.89.0
         with:
@@ -216,6 +229,12 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2.9.3
+        with:
+          cache-bin: false
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install just and cargo-binstall
         uses: taiki-e/install-action@v2.89.0
