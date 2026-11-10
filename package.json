@@ -13,7 +13,7 @@
     "lefthook": "2.2.2",
     "tombi": "1.9.8",
     "typescript": "catalog:",
-    "vite": "8.3.5",
+    "vite": "8.3.6",
     "vite-plugin-wasm": "3.6.0",
     "vitest": "catalog:"
   },
