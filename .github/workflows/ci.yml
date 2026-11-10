@@ -40,7 +40,7 @@ jobs:
           components: rustfmt
 
       - name: Install just
-        uses: taiki-e/install-action@v2.89.0
+        uses: taiki-e/install-action@v2.90.2
         with:
           tool: just@${{ env.JUST_VERSION }}
 
@@ -77,7 +77,7 @@ jobs:
           components: clippy
 
       - name: Install just and cargo-udeps
-        uses: taiki-e/install-action@v2.89.0
+        uses: taiki-e/install-action@v2.90.2
         with:
           tool: just@${{ env.JUST_VERSION }}, cargo-udeps
 
@@ -96,7 +96,7 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Install just and cargo-audit
-        uses: taiki-e/install-action@v2.89.0
+        uses: taiki-e/install-action@v2.90.2
         with:
           tool: just@${{ env.JUST_VERSION }}, cargo-audit
 
@@ -114,7 +114,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install just and cargo-hack
-        uses: taiki-e/install-action@v2.89.0
+        uses: taiki-e/install-action@v2.90.2
         with:
           tool: just@${{ env.JUST_VERSION }}, cargo-hack
 
@@ -161,7 +161,7 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install just, cargo-nextest and cargo-llvm-cov
-        uses: taiki-e/install-action@v2.89.0
+        uses: taiki-e/install-action@v2.90.2
         with:
           tool: just@${{ env.JUST_VERSION }}, cargo-nextest, cargo-llvm-cov
 
@@ -210,7 +210,7 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install just and cargo-nextest
-        uses: taiki-e/install-action@v2.89.0
+        uses: taiki-e/install-action@v2.90.2
         with:
           tool: just@${{ env.JUST_VERSION }}, cargo-nextest
 
@@ -237,7 +237,7 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install just and cargo-binstall
-        uses: taiki-e/install-action@v2.89.0
+        uses: taiki-e/install-action@v2.90.2
         with:
           tool: just@${{ env.JUST_VERSION }}, cargo-binstall
 
@@ -259,7 +259,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install just
-        uses: taiki-e/install-action@v2.89.0
+        uses: taiki-e/install-action@v2.90.2
         with:
           tool: just@${{ env.JUST_VERSION }}
 
@@ -278,7 +278,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install just
-        uses: taiki-e/install-action@v2.89.0
+        uses: taiki-e/install-action@v2.90.2
         with:
           tool: just@${{ env.JUST_VERSION }}
 
@@ -313,7 +313,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install just
-        uses: taiki-e/install-action@v2.89.0
+        uses: taiki-e/install-action@v2.90.2
         with:
           tool: just@${{ env.JUST_VERSION }}
 
