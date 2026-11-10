@@ -15,7 +15,7 @@ workflows:
         - 'taiki-e/install-action@v2.90.2'
     '.github/workflows/codsspeed.yml':
         - 'actions/checkout@v7.0.1'
-        - 'codspeedhq/action@v5.6.1'
+        - 'codspeedhq/action@v5.6.3'
         - 'moonrepo/setup-rust@v1.3.0'
     '.github/workflows/fossa.yml':
         - 'actions/checkout@v7.0.1'
@@ -57,9 +57,9 @@ dependencies:
         repo_id: 200299178
         uses:
             - 'actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd'
-    'codspeedhq/action@v5.6.1':
-        ref: 'v5.6.1'
-        commit: 'sha1-61efe07e57e55bedeab750c434504de272a56e8c'
+    'codspeedhq/action@v5.6.3':
+        ref: 'v5.6.3'
+        commit: 'sha1-af75f77f17a054769abefaa42fe8dc2975469b5f'
         owner_id: 116658140
         repo_id: 561699778
         uses:
