@@ -9,7 +9,7 @@ pub(crate) trait Segmenter {
     /// Assigns each pixel of `image` to a segment.
     ///
     /// # Arguments
-    /// * `image` - The image to split, with at least one pixel.
+    /// * `image` - The image to split, with at least one opaque pixel.
     ///
     /// # Returns
     /// The segment of each pixel, row by row, or `None` for a pixel in no segment, such as a
@@ -23,10 +23,10 @@ pub(crate) trait Segmenter {
     /// * `image` - The image to split.
     ///
     /// # Returns
-    /// The segments of `image`, or no segments if `image` has no pixels.
+    /// The segments of `image`, or no segments if `image` has no opaque pixels.
     fn segment(&self, image: &ImageBuf<AlphaColor<Oklab>>) -> Segments {
-        if image.size().is_empty() {
-            return Segments::new(image, &[]);
+        if image.pixels().iter().all(AlphaColor::is_transparent) {
+            return Segments::default();
         }
         Segments::new(image, &self.label(image))
     }
@@ -55,25 +55,27 @@ impl Segmenter for Segmentation {
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+
     use super::*;
-    use crate::next::image::Size;
+    use crate::next::{
+        extract::segment::test_helpers::{self, BLACK},
+        image::Size,
+    };
 
     /// A 2x1 image of an opaque pixel and a transparent pixel.
     fn image() -> ImageBuf<AlphaColor<Oklab>> {
-        let black = Oklab::new(0.0, 0.0, 0.0);
-        ImageBuf::new(
-            Size::new(2, 1),
-            vec![AlphaColor::opaque(black), AlphaColor::transparent(black)],
-        )
+        test_helpers::image(&[[Some(BLACK), None]])
     }
 
-    #[test]
-    fn test_label() {
+    #[rstest]
+    #[case::snic(Segmentation::Snic(Snic::default()), Snic::default().label(&image()))]
+    fn test_label(#[case] segmentation: Segmentation, #[case] expected: Vec<Option<SegmentId>>) {
         // Act
-        let actual = Segmentation::default().label(&image());
+        let actual = segmentation.label(&image());
 
         // Assert
-        assert_eq!(actual, Snic::default().label(&image()));
+        assert_eq!(actual, expected);
     }
 
     #[test]
@@ -83,6 +85,18 @@ mod tests {
 
         // Assert: the transparent pixel is in no segment.
         assert_eq!(actual.segments().len(), 1);
+    }
+
+    #[test]
+    fn test_segment_transparent() {
+        // Arrange
+        let image = test_helpers::image(&[[None, None]]);
+
+        // Act
+        let actual = Segmentation::default().segment(&image);
+
+        // Assert
+        assert!(actual.segments().is_empty());
     }
 
     #[test]

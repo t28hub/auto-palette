@@ -1,4 +1,4 @@
-use super::{centroid::Centroid, position::Position};
+use super::{centroid::Centroid, point::Point, position::Position};
 use crate::next::{
     color::{AlphaColor, Oklab},
     image::ImageBuf,
@@ -31,8 +31,10 @@ impl SegmentId {
     }
 }
 
-/// The color, weight, and center of one segment.
+/// The mean color, center, and weight of one segment.
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct Segment(Point);
+
 #[cfg_attr(
     not(test),
     expect(
@@ -40,17 +42,46 @@ impl SegmentId {
         reason = "read by the color selection, which is not implemented yet"
     )
 )]
-pub(crate) struct Segment {
-    /// The mean color of the pixels, weighted by their opacity.
-    pub(crate) color: Oklab,
-    /// The sum of the opacities of the pixels.
-    pub(crate) weight: f64,
-    /// The mean position of the pixels, weighted by their opacity.
-    pub(crate) center: Position,
+impl Segment {
+    /// Returns the mean color of the pixels, weighted by their opacity.
+    ///
+    /// # Returns
+    /// The mean color.
+    #[inline]
+    pub(crate) fn color(self) -> Oklab {
+        self.0.color()
+    }
+
+    /// Returns the mean position of the pixels, weighted by their opacity.
+    ///
+    /// # Returns
+    /// The center of the segment.
+    #[inline]
+    pub(crate) fn center(self) -> Position {
+        self.0.position()
+    }
+
+    /// Returns the sum of the opacities of the pixels.
+    ///
+    /// # Returns
+    /// The weight of the segment.
+    #[inline]
+    pub(crate) fn weight(self) -> f64 {
+        self.0.weight()
+    }
+
+    /// Returns the segment as a point, with its position unscaled.
+    ///
+    /// # Returns
+    /// The mean color at the center, with the weight.
+    #[inline]
+    pub(crate) fn point(self) -> Point {
+        self.0
+    }
 }
 
 /// The segments of an image.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub(crate) struct Segments {
     /// The segments, in the order of their numbers.
     segments: Vec<Segment>,
@@ -82,20 +113,16 @@ impl Segments {
             .max()
             .unwrap_or(0);
         let mut centroids = vec![Centroid::default(); count];
-        for (index, (pixel, label)) in image.pixels().iter().zip(labels).enumerate() {
+        for (index, label) in labels.iter().enumerate() {
             let Some(id) = label else {
                 continue;
             };
-            centroids[id.index()].add(*pixel, Position::of_pixel(index, image.size()));
+            centroids[id.index()].add(Point::at(image, index));
         }
         let segments = centroids
             .iter()
-            .filter(|centroid| centroid.weight() > 0.0)
-            .map(|centroid| Segment {
-                color: centroid.color(),
-                weight: centroid.weight(),
-                center: centroid.position(),
-            })
+            .filter_map(Centroid::point)
+            .map(Segment)
             .collect();
         Self { segments }
     }
@@ -174,7 +201,7 @@ mod tests {
         );
 
         // Assert: number 1 is the light pixel.
-        assert_approx_eq!(actual.segments[0].color.l, 0.8);
+        assert_approx_eq!(actual.segments[0].color().l, 0.8);
     }
 
     #[test]
@@ -183,7 +210,7 @@ mod tests {
         let actual = Segments::new(&image(), &[Some(SegmentId::new(0)); 2]);
 
         // Assert
-        assert_approx_eq!(actual.segments[0].weight, 1.5);
+        assert_approx_eq!(actual.segments[0].weight(), 1.5);
     }
 
     #[test]
@@ -192,7 +219,7 @@ mod tests {
         let actual = Segments::new(&image(), &[Some(SegmentId::new(0)); 2]);
 
         // Assert: (0.2 * 1.0 + 0.8 * 0.5) / 1.5 = 0.4
-        assert_approx_eq!(actual.segments[0].color.l, 0.4);
+        assert_approx_eq!(actual.segments[0].color().l, 0.4);
     }
 
     #[test]
@@ -201,7 +228,20 @@ mod tests {
         let actual = Segments::new(&image(), &[Some(SegmentId::new(0)); 2]);
 
         // Assert: (0.25 * 1.0 + 0.75 * 0.5) / 1.5
-        assert_approx_eq!(actual.segments[0].center.x, 0.625 / 1.5);
+        assert_approx_eq!(actual.segments[0].center().x, 0.625 / 1.5);
+    }
+
+    #[test]
+    fn test_segment_point() {
+        // Arrange
+        let segments = Segments::new(&image(), &[Some(SegmentId::new(0)), None]);
+        let segment = segments.segments[0];
+
+        // Act
+        let actual = segment.point();
+
+        // Assert: the center as the position, not scaled.
+        assert_eq!(actual.position(), segment.center());
     }
 
     #[test]
@@ -210,7 +250,7 @@ mod tests {
         let actual = Segments::new(&image(), &[Some(SegmentId::new(0)), None]);
 
         // Assert
-        assert_eq!(actual.segments[0].weight, 1.0);
+        assert_eq!(actual.segments[0].weight(), 1.0);
     }
 
     #[test]
