@@ -27,3 +27,11 @@ pub(super) fn image<const W: usize>(rows: &[[Option<Oklab>; W]]) -> ImageBuf<Alp
         .collect();
     ImageBuf::new(Size::new(W as u32, rows.len() as u32), pixels)
 }
+
+/// Creates a gradient from black to white.
+///
+/// # Returns
+/// `N` colors of evenly spaced lightness, from black to white.
+pub(super) fn gradient<const N: usize>() -> [Oklab; N] {
+    std::array::from_fn(|index| Oklab::new(index as f64 / (N - 1) as f64, 0.0, 0.0))
+}

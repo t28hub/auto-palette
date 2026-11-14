@@ -1,4 +1,5 @@
 mod centroid;
+mod kmeans;
 mod point;
 mod position;
 mod segmentation;

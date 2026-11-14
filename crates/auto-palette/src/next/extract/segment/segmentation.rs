@@ -1,4 +1,4 @@
-use super::{segments::SegmentId, snic::Snic, Segments};
+use super::{kmeans::KMeans, segments::SegmentId, snic::Snic, Segments};
 use crate::next::{
     color::{AlphaColor, Oklab},
     image::ImageBuf,
@@ -37,6 +37,15 @@ pub(crate) trait Segmenter {
 pub(crate) enum Segmentation {
     /// SNIC ([`Snic`]).
     Snic(Snic),
+    /// K-means ([`KMeans`]).
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "selected by the builder, which is not implemented yet"
+        )
+    )]
+    KMeans(KMeans),
 }
 
 impl Default for Segmentation {
@@ -49,6 +58,7 @@ impl Segmenter for Segmentation {
     fn label(&self, image: &ImageBuf<AlphaColor<Oklab>>) -> Vec<Option<SegmentId>> {
         match self {
             Self::Snic(snic) => snic.label(image),
+            Self::KMeans(kmeans) => kmeans.label(image),
         }
     }
 }
@@ -70,6 +80,7 @@ mod tests {
 
     #[rstest]
     #[case::snic(Segmentation::Snic(Snic::default()), Snic::default().label(&image()))]
+    #[case::kmeans(Segmentation::KMeans(KMeans::default()), KMeans::default().label(&image()))]
     fn test_label(#[case] segmentation: Segmentation, #[case] expected: Vec<Option<SegmentId>>) {
         // Act
         let actual = segmentation.label(&image());
