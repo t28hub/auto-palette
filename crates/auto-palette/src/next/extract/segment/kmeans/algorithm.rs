@@ -111,12 +111,39 @@ impl Segmenter for KMeans {
             }
         }
 
-        points
-            .iter()
-            .zip(assigned)
-            .map(|(point, center)| (!point.is_weightless()).then(|| SegmentId::new(center as u32)))
-            .collect()
+        segment_ids(&points, &assigned, centers.len())
     }
+}
+
+/// Numbers the centers that have points, from 0 in center order.
+///
+/// # Arguments
+/// * `points` - The point of each pixel.
+/// * `assigned` - The center of each point.
+/// * `count` - The number of centers.
+///
+/// # Returns
+/// The segment of each point, or `None` for a weightless point.
+fn segment_ids(points: &[Point], assigned: &[usize], count: usize) -> Vec<Option<SegmentId>> {
+    let mut occupied = vec![false; count];
+    for (point, &center) in points.iter().zip(assigned) {
+        if !point.is_weightless() {
+            occupied[center] = true;
+        }
+    }
+    let ids: Vec<u32> = occupied
+        .iter()
+        .scan(0, |next, &is_occupied| {
+            let id = *next;
+            *next += u32::from(is_occupied);
+            Some(id)
+        })
+        .collect();
+    points
+        .iter()
+        .zip(assigned)
+        .map(|(point, &center)| (!point.is_weightless()).then(|| SegmentId::new(ids[center])))
+        .collect()
 }
 
 /// Assigns each point to its nearest center.
@@ -309,13 +336,19 @@ mod tests {
         assert_eq!(actual, [Some(SegmentId::new(0)), None]);
     }
 
-    #[test]
-    fn test_label_fewer_pixels_than_segments() {
+    #[rstest]
+    #[case::plus_plus(Initialization::default())]
+    #[case::farthest(Initialization::Farthest)]
+    fn test_label_fewer_pixels_than_segments(#[case] initialization: Initialization) {
         // Arrange
         let image = image(&[[Some(BLACK), Some(WHITE), Some(BLACK)]]);
+        let kmeans = KMeans {
+            initialization,
+            ..kmeans(8)
+        };
 
         // Act
-        let actual = kmeans(8).label(&image);
+        let actual = kmeans.label(&image);
 
         // Assert: one segment per pixel.
         let mut ids: Vec<usize> = actual.iter().map(|id| id.unwrap().index()).collect();
@@ -339,6 +372,18 @@ mod tests {
     /// Creates a point of `color` at the origin with weight 1.0.
     fn point(color: Oklab) -> Point {
         Point::new(color, Position::new(0.0, 0.0), 1.0)
+    }
+
+    #[test]
+    fn test_segment_ids_skips_centers_without_points() {
+        // Arrange: no point is assigned to center 0.
+        let points = [point(BLACK), point(WHITE)];
+
+        // Act
+        let actual = segment_ids(&points, &[2, 1], 3);
+
+        // Assert
+        assert_eq!(actual, [Some(SegmentId::new(1)), Some(SegmentId::new(0))]);
     }
 
     #[test]
