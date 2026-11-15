@@ -67,12 +67,12 @@ dependencies:
             - 'actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd'
     'dtolnay/rust-toolchain@nightly':
         ref: 'nightly'
-        commit: 'sha1-2c76c034f9e32a5d6e2c104dc4df23a22476db04'
+        commit: 'sha1-6a52aad76a94a5fbc50d567bb5be24419801c1fb'
         owner_id: 1940490
         repo_id: 260749683
     'dtolnay/rust-toolchain@stable':
         ref: 'stable'
-        commit: 'sha1-b725eda525362e7cf34af9a7243cac1e3f01a7ec'
+        commit: 'sha1-39008827e6b4319a349e9a42dfc90579dd25f1ca'
         owner_id: 1940490
         repo_id: 260749683
     'fossas/fossa-action@v2.0.0':
