@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/DavidAnson/markdownlint-cli2/v0.24.1/schema/markdownlint-cli2-config-schema.json
+# No `globs` here: they would be added to the files that the pre-commit hook passes.
+gitignore: true
+
+config:
+  default: true
+  line-length: false
+  no-duplicate-heading:
+    siblings_only: true
+  no-inline-html:
+    allowed_elements:
+      - a
+      - img

@@ -12,8 +12,8 @@ Earlier versions are considered end-of-life.
 
 | Version | Supported | Notes                                |
 |---------|-----------|--------------------------------------|
-| 0.9.x   | ✅ Yes     | Latest stable release                |
-| < 0.9   | ❌ No      | Please upgrade to the latest version |
+| 0.9.x   | ✅ Yes    | Latest stable release                |
+| < 0.9   | ❌ No     | Please upgrade to the latest version |
 
 ## Reporting a Vulnerability
 

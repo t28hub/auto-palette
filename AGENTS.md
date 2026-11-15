@@ -1,6 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Modules
+
 - `crates/auto-palette/`: Core library (algorithms, color, image, math).
 - `crates/auto-palette-cli/`: CLI entrypoint + integration tests.
 - `crates/auto-palette-wasm/`: Wasm bindings (Rust, built with `wasm-pack`).
@@ -8,6 +9,7 @@
 - `gfx/`: Fixture images. `crates/auto-palette/benches/`: benchmarks. `coverage/`: coverage reports.
 
 ## Agent Workflow
+
 - Keep changes small & reversible
   - Prefer minimal, localized diffs; avoid unrelated rewrites.
 - Format/lint before tests
@@ -20,6 +22,7 @@
   - Use Conventional Commits (e.g., `feat(cli): add table view`).
 
 ## Build, Test, and Dev Commands
+
 - Build
   - `cargo build --workspace` (add `--release` for perf checks).
 - Test
@@ -35,21 +38,25 @@
   - Build: `pnpm -C packages/auto-palette-wasm build` (needs `wasm-pack`)
   - Test: `pnpm -C packages/auto-palette-wasm test` (Vitest; unit/e2e)
 - Format/Lint
-  - `just format` (Biome + rustfmt + Tombi), `just lint`
+  - `just format` (Biome + rustfmt + Tombi + markdownlint), `just lint`
   - Rust lints: `cargo clippy -- -D warnings`
 
 ## Coding Style & Naming
+
 - Rust
   - rustfmt nightly per `.rustfmt.toml`; group imports; format docs. Run `cargo +nightly fmt --all`.
 - TOML
   - Tombi with alignment rules (`.tombi.toml`).
 - TS/JSON
   - Biome, 2-space indent, single quotes (`biome.json`).
+- Markdown
+  - markdownlint-cli2 (`.markdownlint-cli2.yaml`).
 - Naming
   - Rust: modules/files `snake_case`, types `PascalCase`, fns/vars `snake_case`.
   - TS: follow package convention (`kebab-case.ts` or `camelCase.ts`).
 
 ## Testing Guidelines
+
 - Rust
   - Unit near code; integration in `crates/*/tests`; use `rstest` as needed.
   - Keep image tests deterministic; prefer small fixtures in `gfx/`.
@@ -60,6 +67,7 @@
   - CI uploads to Codecov; local coverage optional.
 
 ## Commit & Pull Requests
+
 - Commits
   - Use imperative tone, Conventional Commits (e.g., `feat(wasm): add browser e2e`).
 - Pull Requests
@@ -68,6 +76,7 @@
   - Follow `.github/PULL_REQUEST_TEMPLATE.md`.
 
 ## Release Process (human/agent steps only)
+
 - Prepare
   - Update `CHANGELOG.md`: move items from “Unreleased” to `vX.Y.Z - YYYY-MM-DD` with clear bullets.
   - Bump version: set `[workspace.package].version` in `Cargo.toml` to `X.Y.Z`.
@@ -83,5 +92,6 @@
   - Optional: coordinate npm publication for `packages/auto-palette-wasm` if/when distribution is enabled (not automated here).
 
 ## Tooling & Environment
+
 - MSRV: see `rust-version` in each crate's `Cargo.toml`. Toolchain file installs `rustfmt`/`clippy`.
 - Node and pnpm versions: see `engines` and `packageManager` in `package.json`. Install `wasm-pack` for Wasm builds.

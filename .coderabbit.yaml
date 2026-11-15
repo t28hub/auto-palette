@@ -87,9 +87,8 @@ reviews:
       enabled: false
     biome:
       enabled: false
+    markdownlint:
+      enabled: false
     # Grammar suggestions are style nits, which tone_instructions skips.
     languagetool:
-      enabled: false
-    # Markdown lint belongs in CI and Lefthook.
-    markdownlint:
       enabled: false

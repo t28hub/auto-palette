@@ -11,16 +11,20 @@ cargo run --example {example_name} --release --features='image'
 ```
 
 ## [Basic Usage](simple.rs)
+
 This example demonstrates how to extract a color palette from an image and find the prominent colors.
 
 ### Command
+
 ```sh
 cargo run --example simple --release --features='image' -- [path]
 ```
-Replace `[path]` with the path to your image file. 
+
+Replace `[path]` with the path to your image file.
 If no path is provided, it will use a default image.
 
 ### Output Example
+
 ```txt
 Extracted 164 swatch(es) in 0.536 seconds
  # | Color   | Position     | Population | Ratio 
@@ -32,9 +36,11 @@ Extracted 164 swatch(es) in 0.536 seconds
 ```
 
 ## [Algorithm](algorithm.rs)
+
 This example demonstrates how to use different color extraction algorithms.
 
 ### Command
+
 ```sh
 cargo run --example algorithm --release --features='image' -- [algorithm]
 ```
@@ -43,6 +49,7 @@ Replace `[algorithm]` with one of the following: `dbscan`, `dbscan++`, `kmeans`,
 If no algorithm is provided, it will use `dbscan` as the default.
 
 ### Output Example
+
 ```txt
 Extracted 114 swatch(es) in 0.222 seconds
  # | Color   | Position     | Population | Ratio 
@@ -53,12 +60,12 @@ Extracted 114 swatch(es) in 0.222 seconds
  5 | #A5226E | ( 390,  212) |        756 |  0.00
 ```
 
-
 ## [Theme](theme.rs)
 
 This example demonstrates how to select swatches based on specific themes.
 
 ### Command
+
 ```sh
 cargo run --example theme --release --features='image' -- [theme]
 ```
@@ -67,6 +74,7 @@ Replace `[theme]` with one of the following: `colorful`, `vivid`, `muted`, `ligh
 If no theme is provided, it will select the top 5 swatches without a specific theme.
 
 ### Output Example
+
 ```txt
 Extracted 167 swatch(es) in 0.475 seconds
  # | Color   | Position     | Population | Ratio 

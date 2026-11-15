@@ -24,16 +24,19 @@ cargo install auto-palette-cli
 ## Quick Start
 
 Extract a simple 5 color palette from an image:
+
 ```sh
 auto-palette path/to/your_image.jpg
 ```
 
 Extract a 5 color palette from an image using the `vivid` theme and `rgb` color format with `table` output format:
+
 ```sh
 auto-palette path/to/your_image.jpg -n 5 -a dbscan++ -t vivid -c rgb -o table
 ```
 
 Extract a color palette from clipboard image:
+
 ```sh
 auto-palette --clipboard
 ```

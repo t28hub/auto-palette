@@ -10,6 +10,7 @@
 [![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://codspeed.io/t28hub/auto-palette)
 
 ## Overview
+
 `auto-palette` is a Rust project that offers color palette extraction from images. It consists of the following components:
 
 * `auto-palette`: Core library for programmatic usage.
