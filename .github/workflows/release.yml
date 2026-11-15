@@ -22,7 +22,10 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        # Not @stable or @nightly: those branches are rebuilt, which breaks the lockfile pin.
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
 
       - name: Publish packages to crates.io
         uses: katyo/publish-crates@v2
