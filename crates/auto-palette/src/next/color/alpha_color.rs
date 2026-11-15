@@ -217,11 +217,22 @@ mod tests {
         assert_eq!(actual.alpha(), 0.0);
     }
 
+    #[test]
+    fn test_is_transparent_zero_alpha() {
+        // Arrange
+        let color = AlphaColor::new_u8((), 0);
+
+        // Act
+        let actual = color.is_transparent();
+
+        // Assert
+        assert!(actual);
+    }
+
     #[rstest]
-    #[case::transparent(0, true)]
-    #[case::partial(1, false)]
-    #[case::opaque(255, false)]
-    fn test_is_transparent(#[case] alpha: u8, #[case] expected: bool) {
+    #[case::partial(1)]
+    #[case::opaque(255)]
+    fn test_is_transparent_nonzero_alpha(#[case] alpha: u8) {
         // Arrange
         let color = AlphaColor::new_u8((), alpha);
 
@@ -229,7 +240,7 @@ mod tests {
         let actual = color.is_transparent();
 
         // Assert
-        assert_eq!(actual, expected);
+        assert!(!actual);
     }
 
     #[test]

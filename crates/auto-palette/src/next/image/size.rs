@@ -88,16 +88,24 @@ mod tests {
     }
 
     #[rstest]
-    #[case::empty(Size::new(0, 0), true)]
-    #[case::zero_width(Size::new(0, 3), true)]
-    #[case::zero_height(Size::new(2, 0), true)]
-    #[case::pixels(Size::new(2, 3), false)]
-    fn test_is_empty(#[case] size: Size, #[case] expected: bool) {
+    #[case::empty(Size::new(0, 0))]
+    #[case::zero_width(Size::new(0, 3))]
+    #[case::zero_height(Size::new(2, 0))]
+    fn test_is_empty_without_pixels(#[case] size: Size) {
         // Act
         let actual = size.is_empty();
 
         // Assert
-        assert_eq!(actual, expected);
+        assert!(actual);
+    }
+
+    #[test]
+    fn test_is_empty_with_pixels() {
+        // Act
+        let actual = Size::new(2, 3).is_empty();
+
+        // Assert
+        assert!(!actual);
     }
 
     #[rstest]
