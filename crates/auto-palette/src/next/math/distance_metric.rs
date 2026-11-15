@@ -4,7 +4,6 @@ use super::Vector;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum DistanceMetric {
     /// The Euclidean distance.
-    #[cfg_attr(not(test), expect(dead_code, reason = "not used yet"))]
     Euclidean,
     /// The squared Euclidean distance.
     SquaredEuclidean,
