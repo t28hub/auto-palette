@@ -1,0 +1,95 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+tone_instructions: >-
+  Report real bugs, security issues, and breaking changes to the public API,
+  MSRV, or palette output. Skip style preferences and guesses. For each issue,
+  give its impact and a concrete fix in one or two sentences.
+
+reviews:
+  # Fewer, more important comments, in line with tone_instructions.
+  profile: chill
+  # PR descriptions stay short, and the walkthrough already explains the changes.
+  high_level_summary: false
+  # Diagrams, fortunes, and reviewer suggestions add little for a one-maintainer library.
+  sequence_diagrams: false
+  in_progress_fortune: false
+  suggested_reviewers: false
+
+  auto_review:
+    # Dependency bumps are a large share of PRs and use up the review limit.
+    ignore_usernames:
+      - "dependabot[bot]"
+
+  pre_merge_checks:
+    title:
+      # A title can still be fixed when squash merging, so warn instead of block.
+      mode: warning
+      # Squash merges turn the PR title into the commit message.
+      requirements: >-
+        Conventional Commits: `type: subject` or `type(scope): subject`, with an
+        optional `!` before the colon for a breaking change. type is one of feat,
+        fix, refactor, docs, test, chore, perf, ci, build. The subject starts with
+        an imperative verb, is lowercase except for code and package names, and
+        has no trailing period.
+    issue_assessment:
+      # Most PRs have no linked issue.
+      mode: "off"
+
+  path_instructions:
+    - path: "**"
+      instructions: |
+        Flag changes to the Rust public API, `@auto-palette/wasm` exports, or CLI
+        flags and output that the PR description does not mention.
+
+    - path: "crates/*/src/**/*.rs"
+      instructions: |
+        - Outside tests, flag panics on valid input such as an empty, zero-sized,
+          or fully transparent image.
+        - Check `width * height` overflow and casts between `u32`, `usize`, and `f64`.
+        - Keep one behavior per test; do not suggest `rstest` cases keyed on an
+          expected `bool`.
+
+    - path: "crates/auto-palette/src/next/**"
+      instructions: |
+        The 1.0 API in progress, behind `unstable-next`. Its changes need no
+        CHANGELOG entry or semver note, but review its public API and design as
+        strictly as a release.
+        - Public floats are `f64`.
+        - Public names describe behavior, not algorithms, except the variants of
+          `Segmentation`.
+        - `#[must_use]` goes only on public functions that return a non-`Result` value.
+        - Output must be deterministic, with fixed tie-breaking and default seeds.
+
+    - path: "crates/*/tests/**"
+      instructions: |
+        When the expected colors or swatch counts change, check that the PR
+        explains why.
+
+    - path: "**/Cargo.toml"
+      instructions: |
+        - Flag a `rust-version` change that does not update all three crates
+          together.
+        - Flag added, removed, or renamed features, except `unstable-` ones.
+        - New feature names follow "Cargo Features" in CONTRIBUTING.md.
+        - Flag a new dependency only for a concrete maintenance or security
+          concern.
+
+    - path: ".github/workflows/**"
+      instructions: |
+        - Use `dtolnay/rust-toolchain@master` with the `toolchain` input, as the
+          comment in `ci.yml` explains.
+        - Flag `permissions:` wider than the job needs, secrets passed to steps
+          that run PR code, and `pull_request_target` or `workflow_run` jobs that
+          check out PR code.
+
+  tools:
+    # CI already runs these with the repository's settings.
+    clippy:
+      enabled: false
+    biome:
+      enabled: false
+    # Grammar suggestions are style nits, which tone_instructions skips.
+    languagetool:
+      enabled: false
+    # Markdown lint belongs in CI and Lefthook.
+    markdownlint:
+      enabled: false
