@@ -7,9 +7,8 @@ tone_instructions: >-
 reviews:
   # Fewer, more important comments, in line with tone_instructions.
   profile: chill
-  # PR descriptions stay short, so the summary goes in the walkthrough instead.
+  # PR descriptions stay short, and the walkthrough already explains the changes.
   high_level_summary: false
-  high_level_summary_in_walkthrough: true
   # Diagrams, fortunes, and reviewer suggestions add little for a one-maintainer library.
   sequence_diagrams: false
   in_progress_fortune: false
