@@ -5,7 +5,7 @@ use crate::next::{
 };
 
 /// The number of a segment.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct SegmentId(u32);
 
 impl SegmentId {
