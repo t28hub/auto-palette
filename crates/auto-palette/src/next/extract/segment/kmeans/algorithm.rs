@@ -387,12 +387,49 @@ mod tests {
     }
 
     #[test]
+    fn test_cluster_hamerly_matches_naive_on_tie() {
+        // Arrange: after the first move, gray 0.25 is as near the center at 0.0 as the one at 0.5.
+        let points = [0.0, 0.25, 0.75].map(gray);
+        let kmeans = KMeans {
+            tolerance: 0.0,
+            ..kmeans(2)
+        };
+        let mut expected_centers = [0.0, 0.25].map(gray);
+        let expected = kmeans.cluster::<Naive>(&points, &mut expected_centers);
+        let mut centers = [0.0, 0.25].map(gray);
+
+        // Act
+        let actual = kmeans.cluster::<Hamerly>(&points, &mut centers);
+
+        // Assert
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
     fn test_cluster_stops_when_centers_settle() {
         // Arrange: any move counts as settled, so gray 0.2 stays with the center at 0.3.
         let points = [0.0, 0.2, 1.0].map(gray);
         let mut centers = [0.0, 0.3].map(gray);
         let kmeans = KMeans {
             tolerance: f64::MAX,
+            ..kmeans(2)
+        };
+
+        // Act
+        let actual = kmeans.cluster::<Naive>(&points, &mut centers);
+
+        // Assert
+        assert_eq!(actual, [0, 1, 1]);
+    }
+
+    #[test]
+    fn test_cluster_stops_at_max_iterations() {
+        // Arrange: one iteration leaves gray 0.2 with the center at 0.3.
+        let points = [0.0, 0.2, 1.0].map(gray);
+        let mut centers = [0.0, 0.3].map(gray);
+        let kmeans = KMeans {
+            max_iterations: NonZeroU32::MIN,
+            tolerance: 0.0,
             ..kmeans(2)
         };
 

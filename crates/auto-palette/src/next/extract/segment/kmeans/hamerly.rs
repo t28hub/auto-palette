@@ -81,7 +81,7 @@ impl Bounds {
         self.lower -= other;
     }
 
-    /// Moves a point to its nearest center unless the bounds keep it on its center.
+    /// Moves a point to its nearest center unless the bounds prove its center strictly nearest.
     ///
     /// # Arguments
     /// * `point` - The point to match.
@@ -89,13 +89,14 @@ impl Bounds {
     /// * `separation` - The distance from the center of the point to the nearest other center.
     /// * `center` - The center of the point, updated if another center is nearer.
     fn reassign(&mut self, point: Point, centers: &[Point], separation: f64, center: &mut usize) {
+        // Strict, unlike the paper, so that a tie goes to the first center as in `nearest`.
         let bound = (separation / 2.0).max(self.lower);
-        if self.upper <= bound {
+        if self.upper < bound {
             return;
         }
 
         self.upper = point.distance(centers[*center], DistanceMetric::Euclidean);
-        if self.upper <= bound {
+        if self.upper < bound {
             return;
         }
 
@@ -193,25 +194,6 @@ mod tests {
     }
 
     #[test]
-    fn test_assign_trusts_bounds() {
-        // Arrange: the bounds say that center 1 is nearer, although center 0 is.
-        let mut hamerly = Hamerly {
-            bounds: vec![Bounds {
-                upper: 0.1,
-                lower: 1.0,
-            }],
-        };
-        let centers = [point(BLACK), point(WHITE)];
-        let mut assigned = [1];
-
-        // Act
-        hamerly.assign(&[point(BLACK)], &centers, &[0.0; 2], &mut assigned);
-
-        // Assert
-        assert_eq!(assigned, [1]);
-    }
-
-    #[test]
     fn test_assign_follows_moved_center() {
         // Arrange: gray 0.4 starts nearer black, then white moves to 0.5.
         let points = [gray(0.4)];
@@ -261,6 +243,122 @@ mod tests {
     }
 
     #[test]
+    fn test_loosen_center_that_moved_most() {
+        // Arrange
+        let mut hamerly = Hamerly {
+            bounds: vec![Bounds {
+                upper: 1.0,
+                lower: 1.0,
+            }],
+        };
+
+        // Act
+        hamerly.loosen(&[0.1, 0.3], &[1]);
+
+        // Assert: the lower bound falls by the second largest move.
+        assert_approx_eq!(hamerly.bounds[0].upper, 1.3);
+        assert_approx_eq!(hamerly.bounds[0].lower, 0.9);
+    }
+
+    #[test]
+    fn test_reassign_skips_point_inside_bounds() {
+        // Arrange: half the separation of black and white is 0.5.
+        let mut bounds = Bounds {
+            upper: 0.45,
+            lower: 0.0,
+        };
+        let mut center = 0;
+
+        // Act
+        bounds.reassign(gray(0.4), &[point(BLACK), point(WHITE)], 1.0, &mut center);
+
+        // Assert: the upper bound is not measured again.
+        assert_eq!(center, 0);
+        assert_eq!(bounds.upper, 0.45);
+    }
+
+    #[test]
+    fn test_reassign_skips_point_inside_lower_bound() {
+        // Arrange: the lower bound is above half the separation.
+        let mut bounds = Bounds {
+            upper: 0.6,
+            lower: 0.7,
+        };
+        let mut center = 0;
+
+        // Act
+        bounds.reassign(gray(0.4), &[point(BLACK), point(WHITE)], 1.0, &mut center);
+
+        // Assert
+        assert_eq!(center, 0);
+        assert_eq!(bounds.upper, 0.6);
+    }
+
+    #[test]
+    fn test_reassign_tightens_upper_bound() {
+        // Arrange: the upper bound is loose, but the true distance 0.4 is inside.
+        let mut bounds = Bounds {
+            upper: 0.7,
+            lower: 0.0,
+        };
+        let mut center = 0;
+
+        // Act
+        bounds.reassign(gray(0.4), &[point(BLACK), point(WHITE)], 1.0, &mut center);
+
+        // Assert: no search, so the lower bound stays.
+        assert_eq!(center, 0);
+        assert_approx_eq!(bounds.upper, 0.4);
+        assert_eq!(bounds.lower, 0.0);
+    }
+
+    #[test]
+    fn test_reassign_searches_point_outside_bounds() {
+        // Arrange: gray 0.4 is assigned to white, 0.6 away.
+        let mut bounds = Bounds::UNKNOWN;
+        let mut center = 1;
+
+        // Act
+        bounds.reassign(gray(0.4), &[point(BLACK), point(WHITE)], 1.0, &mut center);
+
+        // Assert
+        assert_eq!(center, 0);
+        assert_approx_eq!(bounds.upper, 0.4);
+        assert_approx_eq!(bounds.lower, 0.6);
+    }
+
+    #[test]
+    fn test_reassign_searches_point_on_bound() {
+        // Arrange: gray 0.5 is as near black as white, and both bounds equal 0.5.
+        let mut bounds = Bounds {
+            upper: 0.5,
+            lower: 0.5,
+        };
+        let mut center = 1;
+
+        // Act
+        bounds.reassign(gray(0.5), &[point(BLACK), point(WHITE)], 1.0, &mut center);
+
+        // Assert: the first center wins the tie, as in `nearest`.
+        assert_eq!(center, 0);
+    }
+
+    #[test]
+    fn test_reassign_one_center() {
+        // Arrange: no other center, so the separation is infinite.
+        let mut bounds = Bounds::UNKNOWN;
+        let mut center = 0;
+
+        // Act
+        bounds.reassign(point(WHITE), &[point(BLACK)], f64::INFINITY, &mut center);
+
+        // Assert: the point stays after the upper bound is measured.
+        assert_eq!(center, 0);
+        assert_approx_eq!(bounds.upper, 1.0);
+        assert_eq!(bounds.lower, 0.0);
+    }
+
+    #[test]
     fn test_separations() {
         // Act
         let actual = separations(&[gray(0.0), gray(0.2), gray(1.0)]);
@@ -287,5 +385,23 @@ mod tests {
 
         // Assert
         assert_eq!(actual, [0.3, 0.2, 0.3]);
+    }
+
+    #[test]
+    fn test_largest_other_moves_tied_largest() {
+        // Act
+        let actual = largest_other_moves(&[0.3, 0.3, 0.1]);
+
+        // Assert: each of the two largest sees the other.
+        assert_eq!(actual, [0.3, 0.3, 0.3]);
+    }
+
+    #[test]
+    fn test_largest_other_moves_one_center() {
+        // Act
+        let actual = largest_other_moves(&[0.2]);
+
+        // Assert
+        assert_eq!(actual, [0.0]);
     }
 }
