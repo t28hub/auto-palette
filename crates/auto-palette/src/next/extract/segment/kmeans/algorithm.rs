@@ -1,6 +1,6 @@
 use std::num::NonZeroU32;
 
-use super::initialization::Initialization;
+use super::{assignment::Assignment, hamerly::Hamerly, initialization::Initialization};
 use crate::next::{
     color::{AlphaColor, Oklab},
     extract::segment::{
@@ -102,16 +102,33 @@ impl Segmenter for KMeans {
         let points = Point::of_pixels(image, scale);
         // Weightless points never become centers.
         let mut centers = self.initialization.centers(&points, count);
+        let assigned = self.cluster::<Hamerly>(&points, &mut centers);
+        segment_ids(&points, &assigned, centers.len())
+    }
+}
+
+impl KMeans {
+    /// Moves the centers to the means of their points until they settle.
+    ///
+    /// # Arguments
+    /// * `points` - The point of each pixel.
+    /// * `centers` - The initial centers, at least one, moved in place.
+    ///
+    /// # Returns
+    /// The center of each point, found with `A`.
+    fn cluster<A: Assignment>(&self, points: &[Point], centers: &mut [Point]) -> Vec<usize> {
+        let mut assignment = A::new(points, centers);
         let mut assigned = vec![0; points.len()];
+        let mut moves = vec![0.0; centers.len()];
         for _ in 0..self.max_iterations.get() {
-            let centroids = assign(&points, &centers, &mut assigned);
-            let shift = update(&mut centers, &centroids);
-            if shift <= self.tolerance {
+            let centroids = assignment.assign(points, centers, &moves, &mut assigned);
+            moves = update(centers, &centroids);
+            let shift = moves.iter().copied().fold(0.0, f64::max);
+            if shift.powi(2) <= self.tolerance {
                 break;
             }
         }
-
-        segment_ids(&points, &assigned, centers.len())
+        assigned
     }
 }
 
@@ -146,27 +163,6 @@ fn segment_ids(points: &[Point], assigned: &[usize], count: usize) -> Vec<Option
         .collect()
 }
 
-/// Assigns each point to its nearest center.
-///
-/// # Arguments
-/// * `points` - The point of each pixel.
-/// * `centers` - The centers, at least one.
-/// * `assigned` - The center of each point, updated for the points with weight.
-///
-/// # Returns
-/// The centroid of the points assigned to each center.
-fn assign(points: &[Point], centers: &[Point], assigned: &mut [usize]) -> Vec<Centroid> {
-    let mut centroids = vec![Centroid::default(); centers.len()];
-    for (point, assigned) in points.iter().zip(assigned) {
-        if point.is_weightless() {
-            continue;
-        }
-        *assigned = nearest_center(*point, centers);
-        centroids[*assigned].add(*point);
-    }
-    centroids
-}
-
 /// Moves each center to its centroid.
 ///
 /// # Arguments
@@ -174,43 +170,33 @@ fn assign(points: &[Point], centers: &[Point], assigned: &mut [usize]) -> Vec<Ce
 /// * `centroids` - The centroid of the points assigned to each center.
 ///
 /// # Returns
-/// The squared distance that the center moving the most moved.
-fn update(centers: &mut [Point], centroids: &[Centroid]) -> f64 {
-    let mut shift: f64 = 0.0;
-    for (center, centroid) in centers.iter_mut().zip(centroids) {
-        let Some(moved) = centroid.point() else {
+/// How far each center moved.
+fn update(centers: &mut [Point], centroids: &[Centroid]) -> Vec<f64> {
+    let mut moves = vec![0.0; centers.len()];
+    for ((center, centroid), moved) in centers.iter_mut().zip(centroids).zip(&mut moves) {
+        let Some(mean) = centroid.point() else {
             continue;
         };
-        shift = shift.max(center.distance(moved, DistanceMetric::SquaredEuclidean));
-        *center = moved;
+        *moved = center.distance(mean, DistanceMetric::Euclidean);
+        *center = mean;
     }
-    shift
-}
-
-/// Returns the index of the center closest to a point.
-///
-/// # Arguments
-/// * `point` - The point to match.
-/// * `centers` - The centers, at least one.
-///
-/// # Returns
-/// The index of the closest center, the first one on a tie.
-fn nearest_center(point: Point, centers: &[Point]) -> usize {
-    let (index, _) = centers
-        .iter()
-        .map(|center| point.distance(*center, DistanceMetric::SquaredEuclidean))
-        .enumerate()
-        .min_by(|a, b| a.1.total_cmp(&b.1))
-        .expect("there is at least one center");
-    index
+    moves
 }
 
 #[cfg(test)]
 mod tests {
+    use std::array;
+
     use rstest::rstest;
 
     use super::*;
-    use crate::next::extract::segment::test_helpers::{gradient, image, BLACK, WHITE};
+    use crate::next::{
+        extract::segment::{
+            kmeans::{naive::Naive, random::SplitMix64},
+            test_helpers::{gradient, gray, image, point, BLACK, WHITE},
+        },
+        math::Vector,
+    };
 
     /// Creates k-means with the default options except `tolerance` and `compactness`.
     fn new(tolerance: f64, compactness: f64) -> Option<KMeans> {
@@ -369,11 +355,6 @@ mod tests {
         assert_eq!(first, second);
     }
 
-    /// Creates a point of `color` at the origin with weight 1.0.
-    fn point(color: Oklab) -> Point {
-        Point::new(color, Position::new(0.0, 0.0), 1.0)
-    }
-
     #[test]
     fn test_segment_ids_skips_centers_without_points() {
         // Arrange: no point is assigned to center 0.
@@ -387,31 +368,56 @@ mod tests {
     }
 
     #[test]
-    fn test_assign() {
-        // Arrange
-        let points = [point(BLACK), point(WHITE)];
-        let centers = [point(WHITE), point(BLACK)];
-        let mut assigned = [0; 2];
+    fn test_cluster_hamerly_matches_naive() {
+        // Arrange: random points, so that many sit near the border of two centers.
+        let mut random = SplitMix64::new(0);
+        let points: Vec<Point> = (0..256)
+            .map(|_| Point::of_vector(Vector(array::from_fn(|_| random.next_f64())), 1.0))
+            .collect();
+        let initial = &points[..8];
+        let mut expected_centers = initial.to_vec();
+        let expected = KMeans::default().cluster::<Naive>(&points, &mut expected_centers);
+        let mut centers = initial.to_vec();
 
         // Act
-        assign(&points, &centers, &mut assigned);
+        let actual = KMeans::default().cluster::<Hamerly>(&points, &mut centers);
 
         // Assert
-        assert_eq!(assigned, [1, 0]);
+        assert_eq!(actual, expected);
     }
 
     #[test]
-    fn test_assign_skips_weightless_points() {
-        // Arrange
-        let points = [Point::new(BLACK, Position::new(0.0, 0.0), 0.0)];
-        let centers = [point(BLACK)];
-        let mut assigned = [0; 1];
+    fn test_cluster_stops_when_centers_settle() {
+        // Arrange: any move counts as settled, so gray 0.2 stays with the center at 0.3.
+        let points = [0.0, 0.2, 1.0].map(gray);
+        let mut centers = [0.0, 0.3].map(gray);
+        let kmeans = KMeans {
+            tolerance: f64::MAX,
+            ..kmeans(2)
+        };
 
         // Act
-        let actual = assign(&points, &centers, &mut assigned);
+        let actual = kmeans.cluster::<Naive>(&points, &mut centers);
 
         // Assert
-        assert!(actual[0].point().is_none());
+        assert_eq!(actual, [0, 1, 1]);
+    }
+
+    #[test]
+    fn test_cluster_repeats_until_centers_settle() {
+        // Arrange: gray 0.2 moves to the center at 0.0 once the other center moves to 0.6.
+        let points = [0.0, 0.2, 1.0].map(gray);
+        let mut centers = [0.0, 0.3].map(gray);
+        let kmeans = KMeans {
+            tolerance: 0.0,
+            ..kmeans(2)
+        };
+
+        // Act
+        let actual = kmeans.cluster::<Naive>(&points, &mut centers);
+
+        // Assert
+        assert_eq!(actual, [0, 0, 1]);
     }
 
     #[test]
@@ -441,31 +447,16 @@ mod tests {
     }
 
     #[test]
-    fn test_update_returns_largest_shift() {
-        // Arrange: the first center moves by 0.5 in lightness and the second by 1.0.
+    fn test_update_returns_moves() {
+        // Arrange: the first center moves by 0.5 in lightness, and the second has no points.
         let mut centers = [point(BLACK), point(BLACK)];
-        let mut gray = Centroid::default();
-        gray.add(point(Oklab::new(0.5, 0.0, 0.0)));
-        let mut white = Centroid::default();
-        white.add(point(WHITE));
+        let mut centroid = Centroid::default();
+        centroid.add(gray(0.5));
 
         // Act
-        let actual = update(&mut centers, &[gray, white]);
-
-        // Assert: the squared distance of the second.
-        assert_eq!(actual, 1.0);
-    }
-
-    #[test]
-    fn test_nearest_center() {
-        // Arrange
-        let gray = point(Oklab::new(0.6, 0.0, 0.0));
-        let centers = [point(BLACK), point(WHITE)];
-
-        // Act
-        let actual = nearest_center(gray, &centers);
+        let actual = update(&mut centers, &[centroid, Centroid::default()]);
 
         // Assert
-        assert_eq!(actual, 1);
+        assert_eq!(actual, [0.5, 0.0]);
     }
 }
