@@ -24,7 +24,7 @@ ready: format lint test check
 
 # Format all files
 [group('format')]
-format: format-rust format-js format-toml
+format: format-rust format-js format-toml format-markdown
 
 # Format Rust files
 [group('format')]
@@ -40,6 +40,11 @@ format-js:
 [group('format')]
 format-toml:
   pnpm exec tombi format
+
+# Fix Markdown files
+[group('format')]
+format-markdown:
+  pnpm exec markdownlint-cli2 --fix "**/*.md"
 
 # Check formatting of all files without writing
 [group('format')]
@@ -63,7 +68,7 @@ format-check-toml:
 
 # Lint all files
 [group('lint')]
-lint: lint-rust lint-js
+lint: lint-rust lint-js lint-markdown
 
 # Lint Rust files
 [group('lint')]
@@ -75,6 +80,11 @@ lint-rust:
 [group('lint')]
 lint-js:
   pnpm exec biome lint .
+
+# Lint Markdown files
+[group('lint')]
+lint-markdown:
+  pnpm exec markdownlint-cli2 "**/*.md"
 
 
 # Run all checks

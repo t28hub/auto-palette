@@ -16,6 +16,12 @@ pre-commit:
       run: pnpm exec tombi format {staged_files}
       stage_fixed: true
 
+    - name: format markdown
+      glob: "**/*.md"
+      # Fix what it can, and leave the rest to the pre-push lint.
+      run: pnpm exec markdownlint-cli2 --fix {staged_files} || true
+      stage_fixed: true
+
 pre-push:
   parallel: true
   jobs:
@@ -26,3 +32,7 @@ pre-push:
     - name: lint js
       glob: "**/*.{js,ts}"
       run: pnpm exec biome lint {push_files}
+
+    - name: lint markdown
+      glob: "**/*.md"
+      run: pnpm exec markdownlint-cli2 {push_files}

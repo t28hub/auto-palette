@@ -208,6 +208,7 @@ for swatch in swatches {
 
 > [!TIP]
 > The `Color` struct provides various methods to convert the color to different formats, such as `RGB`, `HSL`, and `CIE L*a*b*`.
+>
 > ```rust
 > let color = swatch.color();
 > println!("Hex: {}", color.to_hex_string());

@@ -57,7 +57,7 @@ jobs:
           cache: 'pnpm'
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install root dependencies (Biome and tombi)
+      - name: Install root dependencies (Biome, tombi, and markdownlint-cli2)
         run: pnpm install --frozen-lockfile --filter @auto-palette/monorepo
 
       - name: Check formatting
@@ -65,6 +65,9 @@ jobs:
 
       - name: Lint .js and .ts files
         run: just lint-js
+
+      - name: Lint .md files
+        run: just lint-markdown
 
   check:
     runs-on: ubuntu-latest
