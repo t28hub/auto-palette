@@ -1,16 +1,12 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/DavidAnson/markdownlint-cli2/v0.24.1/schema/markdownlint-cli2-config-schema.json
-# Skip node_modules/ and target/. The files to lint come from the command line, not `globs`.
+# No `globs` here: they would be added to the files that the pre-commit hook passes.
 gitignore: true
 
 config:
-  # Start from every rule; the settings below adjust the ones that do not fit.
   default: true
-  # Prose lines wrap freely, and badges and links make long lines.
   line-length: false
-  # The changelog and examples repeat headings such as "Added" under different parents.
   no-duplicate-heading:
     siblings_only: true
-  # READMEs use these for the sample photo, its credit links, and anchors.
   no-inline-html:
     allowed_elements:
       - a
