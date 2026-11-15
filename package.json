@@ -14,7 +14,7 @@
     "markdownlint-cli2": "0.24.1",
     "tombi": "1.9.8",
     "typescript": "catalog:",
-    "vite": "8.3.5",
+    "vite": "8.3.8",
     "vite-plugin-wasm": "3.6.0",
     "vitest": "catalog:"
   },
