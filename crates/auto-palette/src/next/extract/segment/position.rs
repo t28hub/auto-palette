@@ -53,17 +53,19 @@ impl Position {
         1.0 / f64::from(size.width.max(size.height))
     }
 
-    /// Returns the squared Euclidean distance to another position.
+    /// Returns the length of one segment when `count` square segments tile an image.
     ///
     /// # Arguments
-    /// * `other` - The position to measure the distance to.
+    /// * `size` - The size of the image, with at least one pixel.
+    /// * `count` - The number of segments, at least one.
     ///
     /// # Returns
-    /// The squared distance between the two positions.
+    /// The distance between the centers of adjacent segments.
     #[inline]
-    pub(crate) fn distance_squared(self, other: Self) -> f64 {
-        let (dx, dy) = (self.x - other.x, self.y - other.y);
-        dx * dx + dy * dy
+    pub(crate) fn segment_length(size: Size, count: usize) -> f64 {
+        let pixels_per_segment = size.pixel_count() as f64 / count as f64;
+        let pixels_per_side = pixels_per_segment.sqrt();
+        pixels_per_side * Self::pixel_length(size)
     }
 }
 
@@ -72,7 +74,6 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::assert_approx_eq;
 
     #[rstest]
     #[case::first(0, Position::new(0.125, 0.125))]
@@ -97,10 +98,7 @@ mod tests {
 
         // Assert
         let origin = Position::of_pixel(0, size);
-        assert_eq!(
-            origin.distance_squared(right),
-            origin.distance_squared(below)
-        );
+        assert_eq!(right.x - origin.x, below.y - origin.y);
     }
 
     #[rstest]
@@ -115,11 +113,11 @@ mod tests {
     }
 
     #[test]
-    fn test_distance_squared() {
-        // Act
-        let actual = Position::new(0.0, 0.0).distance_squared(Position::new(0.3, 0.4));
+    fn test_segment_length() {
+        // Act: two segments of 2x2 pixels in a 4x2 image.
+        let actual = Position::segment_length(Size::new(4, 2), 2);
 
-        // Assert
-        assert_approx_eq!(actual, 0.25);
+        // Assert: two pixels of 0.25 each.
+        assert_eq!(actual, 0.5);
     }
 }

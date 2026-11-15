@@ -6,6 +6,7 @@ mod color;
 mod error;
 mod extract;
 mod image;
+mod math;
 
 pub use error::{Error, ErrorKind};
 pub use extract::{Extraction, Extractor};

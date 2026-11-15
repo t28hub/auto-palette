@@ -1,10 +1,19 @@
 use std::{cmp::Reverse, collections::BinaryHeap, num::NonZeroU32};
 
-use super::{centroid::Centroid, position::Position, segments::SegmentId, Segmenter};
 use crate::next::{
     color::{AlphaColor, Oklab},
-    extract::nearest::nearest,
+    extract::{
+        nearest::nearest,
+        segment::{
+            centroid::Centroid,
+            point::Point,
+            position::Position,
+            segments::SegmentId,
+            Segmenter,
+        },
+    },
     image::{ImageBuf, Size},
+    math::DistanceMetric,
 };
 
 /// A pixel waiting to join a segment: its distance as bits, its index, and the segment.
@@ -18,8 +27,7 @@ type Candidate = Reverse<(u64, u32, u32)>;
 pub(crate) struct Snic {
     /// The number of segments to aim for.
     segments: NonZeroU32,
-    /// How much distance counts against color difference. Larger values give more compact
-    /// segments.
+    /// How much distance counts against color difference.
     compactness: f64,
 }
 
@@ -46,7 +54,10 @@ impl Snic {
         )
     )]
     pub(crate) fn new(segments: NonZeroU32, compactness: f64) -> Option<Self> {
-        (compactness.is_finite() && compactness >= 0.0).then_some(Self {
+        if !compactness.is_finite() || compactness < 0.0 {
+            return None;
+        }
+        Some(Self {
             segments,
             compactness,
         })
@@ -65,42 +76,27 @@ impl Default for Snic {
 impl Segmenter for Snic {
     fn label(&self, image: &ImageBuf<AlphaColor<Oklab>>) -> Vec<Option<SegmentId>> {
         let size = image.size();
-        let pixels = image.pixels();
-        let mut labels = vec![None; pixels.len()];
-
         let grid = size.fit(self.segments);
-        // The grid spacing in pixels. Distances are measured in grid steps.
-        let spacing = (size.pixel_count() as f64 / grid.pixel_count() as f64).sqrt();
-        let position_weight = (self.compactness / (spacing * Position::pixel_length(size))).powi(2);
+        let scale = self.compactness / Position::segment_length(size, grid.pixel_count());
+        let points = Point::of_pixels(image, scale);
+        let mut labels = vec![None; points.len()];
         let mut centroids = Vec::new();
         let mut queue = BinaryHeap::new();
         for index in grid_centers(size, grid) {
-            if pixels[index].is_transparent() {
+            if points[index].is_weightless() {
                 continue;
             }
             add_seed(index, &mut queue, &mut centroids);
         }
-        grow_segments(
-            image,
-            position_weight,
-            &mut queue,
-            &mut centroids,
-            &mut labels,
-        );
+        grow_segments(&points, size, &mut queue, &mut centroids, &mut labels);
 
         // Pixels cut off from every seed by transparent pixels start segments of their own.
-        for index in 0..pixels.len() {
-            if labels[index].is_some() || pixels[index].is_transparent() {
+        for index in 0..points.len() {
+            if labels[index].is_some() || points[index].is_weightless() {
                 continue;
             }
             add_seed(index, &mut queue, &mut centroids);
-            grow_segments(
-                image,
-                position_weight,
-                &mut queue,
-                &mut centroids,
-                &mut labels,
-            );
+            grow_segments(&points, size, &mut queue, &mut centroids, &mut labels);
         }
         labels
     }
@@ -137,20 +133,18 @@ fn grid_centers(size: Size, grid: Size) -> impl Iterator<Item = usize> {
 /// Adds the closest waiting pixel to its segment until no pixel is waiting.
 ///
 /// # Arguments
-/// * `image` - The image to split.
-/// * `position_weight` - The weight of the squared distance against the squared color difference.
+/// * `points` - The point of each pixel, with positions scaled.
+/// * `size` - The size of the image.
 /// * `queue` - The pixels waiting to join a segment.
 /// * `centroids` - The centroid of each segment.
 /// * `labels` - The segment of each pixel, or `None` if it has not joined one yet.
 fn grow_segments(
-    image: &ImageBuf<AlphaColor<Oklab>>,
-    position_weight: f64,
+    points: &[Point],
+    size: Size,
     queue: &mut BinaryHeap<Candidate>,
     centroids: &mut [Centroid],
     labels: &mut [Option<SegmentId>],
 ) {
-    let size = image.size();
-    let pixels = image.pixels();
     while let Some(Reverse((_, index, segment))) = queue.pop() {
         let index = index as usize;
         if labels[index].is_some() {
@@ -158,15 +152,16 @@ fn grow_segments(
         }
         labels[index] = Some(SegmentId::new(segment));
         let centroid = &mut centroids[segment as usize];
-        centroid.add(pixels[index], Position::of_pixel(index, size));
-        let (color, center) = (centroid.color(), centroid.position());
+        centroid.add(points[index]);
+        let center = centroid
+            .point()
+            .expect("a segment grows only from opaque pixels");
         for neighbor in neighbors(index, size) {
-            let pixel = pixels[neighbor];
-            if labels[neighbor].is_some() || pixel.is_transparent() {
+            let point = points[neighbor];
+            if labels[neighbor].is_some() || point.is_weightless() {
                 continue;
             }
-            let distance = color.distance_squared(pixel.color())
-                + position_weight * center.distance_squared(Position::of_pixel(neighbor, size));
+            let distance = center.distance(point, DistanceMetric::SquaredEuclidean);
             // Non-negative floats order the same as their bits. Adding 1 puts candidates behind
             // the seeds, whose key is 0, even at distance 0.
             queue.push(Reverse((distance.to_bits() + 1, neighbor as u32, segment)));
@@ -200,44 +195,37 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-
-    const BLACK: Oklab = Oklab::new(0.0, 0.0, 0.0);
-    const WHITE: Oklab = Oklab::new(1.0, 0.0, 0.0);
-
-    /// Creates an image from rows of colors, with `None` for a transparent pixel.
-    fn image<const W: usize>(rows: &[[Option<Oklab>; W]]) -> ImageBuf<AlphaColor<Oklab>> {
-        let pixels = rows
-            .iter()
-            .flatten()
-            .map(|color| match color {
-                Some(color) => AlphaColor::opaque(*color),
-                None => AlphaColor::transparent(BLACK),
-            })
-            .collect();
-        ImageBuf::new(Size::new(W as u32, rows.len() as u32), pixels)
-    }
+    use crate::next::extract::segment::test_helpers::{image, BLACK, WHITE};
 
     /// Creates SNIC that aims for `segments` segments.
     fn snic(segments: u32) -> Snic {
-        Snic::new(
-            NonZeroU32::new(segments).unwrap(),
-            Snic::DEFAULT_COMPACTNESS,
-        )
-        .unwrap()
+        Snic {
+            segments: NonZeroU32::new(segments).unwrap(),
+            ..Snic::default()
+        }
     }
 
     #[rstest]
-    #[case::zero(0.0, true)]
-    #[case::positive(0.1, true)]
-    #[case::negative(-0.1, false)]
-    #[case::nan(f64::NAN, false)]
-    #[case::infinity(f64::INFINITY, false)]
-    fn test_new(#[case] compactness: f64, #[case] expected: bool) {
+    #[case::zero(0.0)]
+    #[case::positive(0.1)]
+    fn test_new_accepts_compactness(#[case] compactness: f64) {
         // Act
         let actual = Snic::new(Snic::DEFAULT_SEGMENTS, compactness);
 
         // Assert
-        assert_eq!(actual.is_some(), expected);
+        assert!(actual.is_some());
+    }
+
+    #[rstest]
+    #[case::negative(-0.1)]
+    #[case::nan(f64::NAN)]
+    #[case::infinity(f64::INFINITY)]
+    fn test_new_rejects_compactness(#[case] compactness: f64) {
+        // Act
+        let actual = Snic::new(Snic::DEFAULT_SEGMENTS, compactness);
+
+        // Assert
+        assert!(actual.is_none());
     }
 
     #[test]
@@ -283,7 +271,10 @@ mod tests {
         // Arrange: one color, so every candidate is as close as a seed. The seeds are pixels 1
         // and 3.
         let image = image(&[[Some(BLACK); 4]]);
-        let snic = Snic::new(NonZeroU32::new(2).unwrap(), 0.0).unwrap();
+        let snic = Snic {
+            compactness: 0.0,
+            ..snic(2)
+        };
 
         // Act
         let actual = snic.label(&image);
