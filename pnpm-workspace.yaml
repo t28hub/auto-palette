@@ -11,6 +11,10 @@ allowBuilds:
 
 minimumReleaseAge: 4320 # 3 days in minutes
 
+overrides:
+  # GHSA-238p-pmpm-9mq7: markdownlint pulls katex through micromark-extension-math, which asks for ^0.16.
+  "katex@<0.18.2": "^0.19.1"
+
 minimumReleaseAgeExclude:
   - "esbuild"
   - "@esbuild/*"
