@@ -1,3 +1,4 @@
+mod adjacency;
 mod centroid;
 mod kmeans;
 mod point;
