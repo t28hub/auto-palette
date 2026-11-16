@@ -196,9 +196,9 @@ mod tests {
     #[test]
     fn test_assign_follows_moved_center() {
         // Arrange: gray 0.4 starts nearer black, then white moves to 0.5.
-        let points = [gray(0.4)];
+        let points = [point(gray(0.4))];
         let before = [point(BLACK), point(WHITE)];
-        let after = [point(BLACK), gray(0.5)];
+        let after = [point(BLACK), point(gray(0.5))];
         let mut hamerly = Hamerly::new(&points, &before);
         let mut assigned = [0];
         hamerly.assign(&points, &before, &[0.0; 2], &mut assigned);
@@ -267,10 +267,11 @@ mod tests {
             upper: 0.45,
             lower: 0.0,
         };
+        let centers = [point(BLACK), point(WHITE)];
         let mut center = 0;
 
         // Act
-        bounds.reassign(gray(0.4), &[point(BLACK), point(WHITE)], 1.0, &mut center);
+        bounds.reassign(point(gray(0.4)), &centers, 1.0, &mut center);
 
         // Assert: the upper bound is not measured again.
         assert_eq!(center, 0);
@@ -284,10 +285,11 @@ mod tests {
             upper: 0.6,
             lower: 0.7,
         };
+        let centers = [point(BLACK), point(WHITE)];
         let mut center = 0;
 
         // Act
-        bounds.reassign(gray(0.4), &[point(BLACK), point(WHITE)], 1.0, &mut center);
+        bounds.reassign(point(gray(0.4)), &centers, 1.0, &mut center);
 
         // Assert
         assert_eq!(center, 0);
@@ -301,10 +303,11 @@ mod tests {
             upper: 0.7,
             lower: 0.0,
         };
+        let centers = [point(BLACK), point(WHITE)];
         let mut center = 0;
 
         // Act
-        bounds.reassign(gray(0.4), &[point(BLACK), point(WHITE)], 1.0, &mut center);
+        bounds.reassign(point(gray(0.4)), &centers, 1.0, &mut center);
 
         // Assert: no search, so the lower bound stays.
         assert_eq!(center, 0);
@@ -316,10 +319,11 @@ mod tests {
     fn test_reassign_searches_point_outside_bounds() {
         // Arrange: gray 0.4 is assigned to white, 0.6 away.
         let mut bounds = Bounds::UNKNOWN;
+        let centers = [point(BLACK), point(WHITE)];
         let mut center = 1;
 
         // Act
-        bounds.reassign(gray(0.4), &[point(BLACK), point(WHITE)], 1.0, &mut center);
+        bounds.reassign(point(gray(0.4)), &centers, 1.0, &mut center);
 
         // Assert
         assert_eq!(center, 0);
@@ -334,10 +338,11 @@ mod tests {
             upper: 0.5,
             lower: 0.5,
         };
+        let centers = [point(BLACK), point(WHITE)];
         let mut center = 1;
 
         // Act
-        bounds.reassign(gray(0.5), &[point(BLACK), point(WHITE)], 1.0, &mut center);
+        bounds.reassign(point(gray(0.5)), &centers, 1.0, &mut center);
 
         // Assert: the first center wins the tie, as in `nearest`.
         assert_eq!(center, 0);
@@ -361,7 +366,7 @@ mod tests {
     #[test]
     fn test_separations() {
         // Act
-        let actual = separations(&[gray(0.0), gray(0.2), gray(1.0)]);
+        let actual = separations(&[0.0, 0.2, 1.0].map(gray).map(point));
 
         // Assert
         assert_approx_eq!(actual[0], 0.2);

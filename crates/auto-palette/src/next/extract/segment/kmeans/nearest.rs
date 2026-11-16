@@ -54,7 +54,7 @@ mod tests {
         let centers = [point(BLACK), point(WHITE)];
 
         // Act
-        let actual = nearest(gray(0.6), &centers);
+        let actual = nearest(point(gray(0.6)), &centers);
 
         // Assert: 0.4 to white and 0.6 to black.
         assert_eq!(actual.center, 1);
@@ -68,7 +68,7 @@ mod tests {
         let centers = [point(BLACK), point(WHITE)];
 
         // Act
-        let actual = nearest(gray(0.5), &centers);
+        let actual = nearest(point(gray(0.5)), &centers);
 
         // Assert
         assert_eq!(actual.center, 0);

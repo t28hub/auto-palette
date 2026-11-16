@@ -1,5 +1,6 @@
 mod adjacency;
 mod centroid;
+mod estimation;
 mod kmeans;
 mod point;
 mod position;
