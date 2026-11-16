@@ -24,5 +24,5 @@ catalog:
     typescript: 7.0.2
     vitest: 5.0.5
     '@vitest/ui': 5.0.5
-    '@vitest/coverage-v8': 5.0.5
+    '@vitest/coverage-v8': 5.1.0
     '@vitest/browser-playwright': 5.0.5
