@@ -40,23 +40,15 @@ mod tests {
     use super::*;
     use crate::{
         assert_approx_eq,
-        next::{color::Oklab, extract::segment::position::Position},
+        next::extract::segment::{position::Position, test_helpers::gray},
     };
 
     #[test]
     fn test_point() {
         // Arrange: a dark point with weight 0.25 and a light point with weight 0.75.
         let mut centroid = Centroid::default();
-        centroid.add(Point::new(
-            Oklab::new(0.2, 0.0, 0.0),
-            Position::new(0.0, 0.0),
-            0.25,
-        ));
-        centroid.add(Point::new(
-            Oklab::new(0.6, 0.0, 0.0),
-            Position::new(0.4, 0.8),
-            0.75,
-        ));
+        centroid.add(Point::new(gray(0.2), Position::new(0.0, 0.0), 0.25));
+        centroid.add(Point::new(gray(0.6), Position::new(0.4, 0.8), 0.75));
 
         // Act
         let actual = centroid.point().unwrap();
@@ -72,11 +64,7 @@ mod tests {
     fn test_point_without_weight() {
         // Arrange
         let mut centroid = Centroid::default();
-        centroid.add(Point::new(
-            Oklab::new(0.2, 0.0, 0.0),
-            Position::new(0.0, 0.0),
-            0.0,
-        ));
+        centroid.add(Point::new(gray(0.2), Position::new(0.0, 0.0), 0.0));
 
         // Act
         let actual = centroid.point();
