@@ -190,7 +190,7 @@ mod tests {
         assert_approx_eq,
         next::{
             color::Oklab,
-            extract::segment::test_helpers::{gradient, image, BLACK, WHITE},
+            extract::segment::test_helpers::{gradient, gray, image, BLACK, WHITE},
         },
     };
 
@@ -222,7 +222,7 @@ mod tests {
     #[test]
     fn test_farthest_first_starts_from_mean() {
         // Arrange
-        let points = row([BLACK, Oklab::new(0.4, 0.0, 0.0), WHITE], 0.0);
+        let points = row([BLACK, gray(0.4), WHITE], 0.0);
 
         // Act
         let actual = farthest_first(&points, 1);
@@ -234,7 +234,7 @@ mod tests {
     #[test]
     fn test_farthest_first_picks_farthest_pixel() {
         // Arrange: white is farther than black from the mean.
-        let points = row([BLACK, Oklab::new(0.4, 0.0, 0.0), WHITE], 0.0);
+        let points = row([BLACK, gray(0.4), WHITE], 0.0);
 
         // Act
         let actual = farthest_first(&points, 2);

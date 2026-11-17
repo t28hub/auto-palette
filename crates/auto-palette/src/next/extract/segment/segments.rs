@@ -146,15 +146,18 @@ impl Segments {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{assert_approx_eq, next::image::Size};
+    use crate::{
+        assert_approx_eq,
+        next::{extract::segment::test_helpers::gray, image::Size},
+    };
 
     /// A 2x1 image of an opaque dark pixel and a half-transparent light pixel.
     fn image() -> ImageBuf<AlphaColor<Oklab>> {
         ImageBuf::new(
             Size::new(2, 1),
             vec![
-                AlphaColor::opaque(Oklab::new(0.2, 0.0, 0.0)),
-                AlphaColor::new(Oklab::new(0.8, 0.0, 0.0), 0.5).unwrap(),
+                AlphaColor::opaque(gray(0.2)),
+                AlphaColor::new(gray(0.8), 0.5).unwrap(),
             ],
         )
     }
