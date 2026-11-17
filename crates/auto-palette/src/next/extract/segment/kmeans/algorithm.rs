@@ -389,14 +389,14 @@ mod tests {
     #[test]
     fn test_cluster_hamerly_matches_naive_on_tie() {
         // Arrange: after the first move, gray 0.25 is as near the center at 0.0 as the one at 0.5.
-        let points = [0.0, 0.25, 0.75].map(gray);
+        let points = [0.0, 0.25, 0.75].map(gray).map(point);
         let kmeans = KMeans {
             tolerance: 0.0,
             ..kmeans(2)
         };
-        let mut expected_centers = [0.0, 0.25].map(gray);
+        let mut expected_centers = [0.0, 0.25].map(gray).map(point);
         let expected = kmeans.cluster::<Naive>(&points, &mut expected_centers);
-        let mut centers = [0.0, 0.25].map(gray);
+        let mut centers = [0.0, 0.25].map(gray).map(point);
 
         // Act
         let actual = kmeans.cluster::<Hamerly>(&points, &mut centers);
@@ -408,8 +408,8 @@ mod tests {
     #[test]
     fn test_cluster_stops_when_centers_settle() {
         // Arrange: any move counts as settled, so gray 0.2 stays with the center at 0.3.
-        let points = [0.0, 0.2, 1.0].map(gray);
-        let mut centers = [0.0, 0.3].map(gray);
+        let points = [0.0, 0.2, 1.0].map(gray).map(point);
+        let mut centers = [0.0, 0.3].map(gray).map(point);
         let kmeans = KMeans {
             tolerance: f64::MAX,
             ..kmeans(2)
@@ -425,8 +425,8 @@ mod tests {
     #[test]
     fn test_cluster_stops_at_max_iterations() {
         // Arrange: one iteration leaves gray 0.2 with the center at 0.3.
-        let points = [0.0, 0.2, 1.0].map(gray);
-        let mut centers = [0.0, 0.3].map(gray);
+        let points = [0.0, 0.2, 1.0].map(gray).map(point);
+        let mut centers = [0.0, 0.3].map(gray).map(point);
         let kmeans = KMeans {
             max_iterations: NonZeroU32::MIN,
             tolerance: 0.0,
@@ -443,8 +443,8 @@ mod tests {
     #[test]
     fn test_cluster_repeats_until_centers_settle() {
         // Arrange: gray 0.2 moves to the center at 0.0 once the other center moves to 0.6.
-        let points = [0.0, 0.2, 1.0].map(gray);
-        let mut centers = [0.0, 0.3].map(gray);
+        let points = [0.0, 0.2, 1.0].map(gray).map(point);
+        let mut centers = [0.0, 0.3].map(gray).map(point);
         let kmeans = KMeans {
             tolerance: 0.0,
             ..kmeans(2)
@@ -488,7 +488,7 @@ mod tests {
         // Arrange: the first center moves by 0.5 in lightness, and the second has no points.
         let mut centers = [point(BLACK), point(BLACK)];
         let mut centroid = Centroid::default();
-        centroid.add(gray(0.5));
+        centroid.add(point(gray(0.5)));
 
         // Act
         let actual = update(&mut centers, &[centroid, Centroid::default()]);
