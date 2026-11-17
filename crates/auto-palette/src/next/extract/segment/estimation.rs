@@ -107,13 +107,11 @@ impl Biweight {
         for pixel in pixels {
             let color = pixel.color();
             let vector = Vector([color.l, color.a, color.b]);
-            let squared_distance = vector.distance(target, DistanceMetric::SquaredEuclidean);
-            let squared_ratio = squared_distance / (self.scale * self.scale);
-            // A pixel at the scale or farther, such as a blended edge, is an outlier.
-            if squared_ratio >= 1.0 {
-                continue;
-            }
-            let weight = pixel.alpha() * (1.0 - squared_ratio).powi(2);
+            let distance = vector.distance(target, DistanceMetric::Euclidean);
+            let ratio = distance / self.scale;
+            let squared_ratio = ratio * ratio;
+            let closeness = (1.0 - squared_ratio).max(0.0);
+            let weight = pixel.alpha() * closeness * closeness;
             weighted_sum += vector * weight;
             total_weight += weight;
         }
@@ -212,7 +210,7 @@ mod tests {
 
     #[test]
     fn test_estimate_ignores_outlier() {
-        // Arrange: a white pixel mixed into black ones, which would pull a mean to gray.
+        // Arrange
         let pixels = [0.0, 0.0, 0.0, 1.0].map(gray).map(AlphaColor::opaque);
 
         // Act
@@ -224,7 +222,7 @@ mod tests {
 
     #[test]
     fn test_estimate_weights_by_opacity() {
-        // Arrange: two close grays, the lighter one mostly transparent.
+        // Arrange
         let pixels = [
             AlphaColor::opaque(gray(0.0)),
             AlphaColor::new(gray(0.02), 0.25).unwrap(),
@@ -233,23 +231,8 @@ mod tests {
         // Act
         let actual = Estimation::default().estimate(&pixels).unwrap();
 
-        // Assert: nearer the opaque pixel than the midpoint 0.01.
-        assert!(actual.l < 0.01);
-    }
-
-    #[test]
-    fn test_estimate_keeps_median_when_every_pixel_is_far() {
-        // Arrange: the channel medians make a color 0.3 away from both pixels.
-        let pixels = [
-            AlphaColor::opaque(Oklab::new(0.0, 0.3, 0.0)),
-            AlphaColor::opaque(Oklab::new(0.3, 0.0, 0.0)),
-        ];
-
-        // Act
-        let actual = Estimation::default().estimate(&pixels).unwrap();
-
         // Assert
-        assert_eq!([actual.l, actual.a, actual.b], [0.3, 0.3, 0.0]);
+        assert!(actual.l < 0.01);
     }
 
     #[test]
@@ -265,7 +248,7 @@ mod tests {
     }
 
     #[test]
-    fn test_find_median_of_each_channel() {
+    fn test_find_median_mixes_channels_of_different_pixels() {
         // Arrange
         let pixels = [
             AlphaColor::opaque(Oklab::new(0.1, 0.0, -0.1)),
@@ -282,13 +265,51 @@ mod tests {
 
     #[test]
     fn test_reweight_weights_by_closeness() {
-        // Arrange: from 0.03, the pixel at 0.04 is nearer than the one at 0.0.
+        // Arrange
         let pixels = [0.0, 0.04].map(gray).map(AlphaColor::opaque);
 
         // Act
         let actual = Biweight::default().reweight(&pixels, gray(0.03));
 
-        // Assert: past the midpoint 0.02, toward the nearer pixel.
+        // Assert
         assert!(actual.l > 0.02);
+    }
+
+    #[test]
+    fn test_reweight_keeps_estimate_when_every_pixel_is_far() {
+        // Arrange
+        let pixels = [AlphaColor::opaque(gray(0.0))];
+
+        // Act
+        let actual = Biweight::default().reweight(&pixels, gray(1.0));
+
+        // Assert
+        assert_eq!(actual.l, 1.0);
+    }
+
+    #[test]
+    fn test_reweight_keeps_estimate_with_tiny_scale() {
+        // Arrange
+        let biweight = Biweight::new(1e-200).unwrap();
+        let pixels = [AlphaColor::opaque(gray(0.5))];
+
+        // Act
+        let actual = biweight.reweight(&pixels, gray(0.5));
+
+        // Assert
+        assert_eq!(actual.l, 0.5);
+    }
+
+    #[test]
+    fn test_reweight_takes_mean_with_huge_scale() {
+        // Arrange
+        let biweight = Biweight::new(1e200).unwrap();
+        let pixels = [0.0, 1.0].map(gray).map(AlphaColor::opaque);
+
+        // Act
+        let actual = biweight.reweight(&pixels, gray(1.0));
+
+        // Assert
+        assert_eq!(actual.l, 0.5);
     }
 }
