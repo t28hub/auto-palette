@@ -1,4 +1,5 @@
 mod alpha_color;
+mod delta_e;
 mod linear_rgb;
 mod oklab;
 mod srgb8;
@@ -9,13 +10,6 @@ pub(crate) use self::{alpha_color::AlphaColor, linear_rgb::LinearRgb, oklab::Okl
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Color(Oklab);
 
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "used by the color difference, which is not implemented yet"
-    )
-)]
 impl Color {
     /// Creates a color from OKLab.
     ///
@@ -24,6 +18,13 @@ impl Color {
     ///
     /// # Returns
     /// The color with the given OKLab values.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "called by the saliency, which is not implemented yet"
+        )
+    )]
     #[inline]
     pub(crate) const fn from_oklab(oklab: Oklab) -> Self {
         Self(oklab)
@@ -45,8 +46,11 @@ mod tests {
 
     #[test]
     fn test_from_oklab_keeps_values() {
+        // Arrange
+        let oklab = Oklab::new(0.5, 0.1, -0.1);
+
         // Act
-        let actual = Color::from_oklab(Oklab::new(0.5, 0.1, -0.1));
+        let actual = Color::from_oklab(oklab);
 
         // Assert
         assert_eq!([actual.0.l, actual.0.a, actual.0.b], [0.5, 0.1, -0.1]);
