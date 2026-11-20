@@ -1,10 +1,10 @@
-use super::{kmeans::KMeans, segments::SegmentId, snic::Snic, Segments};
+use super::{kmeans::KMeans, segments::SegmentId, snic::Snic};
 use crate::next::{
     color::{AlphaColor, Color},
     image::ImageBuf,
 };
 
-/// An algorithm that splits an image into segments.
+/// An algorithm that assigns each pixel of an image to a segment.
 pub(crate) trait Segmenter {
     /// Assigns each pixel of `image` to a segment.
     ///
@@ -16,20 +16,6 @@ pub(crate) trait Segmenter {
     /// transparent pixel or noise. The numbers need not be contiguous, but stay below the number
     /// of pixels.
     fn label(&self, image: &ImageBuf<AlphaColor<Color>>) -> Vec<Option<SegmentId>>;
-
-    /// Splits `image` into segments.
-    ///
-    /// # Arguments
-    /// * `image` - The image to split.
-    ///
-    /// # Returns
-    /// The segments of `image`, or no segments if `image` has no opaque pixels.
-    fn segment(&self, image: &ImageBuf<AlphaColor<Color>>) -> Segments {
-        if image.pixels().iter().all(AlphaColor::is_transparent) {
-            return Segments::default();
-        }
-        Segments::of_labels(image, &self.label(image))
-    }
 }
 
 /// The segmentation algorithm to use.
@@ -68,10 +54,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::next::{
-        extract::segment::test_helpers::{self, BLACK},
-        image::Size,
-    };
+    use crate::next::extract::segment::test_helpers::{self, BLACK};
 
     /// A 2x1 image of an opaque pixel and a transparent pixel.
     fn image() -> ImageBuf<AlphaColor<Color>> {
@@ -87,38 +70,5 @@ mod tests {
 
         // Assert
         assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn test_segment() {
-        // Act
-        let actual = Segmentation::default().segment(&image());
-
-        // Assert: the transparent pixel is in no segment.
-        assert_eq!(actual.segments().len(), 1);
-    }
-
-    #[test]
-    fn test_segment_transparent() {
-        // Arrange
-        let image = test_helpers::image(&[[None, None]]);
-
-        // Act
-        let actual = Segmentation::default().segment(&image);
-
-        // Assert
-        assert!(actual.segments().is_empty());
-    }
-
-    #[test]
-    fn test_segment_empty() {
-        // Arrange
-        let image = ImageBuf::new(Size::new(0, 0), Vec::new());
-
-        // Act
-        let actual = Segmentation::default().segment(&image);
-
-        // Assert
-        assert!(actual.segments().is_empty());
     }
 }

@@ -1,4 +1,4 @@
-use super::{centroid::Centroid, point::Point, position::Position};
+use super::{centroid::Centroid, estimation::Estimation, point::Point, position::Position};
 use crate::next::{
     color::{AlphaColor, Color},
     image::{ImageBuf, Size},
@@ -34,7 +34,7 @@ impl SegmentId {
 /// The color, center, weight, and radial distance of one segment.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Segment {
-    /// The mean color of the pixels, weighted by their opacity.
+    /// The color estimated from the pixels.
     color: Color,
     /// The mean position of the pixels, weighted by their opacity.
     center: Position,
@@ -50,20 +50,30 @@ impl Segment {
     /// # Arguments
     /// * `image` - The image that was segmented.
     /// * `pixels` - The indices of the pixels of the segment.
+    /// * `estimation` - How to choose the color from the pixels.
     ///
     /// # Returns
     /// The segment, or `None` if its pixels have no weight.
-    fn of_pixels(image: &ImageBuf<AlphaColor<Color>>, pixels: &[usize]) -> Option<Self> {
+    fn of_pixels(
+        image: &ImageBuf<AlphaColor<Color>>,
+        pixels: &[usize],
+        estimation: Estimation,
+    ) -> Option<Self> {
         let mut centroid = Centroid::default();
         let mut weighted_sum = 0.0;
+        let mut colors = Vec::with_capacity(pixels.len());
         for &index in pixels {
             let point = Point::at(image, index);
             centroid.add(point);
             weighted_sum += point.weight() * measure_radial_distance(index, image.size());
+            colors.push(image.pixels()[index]);
         }
         let mean = centroid.point()?;
+        let color = estimation
+            .estimate(&colors)
+            .expect("a segment with weight has pixels");
         Some(Self {
-            color: mean.color(),
+            color,
             center: mean.position(),
             weight: mean.weight(),
             radial_distance: weighted_sum / mean.weight(),
@@ -79,10 +89,10 @@ impl Segment {
     )
 )]
 impl Segment {
-    /// Returns the mean color of the pixels, weighted by their opacity.
+    /// Returns the color estimated from the pixels.
     ///
     /// # Returns
-    /// The mean color.
+    /// The color of the segment.
     #[inline]
     pub(crate) const fn color(self) -> Color {
         self.color
@@ -118,7 +128,7 @@ impl Segment {
     /// Returns the segment as a point, with its position unscaled.
     ///
     /// # Returns
-    /// The mean color at the center, with the weight.
+    /// The color at the center, with the weight.
     #[inline]
     pub(crate) fn point(self) -> Point {
         Point::new(self.color, self.center, self.weight)
@@ -139,6 +149,7 @@ impl Segments {
     /// * `image` - The image that was segmented.
     /// * `labels` - The segment of each pixel of `image`, row by row, or `None` for a pixel in no
     ///   segment. The numbers need not be contiguous.
+    /// * `estimation` - How to choose the color of each segment from its pixels.
     ///
     /// # Returns
     /// The segments of `image` that have weight.
@@ -148,6 +159,7 @@ impl Segments {
     pub(crate) fn of_labels(
         image: &ImageBuf<AlphaColor<Color>>,
         labels: &[Option<SegmentId>],
+        estimation: Estimation,
     ) -> Self {
         assert_eq!(
             labels.len(),
@@ -156,7 +168,7 @@ impl Segments {
         );
         let segments = PixelGroups::of_labels(labels)
             .iter()
-            .filter_map(|pixels| Segment::of_pixels(image, pixels))
+            .filter_map(|pixels| Segment::of_pixels(image, pixels, estimation))
             .collect();
         Self { segments }
     }
@@ -286,6 +298,7 @@ mod tests {
         let actual = Segments::of_labels(
             &image(),
             &[Some(SegmentId::new(0)), Some(SegmentId::new(1))],
+            Estimation::default(),
         );
 
         // Assert
@@ -298,6 +311,7 @@ mod tests {
         let actual = Segments::of_labels(
             &image(),
             &[Some(SegmentId::new(3)), Some(SegmentId::new(1))],
+            Estimation::default(),
         );
 
         // Assert
@@ -310,34 +324,52 @@ mod tests {
         let actual = Segments::of_labels(
             &image(),
             &[Some(SegmentId::new(3)), Some(SegmentId::new(1))],
+            Estimation::default(),
         );
 
-        // Assert: number 1 is the light pixel.
-        assert_approx_eq!(actual.segments[0].color().to_oklab().l, 0.8);
+        // Assert: number 1 is the half-transparent pixel.
+        assert_approx_eq!(actual.segments[0].weight(), 0.5);
     }
 
     #[test]
     fn test_of_labels_sums_opacity_as_weight() {
         // Act: both pixels in one segment.
-        let actual = Segments::of_labels(&image(), &[Some(SegmentId::new(0)); 2]);
+        let actual = Segments::of_labels(
+            &image(),
+            &[Some(SegmentId::new(0)); 2],
+            Estimation::default(),
+        );
 
         // Assert
         assert_approx_eq!(actual.segments[0].weight(), 1.5);
     }
 
     #[test]
-    fn test_of_labels_weights_color_by_opacity() {
-        // Act: both pixels in one segment.
-        let actual = Segments::of_labels(&image(), &[Some(SegmentId::new(0)); 2]);
+    fn test_of_labels_estimates_color_from_pixels() {
+        // Arrange
+        let image = image();
+        let estimation = Estimation::default();
 
-        // Assert: (0.2 * 1.0 + 0.8 * 0.5) / 1.5 = 0.4
-        assert_approx_eq!(actual.segments[0].color().to_oklab().l, 0.4);
+        // Act: both pixels in one segment.
+        let actual = Segments::of_labels(&image, &[Some(SegmentId::new(0)); 2], estimation);
+
+        // Assert
+        let color = actual.segments[0].color().to_oklab();
+        let expected = estimation.estimate(image.pixels()).unwrap().to_oklab();
+        assert_eq!(
+            [color.l, color.a, color.b],
+            [expected.l, expected.a, expected.b]
+        );
     }
 
     #[test]
     fn test_of_labels_weights_center_by_opacity() {
         // Act: both pixels in one segment.
-        let actual = Segments::of_labels(&image(), &[Some(SegmentId::new(0)); 2]);
+        let actual = Segments::of_labels(
+            &image(),
+            &[Some(SegmentId::new(0)); 2],
+            Estimation::default(),
+        );
 
         // Assert: (0.25 * 1.0 + 0.75 * 0.5) / 1.5
         assert_approx_eq!(actual.segments[0].center().x, 0.625 / 1.5);
@@ -350,7 +382,7 @@ mod tests {
         let labels = [Some(SegmentId::new(0)), None, None, Some(SegmentId::new(0))];
 
         // Act
-        let actual = Segments::of_labels(&image, &labels);
+        let actual = Segments::of_labels(&image, &labels, Estimation::default());
 
         // Assert
         assert_approx_eq!(actual.segments[0].radial_distance(), 0.375);
@@ -370,7 +402,7 @@ mod tests {
         let labels = [Some(SegmentId::new(0)), Some(SegmentId::new(0)), None];
 
         // Act
-        let actual = Segments::of_labels(&image, &labels);
+        let actual = Segments::of_labels(&image, &labels, Estimation::default());
 
         // Assert: (1/3 * 1.0 + 0 * 0.5) / 1.5
         assert_approx_eq!(actual.segments[0].radial_distance(), 2.0 / 9.0);
@@ -383,7 +415,7 @@ mod tests {
         let labels = [Some(SegmentId::new(0)), Some(SegmentId::new(1))];
 
         // Act
-        let actual = Segments::of_labels(&image, &labels);
+        let actual = Segments::of_labels(&image, &labels, Estimation::default());
 
         // Assert
         assert_eq!(actual.segments.len(), 1);
@@ -392,7 +424,11 @@ mod tests {
     #[test]
     fn test_segment_point() {
         // Arrange
-        let segments = Segments::of_labels(&image(), &[Some(SegmentId::new(0)), None]);
+        let segments = Segments::of_labels(
+            &image(),
+            &[Some(SegmentId::new(0)), None],
+            Estimation::default(),
+        );
         let segment = segments.segments[0];
 
         // Act
@@ -405,7 +441,11 @@ mod tests {
     #[test]
     fn test_of_labels_skips_unlabeled_pixels() {
         // Act
-        let actual = Segments::of_labels(&image(), &[Some(SegmentId::new(0)), None]);
+        let actual = Segments::of_labels(
+            &image(),
+            &[Some(SegmentId::new(0)), None],
+            Estimation::default(),
+        );
 
         // Assert
         assert_eq!(actual.segments[0].weight(), 1.0);
@@ -414,7 +454,7 @@ mod tests {
     #[test]
     fn test_of_labels_without_labels() {
         // Act
-        let actual = Segments::of_labels(&image(), &[None; 2]);
+        let actual = Segments::of_labels(&image(), &[None; 2], Estimation::default());
 
         // Assert
         assert!(actual.segments.is_empty());
@@ -424,7 +464,7 @@ mod tests {
     #[should_panic(expected = "the number of labels does not match the number of pixels")]
     fn test_of_labels_label_count_mismatch() {
         // Act
-        let _ = Segments::of_labels(&image(), &[None]);
+        let _ = Segments::of_labels(&image(), &[None], Estimation::default());
     }
 
     #[test]
