@@ -1,31 +1,44 @@
 use super::{point::Point, position::Position};
 use crate::next::{
-    color::{AlphaColor, Oklab},
+    color::{AlphaColor, Color, Oklab},
     image::{ImageBuf, Size},
 };
 
-/// Black in OKLab.
-pub(super) const BLACK: Oklab = gray(0.0);
+/// Black.
+pub(super) const BLACK: Color = gray(0.0);
 
-/// White in OKLab.
-pub(super) const WHITE: Oklab = gray(1.0);
+/// White.
+pub(super) const WHITE: Color = gray(1.0);
 
-/// Creates a gray in OKLab.
+/// Creates a color from its OKLab values.
 ///
 /// # Arguments
-/// * `l` - The lightness of the gray, from 0.0 to 1.0.
+/// * `l` - The lightness.
+/// * `a` - The green-red value.
+/// * `b` - The blue-yellow value.
+///
+/// # Returns
+/// The color with the given OKLab values.
+pub(super) const fn color(l: f64, a: f64, b: f64) -> Color {
+    Color::from_oklab(Oklab::new(l, a, b))
+}
+
+/// Creates a gray.
+///
+/// # Arguments
+/// * `l` - The lightness of the gray in OKLab, from 0.0 to 1.0.
 ///
 /// # Returns
 /// The gray with lightness `l`.
-pub(super) const fn gray(l: f64) -> Oklab {
-    Oklab::new(l, 0.0, 0.0)
+pub(super) const fn gray(l: f64) -> Color {
+    color(l, 0.0, 0.0)
 }
 
 /// Creates a gradient from black to white.
 ///
 /// # Returns
 /// `N` grays of evenly spaced lightness, from black to white.
-pub(super) fn gradient<const N: usize>() -> [Oklab; N] {
+pub(super) fn gradient<const N: usize>() -> [Color; N] {
     std::array::from_fn(|index| gray(index as f64 / (N - 1) as f64))
 }
 
@@ -36,7 +49,7 @@ pub(super) fn gradient<const N: usize>() -> [Oklab; N] {
 ///
 /// # Returns
 /// The image with opaque pixels of the given colors.
-pub(super) fn image<const W: usize>(rows: &[[Option<Oklab>; W]]) -> ImageBuf<AlphaColor<Oklab>> {
+pub(super) fn image<const W: usize>(rows: &[[Option<Color>; W]]) -> ImageBuf<AlphaColor<Color>> {
     let pixels = rows
         .iter()
         .flatten()
@@ -55,7 +68,7 @@ pub(super) fn image<const W: usize>(rows: &[[Option<Oklab>; W]]) -> ImageBuf<Alp
 ///
 /// # Returns
 /// The point of `color` at the origin, counting fully in a mean.
-pub(super) fn point(color: Oklab) -> Point {
+pub(super) fn point(color: Color) -> Point {
     Point::new(color, Position::new(0.0, 0.0), 1.0)
 }
 
@@ -66,6 +79,6 @@ pub(super) fn point(color: Oklab) -> Point {
 ///
 /// # Returns
 /// The point of `color` at the origin, counting for nothing in a mean.
-pub(super) fn weightless(color: Oklab) -> Point {
+pub(super) fn weightless(color: Color) -> Point {
     Point::new(color, Position::new(0.0, 0.0), 0.0)
 }

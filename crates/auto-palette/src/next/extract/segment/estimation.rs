@@ -1,5 +1,5 @@
 use crate::next::{
-    color::{AlphaColor, Oklab},
+    color::{AlphaColor, Color, Oklab},
     math::{DistanceMetric, Vector},
 };
 
@@ -31,7 +31,7 @@ impl Estimation {
     ///
     /// # Returns
     /// The color of the segment, or `None` if there are no pixels.
-    pub(crate) fn estimate(&self, pixels: &[AlphaColor<Oklab>]) -> Option<Oklab> {
+    pub(crate) fn estimate(&self, pixels: &[AlphaColor<Color>]) -> Option<Color> {
         match self {
             Self::Biweight(biweight) => biweight.estimate(pixels),
         }
@@ -84,7 +84,7 @@ impl Biweight {
     ///
     /// # Returns
     /// The color of the segment, or `None` if there are no pixels.
-    fn estimate(&self, pixels: &[AlphaColor<Oklab>]) -> Option<Oklab> {
+    fn estimate(&self, pixels: &[AlphaColor<Color>]) -> Option<Color> {
         let mut estimate = find_median(pixels)?;
         for _ in 0..Self::PASSES {
             estimate = self.reweight(pixels, estimate);
@@ -100,13 +100,14 @@ impl Biweight {
     ///
     /// # Returns
     /// The weighted mean, or `estimate` if no pixel counts.
-    fn reweight(&self, pixels: &[AlphaColor<Oklab>], estimate: Oklab) -> Oklab {
-        let target = Vector([estimate.l, estimate.a, estimate.b]);
+    fn reweight(&self, pixels: &[AlphaColor<Color>], estimate: Color) -> Color {
+        let Oklab { l, a, b } = estimate.to_oklab();
+        let target = Vector([l, a, b]);
         let mut weighted_sum = Vector::default();
         let mut total_weight = 0.0;
         for pixel in pixels {
-            let color = pixel.color();
-            let vector = Vector([color.l, color.a, color.b]);
+            let Oklab { l, a, b } = pixel.color().to_oklab();
+            let vector = Vector([l, a, b]);
             let distance = vector.distance(target, DistanceMetric::Euclidean);
             let ratio = distance / self.scale;
             let squared_ratio = ratio * ratio;
@@ -119,7 +120,7 @@ impl Biweight {
             return estimate;
         }
         let [l, a, b] = (weighted_sum / total_weight).0;
-        Oklab::new(l, a, b)
+        Color::from_oklab(Oklab::new(l, a, b))
     }
 }
 
@@ -138,7 +139,7 @@ impl Default for Biweight {
 ///
 /// # Returns
 /// The medians as a color, or `None` if there are no pixels.
-fn find_median(pixels: &[AlphaColor<Oklab>]) -> Option<Oklab> {
+fn find_median(pixels: &[AlphaColor<Color>]) -> Option<Color> {
     if pixels.is_empty() {
         return None;
     }
@@ -146,15 +147,15 @@ fn find_median(pixels: &[AlphaColor<Oklab>]) -> Option<Oklab> {
     let mut a_values = Vec::with_capacity(pixels.len());
     let mut b_values = Vec::with_capacity(pixels.len());
     for pixel in pixels {
-        let color = pixel.color();
-        l_values.push(color.l);
-        a_values.push(color.a);
-        b_values.push(color.b);
+        let Oklab { l, a, b } = pixel.color().to_oklab();
+        l_values.push(l);
+        a_values.push(a);
+        b_values.push(b);
     }
     let l = find_middle(&mut l_values);
     let a = find_middle(&mut a_values);
     let b = find_middle(&mut b_values);
-    Some(Oklab::new(l, a, b))
+    Some(Color::from_oklab(Oklab::new(l, a, b)))
 }
 
 /// Finds the middle of some values, the upper one of an even number.
@@ -175,7 +176,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::next::extract::segment::test_helpers::gray;
+    use crate::next::extract::segment::test_helpers::{color, gray};
 
     #[test]
     fn test_new_accepts_scale() {
@@ -217,7 +218,7 @@ mod tests {
         let actual = Estimation::default().estimate(&pixels).unwrap();
 
         // Assert
-        assert_eq!(actual.l, 0.0);
+        assert_eq!(actual.to_oklab().l, 0.0);
     }
 
     #[test]
@@ -232,7 +233,7 @@ mod tests {
         let actual = Estimation::default().estimate(&pixels).unwrap();
 
         // Assert
-        assert!(actual.l < 0.01);
+        assert!(actual.to_oklab().l < 0.01);
     }
 
     #[test]
@@ -244,20 +245,20 @@ mod tests {
         let actual = find_median(&pixels).unwrap();
 
         // Assert
-        assert_eq!(actual.l, 0.3);
+        assert_eq!(actual.to_oklab().l, 0.3);
     }
 
     #[test]
     fn test_find_median_mixes_channels_of_different_pixels() {
         // Arrange
         let pixels = [
-            AlphaColor::opaque(Oklab::new(0.1, 0.0, -0.1)),
-            AlphaColor::opaque(Oklab::new(0.2, 0.1, 0.0)),
-            AlphaColor::opaque(Oklab::new(0.3, -0.1, 0.1)),
+            AlphaColor::opaque(color(0.1, 0.0, -0.1)),
+            AlphaColor::opaque(color(0.2, 0.1, 0.0)),
+            AlphaColor::opaque(color(0.3, -0.1, 0.1)),
         ];
 
         // Act
-        let actual = find_median(&pixels).unwrap();
+        let actual = find_median(&pixels).unwrap().to_oklab();
 
         // Assert
         assert_eq!([actual.l, actual.a, actual.b], [0.2, 0.0, 0.0]);
@@ -272,7 +273,7 @@ mod tests {
         let actual = Biweight::default().reweight(&pixels, gray(0.03));
 
         // Assert
-        assert!(actual.l > 0.02);
+        assert!(actual.to_oklab().l > 0.02);
     }
 
     #[test]
@@ -284,7 +285,7 @@ mod tests {
         let actual = Biweight::default().reweight(&pixels, gray(1.0));
 
         // Assert
-        assert_eq!(actual.l, 1.0);
+        assert_eq!(actual.to_oklab().l, 1.0);
     }
 
     #[test]
@@ -297,7 +298,7 @@ mod tests {
         let actual = biweight.reweight(&pixels, gray(0.5));
 
         // Assert
-        assert_eq!(actual.l, 0.5);
+        assert_eq!(actual.to_oklab().l, 0.5);
     }
 
     #[test]
@@ -310,6 +311,6 @@ mod tests {
         let actual = biweight.reweight(&pixels, gray(1.0));
 
         // Assert
-        assert_eq!(actual.l, 0.5);
+        assert_eq!(actual.to_oklab().l, 0.5);
     }
 }

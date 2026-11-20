@@ -2,7 +2,7 @@ use std::num::NonZeroU32;
 
 use super::{assignment::Assignment, hamerly::Hamerly, initialization::Initialization};
 use crate::next::{
-    color::{AlphaColor, Oklab},
+    color::{AlphaColor, Color},
     extract::segment::{
         centroid::Centroid,
         point::Point,
@@ -96,7 +96,7 @@ impl Default for KMeans {
 }
 
 impl Segmenter for KMeans {
-    fn label(&self, image: &ImageBuf<AlphaColor<Oklab>>) -> Vec<Option<SegmentId>> {
+    fn label(&self, image: &ImageBuf<AlphaColor<Color>>) -> Vec<Option<SegmentId>> {
         let count = self.segments.get() as usize;
         let scale = self.compactness / Position::segment_length(image.size(), count);
         let points = Point::of_pixels(image, scale);
@@ -468,7 +468,7 @@ mod tests {
         update(&mut centers, &[centroid]);
 
         // Assert
-        assert_eq!(centers[0].color().l, 1.0);
+        assert_eq!(centers[0].color().to_oklab().l, 1.0);
     }
 
     #[test]
@@ -480,7 +480,7 @@ mod tests {
         update(&mut centers, &[Centroid::default()]);
 
         // Assert
-        assert_eq!(centers[0].color().l, 0.0);
+        assert_eq!(centers[0].color().to_oklab().l, 0.0);
     }
 
     #[test]

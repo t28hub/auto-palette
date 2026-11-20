@@ -2,7 +2,7 @@ use std::num::NonZeroU32;
 
 use super::resample::{Resample, Resampling};
 use crate::next::{
-    color::{AlphaColor, Oklab},
+    color::{AlphaColor, Color},
     image::ImageBuf,
     ImageRef,
 };
@@ -24,14 +24,15 @@ impl Preprocessor {
     /// Prepares an [`ImageRef`] for extraction.
     ///
     /// 1. Scales the image down to at most `max_pixels` pixels with `resampling`.
-    /// 2. Converts each pixel to OKLab and keeps its alpha. Fully transparent pixels become black.
+    /// 2. Converts each pixel to a [`Color`] and keeps its alpha. Fully transparent pixels become
+    ///    black.
     ///
     /// # Arguments
     /// * `image` - The image to prepare.
     ///
     /// # Returns
-    /// The image in OKLab, or an empty image if `image` has no pixels.
-    pub(crate) fn preprocess(&self, image: &ImageRef<'_>) -> ImageBuf<AlphaColor<Oklab>> {
+    /// The image of colors, or an empty image if `image` has no pixels.
+    pub(crate) fn preprocess(&self, image: &ImageRef<'_>) -> ImageBuf<AlphaColor<Color>> {
         let size = image.size().fit(self.max_pixels);
         if size.is_empty() {
             return ImageBuf::new(size, Vec::new());
@@ -39,9 +40,9 @@ impl Preprocessor {
         let scaled = self.resampling.resample(image, size);
         scaled.map(|pixel| {
             if pixel.is_transparent() {
-                AlphaColor::transparent(Oklab::new(0.0, 0.0, 0.0))
+                AlphaColor::transparent(Color::BLACK)
             } else {
-                pixel.map_color(Oklab::from)
+                pixel.map_color(Color::from_linear_rgb)
             }
         })
     }
@@ -117,7 +118,7 @@ mod tests {
         let [pixel] = actual.pixels() else {
             panic!("expected one pixel");
         };
-        let color = pixel.color();
+        let color = pixel.color().to_oklab();
         assert_eq!((color.l, color.a, color.b), (0.0, 0.0, 0.0));
         assert!(pixel.is_transparent());
     }

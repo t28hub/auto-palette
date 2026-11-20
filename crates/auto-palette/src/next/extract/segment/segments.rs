@@ -1,6 +1,6 @@
 use super::{centroid::Centroid, point::Point, position::Position};
 use crate::next::{
-    color::{AlphaColor, Oklab},
+    color::{AlphaColor, Color},
     image::{ImageBuf, Size},
 };
 
@@ -35,7 +35,7 @@ impl SegmentId {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Segment {
     /// The mean color of the pixels, weighted by their opacity.
-    color: Oklab,
+    color: Color,
     /// The mean position of the pixels, weighted by their opacity.
     center: Position,
     /// The sum of the opacities of the pixels.
@@ -53,7 +53,7 @@ impl Segment {
     ///
     /// # Returns
     /// The segment, or `None` if its pixels have no weight.
-    fn of_pixels(image: &ImageBuf<AlphaColor<Oklab>>, pixels: &[usize]) -> Option<Self> {
+    fn of_pixels(image: &ImageBuf<AlphaColor<Color>>, pixels: &[usize]) -> Option<Self> {
         let mut centroid = Centroid::default();
         let mut weighted_sum = 0.0;
         for &index in pixels {
@@ -84,7 +84,7 @@ impl Segment {
     /// # Returns
     /// The mean color.
     #[inline]
-    pub(crate) const fn color(self) -> Oklab {
+    pub(crate) const fn color(self) -> Color {
         self.color
     }
 
@@ -146,7 +146,7 @@ impl Segments {
     /// # Panics
     /// Panics if the number of `labels` does not match the number of pixels.
     pub(crate) fn of_labels(
-        image: &ImageBuf<AlphaColor<Oklab>>,
+        image: &ImageBuf<AlphaColor<Color>>,
         labels: &[Option<SegmentId>],
     ) -> Self {
         assert_eq!(
@@ -261,7 +261,7 @@ mod tests {
     };
 
     /// A 2x1 image of an opaque dark pixel and a half-transparent light pixel.
-    fn image() -> ImageBuf<AlphaColor<Oklab>> {
+    fn image() -> ImageBuf<AlphaColor<Color>> {
         ImageBuf::new(
             Size::new(2, 1),
             vec![
@@ -313,7 +313,7 @@ mod tests {
         );
 
         // Assert: number 1 is the light pixel.
-        assert_approx_eq!(actual.segments[0].color().l, 0.8);
+        assert_approx_eq!(actual.segments[0].color().to_oklab().l, 0.8);
     }
 
     #[test]
@@ -331,7 +331,7 @@ mod tests {
         let actual = Segments::of_labels(&image(), &[Some(SegmentId::new(0)); 2]);
 
         // Assert: (0.2 * 1.0 + 0.8 * 0.5) / 1.5 = 0.4
-        assert_approx_eq!(actual.segments[0].color().l, 0.4);
+        assert_approx_eq!(actual.segments[0].color().to_oklab().l, 0.4);
     }
 
     #[test]

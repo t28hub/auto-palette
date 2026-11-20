@@ -189,13 +189,13 @@ mod tests {
     use crate::{
         assert_approx_eq,
         next::{
-            color::Oklab,
+            color::Color,
             extract::segment::test_helpers::{gradient, gray, image, BLACK, WHITE},
         },
     };
 
     /// Creates the points of a row of opaque pixels, with positions scaled.
-    fn row<const W: usize>(colors: [Oklab; W], scale: f64) -> Vec<Point> {
+    fn row<const W: usize>(colors: [Color; W], scale: f64) -> Vec<Point> {
         Point::of_pixels(&image(&[colors.map(Some)]), scale)
     }
 
@@ -207,7 +207,7 @@ mod tests {
             Initialization::PlusPlus { seed }
                 .centers(&points, 4)
                 .iter()
-                .map(|center| center.color().l)
+                .map(|center| center.color().to_oklab().l)
                 .collect()
         };
 
@@ -228,7 +228,7 @@ mod tests {
         let actual = farthest_first(&points, 1);
 
         // Assert: (0.0 + 0.4 + 1.0) / 3
-        assert_approx_eq!(actual[0].color().l, 1.4 / 3.0);
+        assert_approx_eq!(actual[0].color().to_oklab().l, 1.4 / 3.0);
     }
 
     #[test]
@@ -240,7 +240,7 @@ mod tests {
         let actual = farthest_first(&points, 2);
 
         // Assert
-        assert_approx_eq!(actual[1].color().l, 1.0);
+        assert_approx_eq!(actual[1].color().to_oklab().l, 1.0);
     }
 
     #[test]
