@@ -28,7 +28,7 @@ pub(crate) trait Segmenter {
         if image.pixels().iter().all(AlphaColor::is_transparent) {
             return Segments::default();
         }
-        Segments::new(image, &self.label(image))
+        Segments::of_labels(image, &self.label(image))
     }
 }
 
