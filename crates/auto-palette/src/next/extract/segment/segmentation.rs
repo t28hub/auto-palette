@@ -1,6 +1,6 @@
 use super::{kmeans::KMeans, segments::SegmentId, snic::Snic, Segments};
 use crate::next::{
-    color::{AlphaColor, Oklab},
+    color::{AlphaColor, Color},
     image::ImageBuf,
 };
 
@@ -15,7 +15,7 @@ pub(crate) trait Segmenter {
     /// The segment of each pixel, row by row, or `None` for a pixel in no segment, such as a
     /// transparent pixel or noise. The numbers need not be contiguous, but stay below the number
     /// of pixels.
-    fn label(&self, image: &ImageBuf<AlphaColor<Oklab>>) -> Vec<Option<SegmentId>>;
+    fn label(&self, image: &ImageBuf<AlphaColor<Color>>) -> Vec<Option<SegmentId>>;
 
     /// Splits `image` into segments.
     ///
@@ -24,7 +24,7 @@ pub(crate) trait Segmenter {
     ///
     /// # Returns
     /// The segments of `image`, or no segments if `image` has no opaque pixels.
-    fn segment(&self, image: &ImageBuf<AlphaColor<Oklab>>) -> Segments {
+    fn segment(&self, image: &ImageBuf<AlphaColor<Color>>) -> Segments {
         if image.pixels().iter().all(AlphaColor::is_transparent) {
             return Segments::default();
         }
@@ -55,7 +55,7 @@ impl Default for Segmentation {
 }
 
 impl Segmenter for Segmentation {
-    fn label(&self, image: &ImageBuf<AlphaColor<Oklab>>) -> Vec<Option<SegmentId>> {
+    fn label(&self, image: &ImageBuf<AlphaColor<Color>>) -> Vec<Option<SegmentId>> {
         match self {
             Self::Snic(snic) => snic.label(image),
             Self::KMeans(kmeans) => kmeans.label(image),
@@ -74,7 +74,7 @@ mod tests {
     };
 
     /// A 2x1 image of an opaque pixel and a transparent pixel.
-    fn image() -> ImageBuf<AlphaColor<Oklab>> {
+    fn image() -> ImageBuf<AlphaColor<Color>> {
         test_helpers::image(&[[Some(BLACK), None]])
     }
 

@@ -11,6 +11,9 @@ pub(crate) use self::{alpha_color::AlphaColor, linear_rgb::LinearRgb, oklab::Okl
 pub(crate) struct Color(Oklab);
 
 impl Color {
+    /// Black.
+    pub(crate) const BLACK: Self = Self(Oklab::new(0.0, 0.0, 0.0));
+
     /// Creates a color from OKLab.
     ///
     /// # Arguments
@@ -18,16 +21,21 @@ impl Color {
     ///
     /// # Returns
     /// The color with the given OKLab values.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "called by the saliency, which is not implemented yet"
-        )
-    )]
     #[inline]
     pub(crate) const fn from_oklab(oklab: Oklab) -> Self {
         Self(oklab)
+    }
+
+    /// Creates a color from linear sRGB.
+    ///
+    /// # Arguments
+    /// * `rgb` - The color in linear sRGB.
+    ///
+    /// # Returns
+    /// The color converted from `rgb`.
+    #[inline]
+    pub(crate) fn from_linear_rgb(rgb: LinearRgb) -> Self {
+        Self(Oklab::from(rgb))
     }
 
     /// Converts the color to OKLab.
@@ -54,6 +62,22 @@ mod tests {
 
         // Assert
         assert_eq!([actual.0.l, actual.0.a, actual.0.b], [0.5, 0.1, -0.1]);
+    }
+
+    #[test]
+    fn test_from_linear_rgb_converts_to_oklab() {
+        // Arrange
+        let rgb = LinearRgb::new(1.0, 0.0, 0.0);
+
+        // Act
+        let actual = Color::from_linear_rgb(rgb);
+
+        // Assert
+        let expected = Oklab::from(rgb);
+        assert_eq!(
+            [actual.0.l, actual.0.a, actual.0.b],
+            [expected.l, expected.a, expected.b]
+        );
     }
 
     #[test]

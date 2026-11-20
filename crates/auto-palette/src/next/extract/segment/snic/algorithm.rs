@@ -1,7 +1,7 @@
 use std::{cmp::Reverse, collections::BinaryHeap, num::NonZeroU32};
 
 use crate::next::{
-    color::{AlphaColor, Oklab},
+    color::{AlphaColor, Color},
     extract::{
         nearest::nearest,
         segment::{
@@ -74,7 +74,7 @@ impl Default for Snic {
 }
 
 impl Segmenter for Snic {
-    fn label(&self, image: &ImageBuf<AlphaColor<Oklab>>) -> Vec<Option<SegmentId>> {
+    fn label(&self, image: &ImageBuf<AlphaColor<Color>>) -> Vec<Option<SegmentId>> {
         let size = image.size();
         let grid = size.fit(self.segments);
         let scale = self.compactness / Position::segment_length(size, grid.pixel_count());

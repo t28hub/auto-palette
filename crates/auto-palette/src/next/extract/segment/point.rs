@@ -1,6 +1,6 @@
 use super::position::Position;
 use crate::next::{
-    color::{AlphaColor, Oklab},
+    color::{AlphaColor, Color, Oklab},
     image::ImageBuf,
     math::{DistanceMetric, Vector},
 };
@@ -18,15 +18,16 @@ impl Point {
     /// Creates a point from a color, a position, and a weight.
     ///
     /// # Arguments
-    /// * `color` - The color in OKLab.
+    /// * `color` - The color.
     /// * `position` - The position in the image.
     /// * `weight` - How much the point counts in a mean.
     ///
     /// # Returns
-    /// A point whose vector holds L, a, b, x, and y in this order.
+    /// A point whose vector holds L, a, b in OKLab, x, and y in this order.
     #[inline]
-    pub(crate) fn new(color: Oklab, position: Position, weight: f64) -> Self {
-        let vector = Vector([color.l, color.a, color.b, position.x, position.y]);
+    pub(crate) fn new(color: Color, position: Position, weight: f64) -> Self {
+        let Oklab { l, a, b } = color.to_oklab();
+        let vector = Vector([l, a, b, position.x, position.y]);
         Self::of_vector(vector, weight)
     }
 
@@ -52,7 +53,7 @@ impl Point {
     /// # Returns
     /// The color, position, and opacity of the pixel.
     #[inline]
-    pub(crate) fn at(image: &ImageBuf<AlphaColor<Oklab>>, index: usize) -> Self {
+    pub(crate) fn at(image: &ImageBuf<AlphaColor<Color>>, index: usize) -> Self {
         let pixel = image.pixels()[index];
         Self::new(
             pixel.color(),
@@ -69,7 +70,7 @@ impl Point {
     ///
     /// # Returns
     /// The point of each pixel, row by row.
-    pub(crate) fn of_pixels(image: &ImageBuf<AlphaColor<Oklab>>, scale: f64) -> Vec<Self> {
+    pub(crate) fn of_pixels(image: &ImageBuf<AlphaColor<Color>>, scale: f64) -> Vec<Self> {
         (0..image.pixels().len())
             .map(|index| Self::at(image, index).scale_position(scale))
             .collect()
@@ -110,14 +111,14 @@ impl Point {
         self.vector.distance(other.vector, metric)
     }
 
-    /// Returns the color in OKLab.
+    /// Returns the color.
     ///
     /// # Returns
     /// The L, a, and b values as a color.
     #[inline]
-    pub(crate) fn color(self) -> Oklab {
+    pub(crate) fn color(self) -> Color {
         let [l, a, b, _, _] = self.vector.0;
-        Oklab::new(l, a, b)
+        Color::from_oklab(Oklab::new(l, a, b))
     }
 
     /// Returns the position, which segmenters scale with [`Self::of_pixels`].
@@ -154,7 +155,7 @@ mod tests {
     use super::*;
     use crate::{
         assert_approx_eq,
-        next::extract::segment::test_helpers::{image, BLACK, WHITE},
+        next::extract::segment::test_helpers::{color, image, BLACK, WHITE},
     };
 
     #[test]
@@ -166,7 +167,7 @@ mod tests {
         let actual = Point::at(&image, 1);
 
         // Assert
-        assert_approx_eq!(actual.color().l, 1.0);
+        assert_approx_eq!(actual.color().to_oklab().l, 1.0);
         assert_eq!(actual.position(), Position::new(0.75, 0.25));
         assert_eq!(actual.weight(), 1.0);
     }
@@ -187,7 +188,7 @@ mod tests {
     #[test]
     fn test_new() {
         // Act
-        let actual = Point::new(Oklab::new(0.5, 0.1, -0.1), Position::new(0.3, 0.4), 1.0);
+        let actual = Point::new(color(0.5, 0.1, -0.1), Position::new(0.3, 0.4), 1.0);
 
         // Assert: L, a, b, x, and y in order.
         assert_eq!(actual.vector(), Vector([0.5, 0.1, -0.1, 0.3, 0.4]));
@@ -220,7 +221,7 @@ mod tests {
     #[test]
     fn test_scale_position() {
         // Arrange
-        let point = Point::new(Oklab::new(0.5, 0.1, -0.1), Position::new(0.3, 0.4), 1.0);
+        let point = Point::new(color(0.5, 0.1, -0.1), Position::new(0.3, 0.4), 1.0);
 
         // Act
         let actual = point.scale_position(2.0);
@@ -248,7 +249,7 @@ mod tests {
         let point = Point::of_vector(Vector([0.5, 0.1, -0.1, 0.3, 0.4]), 1.0);
 
         // Act
-        let actual = point.color();
+        let actual = point.color().to_oklab();
 
         // Assert
         assert_eq!([actual.l, actual.a, actual.b], [0.5, 0.1, -0.1]);
