@@ -1,4 +1,7 @@
-use crate::next::image::Size;
+use crate::next::{
+    image::Size,
+    math::{DistanceMetric, Vector},
+};
 
 /// A position in an image, scaled so that the longer side spans 0.0 to 1.0.
 ///
@@ -67,6 +70,19 @@ impl Position {
         let pixels_per_side = pixels_per_segment.sqrt();
         pixels_per_side * Self::pixel_length(size)
     }
+
+    /// Returns the distance to another position.
+    ///
+    /// # Arguments
+    /// * `other` - The position to measure the distance to.
+    /// * `metric` - The metric for the distance.
+    ///
+    /// # Returns
+    /// The distance between the two positions.
+    #[inline]
+    pub(crate) fn distance(self, other: Self, metric: DistanceMetric) -> f64 {
+        Vector([self.x, self.y]).distance(Vector([other.x, other.y]), metric)
+    }
 }
 
 #[cfg(test)]
@@ -74,6 +90,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
+    use crate::assert_approx_eq;
 
     #[rstest]
     #[case::first(0, Position::new(0.125, 0.125))]
@@ -119,5 +136,15 @@ mod tests {
 
         // Assert: two pixels of 0.25 each.
         assert_eq!(actual, 0.5);
+    }
+
+    #[test]
+    fn test_distance() {
+        // Act
+        let actual = Position::new(0.0, 0.0)
+            .distance(Position::new(0.3, 0.4), DistanceMetric::SquaredEuclidean);
+
+        // Assert
+        assert_approx_eq!(actual, 0.25);
     }
 }

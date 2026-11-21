@@ -4,7 +4,13 @@ mod linear_rgb;
 mod oklab;
 mod srgb8;
 
-pub(crate) use self::{alpha_color::AlphaColor, linear_rgb::LinearRgb, oklab::Oklab, srgb8::Srgb8};
+pub(crate) use self::{
+    alpha_color::AlphaColor,
+    delta_e::DeltaE,
+    linear_rgb::LinearRgb,
+    oklab::Oklab,
+    srgb8::Srgb8,
+};
 
 /// A color, independent of any color space.
 #[derive(Debug, Clone, Copy)]

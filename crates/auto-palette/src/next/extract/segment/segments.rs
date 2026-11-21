@@ -44,6 +44,33 @@ pub(crate) struct Segment {
     radial_distance: f64,
 }
 
+#[cfg(test)]
+impl Segment {
+    /// Creates a segment from its statistics.
+    ///
+    /// # Arguments
+    /// * `color` - The color.
+    /// * `center` - The center.
+    /// * `weight` - The weight.
+    /// * `radial_distance` - The mean distance of the pixels from the image center.
+    ///
+    /// # Returns
+    /// The segment with the given statistics.
+    pub(crate) const fn new(
+        color: Color,
+        center: Position,
+        weight: f64,
+        radial_distance: f64,
+    ) -> Self {
+        Self {
+            color,
+            center,
+            weight,
+            radial_distance,
+        }
+    }
+}
+
 impl Segment {
     /// Collects the statistics of the pixels of one segment.
     ///
@@ -81,13 +108,6 @@ impl Segment {
     }
 }
 
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "read by the color selection, which is not implemented yet"
-    )
-)]
 impl Segment {
     /// Returns the color estimated from the pixels.
     ///
@@ -129,6 +149,13 @@ impl Segment {
     ///
     /// # Returns
     /// The color at the center, with the weight.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "called by the color selection, which is not implemented yet"
+        )
+    )]
     #[inline]
     pub(crate) fn point(self) -> Point {
         Point::new(self.color, self.center, self.weight)
@@ -177,13 +204,6 @@ impl Segments {
     ///
     /// # Returns
     /// The segments, in the order of their numbers.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "called by the color selection, which is not implemented yet"
-        )
-    )]
     pub(crate) fn segments(&self) -> &[Segment] {
         &self.segments
     }

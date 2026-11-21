@@ -4,27 +4,20 @@ use super::Color;
 ///
 /// From [CSS Color 4](https://www.w3.org/TR/css-color-4/#color-difference-code).
 #[derive(Debug, Clone, Copy)]
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "selected by the saliency, which is not implemented yet"
-    )
-)]
 pub(crate) enum DeltaE {
     /// ΔEOK, the Euclidean distance in OKLab.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "selected by the builder, which is not implemented yet"
+        )
+    )]
     Ok,
     /// ΔEOKr2, ΔEOK with the lightness through Ottosson's toe and a and b doubled.
     Okr2,
 }
 
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "called by the saliency, which is not implemented yet"
-    )
-)]
 impl DeltaE {
     /// Measures the difference between two colors.
     ///
