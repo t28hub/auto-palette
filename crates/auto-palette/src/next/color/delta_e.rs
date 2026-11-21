@@ -1,6 +1,6 @@
 use super::Color;
 
-/// How to measure the difference between two colors.
+/// A formula for the difference between two colors.
 ///
 /// From [CSS Color 4](https://www.w3.org/TR/css-color-4/#color-difference-code).
 #[derive(Debug, Clone, Copy)]

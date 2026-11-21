@@ -11,7 +11,7 @@ impl<const N: usize> Vector<N> {
     ///
     /// # Arguments
     /// * `other` - The vector to measure the distance to.
-    /// * `metric` - How to measure the distance.
+    /// * `metric` - The metric for the distance.
     ///
     /// # Returns
     /// The distance between the two vectors.

@@ -3,7 +3,7 @@ use crate::next::{
     math::{DistanceMetric, Vector},
 };
 
-/// How to choose the color of a segment from its pixels.
+/// A method that chooses the color of a segment from its pixels.
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum Estimation {
     /// Tukey's biweight, which ignores pixels far from the estimate.
