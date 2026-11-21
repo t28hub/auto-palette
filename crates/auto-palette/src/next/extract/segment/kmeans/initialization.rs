@@ -4,7 +4,7 @@ use crate::next::{
     math::DistanceMetric,
 };
 
-/// How k-means picks its initial centers.
+/// A method that picks the initial centers of k-means.
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum Initialization {
     /// Greedy k-means++, which draws centers at random, favoring those far from the previous ones.

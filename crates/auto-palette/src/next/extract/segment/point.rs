@@ -102,7 +102,7 @@ impl Point {
     ///
     /// # Arguments
     /// * `other` - The point to measure the distance to.
-    /// * `metric` - How to measure the distance.
+    /// * `metric` - The metric for the distance.
     ///
     /// # Returns
     /// The distance between the two points.

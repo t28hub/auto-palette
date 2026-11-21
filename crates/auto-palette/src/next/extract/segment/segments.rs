@@ -77,7 +77,7 @@ impl Segment {
     /// # Arguments
     /// * `image` - The image that was segmented.
     /// * `pixels` - The indices of the pixels of the segment.
-    /// * `estimation` - How to choose the color from the pixels.
+    /// * `estimation` - The method that chooses the color from the pixels.
     ///
     /// # Returns
     /// The segment, or `None` if its pixels have no weight.
@@ -176,7 +176,7 @@ impl Segments {
     /// * `image` - The image that was segmented.
     /// * `labels` - The segment of each pixel of `image`, row by row, or `None` for a pixel in no
     ///   segment. The numbers need not be contiguous.
-    /// * `estimation` - How to choose the color of each segment from its pixels.
+    /// * `estimation` - The method that chooses the color of each segment from its pixels.
     ///
     /// # Returns
     /// The segments of `image` that have weight.

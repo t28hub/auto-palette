@@ -25,7 +25,7 @@ pub(crate) struct KMeans {
     tolerance: f64,
     /// How much distance counts against color difference.
     compactness: f64,
-    /// How to pick the initial centers.
+    /// The method that picks the initial centers.
     initialization: Initialization,
 }
 
@@ -49,7 +49,7 @@ impl KMeans {
     /// * `max_iterations` - The largest number of iterations.
     /// * `tolerance` - The squared distance at or below which a moving center counts as settled.
     /// * `compactness` - How much distance counts against color difference.
-    /// * `initialization` - How to pick the initial centers.
+    /// * `initialization` - The method that picks the initial centers.
     ///
     /// # Returns
     /// K-means, or `None` if `tolerance` or `compactness` is negative or not finite.
