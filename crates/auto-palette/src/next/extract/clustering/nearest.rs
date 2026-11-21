@@ -1,4 +1,4 @@
-use crate::next::{extract::segment::point::Point, math::DistanceMetric};
+use crate::next::{extract::point::Point, math::DistanceMetric};
 
 /// The nearest and the second nearest centers of a point.
 #[derive(Debug)]
@@ -45,7 +45,7 @@ mod tests {
     use super::*;
     use crate::{
         assert_approx_eq,
-        next::extract::segment::test_helpers::{gray, point, BLACK, WHITE},
+        next::extract::test_helpers::{gray, point, BLACK, WHITE},
     };
 
     #[test]

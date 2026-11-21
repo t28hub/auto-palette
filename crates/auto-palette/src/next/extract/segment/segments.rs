@@ -1,6 +1,7 @@
-use super::{centroid::Centroid, estimation::Estimation, point::Point, position::Position};
+use super::estimation::Estimation;
 use crate::next::{
     color::{AlphaColor, Color},
+    extract::{centroid::Centroid, point::Point, position::Position},
     image::{ImageBuf, Size},
 };
 
@@ -289,7 +290,7 @@ mod tests {
     use super::*;
     use crate::{
         assert_approx_eq,
-        next::extract::segment::test_helpers::{self, gray, BLACK},
+        next::extract::test_helpers::{self, gray, BLACK},
     };
 
     /// A 2x1 image of an opaque dark pixel and a half-transparent light pixel.

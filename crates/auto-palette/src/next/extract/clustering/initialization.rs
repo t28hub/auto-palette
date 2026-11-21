@@ -1,6 +1,6 @@
 use super::random::SplitMix64;
 use crate::next::{
-    extract::segment::{centroid::Centroid, point::Point},
+    extract::{centroid::Centroid, point::Point},
     math::DistanceMetric,
 };
 
@@ -12,7 +12,7 @@ pub(crate) enum Initialization {
         /// The seed of the random number generator.
         seed: u64,
     },
-    /// Farthest first, which picks the pixel farthest from the previous centers.
+    /// Farthest first, which picks the point farthest from the previous centers.
     #[cfg_attr(
         not(test),
         expect(
@@ -30,11 +30,11 @@ impl Initialization {
     /// Picks the initial centers.
     ///
     /// # Arguments
-    /// * `points` - The pixels, with at least one of positive weight.
+    /// * `points` - The points, with at least one of positive weight.
     /// * `count` - The number of centers to pick.
     ///
     /// # Returns
-    /// Up to `count` centers, fewer if every pixel already sits on a center.
+    /// Up to `count` centers, fewer if every point already sits on a center.
     pub(super) fn centers(self, points: &[Point], count: usize) -> Vec<Point> {
         match self {
             Self::PlusPlus { seed } => plus_plus(points, count, &mut SplitMix64::new(seed)),
@@ -54,12 +54,12 @@ impl Default for Initialization {
 /// Picks the initial centers with greedy k-means++ ([`Initialization::PlusPlus`]).
 ///
 /// # Arguments
-/// * `points` - The pixels, with at least one of positive weight.
+/// * `points` - The points, with at least one of positive weight.
 /// * `count` - The number of centers to pick.
 /// * `random` - The random number generator.
 ///
 /// # Returns
-/// Up to `count` centers, fewer if every pixel already sits on a center.
+/// Up to `count` centers, fewer if every point already sits on a center.
 fn plus_plus(points: &[Point], count: usize, random: &mut SplitMix64) -> Vec<Point> {
     let weights = cumulative(points.iter().map(|point| point.weight()));
     let first = draw(&weights, random);
@@ -94,17 +94,17 @@ fn plus_plus(points: &[Point], count: usize, random: &mut SplitMix64) -> Vec<Poi
 /// Picks the initial centers farthest first ([`Initialization::Farthest`]).
 ///
 /// # Arguments
-/// * `points` - The pixels, with at least one of positive weight.
+/// * `points` - The points, with at least one of positive weight.
 /// * `count` - The number of centers to pick.
 ///
 /// # Returns
-/// Up to `count` centers, fewer if every pixel already sits on a center.
+/// Up to `count` centers, fewer if every point already sits on a center.
 fn farthest_first(points: &[Point], count: usize) -> Vec<Point> {
     let mut mean = Centroid::default();
     for &point in points {
         mean.add(point);
     }
-    let mut centers = vec![mean.point().expect("there is at least one opaque pixel")];
+    let mut centers = vec![mean.point().expect("there is a point of positive weight")];
     let mut distances = vec![f64::INFINITY; points.len()];
     shrink(&mut distances, points, centers[0]);
     while centers.len() < count {
@@ -112,7 +112,7 @@ fn farthest_first(points: &[Point], count: usize) -> Vec<Point> {
             .iter()
             .enumerate()
             .max_by(|a, b| a.1.total_cmp(b.1))
-            .expect("there is at least one pixel");
+            .expect("there is at least one point");
         if *distance == 0.0 {
             break;
         }
@@ -123,11 +123,11 @@ fn farthest_first(points: &[Point], count: usize) -> Vec<Point> {
     centers
 }
 
-/// Lowers the weighted distance of each pixel to its nearest center for a new center.
+/// Lowers the weighted distance of each point to its nearest center for a new center.
 ///
 /// # Arguments
-/// * `distances` - The weighted squared distance of each pixel to its nearest center so far.
-/// * `points` - The point of each pixel.
+/// * `distances` - The weighted squared distance of each point to its nearest center so far.
+/// * `points` - The points to measure from.
 /// * `center` - The new center.
 fn shrink(distances: &mut [f64], points: &[Point], center: Point) {
     for (distance, point) in distances.iter_mut().zip(points) {
@@ -135,11 +135,11 @@ fn shrink(distances: &mut [f64], points: &[Point], center: Point) {
     }
 }
 
-/// Returns the weighted squared distance of a pixel to its nearest center, with a new center added.
+/// Returns the weighted squared distance of a point to its nearest center, with a new center added.
 ///
 /// # Arguments
-/// * `distance` - The weighted squared distance of the pixel to its nearest center so far.
-/// * `point` - The pixel to measure from.
+/// * `distance` - The weighted squared distance of the point to its nearest center so far.
+/// * `point` - The point to measure from.
 /// * `center` - The new center.
 ///
 /// # Returns
@@ -190,7 +190,7 @@ mod tests {
         assert_approx_eq,
         next::{
             color::Color,
-            extract::segment::test_helpers::{gradient, gray, image, BLACK, WHITE},
+            extract::test_helpers::{gradient, gray, image, BLACK, WHITE},
         },
     };
 
@@ -232,7 +232,7 @@ mod tests {
     }
 
     #[test]
-    fn test_farthest_first_picks_farthest_pixel() {
+    fn test_farthest_first_picks_farthest_point() {
         // Arrange: white is farther than black from the mean.
         let points = row([BLACK, gray(0.4), WHITE], 0.0);
 
@@ -256,7 +256,7 @@ mod tests {
     }
 
     #[test]
-    fn test_farthest_first_stops_when_every_pixel_is_a_center() {
+    fn test_farthest_first_stops_when_every_point_is_a_center() {
         // Arrange
         let points = row([BLACK, WHITE], 0.0);
 

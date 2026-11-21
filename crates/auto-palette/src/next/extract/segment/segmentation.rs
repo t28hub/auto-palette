@@ -54,7 +54,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::next::extract::segment::test_helpers::{self, BLACK};
+    use crate::next::extract::test_helpers::{self, BLACK};
 
     /// A 2x1 image of an opaque pixel and a transparent pixel.
     fn image() -> ImageBuf<AlphaColor<Color>> {
