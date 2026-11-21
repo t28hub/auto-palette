@@ -16,13 +16,6 @@ impl Default for Estimation {
     }
 }
 
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "called by the segment statistics, which are not implemented yet"
-    )
-)]
 impl Estimation {
     /// Estimates the color of a segment.
     ///
@@ -108,6 +101,8 @@ impl Biweight {
         for pixel in pixels {
             let Oklab { l, a, b } = pixel.color().to_oklab();
             let vector = Vector([l, a, b]);
+
+            // Tukey's weight: (1 - u²)² for u = distance / scale < 1, else 0, times the opacity.
             let distance = vector.distance(target, DistanceMetric::Euclidean);
             let ratio = distance / self.scale;
             let squared_ratio = ratio * ratio;
@@ -116,6 +111,8 @@ impl Biweight {
             weighted_sum += vector * weight;
             total_weight += weight;
         }
+
+        // No opaque pixel lies within the scale, so nothing pulls the estimate.
         if total_weight == 0.0 {
             return estimate;
         }

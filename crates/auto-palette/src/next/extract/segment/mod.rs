@@ -11,6 +11,7 @@ mod snic;
 mod test_helpers;
 
 pub(crate) use self::{
+    estimation::Estimation,
     segmentation::{Segmentation, Segmenter},
     segments::Segments,
 };

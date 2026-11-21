@@ -1,9 +1,14 @@
 use super::{
     preprocessor::Preprocessor,
-    segment::{Segmentation, Segmenter},
+    segment::{Estimation, Segmentation, Segmenter, Segments},
     Extraction,
 };
-use crate::next::{Error, ImageRef};
+use crate::next::{
+    color::{AlphaColor, Color},
+    image::ImageBuf,
+    Error,
+    ImageRef,
+};
 
 /// Extracts the prominent colors of an image.
 #[derive(Debug, Clone, Default)]
@@ -12,6 +17,8 @@ pub struct Extractor {
     preprocessor: Preprocessor,
     /// Splits the prepared image into segments.
     segmentation: Segmentation,
+    /// Chooses the color of each segment from its pixels.
+    estimation: Estimation,
 }
 
 impl Extractor {
@@ -52,14 +59,103 @@ impl Extractor {
     /// The result of extracting colors from `image`.
     fn extract_image(&self, image: &ImageRef<'_>) -> Result<Extraction, Error> {
         let image = self.preprocessor.preprocess(image);
-        let _segments = self.segmentation.segment(&image);
+        let _segments = self.split_into_segments(&image);
         todo!("select colors from the segments")
+    }
+
+    /// Splits a prepared image into segments and summarizes each.
+    ///
+    /// # Arguments
+    /// * `image` - The prepared image.
+    ///
+    /// # Returns
+    /// The segments of `image`, or no segments if `image` has no opaque pixels.
+    fn split_into_segments(&self, image: &ImageBuf<AlphaColor<Color>>) -> Segments {
+        if image.pixels().iter().all(AlphaColor::is_transparent) {
+            return Segments::default();
+        }
+        let labels = self.segmentation.label(image);
+        Segments::of_labels(image, &labels, self.estimation)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::next::{color::Oklab, image::Size};
+
+    #[test]
+    fn test_split_into_segments_single_pixel() {
+        // Arrange
+        let image = ImageBuf::new(Size::new(1, 1), vec![AlphaColor::opaque(Color::BLACK)]);
+
+        // Act
+        let actual = Extractor::new().split_into_segments(&image);
+
+        // Assert
+        assert_eq!(actual.segments().len(), 1);
+    }
+
+    #[test]
+    fn test_split_into_segments_two_pixels() {
+        // Arrange
+        let white = Color::from_oklab(Oklab::new(1.0, 0.0, 0.0));
+        let image = ImageBuf::new(
+            Size::new(2, 1),
+            vec![AlphaColor::opaque(Color::BLACK), AlphaColor::opaque(white)],
+        );
+
+        // Act
+        let actual = Extractor::new().split_into_segments(&image);
+
+        // Assert
+        assert_eq!(actual.segments().len(), 2);
+    }
+
+    #[test]
+    fn test_split_into_segments_ignores_transparent_pixels() {
+        // Arrange
+        let image = ImageBuf::new(
+            Size::new(2, 1),
+            vec![
+                AlphaColor::opaque(Color::BLACK),
+                AlphaColor::transparent(Color::BLACK),
+            ],
+        );
+
+        // Act
+        let actual = Extractor::new().split_into_segments(&image);
+
+        // Assert
+        assert_eq!(actual.segments().len(), 1);
+    }
+
+    #[test]
+    fn test_split_into_segments_transparent_image() {
+        // Arrange
+        let image = ImageBuf::new(
+            Size::new(2, 1),
+            vec![AlphaColor::transparent(Color::BLACK); 2],
+        );
+
+        // Act
+        let actual = Extractor::new().split_into_segments(&image);
+
+        // Assert
+        assert!(actual.segments().is_empty());
+    }
+
+    #[test]
+    fn test_split_into_segments_empty() {
+        // Arrange
+        let image = ImageBuf::new(Size::new(0, 0), Vec::new());
+
+        // Act
+        let actual = Extractor::new().split_into_segments(&image);
+
+        // Assert
+        assert!(actual.segments().is_empty());
+    }
 
     #[test]
     fn test_extract_accepts_image_inputs() {
