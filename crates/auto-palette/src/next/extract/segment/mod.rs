@@ -10,8 +10,10 @@ mod snic;
 #[cfg(test)]
 mod test_helpers;
 
+#[cfg(test)]
+pub(crate) use self::position::Position;
 pub(crate) use self::{
     estimation::Estimation,
     segmentation::{Segmentation, Segmenter},
-    segments::Segments,
+    segments::{Segment, Segments},
 };

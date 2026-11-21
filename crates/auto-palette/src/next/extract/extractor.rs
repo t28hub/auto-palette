@@ -1,5 +1,6 @@
 use super::{
     preprocessor::Preprocessor,
+    saliency::Saliency,
     segment::{Estimation, Segmentation, Segmenter, Segments},
     Extraction,
 };
@@ -19,6 +20,8 @@ pub struct Extractor {
     segmentation: Segmentation,
     /// Chooses the color of each segment from its pixels.
     estimation: Estimation,
+    /// Scores how much each segment stands out.
+    saliency: Saliency,
 }
 
 impl Extractor {
@@ -59,7 +62,8 @@ impl Extractor {
     /// The result of extracting colors from `image`.
     fn extract_image(&self, image: &ImageRef<'_>) -> Result<Extraction, Error> {
         let image = self.preprocessor.preprocess(image);
-        let _segments = self.split_into_segments(&image);
+        let segments = self.split_into_segments(&image);
+        let _saliency = self.saliency.score(segments.segments());
         todo!("select colors from the segments")
     }
 
