@@ -1,6 +1,6 @@
 use super::{assignment::Assignment, nearest::nearest};
 use crate::next::{
-    extract::segment::{centroid::Centroid, point::Point},
+    extract::{centroid::Centroid, point::Point},
     math::DistanceMetric,
 };
 
@@ -160,7 +160,7 @@ mod tests {
     use super::*;
     use crate::{
         assert_approx_eq,
-        next::extract::segment::test_helpers::{gray, point, weightless, BLACK, WHITE},
+        next::extract::test_helpers::{gray, point, weightless, BLACK, WHITE},
     };
 
     #[test]

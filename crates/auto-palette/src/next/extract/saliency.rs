@@ -140,7 +140,7 @@ mod tests {
         assert_approx_eq,
         next::{
             color::{Color, Oklab},
-            extract::segment::Position,
+            extract::position::Position,
         },
     };
 

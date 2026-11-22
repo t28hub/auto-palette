@@ -3,14 +3,11 @@ use std::{cmp::Reverse, collections::BinaryHeap, num::NonZeroU32};
 use crate::next::{
     color::{AlphaColor, Color},
     extract::{
+        centroid::Centroid,
         nearest::nearest,
-        segment::{
-            centroid::Centroid,
-            point::Point,
-            position::Position,
-            segments::SegmentId,
-            Segmenter,
-        },
+        point::Point,
+        position::Position,
+        segment::{segments::SegmentId, Segmenter},
     },
     image::{ImageBuf, Size},
     math::DistanceMetric,
@@ -195,7 +192,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::next::extract::segment::test_helpers::{image, BLACK, WHITE};
+    use crate::next::extract::test_helpers::{image, BLACK, WHITE};
 
     /// Creates SNIC that aims for `segments` segments.
     fn snic(segments: u32) -> Snic {

@@ -5,7 +5,7 @@ use crate::next::{
     math::{DistanceMetric, Vector},
 };
 
-/// A color at a position with a weight: a pixel, or the mean of a group of pixels.
+/// A color at a position with a weight: a pixel, a segment, or the mean of a group of them.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Point {
     /// The L, a, b, x, and y values.
@@ -162,7 +162,7 @@ mod tests {
     use super::*;
     use crate::{
         assert_approx_eq,
-        next::extract::segment::test_helpers::{color, image, BLACK, WHITE},
+        next::extract::test_helpers::{color, image, BLACK, WHITE},
     };
 
     #[test]
