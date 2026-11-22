@@ -1,4 +1,19 @@
-/// The result of extracting colors from an image with an [`Extractor`](super::Extractor).
+mod centroid;
+mod clustering;
+mod extractor;
+mod nearest;
+mod point;
+mod position;
+mod preprocessor;
+mod resampling;
+mod saliency;
+mod segmentation;
+#[cfg(test)]
+mod test_helpers;
+
+pub use extractor::Extractor;
+
+/// The result of extracting colors from an image with an [`Extractor`].
 #[derive(Debug, Clone)]
 pub struct Extraction {
     // Private so that the representation can change without breaking users.

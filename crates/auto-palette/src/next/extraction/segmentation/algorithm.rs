@@ -20,7 +20,7 @@ pub(crate) trait Segmenter {
 
 /// The segmentation algorithm to use.
 #[derive(Debug, Clone)]
-pub(crate) enum Segmentation {
+pub(crate) enum SegmentationAlgorithm {
     /// SNIC ([`Snic`]).
     Snic(Snic),
     /// K-means ([`KMeans`]).
@@ -34,13 +34,13 @@ pub(crate) enum Segmentation {
     KMeans(KMeans),
 }
 
-impl Default for Segmentation {
+impl Default for SegmentationAlgorithm {
     fn default() -> Self {
         Self::Snic(Snic::default())
     }
 }
 
-impl Segmenter for Segmentation {
+impl Segmenter for SegmentationAlgorithm {
     fn label(&self, image: &ImageBuf<AlphaColor<Color>>) -> Vec<Option<SegmentId>> {
         match self {
             Self::Snic(snic) => snic.label(image),
@@ -54,7 +54,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::next::extract::test_helpers::{self, BLACK};
+    use crate::next::extraction::test_helpers::{self, BLACK};
 
     /// A 2x1 image of an opaque pixel and a transparent pixel.
     fn image() -> ImageBuf<AlphaColor<Color>> {
@@ -62,9 +62,12 @@ mod tests {
     }
 
     #[rstest]
-    #[case::snic(Segmentation::Snic(Snic::default()), Snic::default().label(&image()))]
-    #[case::kmeans(Segmentation::KMeans(KMeans::default()), KMeans::default().label(&image()))]
-    fn test_label(#[case] segmentation: Segmentation, #[case] expected: Vec<Option<SegmentId>>) {
+    #[case::snic(SegmentationAlgorithm::Snic(Snic::default()), Snic::default().label(&image()))]
+    #[case::kmeans(SegmentationAlgorithm::KMeans(KMeans::default()), KMeans::default().label(&image()))]
+    fn test_label(
+        #[case] segmentation: SegmentationAlgorithm,
+        #[case] expected: Vec<Option<SegmentId>>,
+    ) {
         // Act
         let actual = segmentation.label(&image());
 

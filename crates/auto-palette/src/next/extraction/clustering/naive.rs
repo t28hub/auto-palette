@@ -1,5 +1,5 @@
 use super::{assignment::Assignment, nearest::nearest};
-use crate::next::extract::{centroid::Centroid, point::Point};
+use crate::next::extraction::{centroid::Centroid, point::Point};
 
 /// An assignment that measures every center for every point.
 #[derive(Debug)]
@@ -33,7 +33,7 @@ impl Assignment for Naive {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::next::extract::test_helpers::{point, weightless, BLACK, WHITE};
+    use crate::next::extraction::test_helpers::{point, weightless, BLACK, WHITE};
 
     #[test]
     fn test_assign() {

@@ -40,7 +40,7 @@ mod tests {
     use super::*;
     use crate::{
         assert_approx_eq,
-        next::extract::{position::Position, test_helpers::gray},
+        next::extraction::{position::Position, test_helpers::gray},
     };
 
     #[test]

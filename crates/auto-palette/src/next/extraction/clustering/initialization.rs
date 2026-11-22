@@ -1,6 +1,6 @@
 use super::random::SplitMix64;
 use crate::next::{
-    extract::{centroid::Centroid, point::Point},
+    extraction::{centroid::Centroid, point::Point},
     math::DistanceMetric,
 };
 
@@ -190,7 +190,7 @@ mod tests {
         assert_approx_eq,
         next::{
             color::Color,
-            extract::test_helpers::{gradient, gray, image, BLACK, WHITE},
+            extraction::test_helpers::{gradient, gray, image, BLACK, WHITE},
         },
     };
 

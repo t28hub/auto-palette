@@ -2,11 +2,11 @@ use std::num::NonZeroU32;
 
 use crate::next::{
     color::{AlphaColor, Color},
-    extract::{
+    extraction::{
         clustering::{self, Initialization, Lloyd},
         point::Point,
         position::Position,
-        segment::{segments::SegmentId, Segmenter},
+        segmentation::{segments::SegmentId, Segmenter},
     },
     image::ImageBuf,
 };
@@ -86,7 +86,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::next::extract::test_helpers::{gradient, image, BLACK, WHITE};
+    use crate::next::extraction::test_helpers::{gradient, image, BLACK, WHITE};
 
     /// Creates k-means that aims for `segments` segments, with initial centers from `initialization`.
     fn kmeans(segments: u32, initialization: Initialization) -> KMeans {

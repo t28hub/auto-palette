@@ -1,7 +1,7 @@
 use std::num::NonZeroU32;
 
 use super::{cluster::Cluster, initialization::Initialization, lloyd::Lloyd};
-use crate::next::extract::point::Point;
+use crate::next::extraction::point::Point;
 
 /// K-means, which picks initial centers and then moves them with Lloyd's algorithm.
 #[derive(Debug, Clone, Copy)]
@@ -93,7 +93,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::next::extract::test_helpers::{point, weightless, BLACK, WHITE};
+    use crate::next::extraction::test_helpers::{point, weightless, BLACK, WHITE};
 
     #[rstest]
     #[case::empty(vec![])]

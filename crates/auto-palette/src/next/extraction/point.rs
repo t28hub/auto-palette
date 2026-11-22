@@ -162,7 +162,7 @@ mod tests {
     use super::*;
     use crate::{
         assert_approx_eq,
-        next::extract::test_helpers::{color, image, BLACK, WHITE},
+        next::extraction::test_helpers::{color, image, BLACK, WHITE},
     };
 
     #[test]
