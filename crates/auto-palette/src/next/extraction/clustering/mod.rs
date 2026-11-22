@@ -1,4 +1,3 @@
-mod algorithm;
 mod assignment;
 mod cluster;
 mod hamerly;
