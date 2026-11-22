@@ -1,5 +1,5 @@
 use super::{cluster::Cluster, kmeans::KMeans};
-use crate::next::extract::point::Point;
+use crate::next::extraction::point::Point;
 
 /// The clustering algorithm to use.
 #[derive(Debug, Clone, Copy)]
@@ -42,7 +42,7 @@ mod tests {
     use std::num::NonZeroU32;
 
     use super::*;
-    use crate::next::extract::{
+    use crate::next::extraction::{
         clustering::{Initialization, Lloyd},
         test_helpers::{point, BLACK, WHITE},
     };

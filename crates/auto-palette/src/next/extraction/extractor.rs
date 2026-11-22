@@ -1,7 +1,7 @@
 use super::{
     preprocessor::Preprocessor,
     saliency::Saliency,
-    segment::{Estimation, Segmentation, Segmenter, Segments},
+    segmentation::{Estimation, SegmentationAlgorithm, Segmenter, Segments},
     Extraction,
 };
 use crate::next::{
@@ -17,7 +17,7 @@ pub struct Extractor {
     /// Prepares the image for extraction.
     preprocessor: Preprocessor,
     /// Splits the prepared image into segments.
-    segmentation: Segmentation,
+    segmentation: SegmentationAlgorithm,
     /// Chooses the color of each segment from its pixels.
     estimation: Estimation,
     /// Scores how much each segment stands out.

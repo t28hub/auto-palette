@@ -1,7 +1,7 @@
-use super::Resample;
+use super::Resampler;
 use crate::next::{
     color::{AlphaColor, LinearRgb},
-    extract::nearest::nearest,
+    extraction::nearest::nearest,
     image::{ImageBuf, Size},
     ImageRef,
 };
@@ -13,7 +13,7 @@ use crate::next::{
 /// it can miss small details.
 pub(super) struct NearestNeighbor;
 
-impl Resample for NearestNeighbor {
+impl Resampler for NearestNeighbor {
     fn resample(&self, image: &ImageRef<'_>, size: Size) -> ImageBuf<AlphaColor<LinearRgb>> {
         let source = image.size();
         let columns: Vec<u32> = (0..size.width)

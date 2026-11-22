@@ -1,4 +1,4 @@
-use super::segment::Segment;
+use super::segmentation::Segment;
 use crate::next::{color::DeltaE, math::DistanceMetric};
 
 /// A method that scores each segment by how much it stands out.
@@ -140,7 +140,7 @@ mod tests {
         assert_approx_eq,
         next::{
             color::{Color, Oklab},
-            extract::position::Position,
+            extraction::position::Position,
         },
     };
 

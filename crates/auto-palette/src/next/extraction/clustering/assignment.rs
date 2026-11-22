@@ -1,4 +1,4 @@
-use crate::next::extract::{centroid::Centroid, point::Point};
+use crate::next::extraction::{centroid::Centroid, point::Point};
 
 /// A way to find the nearest center of each point, iteration after iteration.
 pub(super) trait Assignment {

@@ -4,10 +4,10 @@
 
 mod color;
 mod error;
-mod extract;
+mod extraction;
 mod image;
 mod math;
 
 pub use error::{Error, ErrorKind};
-pub use extract::{Extraction, Extractor};
+pub use extraction::{Extraction, Extractor};
 pub use image::{ImageRef, PixelFormat};

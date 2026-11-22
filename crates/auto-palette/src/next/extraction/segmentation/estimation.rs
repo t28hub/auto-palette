@@ -173,7 +173,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::next::extract::test_helpers::{color, gray};
+    use crate::next::extraction::test_helpers::{color, gray};
 
     #[test]
     fn test_new_accepts_scale() {

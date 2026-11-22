@@ -55,7 +55,7 @@ reviews:
         strictly as a release.
         - Public floats are `f64`.
         - Public names describe behavior, not algorithms, except the variants of
-          `Segmentation`.
+          `SegmentationAlgorithm`.
         - `#[must_use]` goes only on public functions that return a non-`Result` value.
         - Output must be deterministic, with fixed tie-breaking and default seeds.
 

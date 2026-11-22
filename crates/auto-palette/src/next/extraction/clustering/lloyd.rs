@@ -2,7 +2,7 @@ use std::num::NonZeroU32;
 
 use super::{assignment::Assignment, hamerly::Hamerly};
 use crate::next::{
-    extract::{centroid::Centroid, point::Point},
+    extraction::{centroid::Centroid, point::Point},
     math::DistanceMetric,
 };
 
@@ -124,7 +124,7 @@ mod tests {
 
     use super::*;
     use crate::next::{
-        extract::{
+        extraction::{
             clustering::{naive::Naive, random::SplitMix64},
             test_helpers::{gray, point, BLACK, WHITE},
         },

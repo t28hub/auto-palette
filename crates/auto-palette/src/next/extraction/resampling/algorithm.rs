@@ -9,7 +9,7 @@ use crate::next::{
 ///
 /// Implementations read pixels with [`ImageRef::pixel_rows`] or [`ImageRef::pixel`] and convert
 /// them into [`AlphaColor<LinearRgb>`], so they only work on linear values.
-pub(crate) trait Resample {
+pub(crate) trait Resampler {
     /// Scales `image` to `size`.
     ///
     /// # Arguments
@@ -23,7 +23,7 @@ pub(crate) trait Resample {
 
 /// The resampling algorithm to use.
 #[derive(Debug, Clone, Copy, Default)]
-pub(crate) enum Resampling {
+pub(crate) enum ResamplingAlgorithm {
     /// Area averaging ([`AreaAverage`]).
     #[default]
     Area,
@@ -38,7 +38,7 @@ pub(crate) enum Resampling {
     Nearest,
 }
 
-impl Resample for Resampling {
+impl Resampler for ResamplingAlgorithm {
     fn resample(&self, image: &ImageRef<'_>, size: Size) -> ImageBuf<AlphaColor<LinearRgb>> {
         match self {
             Self::Area => AreaAverage.resample(image, size),
@@ -55,9 +55,9 @@ mod tests {
     use crate::next::PixelFormat;
 
     #[rstest]
-    #[case::area(Resampling::Area)]
-    #[case::nearest(Resampling::Nearest)]
-    fn test_resample(#[case] resampling: Resampling) {
+    #[case::area(ResamplingAlgorithm::Area)]
+    #[case::nearest(ResamplingAlgorithm::Nearest)]
+    fn test_resample(#[case] resampling: ResamplingAlgorithm) {
         // Arrange
         let pixels = [255; 4 * 4];
         let image = ImageRef::new(&pixels, 4, 4, PixelFormat::Luma8).unwrap();

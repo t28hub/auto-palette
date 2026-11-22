@@ -1,4 +1,4 @@
-use super::Resample;
+use super::Resampler;
 use crate::next::{
     color::{AlphaColor, LinearRgb},
     image::{ImageBuf, Size},
@@ -9,7 +9,7 @@ use crate::next::{
 /// [box sampling](https://en.wikipedia.org/wiki/Image_scaling#Box_sampling).
 pub(super) struct AreaAverage;
 
-impl Resample for AreaAverage {
+impl Resampler for AreaAverage {
     fn resample(&self, image: &ImageRef<'_>, size: Size) -> ImageBuf<AlphaColor<LinearRgb>> {
         let source = image.size();
         let width = size.width as usize;

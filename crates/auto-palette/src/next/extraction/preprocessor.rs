@@ -1,6 +1,6 @@
 use std::num::NonZeroU32;
 
-use super::resample::{Resample, Resampling};
+use super::resampling::{Resampler, ResamplingAlgorithm};
 use crate::next::{
     color::{AlphaColor, Color},
     image::ImageBuf,
@@ -13,7 +13,7 @@ pub(crate) struct Preprocessor {
     /// The largest number of pixels to keep. Larger images are scaled down.
     max_pixels: NonZeroU32,
     /// The algorithm that scales the image down.
-    resampling: Resampling,
+    resampling: ResamplingAlgorithm,
 }
 
 impl Preprocessor {
@@ -52,7 +52,7 @@ impl Default for Preprocessor {
     fn default() -> Self {
         Self {
             max_pixels: Self::DEFAULT_MAX_PIXELS,
-            resampling: Resampling::default(),
+            resampling: ResamplingAlgorithm::default(),
         }
     }
 }
@@ -100,9 +100,9 @@ mod tests {
     }
 
     #[rstest]
-    #[case::area(Resampling::Area)]
-    #[case::nearest(Resampling::Nearest)]
-    fn test_preprocess_transparent_is_black(#[case] resampling: Resampling) {
+    #[case::area(ResamplingAlgorithm::Area)]
+    #[case::nearest(ResamplingAlgorithm::Nearest)]
+    fn test_preprocess_transparent_is_black(#[case] resampling: ResamplingAlgorithm) {
         // Arrange: transparent white, which `Nearest` passes through with its color.
         let pixels = [255, 255, 255, 0];
         let image = ImageRef::from_rgba8(&pixels, 1, 1).unwrap();

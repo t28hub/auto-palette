@@ -1,12 +1,12 @@
 mod adjacency;
+mod algorithm;
 mod estimation;
 mod kmeans;
-mod segmentation;
 mod segments;
 mod snic;
 
 pub(crate) use self::{
+    algorithm::{SegmentationAlgorithm, Segmenter},
     estimation::Estimation,
-    segmentation::{Segmentation, Segmenter},
     segments::{Segment, Segments},
 };
