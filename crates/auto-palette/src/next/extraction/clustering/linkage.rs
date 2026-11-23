@@ -303,6 +303,23 @@ mod tests {
     }
 
     #[test]
+    fn test_merge_by_complete_updates_differences_after_merge() {
+        // Arrange: once 1 and 2 merge, 0 is 0.18 from them, so 0 and 3, 0.15 apart, merge first.
+        let points = [
+            point(gray(0.15)),
+            point(gray(0.25)),
+            point(gray(0.33)),
+            point(gray(0.0)),
+        ];
+
+        // Act
+        let actual = merge(Linkage::Complete, &points, 0.2);
+
+        // Assert
+        assert_eq!(actual, [Cluster::new(vec![0, 3]), Cluster::new(vec![1, 2])]);
+    }
+
+    #[test]
     fn test_merge_by_centroid_compares_means() {
         // Arrange: 0.3 is within the threshold of the mean of 0.0 and 0.15, but not of 0.0.
         let points = [point(gray(0.0)), point(gray(0.15)), point(gray(0.3))];
@@ -348,7 +365,7 @@ mod tests {
         let actual = pairs.pop().unwrap();
 
         // Assert
-        assert_eq!((actual.lower, actual.upper), (2, 3));
+        assert_eq!(actual, Pair::new(0.1, 2, 3));
     }
 
     #[test]
@@ -364,6 +381,6 @@ mod tests {
         let actual = pairs.pop().unwrap();
 
         // Assert
-        assert_eq!((actual.lower, actual.upper), (0, 1));
+        assert_eq!(actual, Pair::new(0.1, 0, 1));
     }
 }

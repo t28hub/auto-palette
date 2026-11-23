@@ -389,7 +389,7 @@ mod tests {
         let actual = queue.pop().unwrap();
 
         // Assert
-        assert_eq!((actual.index, actual.segment), (1, 0));
+        assert_eq!(actual, candidate(0.1, 1, 0));
     }
 
     #[test]
@@ -405,6 +405,6 @@ mod tests {
         let actual = queue.pop().unwrap();
 
         // Assert
-        assert_eq!((actual.index, actual.segment), (1, 0));
+        assert_eq!(actual, candidate(0.1, 1, 0));
     }
 }

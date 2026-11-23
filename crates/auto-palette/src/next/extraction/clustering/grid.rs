@@ -58,9 +58,11 @@ impl Grid {
     /// * `coordinates` - The coordinates the index was inserted at.
     pub(super) fn remove(&mut self, index: usize, coordinates: Vector<3>) {
         let cube = locate_cube(coordinates, self.size);
-        if let Some(indices) = self.cubes.get_mut(&cube) {
-            indices.retain(|&other| other != index);
-        }
+        let indices = self
+            .cubes
+            .get_mut(&cube)
+            .expect("an index is removed from where it was inserted");
+        indices.retain(|&other| other != index);
     }
 
     /// Finds the indices in the cube of some coordinates and the 26 cubes around it.

@@ -85,4 +85,13 @@ mod tests {
         // Assert
         assert_eq!(actual, expected);
     }
+
+    #[test]
+    fn test_default_is_agglomerative() {
+        // Act
+        let actual = ClusteringAlgorithm::default();
+
+        // Assert
+        assert!(matches!(actual, ClusteringAlgorithm::Agglomerative(_)));
+    }
 }
