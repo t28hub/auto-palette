@@ -1,7 +1,6 @@
 mod agglomerative;
 mod algorithm;
 mod assignment;
-mod bbox;
 mod cluster;
 mod grid;
 mod hamerly;

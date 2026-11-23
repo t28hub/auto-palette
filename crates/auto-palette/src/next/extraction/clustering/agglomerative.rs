@@ -2,12 +2,7 @@ use std::collections::hash_map::Entry;
 
 use rustc_hash::FxHashMap;
 
-use super::{
-    cluster::Cluster,
-    grid::{locate_cube, Cube},
-    linkage::Linkage,
-    node::Node,
-};
+use super::{cluster::Cluster, linkage::Linkage, node::Node};
 use crate::next::{color::DeltaE, extraction::point::Point};
 
 /// Agglomerative hierarchical clustering, which repeatedly merges the two closest clusters.
@@ -25,10 +20,10 @@ impl Agglomerative {
     /// The acceptability limit of [Paravina et al.](https://doi.org/10.1111/jerd.12149) in ΔEOKr2.
     const DEFAULT_THRESHOLD: f64 = 0.02;
 
-    /// The cube edge in `merge_cubes` relative to the threshold, so a diagonal is under a quarter.
-    const CUBE_RATIO: f64 = 0.125;
+    /// The threshold of the first pass relative to the threshold, which only saves time.
+    const FIRST_PASS_RATIO: f64 = 0.125;
 
-    /// The smallest threshold, so that the cube positions of colors stay exact integers.
+    /// The smallest threshold, so that the cube positions of colors stay exact in both passes.
     const MIN_THRESHOLD: f64 = 1e-9;
 
     /// Creates agglomerative clustering with the given options.
@@ -66,36 +61,41 @@ impl Agglomerative {
     /// # Returns
     /// The clusters, in the order of their first point. Weightless points belong to none.
     pub(crate) fn cluster(&self, points: &[Point]) -> Vec<Cluster> {
-        let nodes = self.merge_cubes(points);
+        // Unlike the textbook method, which starts from every point at once, this first merges
+        // the points of the same color, then the pairs closer than a fraction of the threshold.
+        // The closest pair always merges first, so these are the merges the textbook method makes
+        // first, and the clusters stay the same.
+        let nodes = self.merge_same_colors(points);
+        let nodes = self
+            .linkage
+            .merge(nodes, self.threshold * Self::FIRST_PASS_RATIO);
         self.linkage
-            .merge(nodes, self.threshold, self.difference)
+            .merge(nodes, self.threshold)
             .into_iter()
             .map(Node::into_cluster)
             .collect()
     }
 
-    /// Merges the points in each cube of a fine grid into one node.
+    /// Merges the points of the same color into one node.
     ///
     /// # Arguments
     /// * `points` - The points to merge.
     ///
     /// # Returns
     /// The nodes of the points with weight, in the order of their first point.
-    fn merge_cubes(&self, points: &[Point]) -> Vec<Node> {
-        let size = self.threshold * Self::CUBE_RATIO;
-        let mut cubes: FxHashMap<Cube, usize> = FxHashMap::default();
+    fn merge_same_colors(&self, points: &[Point]) -> Vec<Node> {
+        let mut colors: FxHashMap<[u64; 3], usize> = FxHashMap::default();
         let mut nodes: Vec<Node> = Vec::new();
         for (index, point) in points.iter().enumerate() {
             if point.is_weightless() {
                 continue;
             }
             let coordinates = self.difference.embed(point.color());
-            let node = Node::of_point(index, *point, coordinates);
-            match cubes.entry(locate_cube(coordinates, size)) {
-                Entry::Occupied(entry) => nodes[*entry.get()].absorb(node),
+            match colors.entry(coordinates.0.map(f64::to_bits)) {
+                Entry::Occupied(entry) => nodes[*entry.get()].add_point(index, point.weight()),
                 Entry::Vacant(entry) => {
                     entry.insert(nodes.len());
-                    nodes.push(node);
+                    nodes.push(Node::of_point(index, coordinates, point.weight()));
                 }
             }
         }
@@ -118,11 +118,82 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::next::extraction::test_helpers::{gray, point, weightless};
+    use crate::next::{
+        extraction::{
+            clustering::random::SplitMix64,
+            position::Position,
+            test_helpers::{color, gray, point, weightless},
+        },
+        math::{DistanceMetric, Vector},
+    };
 
     /// Creates agglomerative clustering by the difference in OKLab.
     fn agglomerative(linkage: Linkage, threshold: f64) -> Agglomerative {
         Agglomerative::new(linkage, threshold, DeltaE::Ok).unwrap()
+    }
+
+    /// Creates points of random colors around a middle gray, with random weights.
+    fn random_points(count: usize) -> Vec<Point> {
+        let mut random = SplitMix64::new(7);
+        (0..count)
+            .map(|_| {
+                let l = 0.5 + 0.1 * random.next_f64();
+                let a = 0.1 * random.next_f64() - 0.05;
+                let b = 0.1 * random.next_f64() - 0.05;
+                let weight = 0.5 + random.next_f64();
+                Point::new(color(l, a, b), Position::new(0.0, 0.0), weight)
+            })
+            .collect()
+    }
+
+    /// Clusters points the textbook way, comparing every pair of clusters before each merge.
+    fn cluster_naively(linkage: Linkage, points: &[Point], threshold: f64) -> Vec<Cluster> {
+        let coordinates: Vec<Vector<3>> = points
+            .iter()
+            .map(|point| DeltaE::Ok.embed(point.color()))
+            .collect();
+        let mean = |members: &[usize]| {
+            let mut sum = Vector::default();
+            let mut weight = 0.0;
+            for &index in members {
+                sum += coordinates[index] * points[index].weight();
+                weight += points[index].weight();
+            }
+            sum / weight
+        };
+        let measure = |first: &[usize], second: &[usize]| match linkage {
+            Linkage::Complete => first
+                .iter()
+                .flat_map(|&i| second.iter().map(move |&j| (i, j)))
+                .map(|(i, j)| DeltaE::Ok.measure(points[i].color(), points[j].color()))
+                .fold(0.0, f64::max),
+            Linkage::Centroid => mean(first).distance(mean(second), DistanceMetric::Euclidean),
+        };
+        let mut clusters: Vec<Vec<usize>> = (0..points.len()).map(|index| vec![index]).collect();
+        loop {
+            let mut closest: Option<(f64, usize, usize)> = None;
+            for first in 0..clusters.len() {
+                for second in first + 1..clusters.len() {
+                    let difference = measure(&clusters[first], &clusters[second]);
+                    let closer = closest.is_none_or(|(smallest, _, _)| difference < smallest);
+                    if difference < threshold && closer {
+                        closest = Some((difference, first, second));
+                    }
+                }
+            }
+            let Some((_, first, second)) = closest else {
+                break;
+            };
+            let merged = clusters.remove(second);
+            clusters[first].extend(merged);
+        }
+        clusters
+            .into_iter()
+            .map(|mut members| {
+                members.sort_unstable();
+                Cluster::new(members)
+            })
+            .collect()
     }
 
     #[rstest]
@@ -168,8 +239,57 @@ mod tests {
     #[rstest]
     #[case::complete(Linkage::Complete)]
     #[case::centroid(Linkage::Centroid)]
+    fn test_cluster_matches_naive_clustering(#[case] linkage: Linkage) {
+        // Arrange
+        let points = random_points(150);
+
+        // Act
+        let actual = agglomerative(linkage, 0.03).cluster(&points);
+
+        // Assert
+        assert_eq!(actual, cluster_naively(linkage, &points, 0.03));
+    }
+
+    #[test]
+    fn test_cluster_by_complete_breaks_ties_by_lowest_indices() {
+        // Arrange: grays exactly 3/128 apart, so every merge ties. Taking the lowest indices first
+        // in both passes ends in 0..8 and 8..12.
+        let points: Vec<Point> = (0..12)
+            .map(|step| point(gray(f64::from(1 + 3 * step) / 128.0)))
+            .collect();
+
+        // Act
+        let actual = agglomerative(Linkage::Complete, 0.25).cluster(&points);
+
+        // Assert
+        assert_eq!(
+            actual,
+            [
+                Cluster::new((0..8).collect()),
+                Cluster::new((8..12).collect())
+            ]
+        );
+    }
+
+    #[rstest]
+    #[case::complete(Linkage::Complete)]
+    #[case::centroid(Linkage::Centroid)]
+    fn test_cluster_merges_same_colors(#[case] linkage: Linkage) {
+        // Arrange
+        let points = [point(gray(0.3)), point(gray(0.0)), point(gray(0.3))];
+
+        // Act
+        let actual = agglomerative(linkage, 0.1).cluster(&points);
+
+        // Assert
+        assert_eq!(actual, [Cluster::new(vec![0, 2]), Cluster::new(vec![1])]);
+    }
+
+    #[rstest]
+    #[case::complete(Linkage::Complete)]
+    #[case::centroid(Linkage::Centroid)]
     fn test_cluster_groups_colors_across_cube_edges(#[case] linkage: Linkage) {
-        // Arrange: 0.099 and 0.101 fall in different cubes of both grids.
+        // Arrange: 0.099 and 0.101 fall in different cubes of the grids of both passes.
         let points = [point(gray(0.099)), point(gray(0.101))];
 
         // Act
@@ -239,7 +359,7 @@ mod tests {
     #[case::complete(Linkage::Complete)]
     #[case::centroid(Linkage::Centroid)]
     fn test_cluster_sorts_members(#[case] linkage: Linkage) {
-        // Arrange: 0.0 and 0.01 share a cube, and 0.3 joins them later.
+        // Arrange: 0.0 and 0.01 merge in the first pass, and 0.3 joins them later.
         let points = [point(gray(0.0)), point(gray(0.3)), point(gray(0.01))];
 
         // Act

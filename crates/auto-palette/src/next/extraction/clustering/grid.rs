@@ -3,7 +3,7 @@ use rustc_hash::FxHashMap;
 use crate::next::math::Vector;
 
 /// The position of a cube, in edge lengths along each axis.
-pub(super) type Cube = [i64; 3];
+type Cube = [i64; 3];
 
 /// Locates the cube of some coordinates.
 ///
@@ -13,7 +13,7 @@ pub(super) type Cube = [i64; 3];
 ///
 /// # Returns
 /// The cube that contains `coordinates`.
-pub(super) fn locate_cube(coordinates: Vector<3>, size: f64) -> Cube {
+fn locate_cube(coordinates: Vector<3>, size: f64) -> Cube {
     coordinates.0.map(|value| (value / size).floor() as i64)
 }
 
