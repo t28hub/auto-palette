@@ -28,6 +28,9 @@ impl Agglomerative {
     /// The cube edge in `merge_cubes` relative to the threshold, so a diagonal is under a quarter.
     const CUBE_RATIO: f64 = 0.125;
 
+    /// The smallest threshold, so that the cube positions of colors stay exact integers.
+    const MIN_THRESHOLD: f64 = 1e-9;
+
     /// Creates agglomerative clustering with the given options.
     ///
     /// # Arguments
@@ -36,7 +39,7 @@ impl Agglomerative {
     /// * `difference` - The formula for the color difference between two points.
     ///
     /// # Returns
-    /// Agglomerative clustering, or `None` if `threshold` is not positive or not finite.
+    /// Agglomerative clustering, or `None` if `threshold` is below `MIN_THRESHOLD` or not finite.
     #[cfg_attr(
         not(test),
         expect(
@@ -45,7 +48,7 @@ impl Agglomerative {
         )
     )]
     pub(crate) fn new(linkage: Linkage, threshold: f64, difference: DeltaE) -> Option<Self> {
-        if !threshold.is_finite() || threshold <= 0.0 {
+        if !threshold.is_finite() || threshold < Self::MIN_THRESHOLD {
             return None;
         }
         Some(Self {
@@ -123,6 +126,7 @@ mod tests {
     }
 
     #[rstest]
+    #[case::minimum(Agglomerative::MIN_THRESHOLD)]
     #[case::small(0.02)]
     #[case::large(1.0)]
     fn test_new_accepts_threshold(#[case] threshold: f64) {
@@ -134,6 +138,7 @@ mod tests {
     }
 
     #[rstest]
+    #[case::below_minimum(1e-20)]
     #[case::zero(0.0)]
     #[case::negative(-0.02)]
     #[case::nan(f64::NAN)]
@@ -183,6 +188,20 @@ mod tests {
 
         // Act
         let actual = agglomerative(linkage, 0.5).cluster(&points);
+
+        // Assert
+        assert_eq!(actual, [Cluster::new(vec![0]), Cluster::new(vec![1])]);
+    }
+
+    #[rstest]
+    #[case::complete(Linkage::Complete)]
+    #[case::centroid(Linkage::Centroid)]
+    fn test_cluster_keeps_distant_colors_apart_at_minimum_threshold(#[case] linkage: Linkage) {
+        // Arrange
+        let points = [point(gray(0.1)), point(gray(0.9))];
+
+        // Act
+        let actual = agglomerative(linkage, Agglomerative::MIN_THRESHOLD).cluster(&points);
 
         // Assert
         assert_eq!(actual, [Cluster::new(vec![0]), Cluster::new(vec![1])]);
