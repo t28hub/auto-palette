@@ -4,6 +4,8 @@ use crate::next::extraction::point::Point;
 /// The clustering algorithm to use.
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum ClusteringAlgorithm {
+    /// Agglomerative hierarchical clustering ([`Agglomerative`]), by color alone.
+    Agglomerative(Agglomerative),
     /// K-means ([`KMeans`]), by color and position.
     #[cfg_attr(
         not(test),
@@ -13,8 +15,6 @@ pub(crate) enum ClusteringAlgorithm {
         )
     )]
     KMeans(KMeans),
-    /// Agglomerative hierarchical clustering ([`Agglomerative`]), by color alone.
-    Agglomerative(Agglomerative),
 }
 
 impl Default for ClusteringAlgorithm {
@@ -40,8 +40,8 @@ impl ClusteringAlgorithm {
     )]
     pub(crate) fn cluster(&self, points: &[Point]) -> Vec<Cluster> {
         match self {
-            Self::KMeans(kmeans) => kmeans.cluster(points),
             Self::Agglomerative(agglomerative) => agglomerative.cluster(points),
+            Self::KMeans(kmeans) => kmeans.cluster(points),
         }
     }
 }
@@ -73,11 +73,11 @@ mod tests {
     }
 
     #[rstest]
-    #[case::kmeans(ClusteringAlgorithm::KMeans(kmeans()), kmeans().cluster(&points()))]
     #[case::agglomerative(
         ClusteringAlgorithm::Agglomerative(Agglomerative::default()),
         Agglomerative::default().cluster(&points())
     )]
+    #[case::kmeans(ClusteringAlgorithm::KMeans(kmeans()), kmeans().cluster(&points()))]
     fn test_cluster(#[case] clustering: ClusteringAlgorithm, #[case] expected: Vec<Cluster>) {
         // Act
         let actual = clustering.cluster(&points());

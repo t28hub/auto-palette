@@ -319,7 +319,11 @@ mod tests {
     #[test]
     fn test_merge_by_complete_compares_farthest_points() {
         // Arrange: 0.3 is within the threshold of the mean of 0.0 and 0.15, but not of 0.0.
-        let points = [point(gray(0.0)), point(gray(0.15)), point(gray(0.3))];
+        let points = [
+            point(gray(0.0)),  // 1st cluster
+            point(gray(0.15)), // 1st cluster
+            point(gray(0.3)),  // 2nd cluster
+        ];
 
         // Act
         let actual = merge(Linkage::Complete, &points, 0.25);
@@ -332,10 +336,10 @@ mod tests {
     fn test_merge_by_complete_updates_differences_after_merge() {
         // Arrange: once 1 and 2 merge, 0 is 0.18 from them, so 0 and 3, 0.15 apart, merge first.
         let points = [
-            point(gray(0.15)),
-            point(gray(0.25)),
-            point(gray(0.33)),
-            point(gray(0.0)),
+            point(gray(0.15)), // 1st cluster
+            point(gray(0.25)), // 2nd cluster
+            point(gray(0.33)), // 2nd cluster
+            point(gray(0.0)),  // 1st cluster
         ];
 
         // Act

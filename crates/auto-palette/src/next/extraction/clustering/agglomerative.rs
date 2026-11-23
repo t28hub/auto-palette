@@ -202,10 +202,12 @@ mod tests {
     #[case::large(1.0)]
     fn test_new_accepts_threshold(#[case] threshold: f64) {
         // Act
-        let actual = Agglomerative::new(Linkage::Complete, threshold, DeltaE::Okr2);
+        let actual = Agglomerative::new(Linkage::Centroid, threshold, DeltaE::Ok).unwrap();
 
         // Assert
-        assert!(actual.is_some());
+        assert!(matches!(actual.linkage, Linkage::Centroid));
+        assert_eq!(actual.threshold, threshold);
+        assert!(matches!(actual.difference, DeltaE::Ok));
     }
 
     #[rstest]
@@ -227,7 +229,11 @@ mod tests {
     #[case::centroid(Linkage::Centroid)]
     fn test_cluster_groups_colors_closer_than_threshold(#[case] linkage: Linkage) {
         // Arrange
-        let points = [point(gray(0.0)), point(gray(0.5)), point(gray(0.01))];
+        let points = [
+            point(gray(0.0)),  // 1st cluster
+            point(gray(0.5)),  // 2nd cluster
+            point(gray(0.01)), // 1st cluster
+        ];
 
         // Act
         let actual = agglomerative(linkage, 0.1).cluster(&points);
@@ -276,7 +282,11 @@ mod tests {
     #[case::centroid(Linkage::Centroid)]
     fn test_cluster_merges_same_colors(#[case] linkage: Linkage) {
         // Arrange
-        let points = [point(gray(0.3)), point(gray(0.0)), point(gray(0.3))];
+        let points = [
+            point(gray(0.3)), // 1st cluster
+            point(gray(0.0)), // 2nd cluster
+            point(gray(0.3)), // 1st cluster
+        ];
 
         // Act
         let actual = agglomerative(linkage, 0.1).cluster(&points);
@@ -304,7 +314,10 @@ mod tests {
     #[case::centroid(Linkage::Centroid)]
     fn test_cluster_keeps_colors_at_threshold_apart(#[case] linkage: Linkage) {
         // Arrange
-        let points = [point(gray(0.0)), point(gray(0.5))];
+        let points = [
+            point(gray(0.0)), // 1st cluster
+            point(gray(0.5)), // 2nd cluster
+        ];
 
         // Act
         let actual = agglomerative(linkage, 0.5).cluster(&points);
@@ -318,7 +331,10 @@ mod tests {
     #[case::centroid(Linkage::Centroid)]
     fn test_cluster_keeps_distant_colors_apart_at_minimum_threshold(#[case] linkage: Linkage) {
         // Arrange
-        let points = [point(gray(0.1)), point(gray(0.9))];
+        let points = [
+            point(gray(0.1)), // 1st cluster
+            point(gray(0.9)), // 2nd cluster
+        ];
 
         // Act
         let actual = agglomerative(linkage, Agglomerative::MIN_THRESHOLD).cluster(&points);
@@ -332,7 +348,11 @@ mod tests {
     #[case::centroid(Linkage::Centroid)]
     fn test_cluster_merges_closest_pair_first(#[case] linkage: Linkage) {
         // Arrange: merging 0.0 and 0.25 first would bring 0.35 within the threshold.
-        let points = [point(gray(0.0)), point(gray(0.25)), point(gray(0.35))];
+        let points = [
+            point(gray(0.0)),  // 1st cluster
+            point(gray(0.25)), // 2nd cluster
+            point(gray(0.35)), // 2nd cluster
+        ];
 
         // Act
         let actual = agglomerative(linkage, 0.28).cluster(&points);
@@ -346,7 +366,11 @@ mod tests {
     #[case::centroid(Linkage::Centroid)]
     fn test_cluster_does_not_chain(#[case] linkage: Linkage) {
         // Arrange: each neighbor is within the threshold, but the ends are not.
-        let points = [point(gray(0.0)), point(gray(0.3)), point(gray(0.6))];
+        let points = [
+            point(gray(0.0)), // 1st cluster
+            point(gray(0.3)), // 1st cluster
+            point(gray(0.6)), // 2nd cluster
+        ];
 
         // Act
         let actual = agglomerative(linkage, 0.4).cluster(&points);
@@ -374,7 +398,10 @@ mod tests {
     #[case::centroid(Linkage::Centroid)]
     fn test_cluster_leaves_out_weightless_points(#[case] linkage: Linkage) {
         // Arrange
-        let points = [point(gray(0.0)), weightless(gray(0.0))];
+        let points = [
+            point(gray(0.0)),      // 1st cluster
+            weightless(gray(0.0)), // no cluster
+        ];
 
         // Act
         let actual = agglomerative(linkage, 0.1).cluster(&points);

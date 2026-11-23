@@ -137,9 +137,9 @@ mod tests {
     }
 
     #[rstest]
-    #[case::ok(DeltaE::Ok, [0.5, 0.03, 0.04])]
-    #[case::okr2(DeltaE::Okr2, [0.421_141, 0.06, 0.08])]
-    fn test_embed(#[case] difference: DeltaE, #[case] expected: [f64; 3]) {
+    #[case::ok(DeltaE::Ok, 0.5, 0.03, 0.04)]
+    #[case::okr2(DeltaE::Okr2, 0.421_141, 0.06, 0.08)]
+    fn test_embed(#[case] difference: DeltaE, #[case] l: f64, #[case] a: f64, #[case] b: f64) {
         // Arrange
         let color = color(0.5, 0.03, 0.04);
 
@@ -147,9 +147,10 @@ mod tests {
         let actual = difference.embed(color);
 
         // Assert
-        for (actual, expected) in actual.0.into_iter().zip(expected) {
-            assert_approx_eq!(actual, expected);
-        }
+        let [actual_l, actual_a, actual_b] = actual.0;
+        assert_approx_eq!(actual_l, l);
+        assert_approx_eq!(actual_a, a);
+        assert_approx_eq!(actual_b, b);
     }
 
     #[rstest]
