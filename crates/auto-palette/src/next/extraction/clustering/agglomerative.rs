@@ -137,9 +137,9 @@ mod tests {
         let mut random = SplitMix64::new(7);
         (0..count)
             .map(|_| {
-                let l = 0.5 + 0.1 * random.next_f64();
-                let a = 0.1 * random.next_f64() - 0.05;
-                let b = 0.1 * random.next_f64() - 0.05;
+                let l = 0.5 + 0.05 * random.next_f64();
+                let a = 0.05 * random.next_f64() - 0.025;
+                let b = 0.05 * random.next_f64() - 0.025;
                 let weight = 0.5 + random.next_f64();
                 Point::new(color(l, a, b), Position::new(0.0, 0.0), weight)
             })
@@ -147,10 +147,15 @@ mod tests {
     }
 
     /// Clusters points the textbook way, comparing every pair of clusters before each merge.
-    fn cluster_naively(linkage: Linkage, points: &[Point], threshold: f64) -> Vec<Cluster> {
+    fn cluster_naively(
+        linkage: Linkage,
+        difference: DeltaE,
+        points: &[Point],
+        threshold: f64,
+    ) -> Vec<Cluster> {
         let coordinates: Vec<Vector<3>> = points
             .iter()
-            .map(|point| DeltaE::Ok.embed(point.color()))
+            .map(|point| difference.embed(point.color()))
             .collect();
         let mean = |members: &[usize]| {
             let mut sum = Vector::default();
@@ -165,7 +170,7 @@ mod tests {
             Linkage::Complete => first
                 .iter()
                 .flat_map(|&i| second.iter().map(move |&j| (i, j)))
-                .map(|(i, j)| DeltaE::Ok.measure(points[i].color(), points[j].color()))
+                .map(|(i, j)| difference.measure(points[i].color(), points[j].color()))
                 .fold(0.0, f64::max),
             Linkage::Centroid => mean(first).distance(mean(second), DistanceMetric::Euclidean),
         };
@@ -243,17 +248,27 @@ mod tests {
     }
 
     #[rstest]
-    #[case::complete(Linkage::Complete)]
-    #[case::centroid(Linkage::Centroid)]
-    fn test_cluster_matches_naive_clustering(#[case] linkage: Linkage) {
+    #[case::complete_ok(Linkage::Complete, DeltaE::Ok)]
+    #[case::complete_okr2(Linkage::Complete, DeltaE::Okr2)]
+    #[case::centroid_ok(Linkage::Centroid, DeltaE::Ok)]
+    #[case::centroid_okr2(Linkage::Centroid, DeltaE::Okr2)]
+    fn test_cluster_matches_naive_clustering(#[case] linkage: Linkage, #[case] difference: DeltaE) {
         // Arrange
         let points = random_points(150);
+        let agglomerative =
+            Agglomerative::new(linkage, Agglomerative::DEFAULT_THRESHOLD, difference).unwrap();
 
         // Act
-        let actual = agglomerative(linkage, 0.03).cluster(&points);
+        let actual = agglomerative.cluster(&points);
 
         // Assert
-        assert_eq!(actual, cluster_naively(linkage, &points, 0.03));
+        let expected = cluster_naively(
+            linkage,
+            difference,
+            &points,
+            Agglomerative::DEFAULT_THRESHOLD,
+        );
+        assert_eq!(actual, expected);
     }
 
     #[test]
