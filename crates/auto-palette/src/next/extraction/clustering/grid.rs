@@ -30,7 +30,7 @@ impl Grid {
     /// Creates an empty grid.
     ///
     /// # Arguments
-    /// * `size` - The edge length of the cubes, positive and finite.
+    /// * `size` - The edge length of the cubes, large enough that cube positions stay exact.
     ///
     /// # Returns
     /// A grid with no indices.
@@ -79,10 +79,7 @@ impl Grid {
             .into_iter()
             .flat_map(|dx| OFFSETS.into_iter().map(move |dy| (dx, dy)))
             .flat_map(|(dx, dy)| OFFSETS.into_iter().map(move |dz| (dx, dy, dz)))
-            .filter_map(move |(dx, dy, dz)| {
-                let cube = [x.checked_add(dx)?, y.checked_add(dy)?, z.checked_add(dz)?];
-                self.cubes.get(&cube)
-            })
+            .filter_map(move |(dx, dy, dz)| self.cubes.get(&[x + dx, y + dy, z + dz]))
             .flatten()
             .copied()
     }
