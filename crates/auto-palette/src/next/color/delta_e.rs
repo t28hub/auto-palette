@@ -1,4 +1,5 @@
 use super::Color;
+use crate::next::math::Vector;
 
 /// A formula for the difference between two colors.
 ///
@@ -46,6 +47,22 @@ impl DeltaE {
             }
         }
     }
+
+    /// Embeds a color in the space where this difference is the Euclidean distance.
+    ///
+    /// # Arguments
+    /// * `color` - The color to embed.
+    ///
+    /// # Returns
+    /// The coordinates of `color` in that space.
+    #[inline]
+    pub(crate) fn embed(self, color: Color) -> Vector<3> {
+        let oklab = color.to_oklab();
+        match self {
+            Self::Ok => Vector([oklab.l, oklab.a, oklab.b]),
+            Self::Okr2 => Vector([apply_toe(oklab.l), 2.0 * oklab.a, 2.0 * oklab.b]),
+        }
+    }
 }
 
 /// Applies Ottosson's toe, which brings OKLab's lightness close to CIELab's.
@@ -70,7 +87,10 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::{assert_approx_eq, next::color::Oklab};
+    use crate::{
+        assert_approx_eq,
+        next::{color::Oklab, math::DistanceMetric},
+    };
 
     /// Creates a color from its OKLab values.
     fn color(l: f64, a: f64, b: f64) -> Color {
@@ -114,6 +134,39 @@ mod tests {
 
         // Assert
         assert_approx_eq!(actual, 0.018_553);
+    }
+
+    #[rstest]
+    #[case::ok(DeltaE::Ok, [0.5, 0.03, 0.04])]
+    #[case::okr2(DeltaE::Okr2, [0.421_141, 0.06, 0.08])]
+    fn test_embed(#[case] difference: DeltaE, #[case] expected: [f64; 3]) {
+        // Arrange
+        let color = color(0.5, 0.03, 0.04);
+
+        // Act
+        let actual = difference.embed(color);
+
+        // Assert
+        for (actual, expected) in actual.0.into_iter().zip(expected) {
+            assert_approx_eq!(actual, expected);
+        }
+    }
+
+    #[rstest]
+    #[case::ok(DeltaE::Ok)]
+    #[case::okr2(DeltaE::Okr2)]
+    fn test_embed_keeps_difference(#[case] difference: DeltaE) {
+        // Arrange
+        let reference = color(0.2, 0.03, -0.01);
+        let sample = color(0.6, -0.02, 0.04);
+
+        // Act
+        let actual = difference
+            .embed(reference)
+            .distance(difference.embed(sample), DistanceMetric::Euclidean);
+
+        // Assert
+        assert_eq!(actual, difference.measure(reference, sample));
     }
 
     #[rstest]

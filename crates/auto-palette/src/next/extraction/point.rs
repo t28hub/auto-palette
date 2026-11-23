@@ -115,13 +115,6 @@ impl Point {
     ///
     /// # Returns
     /// The L, a, and b values as a color.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "called by the color selection, which is not implemented yet"
-        )
-    )]
     #[inline]
     pub(crate) fn color(self) -> Color {
         let [l, a, b, _, _] = self.vector.0;

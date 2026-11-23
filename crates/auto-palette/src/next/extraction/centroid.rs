@@ -21,6 +21,16 @@ impl Centroid {
         self.weight += point.weight();
     }
 
+    /// Merges the points of another group into this one.
+    ///
+    /// # Arguments
+    /// * `other` - The centroid of the other group.
+    #[inline]
+    pub(crate) fn merge(&mut self, other: Self) {
+        self.sum += other.sum;
+        self.weight += other.weight;
+    }
+
     /// Returns the weighted mean as a point.
     ///
     /// # Returns
@@ -57,6 +67,23 @@ mod tests {
         assert_approx_eq!(actual.color().to_oklab().l, 0.5);
         assert_approx_eq!(actual.position().x, 0.3);
         assert_approx_eq!(actual.position().y, 0.6);
+        assert_eq!(actual.weight(), 1.0);
+    }
+
+    #[test]
+    fn test_merge_combines_points() {
+        // Arrange
+        let mut centroid = Centroid::default();
+        centroid.add(Point::new(gray(0.2), Position::new(0.0, 0.0), 0.25));
+        let mut other = Centroid::default();
+        other.add(Point::new(gray(0.6), Position::new(0.4, 0.8), 0.75));
+
+        // Act
+        centroid.merge(other);
+
+        // Assert
+        let actual = centroid.point().unwrap();
+        assert_approx_eq!(actual.color().to_oklab().l, 0.5);
         assert_eq!(actual.weight(), 1.0);
     }
 
