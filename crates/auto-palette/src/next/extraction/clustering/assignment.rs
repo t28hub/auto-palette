@@ -1,7 +1,7 @@
 use crate::next::extraction::{centroid::Centroid, point::Point};
 
 /// A way to find the nearest center of each point, iteration after iteration.
-pub(super) trait Assignment {
+pub(super) trait Assignment<const N: usize> {
     /// Creates the state for clustering points from initial centers.
     ///
     /// # Arguments
@@ -10,7 +10,7 @@ pub(super) trait Assignment {
     ///
     /// # Returns
     /// The state before the first assignment.
-    fn new(points: &[Point], centers: &[Point]) -> Self;
+    fn new(points: &[Point<N>], centers: &[Point<N>]) -> Self;
 
     /// Assigns each point to its nearest center.
     ///
@@ -24,9 +24,9 @@ pub(super) trait Assignment {
     /// The centroid of the points assigned to each center.
     fn assign(
         &mut self,
-        points: &[Point],
-        centers: &[Point],
+        points: &[Point<N>],
+        centers: &[Point<N>],
         moves: &[f64],
         assigned: &mut [usize],
-    ) -> Vec<Centroid>;
+    ) -> Vec<Centroid<N>>;
 }

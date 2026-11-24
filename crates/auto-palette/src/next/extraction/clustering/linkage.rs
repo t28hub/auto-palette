@@ -5,13 +5,13 @@ use rustc_hash::FxHashMap;
 use super::{grid::Grid, node::Node};
 use crate::next::math::{DistanceMetric, Vector};
 
-/// How the difference between two clusters is measured.
+/// A formula for the distance between two clusters.
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) enum Linkage {
-    /// The largest difference between their points.
+    /// The largest distance between their points.
     #[default]
     Complete,
-    /// The difference between the weighted means of their colors.
+    /// The distance between the weighted means of their points.
     #[cfg_attr(
         not(test),
         expect(
@@ -23,11 +23,11 @@ pub(crate) enum Linkage {
 }
 
 impl Linkage {
-    /// Merges the closest pair of nodes until every pair differs by at least the threshold.
+    /// Merges the closest pair of nodes until every pair is at least the threshold apart.
     ///
     /// # Arguments
     /// * `nodes` - The nodes to merge, in the order of their first point.
-    /// * `threshold` - The difference at or above which two nodes stay apart.
+    /// * `threshold` - The distance at or above which two nodes stay apart.
     ///
     /// # Returns
     /// The merged nodes, in the order of their first point.
@@ -39,18 +39,16 @@ impl Linkage {
     }
 }
 
-/// Merges nodes by the largest difference between their points.
+/// Merges nodes by the largest distance between their points.
 ///
 /// # Arguments
 /// * `nodes` - The nodes to merge, in the order of their first point.
-/// * `threshold` - The difference at or above which two nodes stay apart.
+/// * `threshold` - The distance at or above which two nodes stay apart.
 ///
 /// # Returns
 /// The merged nodes, in the order of their first point.
 fn merge_by_complete_linkage(nodes: Vec<Node>, threshold: f64) -> Vec<Node> {
-    // Unlike the textbook method, which keeps the difference of every pair, this keeps only the
-    // pairs closer than the threshold. Complete linkage never brings two nodes closer by a merge,
-    // so the other pairs could never merge.
+    // Keeps only pairs under the threshold: complete linkage never shrinks a distance.
     let mut neighbors = find_neighbors(&nodes, threshold);
     let mut pairs: BinaryHeap<Pair> = neighbors
         .iter()
@@ -58,35 +56,43 @@ fn merge_by_complete_linkage(nodes: Vec<Node>, threshold: f64) -> Vec<Node> {
         .flat_map(|(index, near)| {
             near.iter()
                 .filter(move |&(&other, _)| index < other)
-                .map(move |(&other, &difference)| Pair::new(difference, index, other))
+                .map(move |(&other, &distance)| Pair::new(distance, index, other))
         })
         .collect();
     let mut nodes: Vec<Option<Node>> = nodes.into_iter().map(Some).collect();
+
     while let Some(pair) = pairs.pop() {
         let (lower, upper) = (pair.lower as usize, pair.upper as usize);
-        if neighbors[lower].get(&upper) != Some(&pair.difference) {
+        // Skips a pair made stale by a later merge.
+        if neighbors[lower].get(&upper) != Some(&pair.distance) {
             continue;
         }
         merge_pair(&mut nodes, lower, upper);
+
+        // Removes the merged-away node from the neighbors of the others.
         let near_upper = mem::take(&mut neighbors[upper]);
         for other in near_upper.keys() {
             neighbors[*other].remove(&upper);
         }
+
+        // Keeps only the neighbors of both nodes, at the larger of their two distances.
         let mut near_lower = mem::take(&mut neighbors[lower]);
-        near_lower.retain(|&other, difference| {
+        near_lower.retain(|&other, distance| {
             let Some(&through_upper) = near_upper.get(&other) else {
                 neighbors[other].remove(&lower);
                 return false;
             };
-            if through_upper > *difference {
-                *difference = through_upper;
-                neighbors[other].insert(lower, through_upper);
-                pairs.push(Pair::new(through_upper, lower, other));
+            if through_upper <= *distance {
+                return true;
             }
+            *distance = through_upper;
+            neighbors[other].insert(lower, through_upper);
+            pairs.push(Pair::new(through_upper, lower, other));
             true
         });
         neighbors[lower] = near_lower;
     }
+
     nodes.into_iter().flatten().collect()
 }
 
@@ -94,109 +100,110 @@ fn merge_by_complete_linkage(nodes: Vec<Node>, threshold: f64) -> Vec<Node> {
 ///
 /// # Arguments
 /// * `nodes` - The nodes to look through.
-/// * `threshold` - The difference at or above which two nodes stay apart.
+/// * `threshold` - The distance at or above which two nodes stay apart.
 ///
 /// # Returns
-/// The neighbors of each node, with the largest difference between their points.
+/// The neighbors of each node, with the largest distance between their points.
 fn find_neighbors(nodes: &[Node], threshold: f64) -> Vec<FxHashMap<usize, f64>> {
     let mut neighbors = vec![FxHashMap::default(); nodes.len()];
     let mut grid = Grid::new(threshold);
     for (index, node) in nodes.iter().enumerate() {
-        // The first colors of two neighbors are closer than the threshold, like all their colors.
-        let first_color = node.colors()[0];
-        for other in grid.find_near(first_color) {
-            if let Some(difference) = measure_farthest(node, &nodes[other], threshold) {
-                neighbors[index].insert(other, difference);
-                neighbors[other].insert(index, difference);
+        // The first vectors of two neighbors are closer than the threshold, like all their vectors.
+        let first_vector = node.vectors()[0];
+        for other in grid.find_near(first_vector) {
+            if let Some(distance) = measure_farthest(node, &nodes[other], threshold) {
+                neighbors[index].insert(other, distance);
+                neighbors[other].insert(index, distance);
             }
         }
-        grid.insert(index, first_color);
+        grid.insert(index, first_vector);
     }
     neighbors
 }
 
-/// Measures the largest difference between the points of two nodes, if it is under a limit.
+/// Measures the largest distance between the points of two nodes, if it is under a limit.
 ///
 /// # Arguments
 /// * `first` - A node.
 /// * `second` - The other node.
-/// * `limit` - The difference at or above which the measurement stops.
+/// * `limit` - The distance at or above which the measurement stops.
 ///
 /// # Returns
-/// The largest difference, or `None` if a pair of points differs by at least `limit`.
+/// The largest distance, or `None` if a pair of points is at least `limit` apart.
 fn measure_farthest(first: &Node, second: &Node, limit: f64) -> Option<f64> {
     let mut farthest: f64 = 0.0;
-    for &first_color in first.colors() {
-        for &second_color in second.colors() {
-            let difference = measure(first_color, second_color);
-            if difference >= limit {
+    for &first_vector in first.vectors() {
+        for &second_vector in second.vectors() {
+            let distance = measure(first_vector, second_vector);
+            if distance >= limit {
                 return None;
             }
-            farthest = farthest.max(difference);
+            farthest = farthest.max(distance);
         }
     }
     Some(farthest)
 }
 
-/// Merges nodes by the difference between the weighted means of their colors.
+/// Merges nodes by the distance between the weighted means of their points.
 ///
 /// # Arguments
 /// * `nodes` - The nodes to merge, in the order of their first point.
-/// * `threshold` - The difference at or above which two nodes stay apart.
+/// * `threshold` - The distance at or above which two nodes stay apart.
 ///
 /// # Returns
 /// The merged nodes, in the order of their first point.
 fn merge_by_centroid_linkage(nodes: Vec<Node>, threshold: f64) -> Vec<Node> {
-    // Centroid linkage can invert: a merged mean can lie closer to another node than the pair
-    // was. So the pairs around each new mean are searched again, and merging stops only when no
-    // pair is closer than the threshold, rather than by cutting a full hierarchy at it.
-    let mut coordinates: Vec<Vector<3>> = nodes.iter().map(Node::mean).collect();
+    let mut means: Vec<Vector<3>> = nodes.iter().map(Node::mean).collect();
     let mut nodes: Vec<Option<Node>> = nodes.into_iter().map(Some).collect();
     let mut grid = Grid::new(threshold);
     let mut pairs = BinaryHeap::new();
     for index in 0..nodes.len() {
-        insert_centroid(index, &coordinates, threshold, &mut grid, &mut pairs);
+        insert_mean(index, &means, threshold, &mut grid, &mut pairs);
     }
+
     while let Some(pair) = pairs.pop() {
         let (lower, upper) = (pair.lower as usize, pair.upper as usize);
         let merged_away = nodes[lower].is_none() || nodes[upper].is_none();
         if merged_away {
             continue;
         }
-        let moved = measure(coordinates[lower], coordinates[upper]) != pair.difference;
+        let moved = measure(means[lower], means[upper]) != pair.distance;
         if moved {
             continue;
         }
-        grid.remove(upper, coordinates[upper]);
-        grid.remove(lower, coordinates[lower]);
-        coordinates[lower] = merge_pair(&mut nodes, lower, upper).mean();
-        insert_centroid(lower, &coordinates, threshold, &mut grid, &mut pairs);
+
+        // A merged mean can move closer to other nodes, so the pairs around it are searched again.
+        grid.remove(upper, means[upper]);
+        grid.remove(lower, means[lower]);
+        means[lower] = merge_pair(&mut nodes, lower, upper).mean();
+        insert_mean(lower, &means, threshold, &mut grid, &mut pairs);
     }
+
     nodes.into_iter().flatten().collect()
 }
 
-/// Inserts a centroid into the grid after pushing its pairs closer than the threshold.
+/// Inserts a mean into the grid after pushing its pairs closer than the threshold.
 ///
 /// # Arguments
 /// * `index` - The index of the node.
-/// * `coordinates` - The mean of the colors of each node.
-/// * `threshold` - The difference at or above which two nodes stay apart.
-/// * `grid` - The centroids inserted so far, at their coordinates.
+/// * `means` - The weighted mean of the points of each node.
+/// * `threshold` - The distance at or above which two nodes stay apart.
+/// * `grid` - The means inserted so far.
 /// * `pairs` - The pairs to push to.
-fn insert_centroid(
+fn insert_mean(
     index: usize,
-    coordinates: &[Vector<3>],
+    means: &[Vector<3>],
     threshold: f64,
     grid: &mut Grid,
     pairs: &mut BinaryHeap<Pair>,
 ) {
-    for other in grid.find_near(coordinates[index]) {
-        let difference = measure(coordinates[index], coordinates[other]);
-        if difference < threshold {
-            pairs.push(Pair::new(difference, index, other));
+    for other in grid.find_near(means[index]) {
+        let distance = measure(means[index], means[other]);
+        if distance < threshold {
+            pairs.push(Pair::new(distance, index, other));
         }
     }
-    grid.insert(index, coordinates[index]);
+    grid.insert(index, means[index]);
 }
 
 /// Merges the upper node of a pair into the lower one.
@@ -218,8 +225,8 @@ fn merge_pair(nodes: &mut [Option<Node>], lower: usize, upper: usize) -> &Node {
 /// A pair of nodes closer than the threshold, the closest first in a heap.
 #[derive(Debug, Clone, Copy)]
 struct Pair {
-    /// The difference between the nodes.
-    difference: f64,
+    /// The distance between the nodes.
+    distance: f64,
     /// The index of the node to keep.
     lower: u32,
     /// The index of the node to merge away.
@@ -227,18 +234,18 @@ struct Pair {
 }
 
 impl Pair {
-    /// Pairs two nodes by their difference, the lower index first.
+    /// Pairs two nodes by their distance, the lower index first.
     ///
     /// # Arguments
-    /// * `difference` - The difference between the nodes.
+    /// * `distance` - The distance between the nodes.
     /// * `first` - The index of a node.
     /// * `second` - The index of the other node.
     ///
     /// # Returns
     /// The pair of the nodes.
-    fn new(difference: f64, first: usize, second: usize) -> Self {
+    fn new(distance: f64, first: usize, second: usize) -> Self {
         Self {
-            difference,
+            distance,
             lower: first.min(second) as u32,
             upper: first.max(second) as u32,
         }
@@ -247,10 +254,9 @@ impl Pair {
 
 impl Ord for Pair {
     fn cmp(&self, other: &Self) -> Ordering {
-        // Reversed, so the heap pops the closest pair first, ties to the lowest indices.
-        // Non-negative floats order the same as their bits, which compare faster.
-        (other.difference.to_bits(), other.lower, other.upper).cmp(&(
-            self.difference.to_bits(),
+        // Closest pair first, ties to the lowest indices. Bits sort like these floats, but faster.
+        (other.distance.to_bits(), other.lower, other.upper).cmp(&(
+            self.distance.to_bits(),
             self.lower,
             self.upper,
         ))
@@ -271,14 +277,14 @@ impl PartialEq for Pair {
 
 impl Eq for Pair {}
 
-/// Measures the difference between two coordinates.
+/// Measures the distance between two vectors.
 ///
 /// # Arguments
-/// * `first` - The coordinates of a color or a mean.
-/// * `second` - The other coordinates.
+/// * `first` - A vector.
+/// * `second` - The other vector.
 ///
 /// # Returns
-/// The Euclidean distance, which is the color difference between two colors.
+/// The Euclidean distance between the vectors.
 fn measure(first: Vector<3>, second: Vector<3>) -> f64 {
     first.distance(second, DistanceMetric::Euclidean)
 }
@@ -286,29 +292,24 @@ fn measure(first: Vector<3>, second: Vector<3>) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::next::{
-        color::DeltaE,
-        extraction::{
-            clustering::cluster::Cluster,
-            point::Point,
-            position::Position,
-            test_helpers::{gray, point},
-        },
-    };
+    use crate::next::extraction::{clustering::cluster::Cluster, point::Point};
 
-    /// Creates a node of each point, embedded in OKLab.
-    fn nodes(points: &[Point]) -> Vec<Node> {
+    /// Creates a point on the first axis with weight 1.0.
+    fn point(x: f64) -> Point<3> {
+        Point::of_vector(Vector([x, 0.0, 0.0]), 1.0)
+    }
+
+    /// Creates a node of each point.
+    fn nodes(points: &[Point<3>]) -> Vec<Node> {
         points
             .iter()
             .enumerate()
-            .map(|(index, point)| {
-                Node::of_point(index, DeltaE::Ok.embed(point.color()), point.weight())
-            })
+            .map(|(index, &point)| Node::of_point(index, point))
             .collect()
     }
 
     /// Merges the nodes of points and converts the results.
-    fn merge(linkage: Linkage, points: &[Point], threshold: f64) -> Vec<Cluster> {
+    fn merge(linkage: Linkage, points: &[Point<3>], threshold: f64) -> Vec<Cluster> {
         linkage
             .merge(nodes(points), threshold)
             .into_iter()
@@ -320,9 +321,9 @@ mod tests {
     fn test_merge_by_complete_compares_farthest_points() {
         // Arrange: 0.3 is within the threshold of the mean of 0.0 and 0.15, but not of 0.0.
         let points = [
-            point(gray(0.0)),  // 1st cluster
-            point(gray(0.15)), // 1st cluster
-            point(gray(0.3)),  // 2nd cluster
+            point(0.0),  // 1st cluster
+            point(0.15), // 1st cluster
+            point(0.3),  // 2nd cluster
         ];
 
         // Act
@@ -333,13 +334,13 @@ mod tests {
     }
 
     #[test]
-    fn test_merge_by_complete_updates_differences_after_merge() {
+    fn test_merge_by_complete_updates_distances_after_merge() {
         // Arrange: once 1 and 2 merge, 0 is 0.18 from them, so 0 and 3, 0.15 apart, merge first.
         let points = [
-            point(gray(0.15)), // 1st cluster
-            point(gray(0.25)), // 2nd cluster
-            point(gray(0.33)), // 2nd cluster
-            point(gray(0.0)),  // 1st cluster
+            point(0.15), // 1st cluster
+            point(0.25), // 2nd cluster
+            point(0.33), // 2nd cluster
+            point(0.0),  // 1st cluster
         ];
 
         // Act
@@ -352,7 +353,7 @@ mod tests {
     #[test]
     fn test_merge_by_centroid_compares_means() {
         // Arrange: 0.3 is within the threshold of the mean of 0.0 and 0.15, but not of 0.0.
-        let points = [point(gray(0.0)), point(gray(0.15)), point(gray(0.3))];
+        let points = [point(0.0), point(0.15), point(0.3)];
 
         // Act
         let actual = merge(Linkage::Centroid, &points, 0.25);
@@ -363,11 +364,11 @@ mod tests {
 
     #[test]
     fn test_merge_by_centroid_weighs_mean_by_weight() {
-        // Arrange: the heavy middle gray pulls the mean of the first pair toward 0.6.
+        // Arrange: the heavy middle point pulls the mean of the first pair toward 0.6.
         let points = [
-            point(gray(0.0)),
-            Point::new(gray(0.3), Position::new(0.0, 0.0), 3.0),
-            point(gray(0.6)),
+            point(0.0),
+            Point::of_vector(Vector([0.3, 0.0, 0.0]), 3.0),
+            point(0.6),
         ];
 
         // Act
@@ -378,11 +379,11 @@ mod tests {
     }
 
     #[test]
-    fn test_measure_farthest_finds_largest_difference() {
+    fn test_measure_farthest_finds_largest_distance() {
         // Arrange
-        let mut first = Node::of_point(0, Vector([0.0, 0.0, 0.0]), 1.0);
-        first.absorb(Node::of_point(1, Vector([0.1, 0.0, 0.0]), 1.0));
-        let second = Node::of_point(2, Vector([0.3, 0.0, 0.0]), 1.0);
+        let mut first = Node::of_point(0, point(0.0));
+        first.absorb(Node::of_point(1, point(0.1)));
+        let second = Node::of_point(2, point(0.3));
 
         // Act
         let actual = measure_farthest(&first, &second, 0.5);
@@ -394,8 +395,8 @@ mod tests {
     #[test]
     fn test_measure_farthest_stops_at_limit() {
         // Arrange
-        let first = Node::of_point(0, Vector([0.0, 0.0, 0.0]), 1.0);
-        let second = Node::of_point(1, Vector([0.3, 0.4, 0.0]), 1.0);
+        let first = Node::of_point(0, point(0.0));
+        let second = Node::of_point(1, Point::of_vector(Vector([0.3, 0.4, 0.0]), 1.0));
 
         // Act
         let actual = measure_farthest(&first, &second, 0.5);

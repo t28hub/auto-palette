@@ -115,10 +115,10 @@ fn grid_centers(size: Size, grid: Size) -> impl Iterator<Item = usize> {
 /// * `centroids` - The centroid of each segment.
 /// * `labels` - The segment of each pixel, or `None` if it has not joined one yet.
 fn grow_segments(
-    points: &[Point],
+    points: &[Point<5>],
     size: Size,
     seeds: impl IntoIterator<Item = usize>,
-    centroids: &mut Vec<Centroid>,
+    centroids: &mut Vec<Centroid<5>>,
     labels: &mut [Option<SegmentId>],
 ) {
     let mut queue = BinaryHeap::new();
@@ -149,10 +149,10 @@ fn grow_segments(
 fn add_pixel(
     index: usize,
     segment: u32,
-    points: &[Point],
+    points: &[Point<5>],
     size: Size,
     queue: &mut BinaryHeap<Candidate>,
-    centroids: &mut [Centroid],
+    centroids: &mut [Centroid<5>],
     labels: &mut [Option<SegmentId>],
 ) {
     labels[index] = Some(SegmentId::new(segment));
@@ -208,8 +208,7 @@ struct Candidate {
 
 impl Ord for Candidate {
     fn cmp(&self, other: &Self) -> Ordering {
-        // Reversed, so the heap pops the closest pixel first, ties to the lowest index.
-        // Non-negative floats order the same as their bits, which compare faster.
+        // Closest pixel first, ties to the lowest index. Bits sort like these floats, but faster.
         (other.distance.to_bits(), other.index, other.segment).cmp(&(
             self.distance.to_bits(),
             self.index,

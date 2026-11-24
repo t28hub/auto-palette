@@ -53,7 +53,7 @@ impl KMeans {
     ///
     /// # Returns
     /// The clusters that have points, in a fixed order. Weightless points belong to none.
-    pub(crate) fn cluster(&self, points: &[Point]) -> Vec<Cluster> {
+    pub(crate) fn cluster<const N: usize>(&self, points: &[Point<N>]) -> Vec<Cluster> {
         if points.iter().all(|point| point.is_weightless()) {
             return Vec::new();
         }
@@ -74,7 +74,7 @@ impl KMeans {
 ///
 /// # Returns
 /// The cluster of each center that has points, in center order.
-fn group(points: &[Point], assigned: &[usize], count: usize) -> Vec<Cluster> {
+fn group<const N: usize>(points: &[Point<N>], assigned: &[usize], count: usize) -> Vec<Cluster> {
     let mut members = vec![Vec::new(); count];
     for (index, (point, &center)) in points.iter().zip(assigned).enumerate() {
         if !point.is_weightless() {
@@ -98,7 +98,7 @@ mod tests {
     #[rstest]
     #[case::empty(vec![])]
     #[case::weightless(vec![weightless(BLACK), weightless(WHITE)])]
-    fn test_cluster_returns_no_clusters_without_weight(#[case] points: Vec<Point>) {
+    fn test_cluster_returns_no_clusters_without_weight(#[case] points: Vec<Point<5>>) {
         // Arrange
         let kmeans = KMeans::new(NonZeroU32::MIN, Initialization::Farthest, Lloyd::default());
 

@@ -1,17 +1,18 @@
 use super::cluster::Cluster;
-use crate::next::math::Vector;
+use crate::next::{
+    extraction::{centroid::Centroid, point::Point},
+    math::Vector,
+};
 
 /// A node of the merge hierarchy, with what the linkage measures.
 #[derive(Debug)]
 pub(super) struct Node {
     /// The indices of the points.
     members: Vec<usize>,
-    /// The coordinates of each distinct color of the points.
-    colors: Vec<Vector<3>>,
-    /// The sum of the coordinates of the points, each multiplied by its weight.
-    sum: Vector<3>,
-    /// The sum of the weights of the points.
-    weight: f64,
+    /// Each distinct vector of the points.
+    vectors: Vec<Vector<3>>,
+    /// The weighted mean of the points.
+    centroid: Centroid<3>,
 }
 
 impl Node {
@@ -19,29 +20,28 @@ impl Node {
     ///
     /// # Arguments
     /// * `index` - The index of the point.
-    /// * `coordinates` - The coordinates of the color of the point.
-    /// * `weight` - The weight of the point, positive.
+    /// * `point` - The point, with weight.
     ///
     /// # Returns
     /// The node of the point alone.
-    pub(super) fn of_point(index: usize, coordinates: Vector<3>, weight: f64) -> Self {
+    pub(super) fn of_point(index: usize, point: Point<3>) -> Self {
+        let mut centroid = Centroid::default();
+        centroid.add(point);
         Self {
             members: vec![index],
-            colors: vec![coordinates],
-            sum: coordinates * weight,
-            weight,
+            vectors: vec![point.vector()],
+            centroid,
         }
     }
 
-    /// Adds a point of the same color as the first point.
+    /// Adds a point at the same vector as the first point.
     ///
     /// # Arguments
     /// * `index` - The index of the point.
-    /// * `weight` - The weight of the point, positive.
-    pub(super) fn add_point(&mut self, index: usize, weight: f64) {
+    /// * `point` - The point, with weight.
+    pub(super) fn add_duplicate(&mut self, index: usize, point: Point<3>) {
         self.members.push(index);
-        self.sum += self.colors[0] * weight;
-        self.weight += weight;
+        self.centroid.add(point);
     }
 
     /// Absorbs the points of another node.
@@ -50,27 +50,26 @@ impl Node {
     /// * `other` - The node to absorb.
     pub(super) fn absorb(&mut self, other: Self) {
         self.members.extend(other.members);
-        self.colors.extend(other.colors);
-        self.sum += other.sum;
-        self.weight += other.weight;
+        self.vectors.extend(other.vectors);
+        self.centroid.merge(other.centroid);
     }
 
-    /// Returns the coordinates of each distinct color of the points.
+    /// Returns each distinct vector of the points.
     ///
     /// # Returns
-    /// The coordinates of the colors, the color of the first point first.
+    /// The vectors, the vector of the first point first.
     #[inline]
-    pub(super) fn colors(&self) -> &[Vector<3>] {
-        &self.colors
+    pub(super) fn vectors(&self) -> &[Vector<3>] {
+        &self.vectors
     }
 
-    /// Returns the weighted mean of the coordinates of the points.
+    /// Returns the weighted mean of the points.
     ///
     /// # Returns
-    /// The mean coordinates, weighted by the weights of the points.
+    /// The mean vector, weighted by the weights of the points.
     #[inline]
     pub(super) fn mean(&self) -> Vector<3> {
-        self.sum / self.weight
+        self.centroid.point().expect("a node has weight").vector()
     }
 
     /// Converts the node into a cluster, sorting its points.
@@ -88,24 +87,44 @@ mod tests {
     use super::*;
     use crate::assert_approx_eq;
 
+    /// Creates a point on the first axis.
+    fn point(x: f64, weight: f64) -> Point<3> {
+        Point::of_vector(Vector([x, 0.0, 0.0]), weight)
+    }
+
     #[test]
-    fn test_add_point_adds_weight_at_first_color() {
+    fn test_add_duplicate_adds_weight() {
         // Arrange
-        let mut node = Node::of_point(0, Vector([0.2, 0.0, 0.0]), 1.0);
-        node.absorb(Node::of_point(1, Vector([0.4, 0.0, 0.0]), 1.0));
+        let mut node = Node::of_point(0, point(0.2, 1.0));
+        node.absorb(Node::of_point(1, point(0.4, 1.0)));
 
         // Act
-        node.add_point(2, 2.0);
+        node.add_duplicate(2, point(0.2, 2.0));
 
         // Assert
         assert_approx_eq!(node.mean().0[0], 0.25);
     }
 
     #[test]
-    fn test_mean_weighs_coordinates() {
+    fn test_add_duplicate_keeps_vectors_distinct() {
         // Arrange
-        let mut node = Node::of_point(0, Vector([0.2, 0.0, 0.0]), 0.25);
-        node.absorb(Node::of_point(1, Vector([0.6, 0.4, 0.0]), 0.75));
+        let mut node = Node::of_point(0, point(0.2, 1.0));
+
+        // Act
+        node.add_duplicate(1, point(0.2, 1.0));
+
+        // Assert
+        assert_eq!(node.vectors(), [Vector([0.2, 0.0, 0.0])]);
+    }
+
+    #[test]
+    fn test_mean_weighs_points() {
+        // Arrange
+        let mut node = Node::of_point(0, Point::of_vector(Vector([0.2, 0.0, 0.0]), 0.25));
+        node.absorb(Node::of_point(
+            1,
+            Point::of_vector(Vector([0.6, 0.4, 0.0]), 0.75),
+        ));
 
         // Act
         let actual = node.mean();
@@ -113,17 +132,5 @@ mod tests {
         // Assert
         assert_approx_eq!(actual.0[0], 0.5);
         assert_approx_eq!(actual.0[1], 0.3);
-    }
-
-    #[test]
-    fn test_add_point_keeps_colors_distinct() {
-        // Arrange
-        let mut node = Node::of_point(0, Vector([0.2, 0.0, 0.0]), 1.0);
-
-        // Act
-        node.add_point(1, 1.0);
-
-        // Assert
-        assert_eq!(node.colors(), [Vector([0.2, 0.0, 0.0])]);
     }
 }

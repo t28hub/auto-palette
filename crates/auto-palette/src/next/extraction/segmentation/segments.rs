@@ -158,7 +158,7 @@ impl Segment {
         )
     )]
     #[inline]
-    pub(crate) fn point(self) -> Point {
+    pub(crate) fn point(self) -> Point<5> {
         Point::new(self.color, self.center, self.weight)
     }
 }

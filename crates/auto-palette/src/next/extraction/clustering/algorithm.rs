@@ -4,9 +4,16 @@ use crate::next::extraction::point::Point;
 /// The clustering algorithm to use.
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum ClusteringAlgorithm {
-    /// Agglomerative hierarchical clustering ([`Agglomerative`]), by color alone.
+    /// Agglomerative hierarchical clustering ([`Agglomerative`]), up to a distance threshold.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "selected by the builder, which is not implemented yet"
+        )
+    )]
     Agglomerative(Agglomerative),
-    /// K-means ([`KMeans`]), by color and position.
+    /// K-means ([`KMeans`]), into a fixed number of clusters.
     #[cfg_attr(
         not(test),
         expect(
@@ -15,12 +22,6 @@ pub(crate) enum ClusteringAlgorithm {
         )
     )]
     KMeans(KMeans),
-}
-
-impl Default for ClusteringAlgorithm {
-    fn default() -> Self {
-        Self::Agglomerative(Agglomerative::default())
-    }
 }
 
 impl ClusteringAlgorithm {
@@ -38,7 +39,7 @@ impl ClusteringAlgorithm {
             reason = "called by the candidates, which are not implemented yet"
         )
     )]
-    pub(crate) fn cluster(&self, points: &[Point]) -> Vec<Cluster> {
+    pub(crate) fn cluster(&self, points: &[Point<3>]) -> Vec<Cluster> {
         match self {
             Self::Agglomerative(agglomerative) => agglomerative.cluster(points),
             Self::KMeans(kmeans) => kmeans.cluster(points),
@@ -53,14 +54,22 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::next::extraction::{
-        clustering::{Initialization, Lloyd},
-        test_helpers::{point, BLACK, WHITE},
+    use crate::next::{
+        extraction::clustering::{linkage::Linkage, Initialization, Lloyd},
+        math::Vector,
     };
 
-    /// A black point and a white point.
-    fn points() -> [Point; 2] {
-        [point(BLACK), point(WHITE)]
+    /// Two points a unit apart.
+    fn points() -> [Point<3>; 2] {
+        [
+            Point::of_vector(Vector([0.0, 0.0, 0.0]), 1.0),
+            Point::of_vector(Vector([1.0, 0.0, 0.0]), 1.0),
+        ]
+    }
+
+    /// Creates agglomerative clustering by complete linkage.
+    fn agglomerative() -> Agglomerative {
+        Agglomerative::new(Linkage::Complete, 0.02).unwrap()
     }
 
     /// Creates k-means into two clusters.
@@ -74,8 +83,8 @@ mod tests {
 
     #[rstest]
     #[case::agglomerative(
-        ClusteringAlgorithm::Agglomerative(Agglomerative::default()),
-        Agglomerative::default().cluster(&points())
+        ClusteringAlgorithm::Agglomerative(agglomerative()),
+        agglomerative().cluster(&points())
     )]
     #[case::kmeans(ClusteringAlgorithm::KMeans(kmeans()), kmeans().cluster(&points()))]
     fn test_cluster(#[case] clustering: ClusteringAlgorithm, #[case] expected: Vec<Cluster>) {
@@ -84,14 +93,5 @@ mod tests {
 
         // Assert
         assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn test_default_is_agglomerative() {
-        // Act
-        let actual = ClusteringAlgorithm::default();
-
-        // Assert
-        assert!(matches!(actual, ClusteringAlgorithm::Agglomerative(_)));
     }
 }

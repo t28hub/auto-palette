@@ -35,7 +35,11 @@ impl Initialization {
     ///
     /// # Returns
     /// Up to `count` centers, fewer if every point already sits on a center.
-    pub(super) fn centers(self, points: &[Point], count: usize) -> Vec<Point> {
+    pub(super) fn centers<const N: usize>(
+        self,
+        points: &[Point<N>],
+        count: usize,
+    ) -> Vec<Point<N>> {
         match self {
             Self::PlusPlus { seed } => plus_plus(points, count, &mut SplitMix64::new(seed)),
             Self::Farthest => farthest_first(points, count),
@@ -60,7 +64,11 @@ impl Default for Initialization {
 ///
 /// # Returns
 /// Up to `count` centers, fewer if every point already sits on a center.
-fn plus_plus(points: &[Point], count: usize, random: &mut SplitMix64) -> Vec<Point> {
+fn plus_plus<const N: usize>(
+    points: &[Point<N>],
+    count: usize,
+    random: &mut SplitMix64,
+) -> Vec<Point<N>> {
     let weights = cumulative(points.iter().map(|point| point.weight()));
     let first = draw(&weights, random);
     let mut centers = vec![points[first]];
@@ -73,7 +81,7 @@ fn plus_plus(points: &[Point], count: usize, random: &mut SplitMix64) -> Vec<Poi
         if weights.last() == Some(&0.0) {
             break;
         }
-        let potential = |candidate: Point| -> f64 {
+        let potential = |candidate: Point<N>| -> f64 {
             distances
                 .iter()
                 .zip(points)
@@ -99,7 +107,7 @@ fn plus_plus(points: &[Point], count: usize, random: &mut SplitMix64) -> Vec<Poi
 ///
 /// # Returns
 /// Up to `count` centers, fewer if every point already sits on a center.
-fn farthest_first(points: &[Point], count: usize) -> Vec<Point> {
+fn farthest_first<const N: usize>(points: &[Point<N>], count: usize) -> Vec<Point<N>> {
     let mut mean = Centroid::default();
     for &point in points {
         mean.add(point);
@@ -129,7 +137,7 @@ fn farthest_first(points: &[Point], count: usize) -> Vec<Point> {
 /// * `distances` - The weighted squared distance of each point to its nearest center so far.
 /// * `points` - The points to measure from.
 /// * `center` - The new center.
-fn shrink(distances: &mut [f64], points: &[Point], center: Point) {
+fn shrink<const N: usize>(distances: &mut [f64], points: &[Point<N>], center: Point<N>) {
     for (distance, point) in distances.iter_mut().zip(points) {
         *distance = nearest_distance(*distance, *point, center);
     }
@@ -145,7 +153,7 @@ fn shrink(distances: &mut [f64], points: &[Point], center: Point) {
 /// # Returns
 /// The smaller of `distance` and the weight of `point` times its squared distance to `center`.
 #[inline]
-fn nearest_distance(distance: f64, point: Point, center: Point) -> f64 {
+fn nearest_distance<const N: usize>(distance: f64, point: Point<N>, center: Point<N>) -> f64 {
     let squared = point.distance(center, DistanceMetric::SquaredEuclidean);
     let weighted = point.weight() * squared;
     distance.min(weighted)
@@ -195,7 +203,7 @@ mod tests {
     };
 
     /// Creates the points of a row of opaque pixels, with positions scaled.
-    fn row<const W: usize>(colors: [Color; W], scale: f64) -> Vec<Point> {
+    fn row<const W: usize>(colors: [Color; W], scale: f64) -> Vec<Point<5>> {
         Point::of_pixels(&image(&[colors.map(Some)]), scale)
     }
 

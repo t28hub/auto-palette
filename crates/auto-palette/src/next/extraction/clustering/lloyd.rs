@@ -55,8 +55,12 @@ impl Lloyd {
     ///
     /// # Returns
     /// The center of each point.
-    pub(super) fn move_centers(&self, points: &[Point], centers: &mut [Point]) -> Vec<usize> {
-        self.move_centers_with::<Hamerly>(points, centers)
+    pub(super) fn move_centers<const N: usize>(
+        &self,
+        points: &[Point<N>],
+        centers: &mut [Point<N>],
+    ) -> Vec<usize> {
+        self.move_centers_with::<Hamerly, N>(points, centers)
     }
 
     /// Moves the centers like [`Self::move_centers`], finding the nearest centers with `A`.
@@ -67,10 +71,10 @@ impl Lloyd {
     ///
     /// # Returns
     /// The center of each point.
-    fn move_centers_with<A: Assignment>(
+    fn move_centers_with<A: Assignment<N>, const N: usize>(
         &self,
-        points: &[Point],
-        centers: &mut [Point],
+        points: &[Point<N>],
+        centers: &mut [Point<N>],
     ) -> Vec<usize> {
         let mut assignment = A::new(points, centers);
         let mut assigned = vec![0; points.len()];
@@ -104,7 +108,7 @@ impl Default for Lloyd {
 ///
 /// # Returns
 /// How far each center moved.
-fn update(centers: &mut [Point], centroids: &[Centroid]) -> Vec<f64> {
+fn update<const N: usize>(centers: &mut [Point<N>], centroids: &[Centroid<N>]) -> Vec<f64> {
     let mut moves = vec![0.0; centers.len()];
     for ((center, centroid), moved) in centers.iter_mut().zip(centroids).zip(&mut moves) {
         let Some(mean) = centroid.point() else {
@@ -158,16 +162,17 @@ mod tests {
     fn test_move_centers_hamerly_matches_naive() {
         // Arrange: random points, so that many sit near the border of two centers.
         let mut random = SplitMix64::new(0);
-        let points: Vec<Point> = (0..256)
+        let points: Vec<Point<5>> = (0..256)
             .map(|_| Point::of_vector(Vector(array::from_fn(|_| random.next_f64())), 1.0))
             .collect();
         let initial = &points[..8];
         let mut expected_centers = initial.to_vec();
-        let expected = Lloyd::default().move_centers_with::<Naive>(&points, &mut expected_centers);
+        let expected =
+            Lloyd::default().move_centers_with::<Naive, 5>(&points, &mut expected_centers);
         let mut centers = initial.to_vec();
 
         // Act
-        let actual = Lloyd::default().move_centers_with::<Hamerly>(&points, &mut centers);
+        let actual = Lloyd::default().move_centers_with::<Hamerly, 5>(&points, &mut centers);
 
         // Assert
         assert_eq!(actual, expected);
@@ -182,11 +187,11 @@ mod tests {
             ..Lloyd::default()
         };
         let mut expected_centers = [0.0, 0.25].map(gray).map(point);
-        let expected = lloyd.move_centers_with::<Naive>(&points, &mut expected_centers);
+        let expected = lloyd.move_centers_with::<Naive, 5>(&points, &mut expected_centers);
         let mut centers = [0.0, 0.25].map(gray).map(point);
 
         // Act
-        let actual = lloyd.move_centers_with::<Hamerly>(&points, &mut centers);
+        let actual = lloyd.move_centers_with::<Hamerly, 5>(&points, &mut centers);
 
         // Assert
         assert_eq!(actual, expected);
@@ -203,7 +208,7 @@ mod tests {
         };
 
         // Act
-        let actual = lloyd.move_centers_with::<Naive>(&points, &mut centers);
+        let actual = lloyd.move_centers_with::<Naive, 5>(&points, &mut centers);
 
         // Assert
         assert_eq!(actual, [0, 1, 1]);
@@ -220,7 +225,7 @@ mod tests {
         };
 
         // Act
-        let actual = lloyd.move_centers_with::<Naive>(&points, &mut centers);
+        let actual = lloyd.move_centers_with::<Naive, 5>(&points, &mut centers);
 
         // Assert
         assert_eq!(actual, [0, 1, 1]);
@@ -237,7 +242,7 @@ mod tests {
         };
 
         // Act
-        let actual = lloyd.move_centers_with::<Naive>(&points, &mut centers);
+        let actual = lloyd.move_centers_with::<Naive, 5>(&points, &mut centers);
 
         // Assert
         assert_eq!(actual, [0, 0, 1]);

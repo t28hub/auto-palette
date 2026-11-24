@@ -55,6 +55,13 @@ impl DeltaE {
     ///
     /// # Returns
     /// The coordinates of `color` in that space.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "called by the candidates, which are not implemented yet"
+        )
+    )]
     #[inline]
     pub(crate) fn embed(self, color: Color) -> Vector<3> {
         let oklab = color.to_oklab();

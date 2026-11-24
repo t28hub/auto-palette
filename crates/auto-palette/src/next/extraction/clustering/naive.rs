@@ -5,18 +5,18 @@ use crate::next::extraction::{centroid::Centroid, point::Point};
 #[derive(Debug)]
 pub(super) struct Naive;
 
-impl Assignment for Naive {
-    fn new(_points: &[Point], _centers: &[Point]) -> Self {
+impl<const N: usize> Assignment<N> for Naive {
+    fn new(_points: &[Point<N>], _centers: &[Point<N>]) -> Self {
         Self
     }
 
     fn assign(
         &mut self,
-        points: &[Point],
-        centers: &[Point],
+        points: &[Point<N>],
+        centers: &[Point<N>],
         _moves: &[f64],
         assigned: &mut [usize],
-    ) -> Vec<Centroid> {
+    ) -> Vec<Centroid<N>> {
         let mut centroids = vec![Centroid::default(); centers.len()];
         for (point, assigned) in points.iter().zip(assigned) {
             if point.is_weightless() {

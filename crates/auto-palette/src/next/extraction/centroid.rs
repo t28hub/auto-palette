@@ -1,33 +1,42 @@
 use super::point::Point;
 use crate::next::math::Vector;
 
-/// The weighted mean color and position of a group of points, kept as running sums.
+/// The weighted mean of a group of points, kept as running sums.
 #[derive(Debug, Clone, Copy, Default)]
-pub(crate) struct Centroid {
-    /// The weighted sums of L, a, b, x, and y.
-    sum: Vector<5>,
+pub(crate) struct Centroid<const N: usize> {
+    /// The weighted sum of the coordinates.
+    sum: Vector<N>,
     /// The sum of the weights.
     weight: f64,
 }
 
-impl Centroid {
+impl<const N: usize> Centroid<N> {
     /// Adds a point to the group, weighted by its weight.
     ///
     /// # Arguments
     /// * `point` - The point to add, counted by its weight.
     #[inline]
-    pub(crate) fn add(&mut self, point: Point) {
+    pub(crate) fn add(&mut self, point: Point<N>) {
         self.sum += point.vector() * point.weight();
         self.weight += point.weight();
+    }
+
+    /// Merges the points of another group into this one.
+    ///
+    /// # Arguments
+    /// * `other` - The centroid of the other group.
+    #[inline]
+    pub(crate) fn merge(&mut self, other: Self) {
+        self.sum += other.sum;
+        self.weight += other.weight;
     }
 
     /// Returns the weighted mean as a point.
     ///
     /// # Returns
-    /// The mean color at the mean position, with the total weight, or `None` if the group has no
-    /// weight.
+    /// The mean of the points with their total weight, or `None` if the group has no weight.
     #[inline]
-    pub(crate) fn point(&self) -> Option<Point> {
+    pub(crate) fn point(&self) -> Option<Point<N>> {
         if self.weight == 0.0 {
             return None;
         }

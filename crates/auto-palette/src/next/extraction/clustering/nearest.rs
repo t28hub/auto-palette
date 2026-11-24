@@ -19,7 +19,7 @@ pub(super) struct Nearest {
 ///
 /// # Returns
 /// The nearest center and the distances to the two nearest centers.
-pub(super) fn nearest(point: Point, centers: &[Point]) -> Nearest {
+pub(super) fn nearest<const N: usize>(point: Point<N>, centers: &[Point<N>]) -> Nearest {
     let mut center = 0;
     let mut squared = f64::INFINITY;
     let mut runner_up_squared = f64::INFINITY;
