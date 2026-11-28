@@ -55,13 +55,6 @@ impl DeltaE {
     ///
     /// # Returns
     /// The coordinates of `color` in that space.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "called by the candidates, which are not implemented yet"
-        )
-    )]
     #[inline]
     pub(crate) fn embed(self, color: Color) -> Vector<3> {
         let oklab = color.to_oklab();
@@ -146,12 +139,12 @@ mod tests {
     #[rstest]
     #[case::ok(DeltaE::Ok, 0.5, 0.03, 0.04)]
     #[case::okr2(DeltaE::Okr2, 0.421_141, 0.06, 0.08)]
-    fn test_embed(#[case] difference: DeltaE, #[case] l: f64, #[case] a: f64, #[case] b: f64) {
+    fn test_embed(#[case] delta_e: DeltaE, #[case] l: f64, #[case] a: f64, #[case] b: f64) {
         // Arrange
         let color = color(0.5, 0.03, 0.04);
 
         // Act
-        let actual = difference.embed(color);
+        let actual = delta_e.embed(color);
 
         // Assert
         let [actual_l, actual_a, actual_b] = actual.0;
@@ -163,18 +156,18 @@ mod tests {
     #[rstest]
     #[case::ok(DeltaE::Ok)]
     #[case::okr2(DeltaE::Okr2)]
-    fn test_embed_keeps_difference(#[case] difference: DeltaE) {
+    fn test_embed_keeps_difference(#[case] delta_e: DeltaE) {
         // Arrange
         let reference = color(0.2, 0.03, -0.01);
         let sample = color(0.6, -0.02, 0.04);
 
         // Act
-        let actual = difference
+        let actual = delta_e
             .embed(reference)
-            .distance(difference.embed(sample), DistanceMetric::Euclidean);
+            .distance(delta_e.embed(sample), DistanceMetric::Euclidean);
 
         // Assert
-        assert_eq!(actual, difference.measure(reference, sample));
+        assert_eq!(actual, delta_e.measure(reference, sample));
     }
 
     #[rstest]

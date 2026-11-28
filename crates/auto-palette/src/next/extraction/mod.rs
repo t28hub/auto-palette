@@ -1,6 +1,7 @@
 mod centroid;
 mod clustering;
 mod extractor;
+mod grouping;
 mod nearest;
 mod point;
 mod position;

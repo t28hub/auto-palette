@@ -145,22 +145,6 @@ impl Segment {
     pub(crate) const fn radial_distance(self) -> f64 {
         self.radial_distance
     }
-
-    /// Returns the segment as a point, with its position unscaled.
-    ///
-    /// # Returns
-    /// The color at the center, with the weight.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "called by the color selection, which is not implemented yet"
-        )
-    )]
-    #[inline]
-    pub(crate) fn point(self) -> Point<5> {
-        Point::new(self.color, self.center, self.weight)
-    }
 }
 
 /// The segments of an image.
@@ -440,23 +424,6 @@ mod tests {
 
         // Assert
         assert_eq!(actual.segments.len(), 1);
-    }
-
-    #[test]
-    fn test_segment_point() {
-        // Arrange
-        let segments = Segments::of_labels(
-            &image(),
-            &[Some(SegmentId::new(0)), None],
-            Estimation::default(),
-        );
-        let segment = segments.segments[0];
-
-        // Act
-        let actual = segment.point();
-
-        // Assert: the center as the position, not scaled.
-        assert_eq!(actual.position(), segment.center());
     }
 
     #[test]

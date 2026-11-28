@@ -1,7 +1,7 @@
 /// SplitMix64, a small pseudorandom number generator.
 ///
 /// From <https://prng.di.unimi.it/splitmix64.c>.
-pub(super) struct SplitMix64 {
+pub(crate) struct SplitMix64 {
     /// The state, which advances by a fixed step for each number.
     state: u64,
 }
@@ -14,7 +14,7 @@ impl SplitMix64 {
     ///
     /// # Returns
     /// A generator that generates the same sequence for the same seed.
-    pub(super) const fn new(seed: u64) -> Self {
+    pub(crate) const fn new(seed: u64) -> Self {
         Self { state: seed }
     }
 
@@ -34,7 +34,7 @@ impl SplitMix64 {
     ///
     /// # Returns
     /// The next number, from the top 53 bits of [`Self::next_u64`].
-    pub(super) fn next_f64(&mut self) -> f64 {
+    pub(crate) fn next_f64(&mut self) -> f64 {
         let top_53_bits = self.next_u64() >> 11;
         let scale = (1u64 << 53) as f64;
         top_53_bits as f64 / scale

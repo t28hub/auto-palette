@@ -131,23 +131,6 @@ impl Point<5> {
         Self::of_vector(Vector([l, a, b, x * scale, y * scale]), self.weight)
     }
 
-    /// Returns the color.
-    ///
-    /// # Returns
-    /// The L, a, and b values as a color.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "called by the color selection, which is not implemented yet"
-        )
-    )]
-    #[inline]
-    pub(crate) fn color(self) -> Color {
-        let [l, a, b, _, _] = self.vector.0;
-        Color::from_oklab(Oklab::new(l, a, b))
-    }
-
     /// Returns the position, which segmenters scale with [`Self::of_pixels`].
     ///
     /// # Returns
@@ -176,7 +159,8 @@ mod tests {
         let actual = Point::at(&image, 1);
 
         // Assert
-        assert_approx_eq!(actual.color().to_oklab().l, 1.0);
+        let [lightness, ..] = actual.vector().0;
+        assert_approx_eq!(lightness, 1.0);
         assert_eq!(actual.position(), Position::new(0.75, 0.25));
         assert_eq!(actual.weight(), 1.0);
     }
@@ -250,18 +234,6 @@ mod tests {
 
         // Assert: 1.0 in color plus 0.25 in position.
         assert_approx_eq!(actual, 1.25);
-    }
-
-    #[test]
-    fn test_color() {
-        // Arrange
-        let point = Point::of_vector(Vector([0.5, 0.1, -0.1, 0.3, 0.4]), 1.0);
-
-        // Act
-        let actual = point.color().to_oklab();
-
-        // Assert
-        assert_eq!([actual.l, actual.a, actual.b], [0.5, 0.1, -0.1]);
     }
 
     #[test]

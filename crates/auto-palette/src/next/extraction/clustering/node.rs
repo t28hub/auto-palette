@@ -103,7 +103,8 @@ mod tests {
         node.add_point(2, point(0.2, 2.0));
 
         // Assert
-        assert_approx_eq!(node.mean().0[0], 0.25);
+        let [x, ..] = node.mean().0;
+        assert_approx_eq!(x, 0.25);
     }
 
     #[test]
@@ -131,7 +132,8 @@ mod tests {
         let actual = node.mean();
 
         // Assert
-        assert_approx_eq!(actual.0[0], 0.5);
-        assert_approx_eq!(actual.0[1], 0.3);
+        let [x, y, _] = actual.0;
+        assert_approx_eq!(x, 0.5);
+        assert_approx_eq!(y, 0.3);
     }
 }

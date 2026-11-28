@@ -5,13 +5,6 @@ use crate::next::extraction::point::Point;
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum ClusteringAlgorithm {
     /// Agglomerative hierarchical clustering ([`Agglomerative`]), up to a distance threshold.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "selected by the builder, which is not implemented yet"
-        )
-    )]
     Agglomerative(Agglomerative),
     /// K-means ([`KMeans`]), into a fixed number of clusters.
     #[cfg_attr(
@@ -32,13 +25,6 @@ impl ClusteringAlgorithm {
     ///
     /// # Returns
     /// The clusters that have points, in a fixed order. Weightless points belong to none.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "called by the candidates, which are not implemented yet"
-        )
-    )]
     pub(crate) fn cluster<const N: usize>(&self, points: &[Point<N>]) -> Vec<Cluster> {
         match self {
             Self::Agglomerative(agglomerative) => agglomerative.cluster(points),

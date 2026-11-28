@@ -14,4 +14,13 @@ mod nearest;
 mod node;
 mod random;
 
-pub(crate) use self::{initialization::Initialization, kmeans::KMeans, lloyd::Lloyd};
+#[cfg(test)]
+pub(crate) use self::random::SplitMix64;
+pub(crate) use self::{
+    agglomerative::Agglomerative,
+    algorithm::ClusteringAlgorithm,
+    initialization::Initialization,
+    kmeans::KMeans,
+    linkage::Linkage,
+    lloyd::Lloyd,
+};

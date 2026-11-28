@@ -26,13 +26,6 @@ impl Agglomerative {
     ///
     /// # Returns
     /// Agglomerative clustering, or `None` if `threshold` is not a positive normal number.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "called by the builder, which is not implemented yet"
-        )
-    )]
     pub(crate) fn new(linkage: Linkage, threshold: f64) -> Option<Self> {
         if !threshold.is_normal() || threshold < 0.0 {
             return None;
@@ -98,7 +91,7 @@ mod tests {
 
     use super::*;
     use crate::next::{
-        extraction::{centroid::Centroid, clustering::random::SplitMix64},
+        extraction::{centroid::Centroid, clustering::random::SplitMix64, test_helpers},
         math::{DistanceMetric, Vector},
     };
 
@@ -130,41 +123,10 @@ mod tests {
 
     /// Clusters points the textbook way, comparing every pair of clusters before each merge.
     fn cluster_naively(linkage: Linkage, points: &[Point<3>], threshold: f64) -> Vec<Cluster> {
-        let mut clusters: Vec<Vec<usize>> = (0..points.len()).map(|index| vec![index]).collect();
-        while merge_closest_naively(linkage, points, threshold, &mut clusters) {}
+        let measure =
+            |first: &[usize], second: &[usize]| measure_naively(linkage, points, first, second);
+        let clusters = test_helpers::cluster_naively(points.len(), threshold, measure);
         clusters.into_iter().map(Cluster::new).collect()
-    }
-
-    /// Merges the closest pair of clusters, if it is under the threshold.
-    fn merge_closest_naively(
-        linkage: Linkage,
-        points: &[Point<3>],
-        threshold: f64,
-        clusters: &mut Vec<Vec<usize>>,
-    ) -> bool {
-        // The closest pair under the threshold, the first one on a tie.
-        let mut smallest = threshold;
-        let mut lower = 0;
-        let mut upper = 0;
-        for first in 0..clusters.len() {
-            for second in first + 1..clusters.len() {
-                let distance =
-                    measure_naively(linkage, points, &clusters[first], &clusters[second]);
-                if distance < smallest {
-                    smallest = distance;
-                    lower = first;
-                    upper = second;
-                }
-            }
-        }
-        if smallest >= threshold {
-            return false;
-        }
-
-        let merged = clusters.remove(upper);
-        clusters[lower].extend(merged);
-        clusters[lower].sort_unstable();
-        true
     }
 
     /// Measures the distance between two clusters the textbook way.
