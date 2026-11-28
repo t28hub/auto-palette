@@ -3,7 +3,7 @@ use crate::next::{
     math::{DistanceMetric, Vector},
 };
 
-/// A method that chooses the color of a segment from its pixels.
+/// A method that chooses one color to represent some pixels.
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum Estimation {
     /// Tukey's biweight, which ignores pixels far from the estimate.
@@ -17,13 +17,13 @@ impl Default for Estimation {
 }
 
 impl Estimation {
-    /// Estimates the color of a segment.
+    /// Estimates one color to represent some pixels.
     ///
     /// # Arguments
-    /// * `pixels` - The pixels of the segment.
+    /// * `pixels` - The pixels.
     ///
     /// # Returns
-    /// The color of the segment, or `None` if there are no pixels.
+    /// The color that represents `pixels`, or `None` if there are no pixels.
     pub(crate) fn estimate(&self, pixels: &[AlphaColor<Color>]) -> Option<Color> {
         match self {
             Self::Biweight(biweight) => biweight.estimate(pixels),
@@ -70,13 +70,13 @@ impl Biweight {
         Some(Self { scale })
     }
 
-    /// Estimates the color of a segment.
+    /// Estimates one color to represent some pixels.
     ///
     /// # Arguments
-    /// * `pixels` - The pixels of the segment.
+    /// * `pixels` - The pixels.
     ///
     /// # Returns
-    /// The color of the segment, or `None` if there are no pixels.
+    /// The color that represents `pixels`, or `None` if there are no pixels.
     fn estimate(&self, pixels: &[AlphaColor<Color>]) -> Option<Color> {
         let mut estimate = find_median(pixels)?;
         for _ in 0..Self::PASSES {
@@ -88,7 +88,7 @@ impl Biweight {
     /// Moves an estimate to the mean of the pixels, weighted by how close and opaque they are.
     ///
     /// # Arguments
-    /// * `pixels` - The pixels of the segment.
+    /// * `pixels` - The pixels.
     /// * `estimate` - The current estimate.
     ///
     /// # Returns
@@ -132,7 +132,7 @@ impl Default for Biweight {
 /// Finds the median of each channel, without weights.
 ///
 /// # Arguments
-/// * `pixels` - The pixels of the segment.
+/// * `pixels` - The pixels.
 ///
 /// # Returns
 /// The medians as a color, or `None` if there are no pixels.

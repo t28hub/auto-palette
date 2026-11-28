@@ -1,12 +1,12 @@
 mod centroid;
 mod clustering;
+mod estimation;
 mod extractor;
 mod grouping;
 mod nearest;
 mod point;
 mod position;
-mod preprocessor;
-mod resampling;
+mod preprocessing;
 mod saliency;
 mod segmentation;
 #[cfg(test)]
