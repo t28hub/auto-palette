@@ -63,7 +63,8 @@ mod tests {
         let actual = centroid.point().unwrap();
 
         // Assert
-        assert_approx_eq!(actual.color().to_oklab().l, 0.5);
+        let [lightness, ..] = actual.vector().0;
+        assert_approx_eq!(lightness, 0.5);
         assert_approx_eq!(actual.position().x, 0.3);
         assert_approx_eq!(actual.position().y, 0.6);
         assert_eq!(actual.weight(), 1.0);

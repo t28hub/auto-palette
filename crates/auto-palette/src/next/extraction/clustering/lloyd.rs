@@ -259,7 +259,8 @@ mod tests {
         update(&mut centers, &[centroid]);
 
         // Assert
-        assert_eq!(centers[0].color().to_oklab().l, 1.0);
+        let [lightness, ..] = centers[0].vector().0;
+        assert_eq!(lightness, 1.0);
     }
 
     #[test]
@@ -271,7 +272,8 @@ mod tests {
         update(&mut centers, &[Centroid::default()]);
 
         // Assert
-        assert_eq!(centers[0].color().to_oklab().l, 0.0);
+        let [lightness, ..] = centers[0].vector().0;
+        assert_eq!(lightness, 0.0);
     }
 
     #[test]

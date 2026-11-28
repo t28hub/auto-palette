@@ -211,17 +211,20 @@ mod tests {
     fn test_centers_depend_on_seed() {
         // Arrange: a gradient, so the initial centers depend on the random draws.
         let points = row(gradient::<16>(), 0.0);
-        let lightness = |seed| -> Vec<f64> {
-            Initialization::PlusPlus { seed }
-                .centers(&points, 4)
+        let pick_lightnesses = |seed| -> Vec<f64> {
+            let centers = Initialization::PlusPlus { seed }.centers(&points, 4);
+            centers
                 .iter()
-                .map(|center| center.color().to_oklab().l)
+                .map(|center| {
+                    let [lightness, ..] = center.vector().0;
+                    lightness
+                })
                 .collect()
         };
 
         // Act
-        let first = lightness(0);
-        let second = lightness(1);
+        let first = pick_lightnesses(0);
+        let second = pick_lightnesses(1);
 
         // Assert
         assert_ne!(first, second);
@@ -236,7 +239,8 @@ mod tests {
         let actual = farthest_first(&points, 1);
 
         // Assert: (0.0 + 0.4 + 1.0) / 3
-        assert_approx_eq!(actual[0].color().to_oklab().l, 1.4 / 3.0);
+        let [lightness, ..] = actual[0].vector().0;
+        assert_approx_eq!(lightness, 1.4 / 3.0);
     }
 
     #[test]
@@ -248,7 +252,8 @@ mod tests {
         let actual = farthest_first(&points, 2);
 
         // Assert
-        assert_approx_eq!(actual[1].color().to_oklab().l, 1.0);
+        let [lightness, ..] = actual[1].vector().0;
+        assert_approx_eq!(lightness, 1.0);
     }
 
     #[test]

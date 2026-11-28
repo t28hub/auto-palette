@@ -1,4 +1,5 @@
 use super::{
+    grouping::Grouping,
     preprocessor::Preprocessor,
     saliency::Saliency,
     segmentation::{Estimation, SegmentationAlgorithm, Segmenter, Segments},
@@ -22,6 +23,8 @@ pub struct Extractor {
     estimation: Estimation,
     /// Scores how much each segment stands out.
     saliency: Saliency,
+    /// Groups segments of similar colors into candidates.
+    grouping: Grouping,
 }
 
 impl Extractor {
@@ -63,8 +66,9 @@ impl Extractor {
     fn extract_image(&self, image: &ImageRef<'_>) -> Result<Extraction, Error> {
         let image = self.preprocessor.preprocess(image);
         let segments = self.split_into_segments(&image);
-        let _saliency = self.saliency.score(segments.segments());
-        todo!("select colors from the segments")
+        let scores = self.saliency.score(segments.segments());
+        let _candidates = self.grouping.group(segments.segments(), &scores);
+        todo!("select colors from the candidates")
     }
 
     /// Splits a prepared image into segments and summarizes each.

@@ -41,7 +41,7 @@ pub(crate) struct RegionContrast {
     /// How strongly segments away from the image center are lowered.
     center_bias: f64,
     /// The formula for the color difference between two segments.
-    difference: DeltaE,
+    delta_e: DeltaE,
 }
 
 impl RegionContrast {
@@ -103,7 +103,7 @@ impl RegionContrast {
             .center()
             .distance(other.center(), DistanceMetric::SquaredEuclidean);
         let spatial_weight = (-squared_distance / self.spatial_falloff).exp();
-        let difference = self.difference.measure(segment.color(), other.color());
+        let difference = self.delta_e.measure(segment.color(), other.color());
         spatial_weight * other.weight() * difference
     }
 }
@@ -113,7 +113,7 @@ impl Default for RegionContrast {
         Self {
             spatial_falloff: Self::DEFAULT_SPATIAL_FALLOFF,
             center_bias: Self::DEFAULT_CENTER_BIAS,
-            difference: DeltaE::Okr2,
+            delta_e: DeltaE::Okr2,
         }
     }
 }
