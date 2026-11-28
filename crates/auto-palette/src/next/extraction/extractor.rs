@@ -1,8 +1,9 @@
 use super::{
+    estimation::Estimation,
     grouping::Grouping,
-    preprocessor::Preprocessor,
+    preprocessing::Preprocessor,
     saliency::Saliency,
-    segmentation::{Estimation, SegmentationAlgorithm, Segmenter, Segments},
+    segmentation::{SegmentationAlgorithm, Segmenter, Segments},
     Extraction,
 };
 use crate::next::{

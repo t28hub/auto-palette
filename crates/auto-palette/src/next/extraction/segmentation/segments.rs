@@ -1,7 +1,6 @@
-use super::estimation::Estimation;
 use crate::next::{
     color::{AlphaColor, Color},
-    extraction::{centroid::Centroid, point::Point, position::Position},
+    extraction::{centroid::Centroid, estimation::Estimation, point::Point, position::Position},
     image::{ImageBuf, Size},
 };
 
