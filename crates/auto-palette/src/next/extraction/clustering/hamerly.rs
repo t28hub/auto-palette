@@ -27,8 +27,8 @@ impl Hamerly {
     }
 }
 
-impl Assignment for Hamerly {
-    fn new(points: &[Point], _centers: &[Point]) -> Self {
+impl<const N: usize> Assignment<N> for Hamerly {
+    fn new(points: &[Point<N>], _centers: &[Point<N>]) -> Self {
         Self {
             bounds: vec![Bounds::UNKNOWN; points.len()],
         }
@@ -36,11 +36,11 @@ impl Assignment for Hamerly {
 
     fn assign(
         &mut self,
-        points: &[Point],
-        centers: &[Point],
+        points: &[Point<N>],
+        centers: &[Point<N>],
         moves: &[f64],
         assigned: &mut [usize],
-    ) -> Vec<Centroid> {
+    ) -> Vec<Centroid<N>> {
         self.loosen(moves, assigned);
         let separations = separations(centers);
         let mut centroids = vec![Centroid::default(); centers.len()];
@@ -88,7 +88,13 @@ impl Bounds {
     /// * `centers` - The centers, at least one.
     /// * `separation` - The distance from the center of the point to the nearest other center.
     /// * `center` - The center of the point, updated if another center is nearer.
-    fn reassign(&mut self, point: Point, centers: &[Point], separation: f64, center: &mut usize) {
+    fn reassign<const N: usize>(
+        &mut self,
+        point: Point<N>,
+        centers: &[Point<N>],
+        separation: f64,
+        center: &mut usize,
+    ) {
         // Strict, unlike the paper, so that a tie goes to the first center as in `nearest`.
         let bound = (separation / 2.0).max(self.lower);
         if self.upper < bound {
@@ -114,7 +120,7 @@ impl Bounds {
 ///
 /// # Returns
 /// The distance for each center, infinite if there is one center.
-fn separations(centers: &[Point]) -> Vec<f64> {
+fn separations<const N: usize>(centers: &[Point<N>]) -> Vec<f64> {
     centers
         .iter()
         .enumerate()

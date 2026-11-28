@@ -5,16 +5,71 @@ use crate::next::{
     math::{DistanceMetric, Vector},
 };
 
-/// A color at a position with a weight: a pixel, a segment, or the mean of a group of them.
+/// A weighted point in N dimensions, such as the color and position of a pixel.
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct Point {
-    /// The L, a, b, x, and y values.
-    vector: Vector<5>,
+pub(crate) struct Point<const N: usize> {
+    /// The coordinates of the point.
+    vector: Vector<N>,
     /// How much the point counts in a mean.
     weight: f64,
 }
 
-impl Point {
+impl<const N: usize> Point<N> {
+    /// Creates a point from its coordinates and weight.
+    ///
+    /// # Arguments
+    /// * `vector` - The coordinates of the point.
+    /// * `weight` - How much the point counts in a mean.
+    ///
+    /// # Returns
+    /// A point with the given vector and weight.
+    #[inline]
+    pub(crate) const fn of_vector(vector: Vector<N>, weight: f64) -> Self {
+        Self { vector, weight }
+    }
+
+    /// Returns whether the point counts for nothing in a mean.
+    ///
+    /// # Returns
+    /// `true` if the weight is zero.
+    #[inline]
+    pub(crate) fn is_weightless(self) -> bool {
+        self.weight == 0.0
+    }
+
+    /// Returns the distance to another point.
+    ///
+    /// # Arguments
+    /// * `other` - The point to measure the distance to.
+    /// * `metric` - The metric for the distance.
+    ///
+    /// # Returns
+    /// The distance between the two points.
+    #[inline]
+    pub(crate) fn distance(self, other: Self, metric: DistanceMetric) -> f64 {
+        self.vector.distance(other.vector, metric)
+    }
+
+    /// Returns the coordinates of the point.
+    ///
+    /// # Returns
+    /// The coordinates as a vector.
+    #[inline]
+    pub(crate) const fn vector(self) -> Vector<N> {
+        self.vector
+    }
+
+    /// Returns the weight with which the point counts in a mean.
+    ///
+    /// # Returns
+    /// How much the point counts in a mean.
+    #[inline]
+    pub(crate) const fn weight(self) -> f64 {
+        self.weight
+    }
+}
+
+impl Point<5> {
     /// Creates a point from a color, a position, and a weight.
     ///
     /// # Arguments
@@ -29,19 +84,6 @@ impl Point {
         let Oklab { l, a, b } = color.to_oklab();
         let vector = Vector([l, a, b, position.x, position.y]);
         Self::of_vector(vector, weight)
-    }
-
-    /// Creates a point from a vector of its color and position.
-    ///
-    /// # Arguments
-    /// * `vector` - The L, a, b, x, and y values.
-    /// * `weight` - How much the point counts in a mean.
-    ///
-    /// # Returns
-    /// A point with the given vector and weight.
-    #[inline]
-    pub(crate) const fn of_vector(vector: Vector<5>, weight: f64) -> Self {
-        Self { vector, weight }
     }
 
     /// Creates the point of a pixel, with its opacity as the weight.
@@ -76,15 +118,6 @@ impl Point {
             .collect()
     }
 
-    /// Returns whether the point counts for nothing in a mean.
-    ///
-    /// # Returns
-    /// `true` if the weight is zero.
-    #[inline]
-    pub(crate) fn is_weightless(self) -> bool {
-        self.weight == 0.0
-    }
-
     /// Returns the point with its position scaled.
     ///
     /// # Arguments
@@ -96,19 +129,6 @@ impl Point {
     fn scale_position(self, scale: f64) -> Self {
         let [l, a, b, x, y] = self.vector.0;
         Self::of_vector(Vector([l, a, b, x * scale, y * scale]), self.weight)
-    }
-
-    /// Returns the distance to another point over color and position.
-    ///
-    /// # Arguments
-    /// * `other` - The point to measure the distance to.
-    /// * `metric` - The metric for the distance.
-    ///
-    /// # Returns
-    /// The distance between the two points.
-    #[inline]
-    pub(crate) fn distance(self, other: Self, metric: DistanceMetric) -> f64 {
-        self.vector.distance(other.vector, metric)
     }
 
     /// Returns the color.
@@ -136,24 +156,6 @@ impl Point {
     pub(crate) fn position(self) -> Position {
         let [_, _, _, x, y] = self.vector.0;
         Position::new(x, y)
-    }
-
-    /// Returns the color and position as one vector.
-    ///
-    /// # Returns
-    /// The L, a, b, x, and y values.
-    #[inline]
-    pub(crate) const fn vector(self) -> Vector<5> {
-        self.vector
-    }
-
-    /// Returns the weight with which the point counts in a mean.
-    ///
-    /// # Returns
-    /// How much the point counts in a mean.
-    #[inline]
-    pub(crate) const fn weight(self) -> f64 {
-        self.weight
     }
 }
 

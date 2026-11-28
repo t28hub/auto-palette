@@ -68,7 +68,7 @@ pub(super) fn image<const W: usize>(rows: &[[Option<Color>; W]]) -> ImageBuf<Alp
 ///
 /// # Returns
 /// The point of `color` at the origin, counting fully in a mean.
-pub(super) fn point(color: Color) -> Point {
+pub(super) fn point(color: Color) -> Point<5> {
     Point::new(color, Position::new(0.0, 0.0), 1.0)
 }
 
@@ -79,6 +79,6 @@ pub(super) fn point(color: Color) -> Point {
 ///
 /// # Returns
 /// The point of `color` at the origin, counting for nothing in a mean.
-pub(super) fn weightless(color: Color) -> Point {
+pub(super) fn weightless(color: Color) -> Point<5> {
     Point::new(color, Position::new(0.0, 0.0), 0.0)
 }

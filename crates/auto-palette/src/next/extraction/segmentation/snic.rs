@@ -1,4 +1,4 @@
-use std::{cmp::Reverse, collections::BinaryHeap, num::NonZeroU32};
+use std::{cmp::Ordering, collections::BinaryHeap, num::NonZeroU32};
 
 use crate::next::{
     color::{AlphaColor, Color},
@@ -12,9 +12,6 @@ use crate::next::{
     image::{ImageBuf, Size},
     math::DistanceMetric,
 };
-
-/// A pixel waiting to join a segment: its distance as bits, its index, and the segment.
-type Candidate = Reverse<(u64, u32, u32)>;
 
 /// Simple Non-Iterative Clustering, which grows segments from seeds on a grid.
 ///
@@ -78,36 +75,18 @@ impl Segmenter for Snic {
         let points = Point::of_pixels(image, scale);
         let mut labels = vec![None; points.len()];
         let mut centroids = Vec::new();
-        let mut queue = BinaryHeap::new();
-        for index in grid_centers(size, grid) {
-            if points[index].is_weightless() {
-                continue;
-            }
-            add_seed(index, &mut queue, &mut centroids);
-        }
-        grow_segments(&points, size, &mut queue, &mut centroids, &mut labels);
+        let seeds = grid_centers(size, grid).filter(|&index| !points[index].is_weightless());
+        grow_segments(&points, size, seeds, &mut centroids, &mut labels);
 
         // Pixels cut off from every seed by transparent pixels start segments of their own.
         for index in 0..points.len() {
             if labels[index].is_some() || points[index].is_weightless() {
                 continue;
             }
-            add_seed(index, &mut queue, &mut centroids);
-            grow_segments(&points, size, &mut queue, &mut centroids, &mut labels);
+            grow_segments(&points, size, [index], &mut centroids, &mut labels);
         }
         labels
     }
-}
-
-/// Adds a pixel as the seed of a new segment.
-///
-/// # Arguments
-/// * `index` - The index of the pixel, row by row.
-/// * `queue` - The pixels waiting to join a segment.
-/// * `centroids` - The centroid of each segment.
-fn add_seed(index: usize, queue: &mut BinaryHeap<Candidate>, centroids: &mut Vec<Centroid>) {
-    queue.push(Reverse((0, index as u32, centroids.len() as u32)));
-    centroids.push(Centroid::default());
 }
 
 /// Returns the pixels at the centers of the cells of a grid.
@@ -127,42 +106,72 @@ fn grid_centers(size: Size, grid: Size) -> impl Iterator<Item = usize> {
     })
 }
 
-/// Adds the closest waiting pixel to its segment until no pixel is waiting.
+/// Grows a segment from each seed, adding the closest waiting pixel until none is waiting.
 ///
 /// # Arguments
+/// * `points` - The point of each pixel, with positions scaled.
+/// * `size` - The size of the image.
+/// * `seeds` - The index of the seed of each new segment, row by row.
+/// * `centroids` - The centroid of each segment.
+/// * `labels` - The segment of each pixel, or `None` if it has not joined one yet.
+fn grow_segments(
+    points: &[Point<5>],
+    size: Size,
+    seeds: impl IntoIterator<Item = usize>,
+    centroids: &mut Vec<Centroid<5>>,
+    labels: &mut [Option<SegmentId>],
+) {
+    let mut queue = BinaryHeap::new();
+    for index in seeds {
+        let segment = centroids.len() as u32;
+        centroids.push(Centroid::default());
+        add_pixel(index, segment, points, size, &mut queue, centroids, labels);
+    }
+    while let Some(Candidate { index, segment, .. }) = queue.pop() {
+        let index = index as usize;
+        if labels[index].is_some() {
+            continue;
+        }
+        add_pixel(index, segment, points, size, &mut queue, centroids, labels);
+    }
+}
+
+/// Adds a pixel to a segment, queuing its neighbors that have not joined one.
+///
+/// # Arguments
+/// * `index` - The index of the pixel, row by row.
+/// * `segment` - The segment to add the pixel to.
 /// * `points` - The point of each pixel, with positions scaled.
 /// * `size` - The size of the image.
 /// * `queue` - The pixels waiting to join a segment.
 /// * `centroids` - The centroid of each segment.
 /// * `labels` - The segment of each pixel, or `None` if it has not joined one yet.
-fn grow_segments(
-    points: &[Point],
+fn add_pixel(
+    index: usize,
+    segment: u32,
+    points: &[Point<5>],
     size: Size,
     queue: &mut BinaryHeap<Candidate>,
-    centroids: &mut [Centroid],
+    centroids: &mut [Centroid<5>],
     labels: &mut [Option<SegmentId>],
 ) {
-    while let Some(Reverse((_, index, segment))) = queue.pop() {
-        let index = index as usize;
-        if labels[index].is_some() {
+    labels[index] = Some(SegmentId::new(segment));
+    let centroid = &mut centroids[segment as usize];
+    centroid.add(points[index]);
+    let center = centroid
+        .point()
+        .expect("a segment grows only from opaque pixels");
+    for neighbor in neighbors(index, size) {
+        let point = points[neighbor];
+        if labels[neighbor].is_some() || point.is_weightless() {
             continue;
         }
-        labels[index] = Some(SegmentId::new(segment));
-        let centroid = &mut centroids[segment as usize];
-        centroid.add(points[index]);
-        let center = centroid
-            .point()
-            .expect("a segment grows only from opaque pixels");
-        for neighbor in neighbors(index, size) {
-            let point = points[neighbor];
-            if labels[neighbor].is_some() || point.is_weightless() {
-                continue;
-            }
-            let distance = center.distance(point, DistanceMetric::SquaredEuclidean);
-            // Non-negative floats order the same as their bits. Adding 1 puts candidates behind
-            // the seeds, whose key is 0, even at distance 0.
-            queue.push(Reverse((distance.to_bits() + 1, neighbor as u32, segment)));
-        }
+        let distance = center.distance(point, DistanceMetric::SquaredEuclidean);
+        queue.push(Candidate {
+            index: neighbor as u32,
+            segment,
+            distance,
+        });
     }
 }
 
@@ -186,6 +195,43 @@ fn neighbors(index: usize, size: Size) -> impl Iterator<Item = usize> {
     .into_iter()
     .flatten()
 }
+
+/// A pixel waiting to join a segment, the closest first in a heap.
+#[derive(Debug, Clone, Copy)]
+struct Candidate {
+    /// The index of the pixel, row by row.
+    index: u32,
+    /// The segment to join.
+    segment: u32,
+    /// The squared distance to the centroid of the segment.
+    distance: f64,
+}
+
+impl Ord for Candidate {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // In priority order, not field order: the closest pixel first, ties to the lowest index.
+        // Non-negative floats sort like their bits, which compare faster.
+        (other.distance.to_bits(), other.index, other.segment).cmp(&(
+            self.distance.to_bits(),
+            self.index,
+            self.segment,
+        ))
+    }
+}
+
+impl PartialOrd for Candidate {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Candidate {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl Eq for Candidate {}
 
 #[cfg(test)]
 mod tests {
@@ -324,5 +370,42 @@ mod tests {
 
         // Assert
         assert_eq!(actual, expected);
+    }
+
+    /// Creates a candidate of a pixel.
+    fn candidate(index: u32, segment: u32, distance: f64) -> Candidate {
+        Candidate {
+            index,
+            segment,
+            distance,
+        }
+    }
+
+    #[test]
+    fn test_candidates_pop_closest_first() {
+        // Arrange
+        let mut queue = BinaryHeap::from([candidate(0, 0, 0.2), candidate(1, 0, 0.1)]);
+
+        // Act
+        let actual = queue.pop().unwrap();
+
+        // Assert
+        assert_eq!(actual, candidate(1, 0, 0.1));
+    }
+
+    #[test]
+    fn test_candidates_pop_lowest_index_then_segment_on_tie() {
+        // Arrange
+        let mut queue = BinaryHeap::from([
+            candidate(2, 0, 0.1),
+            candidate(1, 1, 0.1),
+            candidate(1, 0, 0.1),
+        ]);
+
+        // Act
+        let actual = queue.pop().unwrap();
+
+        // Assert
+        assert_eq!(actual, candidate(1, 0, 0.1));
     }
 }
