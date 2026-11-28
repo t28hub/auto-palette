@@ -18,9 +18,6 @@ impl Agglomerative {
     /// The threshold of the first pass relative to the threshold, which only saves time.
     const FIRST_PASS_RATIO: f64 = 0.125;
 
-    /// The smallest threshold, so that cube positions stay exact for coordinates within ±10⁶.
-    const MIN_THRESHOLD: f64 = 1e-9;
-
     /// Creates agglomerative clustering with the given options.
     ///
     /// # Arguments
@@ -28,7 +25,7 @@ impl Agglomerative {
     /// * `threshold` - The distance at or above which two clusters stay apart.
     ///
     /// # Returns
-    /// Agglomerative clustering, or `None` if `threshold` is below `MIN_THRESHOLD` or not finite.
+    /// Agglomerative clustering, or `None` if `threshold` is not a positive normal number.
     #[cfg_attr(
         not(test),
         expect(
@@ -37,7 +34,7 @@ impl Agglomerative {
         )
     )]
     pub(crate) fn new(linkage: Linkage, threshold: f64) -> Option<Self> {
-        if !threshold.is_finite() || threshold < Self::MIN_THRESHOLD {
+        if !threshold.is_normal() || threshold < 0.0 {
             return None;
         }
         Some(Self { linkage, threshold })
@@ -46,21 +43,17 @@ impl Agglomerative {
     /// Clusters points closer than the threshold.
     ///
     /// # Arguments
-    /// * `points` - The points to cluster.
+    /// * `points` - The points to cluster, in a low dimension.
     ///
     /// # Returns
     /// The clusters, in the order of their first point. Weightless points belong to none.
-    pub(crate) fn cluster(&self, points: &[Point<3>]) -> Vec<Cluster> {
+    pub(crate) fn cluster<const N: usize>(&self, points: &[Point<N>]) -> Vec<Cluster> {
         // Merging duplicates and close pairs first is what the textbook does first, only faster.
         let nodes = merge_duplicates(points);
-        let nodes = self
-            .linkage
-            .merge(nodes, self.threshold * Self::FIRST_PASS_RATIO);
-        self.linkage
-            .merge(nodes, self.threshold)
-            .into_iter()
-            .map(Node::into_cluster)
-            .collect()
+        let first_threshold = self.threshold * Self::FIRST_PASS_RATIO;
+        let nodes = self.linkage.merge(nodes, first_threshold);
+        let nodes = self.linkage.merge(nodes, self.threshold);
+        nodes.into_iter().map(Node::into_cluster).collect()
     }
 }
 
@@ -71,15 +64,23 @@ impl Agglomerative {
 ///
 /// # Returns
 /// The nodes of the points with weight, in the order of their first point.
-fn merge_duplicates(points: &[Point<3>]) -> Vec<Node> {
-    let mut vectors: FxHashMap<[u64; 3], usize> = FxHashMap::default();
-    let mut nodes: Vec<Node> = Vec::new();
+fn merge_duplicates<const N: usize>(points: &[Point<N>]) -> Vec<Node<N>> {
+    let mut indices: FxHashMap<[u64; N], usize> = FxHashMap::default();
+    let mut nodes: Vec<Node<N>> = Vec::new();
     for (index, &point) in points.iter().enumerate() {
         if point.is_weightless() {
             continue;
         }
-        match vectors.entry(point.vector().0.map(f64::to_bits)) {
-            Entry::Occupied(entry) => nodes[*entry.get()].add_duplicate(index, point),
+
+        let coordinates = point.vector().0;
+        let bits = coordinates.map(f64::to_bits);
+        match indices.entry(bits) {
+            // Another point at the same coordinates came first, so this one joins its node.
+            Entry::Occupied(entry) => {
+                let node = &mut nodes[*entry.get()];
+                node.add_point(index, point);
+            }
+            // The first point at these coordinates starts a node of its own.
             Entry::Vacant(entry) => {
                 entry.insert(nodes.len());
                 nodes.push(Node::of_point(index, point));
@@ -91,11 +92,13 @@ fn merge_duplicates(points: &[Point<3>]) -> Vec<Node> {
 
 #[cfg(test)]
 mod tests {
+    use std::array;
+
     use rstest::rstest;
 
     use super::*;
     use crate::next::{
-        extraction::clustering::random::SplitMix64,
+        extraction::{centroid::Centroid, clustering::random::SplitMix64},
         math::{DistanceMetric, Vector},
     };
 
@@ -119,7 +122,7 @@ mod tests {
         let mut random = SplitMix64::new(7);
         (0..count)
             .map(|_| {
-                let vector = Vector([(); 3].map(|()| 0.05 * random.next_f64()));
+                let vector = Vector(array::from_fn(|_| 0.05 * random.next_f64()));
                 Point::of_vector(vector, 0.5 + random.next_f64())
             })
             .collect()
@@ -127,52 +130,82 @@ mod tests {
 
     /// Clusters points the textbook way, comparing every pair of clusters before each merge.
     fn cluster_naively(linkage: Linkage, points: &[Point<3>], threshold: f64) -> Vec<Cluster> {
-        let mean = |members: &[usize]| {
-            let mut sum = Vector::default();
-            let mut weight = 0.0;
-            for &index in members {
-                sum += points[index].vector() * points[index].weight();
-                weight += points[index].weight();
-            }
-            sum / weight
-        };
-        let measure = |first: &[usize], second: &[usize]| match linkage {
-            Linkage::Complete => first
-                .iter()
-                .flat_map(|&i| second.iter().map(move |&j| (i, j)))
-                .map(|(i, j)| points[i].distance(points[j], DistanceMetric::Euclidean))
-                .fold(0.0, f64::max),
-            Linkage::Centroid => mean(first).distance(mean(second), DistanceMetric::Euclidean),
-        };
         let mut clusters: Vec<Vec<usize>> = (0..points.len()).map(|index| vec![index]).collect();
-        loop {
-            let mut closest: Option<(f64, usize, usize)> = None;
-            for first in 0..clusters.len() {
-                for second in first + 1..clusters.len() {
-                    let distance = measure(&clusters[first], &clusters[second]);
-                    let closer = closest.is_none_or(|(smallest, _, _)| distance < smallest);
-                    if distance < threshold && closer {
-                        closest = Some((distance, first, second));
-                    }
+        while merge_closest_naively(linkage, points, threshold, &mut clusters) {}
+        clusters.into_iter().map(Cluster::new).collect()
+    }
+
+    /// Merges the closest pair of clusters, if it is under the threshold.
+    fn merge_closest_naively(
+        linkage: Linkage,
+        points: &[Point<3>],
+        threshold: f64,
+        clusters: &mut Vec<Vec<usize>>,
+    ) -> bool {
+        // The closest pair under the threshold, the first one on a tie.
+        let mut smallest = threshold;
+        let mut lower = 0;
+        let mut upper = 0;
+        for first in 0..clusters.len() {
+            for second in first + 1..clusters.len() {
+                let distance =
+                    measure_naively(linkage, points, &clusters[first], &clusters[second]);
+                if distance < smallest {
+                    smallest = distance;
+                    lower = first;
+                    upper = second;
                 }
             }
-            let Some((_, first, second)) = closest else {
-                break;
-            };
-            let merged = clusters.remove(second);
-            clusters[first].extend(merged);
         }
-        clusters
-            .into_iter()
-            .map(|mut members| {
-                members.sort_unstable();
-                Cluster::new(members)
-            })
-            .collect()
+        if smallest >= threshold {
+            return false;
+        }
+
+        let merged = clusters.remove(upper);
+        clusters[lower].extend(merged);
+        clusters[lower].sort_unstable();
+        true
+    }
+
+    /// Measures the distance between two clusters the textbook way.
+    fn measure_naively(
+        linkage: Linkage,
+        points: &[Point<3>],
+        first: &[usize],
+        second: &[usize],
+    ) -> f64 {
+        match linkage {
+            Linkage::Complete => {
+                let mut farthest: f64 = 0.0;
+                for &member in first {
+                    for &other in second {
+                        let distance =
+                            points[member].distance(points[other], DistanceMetric::Euclidean);
+                        farthest = farthest.max(distance);
+                    }
+                }
+                farthest
+            }
+            Linkage::Centroid => {
+                let first_mean = find_mean(points, first);
+                let second_mean = find_mean(points, second);
+                first_mean.distance(second_mean, DistanceMetric::Euclidean)
+            }
+        }
+    }
+
+    /// Finds the weighted mean of some points.
+    fn find_mean(points: &[Point<3>], members: &[usize]) -> Vector<3> {
+        let mut centroid = Centroid::default();
+        for &member in members {
+            centroid.add(points[member]);
+        }
+        let mean = centroid.point().expect("a cluster has weight");
+        mean.vector()
     }
 
     #[rstest]
-    #[case::minimum(Agglomerative::MIN_THRESHOLD)]
+    #[case::tiny(1e-300)]
     #[case::small(0.02)]
     #[case::large(1.0)]
     fn test_new_accepts_threshold(#[case] threshold: f64) {
@@ -185,8 +218,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case::below_minimum(1e-20)]
     #[case::zero(0.0)]
+    #[case::subnormal(1e-310)]
     #[case::negative(-0.02)]
     #[case::nan(f64::NAN)]
     #[case::infinity(f64::INFINITY)]
@@ -302,18 +335,50 @@ mod tests {
     #[rstest]
     #[case::complete(Linkage::Complete)]
     #[case::centroid(Linkage::Centroid)]
-    fn test_cluster_keeps_distant_points_apart_at_minimum_threshold(#[case] linkage: Linkage) {
+    fn test_cluster_keeps_points_far_from_origin_apart(#[case] linkage: Linkage) {
         // Arrange
         let points = [
-            point(0.1), // 1st cluster
-            point(0.9), // 2nd cluster
+            point(2e9), // 1st cluster
+            point(0.0), // 2nd cluster
         ];
 
         // Act
-        let actual = agglomerative(linkage, Agglomerative::MIN_THRESHOLD).cluster(&points);
+        let actual = agglomerative(linkage, 1e-9).cluster(&points);
 
         // Assert
         assert_eq!(actual, [Cluster::new(vec![0]), Cluster::new(vec![1])]);
+    }
+
+    #[rstest]
+    #[case::complete(Linkage::Complete)]
+    #[case::centroid(Linkage::Centroid)]
+    fn test_cluster_groups_neighbors_far_from_origin(#[case] linkage: Linkage) {
+        // Arrange
+        let points = [point(2e9), point(2e9_f64.next_up())];
+
+        // Act
+        let actual = agglomerative(linkage, 1e-6).cluster(&points);
+
+        // Assert
+        assert_eq!(actual, [Cluster::new(vec![0, 1])]);
+    }
+
+    #[rstest]
+    #[case::complete(Linkage::Complete)]
+    #[case::centroid(Linkage::Centroid)]
+    fn test_cluster_groups_points_in_two_dimensions(#[case] linkage: Linkage) {
+        // Arrange
+        let points = [
+            Point::of_vector(Vector([0.0, 0.0]), 1.0),   // 1st cluster
+            Point::of_vector(Vector([0.03, 0.03]), 1.0), // 1st cluster
+            Point::of_vector(Vector([0.5, 0.5]), 1.0),   // 2nd cluster
+        ];
+
+        // Act
+        let actual = agglomerative(linkage, 0.1).cluster(&points);
+
+        // Assert
+        assert_eq!(actual, [Cluster::new(vec![0, 1]), Cluster::new(vec![2])]);
     }
 
     #[rstest]
@@ -388,7 +453,7 @@ mod tests {
     #[case::centroid(Linkage::Centroid)]
     fn test_cluster_returns_no_clusters_without_points(#[case] linkage: Linkage) {
         // Act
-        let actual = agglomerative(linkage, 0.1).cluster(&[]);
+        let actual = agglomerative(linkage, 0.1).cluster::<3>(&[]);
 
         // Assert
         assert!(actual.is_empty());

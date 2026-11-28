@@ -39,7 +39,7 @@ impl ClusteringAlgorithm {
             reason = "called by the candidates, which are not implemented yet"
         )
     )]
-    pub(crate) fn cluster(&self, points: &[Point<3>]) -> Vec<Cluster> {
+    pub(crate) fn cluster<const N: usize>(&self, points: &[Point<N>]) -> Vec<Cluster> {
         match self {
             Self::Agglomerative(agglomerative) => agglomerative.cluster(points),
             Self::KMeans(kmeans) => kmeans.cluster(points),
@@ -59,11 +59,11 @@ mod tests {
         math::Vector,
     };
 
-    /// Two points a unit apart.
-    fn points() -> [Point<3>; 2] {
+    /// Two points a unit apart, in five dimensions.
+    fn points() -> [Point<5>; 2] {
         [
-            Point::of_vector(Vector([0.0, 0.0, 0.0]), 1.0),
-            Point::of_vector(Vector([1.0, 0.0, 0.0]), 1.0),
+            Point::of_vector(Vector([0.0; 5]), 1.0),
+            Point::of_vector(Vector([1.0, 0.0, 0.0, 0.0, 0.0]), 1.0),
         ]
     }
 

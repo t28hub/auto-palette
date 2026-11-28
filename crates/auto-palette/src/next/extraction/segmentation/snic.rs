@@ -166,10 +166,11 @@ fn add_pixel(
         if labels[neighbor].is_some() || point.is_weightless() {
             continue;
         }
+        let distance = center.distance(point, DistanceMetric::SquaredEuclidean);
         queue.push(Candidate {
-            distance: center.distance(point, DistanceMetric::SquaredEuclidean),
             index: neighbor as u32,
             segment,
+            distance,
         });
     }
 }
@@ -198,17 +199,18 @@ fn neighbors(index: usize, size: Size) -> impl Iterator<Item = usize> {
 /// A pixel waiting to join a segment, the closest first in a heap.
 #[derive(Debug, Clone, Copy)]
 struct Candidate {
-    /// The squared distance to the centroid of the segment.
-    distance: f64,
     /// The index of the pixel, row by row.
     index: u32,
     /// The segment to join.
     segment: u32,
+    /// The squared distance to the centroid of the segment.
+    distance: f64,
 }
 
 impl Ord for Candidate {
     fn cmp(&self, other: &Self) -> Ordering {
-        // Closest pixel first, ties to the lowest index. Bits sort like these floats, but faster.
+        // In priority order, not field order: the closest pixel first, ties to the lowest index.
+        // Non-negative floats sort like their bits, which compare faster.
         (other.distance.to_bits(), other.index, other.segment).cmp(&(
             self.distance.to_bits(),
             self.index,
@@ -371,39 +373,39 @@ mod tests {
     }
 
     /// Creates a candidate of a pixel.
-    fn candidate(distance: f64, index: u32, segment: u32) -> Candidate {
+    fn candidate(index: u32, segment: u32, distance: f64) -> Candidate {
         Candidate {
-            distance,
             index,
             segment,
+            distance,
         }
     }
 
     #[test]
     fn test_candidates_pop_closest_first() {
         // Arrange
-        let mut queue = BinaryHeap::from([candidate(0.2, 0, 0), candidate(0.1, 1, 0)]);
+        let mut queue = BinaryHeap::from([candidate(0, 0, 0.2), candidate(1, 0, 0.1)]);
 
         // Act
         let actual = queue.pop().unwrap();
 
         // Assert
-        assert_eq!(actual, candidate(0.1, 1, 0));
+        assert_eq!(actual, candidate(1, 0, 0.1));
     }
 
     #[test]
     fn test_candidates_pop_lowest_index_then_segment_on_tie() {
         // Arrange
         let mut queue = BinaryHeap::from([
-            candidate(0.1, 2, 0),
-            candidate(0.1, 1, 1),
-            candidate(0.1, 1, 0),
+            candidate(2, 0, 0.1),
+            candidate(1, 1, 0.1),
+            candidate(1, 0, 0.1),
         ]);
 
         // Act
         let actual = queue.pop().unwrap();
 
         // Assert
-        assert_eq!(actual, candidate(0.1, 1, 0));
+        assert_eq!(actual, candidate(1, 0, 0.1));
     }
 }

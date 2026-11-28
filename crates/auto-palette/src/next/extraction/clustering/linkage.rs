@@ -31,7 +31,7 @@ impl Linkage {
     ///
     /// # Returns
     /// The merged nodes, in the order of their first point.
-    pub(super) fn merge(self, nodes: Vec<Node>, threshold: f64) -> Vec<Node> {
+    pub(super) fn merge<const N: usize>(self, nodes: Vec<Node<N>>, threshold: f64) -> Vec<Node<N>> {
         match self {
             Self::Complete => merge_by_complete_linkage(nodes, threshold),
             Self::Centroid => merge_by_centroid_linkage(nodes, threshold),
@@ -47,24 +47,27 @@ impl Linkage {
 ///
 /// # Returns
 /// The merged nodes, in the order of their first point.
-fn merge_by_complete_linkage(nodes: Vec<Node>, threshold: f64) -> Vec<Node> {
+fn merge_by_complete_linkage<const N: usize>(nodes: Vec<Node<N>>, threshold: f64) -> Vec<Node<N>> {
     // Keeps only pairs under the threshold: complete linkage never shrinks a distance.
     let mut neighbors = find_neighbors(&nodes, threshold);
-    let mut pairs: BinaryHeap<Pair> = neighbors
-        .iter()
-        .enumerate()
-        .flat_map(|(index, near)| {
-            near.iter()
-                .filter(move |&(&other, _)| index < other)
-                .map(move |(&other, &distance)| Pair::new(distance, index, other))
-        })
-        .collect();
-    let mut nodes: Vec<Option<Node>> = nodes.into_iter().map(Some).collect();
+    let mut pairs = BinaryHeap::new();
+    for (index, near) in neighbors.iter().enumerate() {
+        for (&other, &distance) in near {
+            // Each pair is in the neighbors of both nodes, so only the lower index pushes it.
+            if other < index {
+                continue;
+            }
+            pairs.push(Pair::new(index, other, distance));
+        }
+    }
+    let mut nodes: Vec<Option<Node<N>>> = nodes.into_iter().map(Some).collect();
 
     while let Some(pair) = pairs.pop() {
-        let (lower, upper) = (pair.lower as usize, pair.upper as usize);
-        // Skips a pair made stale by a later merge.
-        if neighbors[lower].get(&upper) != Some(&pair.distance) {
+        let lower = pair.lower as usize;
+        let upper = pair.upper as usize;
+        let current_distance = neighbors[lower].get(&upper);
+        let stale = current_distance != Some(&pair.distance);
+        if stale {
             continue;
         }
         merge_pair(&mut nodes, lower, upper);
@@ -87,7 +90,7 @@ fn merge_by_complete_linkage(nodes: Vec<Node>, threshold: f64) -> Vec<Node> {
             }
             *distance = through_upper;
             neighbors[other].insert(lower, through_upper);
-            pairs.push(Pair::new(through_upper, lower, other));
+            pairs.push(Pair::new(lower, other, through_upper));
             true
         });
         neighbors[lower] = near_lower;
@@ -104,9 +107,10 @@ fn merge_by_complete_linkage(nodes: Vec<Node>, threshold: f64) -> Vec<Node> {
 ///
 /// # Returns
 /// The neighbors of each node, with the largest distance between their points.
-fn find_neighbors(nodes: &[Node], threshold: f64) -> Vec<FxHashMap<usize, f64>> {
+fn find_neighbors<const N: usize>(nodes: &[Node<N>], threshold: f64) -> Vec<FxHashMap<usize, f64>> {
     let mut neighbors = vec![FxHashMap::default(); nodes.len()];
-    let mut grid = Grid::new(threshold);
+    let first_vectors = nodes.iter().map(|node| node.vectors()[0]);
+    let mut grid = Grid::new(threshold, first_vectors);
     for (index, node) in nodes.iter().enumerate() {
         // The first vectors of two neighbors are closer than the threshold, like all their vectors.
         let first_vector = node.vectors()[0];
@@ -130,11 +134,11 @@ fn find_neighbors(nodes: &[Node], threshold: f64) -> Vec<FxHashMap<usize, f64>> 
 ///
 /// # Returns
 /// The largest distance, or `None` if a pair of points is at least `limit` apart.
-fn measure_farthest(first: &Node, second: &Node, limit: f64) -> Option<f64> {
+fn measure_farthest<const N: usize>(first: &Node<N>, second: &Node<N>, limit: f64) -> Option<f64> {
     let mut farthest: f64 = 0.0;
     for &first_vector in first.vectors() {
         for &second_vector in second.vectors() {
-            let distance = measure(first_vector, second_vector);
+            let distance = first_vector.distance(second_vector, DistanceMetric::Euclidean);
             if distance >= limit {
                 return None;
             }
@@ -152,22 +156,25 @@ fn measure_farthest(first: &Node, second: &Node, limit: f64) -> Option<f64> {
 ///
 /// # Returns
 /// The merged nodes, in the order of their first point.
-fn merge_by_centroid_linkage(nodes: Vec<Node>, threshold: f64) -> Vec<Node> {
-    let mut means: Vec<Vector<3>> = nodes.iter().map(Node::mean).collect();
-    let mut nodes: Vec<Option<Node>> = nodes.into_iter().map(Some).collect();
-    let mut grid = Grid::new(threshold);
+fn merge_by_centroid_linkage<const N: usize>(nodes: Vec<Node<N>>, threshold: f64) -> Vec<Node<N>> {
+    let mut means: Vec<Vector<N>> = nodes.iter().map(Node::mean).collect();
+    let mut nodes: Vec<Option<Node<N>>> = nodes.into_iter().map(Some).collect();
+    // Merged means stay within the range of these, as each is a weighted mean of them.
+    let mut grid = Grid::new(threshold, means.iter().copied());
     let mut pairs = BinaryHeap::new();
     for index in 0..nodes.len() {
         insert_mean(index, &means, threshold, &mut grid, &mut pairs);
     }
 
     while let Some(pair) = pairs.pop() {
-        let (lower, upper) = (pair.lower as usize, pair.upper as usize);
+        let lower = pair.lower as usize;
+        let upper = pair.upper as usize;
         let merged_away = nodes[lower].is_none() || nodes[upper].is_none();
         if merged_away {
             continue;
         }
-        let moved = measure(means[lower], means[upper]) != pair.distance;
+        let current_distance = means[lower].distance(means[upper], DistanceMetric::Euclidean);
+        let moved = current_distance != pair.distance;
         if moved {
             continue;
         }
@@ -190,17 +197,17 @@ fn merge_by_centroid_linkage(nodes: Vec<Node>, threshold: f64) -> Vec<Node> {
 /// * `threshold` - The distance at or above which two nodes stay apart.
 /// * `grid` - The means inserted so far.
 /// * `pairs` - The pairs to push to.
-fn insert_mean(
+fn insert_mean<const N: usize>(
     index: usize,
-    means: &[Vector<3>],
+    means: &[Vector<N>],
     threshold: f64,
-    grid: &mut Grid,
+    grid: &mut Grid<N>,
     pairs: &mut BinaryHeap<Pair>,
 ) {
     for other in grid.find_near(means[index]) {
-        let distance = measure(means[index], means[other]);
+        let distance = means[index].distance(means[other], DistanceMetric::Euclidean);
         if distance < threshold {
-            pairs.push(Pair::new(distance, index, other));
+            pairs.push(Pair::new(index, other, distance));
         }
     }
     grid.insert(index, means[index]);
@@ -215,7 +222,11 @@ fn insert_mean(
 ///
 /// # Returns
 /// The merged node.
-fn merge_pair(nodes: &mut [Option<Node>], lower: usize, upper: usize) -> &Node {
+fn merge_pair<const N: usize>(
+    nodes: &mut [Option<Node<N>>],
+    lower: usize,
+    upper: usize,
+) -> &Node<N> {
     let merged = nodes[upper].take().expect("a pair has two nodes");
     let kept = nodes[lower].as_mut().expect("a pair has two nodes");
     kept.absorb(merged);
@@ -225,36 +236,37 @@ fn merge_pair(nodes: &mut [Option<Node>], lower: usize, upper: usize) -> &Node {
 /// A pair of nodes closer than the threshold, the closest first in a heap.
 #[derive(Debug, Clone, Copy)]
 struct Pair {
-    /// The distance between the nodes.
-    distance: f64,
     /// The index of the node to keep.
     lower: u32,
     /// The index of the node to merge away.
     upper: u32,
+    /// The distance between the nodes.
+    distance: f64,
 }
 
 impl Pair {
-    /// Pairs two nodes by their distance, the lower index first.
+    /// Pairs two nodes with their distance, the lower index first.
     ///
     /// # Arguments
-    /// * `distance` - The distance between the nodes.
     /// * `first` - The index of a node.
     /// * `second` - The index of the other node.
+    /// * `distance` - The distance between the nodes.
     ///
     /// # Returns
     /// The pair of the nodes.
-    fn new(distance: f64, first: usize, second: usize) -> Self {
+    fn new(first: usize, second: usize, distance: f64) -> Self {
         Self {
-            distance,
             lower: first.min(second) as u32,
             upper: first.max(second) as u32,
+            distance,
         }
     }
 }
 
 impl Ord for Pair {
     fn cmp(&self, other: &Self) -> Ordering {
-        // Closest pair first, ties to the lowest indices. Bits sort like these floats, but faster.
+        // In priority order, not field order: the closest pair first, ties to the lowest indices.
+        // Non-negative floats sort like their bits, which compare faster.
         (other.distance.to_bits(), other.lower, other.upper).cmp(&(
             self.distance.to_bits(),
             self.lower,
@@ -277,18 +289,6 @@ impl PartialEq for Pair {
 
 impl Eq for Pair {}
 
-/// Measures the distance between two vectors.
-///
-/// # Arguments
-/// * `first` - A vector.
-/// * `second` - The other vector.
-///
-/// # Returns
-/// The Euclidean distance between the vectors.
-fn measure(first: Vector<3>, second: Vector<3>) -> f64 {
-    first.distance(second, DistanceMetric::Euclidean)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -300,7 +300,7 @@ mod tests {
     }
 
     /// Creates a node of each point.
-    fn nodes(points: &[Point<3>]) -> Vec<Node> {
+    fn nodes(points: &[Point<3>]) -> Vec<Node<3>> {
         points
             .iter()
             .enumerate()
@@ -408,37 +408,38 @@ mod tests {
     #[test]
     fn test_pair_new_puts_lower_index_first() {
         // Act
-        let actual = Pair::new(0.1, 3, 1);
+        let actual = Pair::new(3, 1, 0.1);
 
         // Assert
-        assert_eq!((actual.lower, actual.upper), (1, 3));
+        assert_eq!(actual.lower, 1);
+        assert_eq!(actual.upper, 3);
     }
 
     #[test]
     fn test_pairs_pop_closest_first() {
         // Arrange
-        let mut pairs = BinaryHeap::from([Pair::new(0.2, 0, 1), Pair::new(0.1, 2, 3)]);
+        let mut pairs = BinaryHeap::from([Pair::new(0, 1, 0.2), Pair::new(2, 3, 0.1)]);
 
         // Act
         let actual = pairs.pop().unwrap();
 
         // Assert
-        assert_eq!(actual, Pair::new(0.1, 2, 3));
+        assert_eq!(actual, Pair::new(2, 3, 0.1));
     }
 
     #[test]
     fn test_pairs_pop_lowest_indices_first_on_tie() {
         // Arrange
         let mut pairs = BinaryHeap::from([
-            Pair::new(0.1, 1, 2),
-            Pair::new(0.1, 0, 2),
-            Pair::new(0.1, 0, 1),
+            Pair::new(1, 2, 0.1),
+            Pair::new(0, 2, 0.1),
+            Pair::new(0, 1, 0.1),
         ]);
 
         // Act
         let actual = pairs.pop().unwrap();
 
         // Assert
-        assert_eq!(actual, Pair::new(0.1, 0, 1));
+        assert_eq!(actual, Pair::new(0, 1, 0.1));
     }
 }

@@ -6,16 +6,16 @@ use crate::next::{
 
 /// A node of the merge hierarchy, with what the linkage measures.
 #[derive(Debug)]
-pub(super) struct Node {
+pub(super) struct Node<const N: usize> {
     /// The indices of the points.
     members: Vec<usize>,
     /// Each distinct vector of the points.
-    vectors: Vec<Vector<3>>,
+    vectors: Vec<Vector<N>>,
     /// The weighted mean of the points.
-    centroid: Centroid<3>,
+    centroid: Centroid<N>,
 }
 
-impl Node {
+impl<const N: usize> Node<N> {
     /// Creates the node of one point.
     ///
     /// # Arguments
@@ -24,7 +24,7 @@ impl Node {
     ///
     /// # Returns
     /// The node of the point alone.
-    pub(super) fn of_point(index: usize, point: Point<3>) -> Self {
+    pub(super) fn of_point(index: usize, point: Point<N>) -> Self {
         let mut centroid = Centroid::default();
         centroid.add(point);
         Self {
@@ -39,7 +39,7 @@ impl Node {
     /// # Arguments
     /// * `index` - The index of the point.
     /// * `point` - The point, with weight.
-    pub(super) fn add_duplicate(&mut self, index: usize, point: Point<3>) {
+    pub(super) fn add_point(&mut self, index: usize, point: Point<N>) {
         self.members.push(index);
         self.centroid.add(point);
     }
@@ -59,7 +59,7 @@ impl Node {
     /// # Returns
     /// The vectors, the vector of the first point first.
     #[inline]
-    pub(super) fn vectors(&self) -> &[Vector<3>] {
+    pub(super) fn vectors(&self) -> &[Vector<N>] {
         &self.vectors
     }
 
@@ -68,8 +68,9 @@ impl Node {
     /// # Returns
     /// The mean vector, weighted by the weights of the points.
     #[inline]
-    pub(super) fn mean(&self) -> Vector<3> {
-        self.centroid.point().expect("a node has weight").vector()
+    pub(super) fn mean(&self) -> Vector<N> {
+        let mean = self.centroid.point().expect("a node has weight");
+        mean.vector()
     }
 
     /// Converts the node into a cluster, sorting its points.
@@ -93,25 +94,25 @@ mod tests {
     }
 
     #[test]
-    fn test_add_duplicate_adds_weight() {
+    fn test_add_point_adds_weight() {
         // Arrange
         let mut node = Node::of_point(0, point(0.2, 1.0));
         node.absorb(Node::of_point(1, point(0.4, 1.0)));
 
         // Act
-        node.add_duplicate(2, point(0.2, 2.0));
+        node.add_point(2, point(0.2, 2.0));
 
         // Assert
         assert_approx_eq!(node.mean().0[0], 0.25);
     }
 
     #[test]
-    fn test_add_duplicate_keeps_vectors_distinct() {
+    fn test_add_point_keeps_vectors_distinct() {
         // Arrange
         let mut node = Node::of_point(0, point(0.2, 1.0));
 
         // Act
-        node.add_duplicate(1, point(0.2, 1.0));
+        node.add_point(1, point(0.2, 1.0));
 
         // Assert
         assert_eq!(node.vectors(), [Vector([0.2, 0.0, 0.0])]);
@@ -120,7 +121,7 @@ mod tests {
     #[test]
     fn test_mean_weighs_points() {
         // Arrange
-        let mut node = Node::of_point(0, Point::of_vector(Vector([0.2, 0.0, 0.0]), 0.25));
+        let mut node = Node::of_point(0, point(0.2, 0.25));
         node.absorb(Node::of_point(
             1,
             Point::of_vector(Vector([0.6, 0.4, 0.0]), 0.75),
